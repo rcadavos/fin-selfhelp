@@ -23,6 +23,7 @@ export type ExpenseEntryRow = {
   id: string;
   category_id: ExpenseCategoryKey;
   amount: number;
+  note?: string | null;
 };
 
 export type ExpenseData = {
@@ -44,7 +45,7 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
 
   const { data: entries } = await supabase
     .from("expense_entries")
-    .select("id, category_id, amount")
+    .select("id, category_id, amount, note")
     .eq("profile_id", profile.id)
     .order("created_at", { ascending: true });
 
@@ -54,6 +55,7 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
       id: row.id,
       category_id: row.category_id as ExpenseCategoryKey,
       amount: Number(row.amount),
+      note: row.note ?? undefined,
     })),
   };
 }
@@ -120,7 +122,11 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
   return {};
 }
 
-export async function addExpense(categoryId: ExpenseCategoryKey, amount: number): Promise<{ error?: string }> {
+export async function addExpense(
+  categoryId: ExpenseCategoryKey,
+  amount: number,
+  note?: string | null
+): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
@@ -141,8 +147,44 @@ export async function addExpense(categoryId: ExpenseCategoryKey, amount: number)
   if (amount <= 0) return { error: "Amount must be greater than 0." };
   const { error } = await supabase
     .from("expense_entries")
-    .insert({ profile_id: profile.id, category_id: categoryId, amount });
+    .insert({
+      profile_id: profile.id,
+      category_id: categoryId,
+      amount,
+      ...(note !== undefined && { note: note.trim() || null }),
+    });
   return error ? { error: error.message } : {};
+}
+
+export async function updateExpense(
+  entryId: string,
+  categoryId: ExpenseCategoryKey,
+  amount: number,
+  note?: string | null
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "Profile not found." };
+  if (amount <= 0) return { error: "Amount must be greater than 0." };
+  const { error } = await supabase
+    .from("expense_entries")
+    .update({
+      category_id: categoryId,
+      amount,
+      ...(note !== undefined && { note: note || null }),
+    })
+    .eq("id", entryId)
+    .eq("profile_id", profile.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/");
+  return {};
 }
 
 export async function deleteExpense(entryId: string): Promise<{ error?: string }> {
@@ -160,7 +202,10 @@ export async function deleteExpense(entryId: string): Promise<{ error?: string }
     .delete()
     .eq("id", entryId)
     .eq("profile_id", profile.id);
-  return error ? { error: error.message } : {};
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/");
+  return {};
 }
 
 export async function saveBudget(state: BudgetState): Promise<{ error?: string }> {

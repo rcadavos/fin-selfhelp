@@ -60,7 +60,7 @@ export function NetTakeHomeBar() {
             : null;
 
   return (
-    <div className="flex w-full items-center justify-between gap-4 border-b bg-muted/30 px-4 py-2 sm:px-6">
+    <div className="sticky top-14 z-40 flex w-full items-center justify-between gap-4 border-b bg-muted/30 px-4 py-2 sm:px-6 backdrop-blur supports-[backdrop-filter]:bg-muted/50">
       <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">
           {netTakeHome != null ? (

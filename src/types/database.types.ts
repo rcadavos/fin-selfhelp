@@ -18,6 +18,7 @@ export type ExpenseCategoryKey =
   | "health"
   | "education"
   | "personal"
+  | "credit_card"
   | "other";
 
 export type ExpenseCategory = {
@@ -38,6 +39,7 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { id: "health", label: "Health & medical" },
   { id: "education", label: "Education" },
   { id: "personal", label: "Personal & grooming" },
+  { id: "credit_card", label: "Credit card" },
   { id: "other", label: "Other" },
 ];
 

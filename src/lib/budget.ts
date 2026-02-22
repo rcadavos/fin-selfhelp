@@ -17,6 +17,7 @@ const INITIAL_EXPENSES: Record<ExpenseCategoryKey, number> = {
   health: 0,
   education: 0,
   personal: 0,
+  credit_card: 0,
   other: 0,
 };
 
