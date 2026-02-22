@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/actions/auth";
+import { signIn, signInWithOtp } from "@/actions/auth";
 import { useFormStatus } from "react-dom";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -19,14 +21,27 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
 }
 
 export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const { showError, showSuccess } = useSnackbar();
+  const [otpPending, setOtpPending] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
-    setError(null);
-    setMessage(null);
+  useEffect(() => {
+    if (searchParams.get("reset") === "success") {
+      showSuccess("Password updated. You can log in now.");
+    }
+  }, [searchParams, showSuccess]);
+
+  async function handlePasswordSubmit(formData: FormData) {
     const result = await signIn(formData);
-    if (result?.error) setError(result.error);
+    if (result?.error) showError(result.error);
+  }
+
+  async function handleOtpSubmit(formData: FormData) {
+    setOtpPending(true);
+    const result = await signInWithOtp(formData);
+    setOtpPending(false);
+    if (result?.error) showError(result.error);
+    if (result?.message) showSuccess(result.message);
   }
 
   return (
@@ -38,18 +53,9 @@ export default function LoginPage() {
             Sign in to save and load your budget data.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          {message && (
-            <p className="rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
-              {message}
-            </p>
-          )}
-          <form action={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Password login */}
+          <form action={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -62,7 +68,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 name="password"
@@ -71,8 +85,45 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-            <SubmitButton>Log in</SubmitButton>
+            <SubmitButton>Log in with password</SubmitButton>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          {/* One-time password (magic link) */}
+          <form action={handleOtpSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="otp-email">One-time sign-in link</Label>
+              <Input
+                id="otp-email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                disabled={otpPending}
+              />
+              <p className="text-xs text-muted-foreground">
+                We’ll send a one-time link to this email. No password needed.
+              </p>
+            </div>
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full"
+              disabled={otpPending}
+            >
+              {otpPending ? "Sending link…" : "Send one-time sign-in link"}
+            </Button>
+          </form>
+
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="font-medium text-primary underline-offset-4 hover:underline">

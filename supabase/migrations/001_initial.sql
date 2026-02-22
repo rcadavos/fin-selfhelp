@@ -20,8 +20,8 @@ create table if not exists public.expense_entries (
 );
 
 -- RLS (enable when using Supabase Auth)
--- alter table public.profiles enable row level policy;
--- alter table public.expense_entries enable row level policy;
+-- alter table public.profiles enable row level security;
+-- alter table public.expense_entries enable row level security;
 
 -- Optional: trigger to update updated_at
 create or replace function public.set_updated_at()

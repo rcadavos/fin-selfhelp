@@ -3,12 +3,12 @@
 import { useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-interface BudgetToolSectionProps {
+type BudgetToolSectionProps = {
   children: React.ReactNode;
   isActive: boolean;
   isLoggedIn?: boolean;
   className?: string;
-}
+};
 
 export function BudgetToolSection({
   children,

@@ -15,14 +15,14 @@ import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { ExpenseCategoryTable } from "./expense-category-table";
 
-interface BudgetStatusCardProps {
+type BudgetStatusCardProps = {
   summary: BudgetSummary;
   onReset: () => void;
   onSave?: () => void;
   saveStatus?: "idle" | "saving" | "saved" | "error";
   saveError?: string | null;
   className?: string;
-}
+};
 
 export function BudgetStatusCard({
   summary,

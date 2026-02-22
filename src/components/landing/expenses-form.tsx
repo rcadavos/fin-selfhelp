@@ -15,7 +15,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { ExpenseCategoryKey } from "@/types/database.types";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 
-interface ExpensesFormProps {
+type ExpensesFormProps = {
   expenses: Record<ExpenseCategoryKey, number>;
   onExpenseChange: (category: ExpenseCategoryKey, value: number) => void;
   onBack: () => void;
@@ -24,7 +24,7 @@ interface ExpensesFormProps {
   saveStatus?: "idle" | "saving" | "saved" | "error";
   saveError?: string | null;
   className?: string;
-}
+};
 
 function ExpensesFormInner({
   expenses,

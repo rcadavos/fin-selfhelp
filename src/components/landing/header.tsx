@@ -6,12 +6,11 @@ import { useUser } from "@/hooks/use-user";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
 
-interface HeaderProps {
-  onGetStarted: () => void;
+type HeaderProps = {
   className?: string;
-}
+};
 
-export function Header({ onGetStarted, className }: HeaderProps) {
+export function Header({ className }: HeaderProps) {
   const { user, loading } = useUser();
 
   return (
@@ -21,11 +20,11 @@ export function Header({ onGetStarted, className }: HeaderProps) {
         className
       )}
     >
-      <div className="container flex h-14 max-w-6xl items-center justify-between px-4">
+      <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link href="/" className="text-lg font-semibold">
           Self Help Finance
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="ml-auto flex items-center gap-4">
           <a
             href="#features"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -42,6 +41,9 @@ export function Header({ onGetStarted, className }: HeaderProps) {
             <>
               {user ? (
                 <div className="flex items-center gap-3">
+                  <Button size="sm" variant="ghost" asChild>
+                    <Link href="/dashboard">My budget</Link>
+                  </Button>
                   <span className="max-w-[140px] truncate text-sm text-muted-foreground sm:max-w-[200px]">
                     {user.email}
                   </span>
@@ -56,8 +58,8 @@ export function Header({ onGetStarted, className }: HeaderProps) {
                   <Button size="sm" variant="ghost" asChild>
                     <Link href="/login">Log in</Link>
                   </Button>
-                  <Button size="sm" onClick={onGetStarted}>
-                    Get started
+                  <Button size="sm" asChild>
+                    <Link href="/signup">Get started</Link>
                   </Button>
                 </>
               )}

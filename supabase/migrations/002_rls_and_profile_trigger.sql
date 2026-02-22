@@ -2,8 +2,8 @@
 create unique index if not exists profiles_user_id_key on public.profiles (user_id);
 
 -- Enable RLS
-alter table public.profiles enable row level policy;
-alter table public.expense_entries enable row level policy;
+alter table public.profiles enable row level security;
+alter table public.expense_entries enable row level security;
 
 -- Profiles: user can read/update only their own (by user_id)
 create policy "Users can view own profile"

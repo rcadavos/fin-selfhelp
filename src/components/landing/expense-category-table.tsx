@@ -16,16 +16,16 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
 
-export interface ExpenseCategoryRow {
+export type ExpenseCategoryRow = {
   categoryId: string;
   label: string;
   amount: number;
-}
+};
 
-interface ExpenseCategoryTableProps {
+type ExpenseCategoryTableProps = {
   data: ExpenseCategoryRow[];
   className?: string;
-}
+};
 
 const columns: ColumnDef<ExpenseCategoryRow>[] = [
   {

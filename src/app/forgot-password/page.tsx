@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { signUp } from "@/actions/auth";
+import { requestPasswordReset } from "@/actions/auth";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 
@@ -13,16 +13,16 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Creating account…" : children}
+      {pending ? "Sending…" : children}
     </Button>
   );
 }
 
-export default function SignUpPage() {
+export default function ForgotPasswordPage() {
   const { showError, showSuccess } = useSnackbar();
 
   async function handleSubmit(formData: FormData) {
-    const result = await signUp(formData);
+    const result = await requestPasswordReset(formData);
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);
   }
@@ -31,9 +31,9 @@ export default function SignUpPage() {
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create account</CardTitle>
+          <CardTitle className="text-2xl">Forgot password</CardTitle>
           <CardDescription>
-            Sign up to save your budget and access it from any device.
+            Enter your email and we’ll send you a link to reset your password.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -49,24 +49,11 @@ export default function SignUpPage() {
                 autoComplete="email"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                autoComplete="new-password"
-                placeholder="At least 6 characters"
-              />
-            </div>
-            <SubmitButton>Sign up</SubmitButton>
+            <SubmitButton>Send reset link</SubmitButton>
           </form>
           <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
             <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
-              Log in
+              Back to log in
             </Link>
           </p>
         </CardContent>

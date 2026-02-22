@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 
-interface IncomeFormProps {
+type IncomeFormProps = {
   netTakeHome: number;
   onNetTakeHomeChange: (value: number) => void;
   onNext: () => void;
@@ -15,7 +15,7 @@ interface IncomeFormProps {
   saveStatus?: "idle" | "saving" | "saved" | "error";
   saveError?: string | null;
   className?: string;
-}
+};
 
 export function IncomeForm({
   netTakeHome,

@@ -20,11 +20,11 @@ export type ExpenseCategoryKey =
   | "personal"
   | "other";
 
-export interface ExpenseCategory {
+export type ExpenseCategory = {
   id: ExpenseCategoryKey;
   label: string;
   description?: string;
-}
+};
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { id: "grocery", label: "Grocery" },
@@ -41,29 +41,29 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { id: "other", label: "Other" },
 ];
 
-export interface BudgetSummary {
+export type BudgetSummary = {
   netTakeHome: number;
   totalExpenses: number;
   balance: number;
   status: "overdraft" | "extra" | "break_even";
   byCategory: { categoryId: ExpenseCategoryKey; label: string; amount: number }[];
-}
+};
 
-export interface BudgetState {
+export type BudgetState = {
   netTakeHome: number;
   expenses: Record<ExpenseCategoryKey, number>;
-}
+};
 
-export interface DbProfile {
+export type DbProfile = {
   id: string;
   user_id: string;
   net_take_home: number;
   currency: string;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface DbExpenseEntry {
+export type DbExpenseEntry = {
   id: string;
   profile_id: string;
   category_id: ExpenseCategoryKey;
@@ -71,4 +71,4 @@ export interface DbExpenseEntry {
   note?: string;
   created_at: string;
   updated_at: string;
-}
+};

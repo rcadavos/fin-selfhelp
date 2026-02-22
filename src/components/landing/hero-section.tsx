@@ -1,12 +1,12 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface HeroSectionProps {
-  onGetStarted: () => void;
+type HeroSectionProps = {
   className?: string;
-}
+};
 
-export function HeroSection({ onGetStarted, className }: HeroSectionProps) {
+export function HeroSection({ className }: HeroSectionProps) {
   return (
     <section
       id="hero"
@@ -24,8 +24,8 @@ export function HeroSection({ onGetStarted, className }: HeroSectionProps) {
           at a glance whether you’re in the red or have money left over.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Button size="lg" onClick={onGetStarted} className="min-w-[180px]">
-            Start fixing your financial trouble
+          <Button size="lg" asChild className="min-w-[180px]">
+            <Link href="/signup">Start fixing your financial trouble</Link>
           </Button>
           <Button
             size="lg"
