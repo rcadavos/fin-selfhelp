@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { BudgetState, ExpenseCategoryKey, ReminderDay } from "@/types/database.types";
-import { EXPENSE_CATEGORIES, FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+import type { BudgetState, ReminderDay } from "@/types/database.types";
+import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+import { getExpenseCategories } from "@/actions/categories";
 
 export async function getNetTakeHome(): Promise<number | null> {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export async function getNetTakeHome(): Promise<number | null> {
 
 export type ExpenseEntryRow = {
   id: string;
-  category_id: ExpenseCategoryKey;
+  category_id: string;
   amount: number;
   note?: string | null;
   due_date?: string | null;
@@ -61,7 +62,7 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
     isSubscriber: hasProAccess,
     entries: (entries ?? []).map((row) => ({
       id: row.id,
-      category_id: row.category_id as ExpenseCategoryKey,
+      category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
       note: row.note ?? undefined,
       due_date: row.due_date ?? undefined,
@@ -73,14 +74,13 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
 export async function loadBudget(): Promise<BudgetState | null> {
   const data = await loadExpenseData();
   if (!data) return null;
-  const expenses = EXPENSE_CATEGORIES.reduce(
+  const categories = await getExpenseCategories();
+  const expenses: Record<string, number> = categories.reduce(
     (acc, cat) => ({ ...acc, [cat.id]: 0 }),
-    {} as Record<ExpenseCategoryKey, number>
+    {}
   );
   data.entries.forEach((row) => {
-    if (row.category_id in expenses) {
-      expenses[row.category_id] += row.amount;
-    }
+    expenses[row.category_id] = (expenses[row.category_id] ?? 0) + row.amount;
   });
   return {
     netTakeHome: data.netTakeHome,
@@ -133,7 +133,7 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
 }
 
 export async function addExpense(
-  categoryId: ExpenseCategoryKey,
+  categoryId: string,
   amount: number,
   note?: string | null,
   dueDate?: string | null,
@@ -191,7 +191,7 @@ export async function addExpense(
 
 export async function updateExpense(
   entryId: string,
-  categoryId: ExpenseCategoryKey,
+  categoryId: string,
   amount: number,
   note?: string | null,
   dueDate?: string | null,
@@ -280,7 +280,7 @@ export async function saveBudget(state: BudgetState): Promise<{ error?: string }
 
   await supabase.from("expense_entries").delete().eq("profile_id", profile.id);
 
-  const rows = (Object.entries(state.expenses) as [ExpenseCategoryKey, number][])
+  const rows = (Object.entries(state.expenses) as [string, number][])
     .filter(([, amount]) => amount > 0)
     .map(([category_id, amount]) => ({
       profile_id: profile.id,
@@ -334,6 +334,36 @@ export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
     .select("id, subscription_ends_at")
     .eq("user_id", user.id)
     .single();
+  if (!profile) return { error: "Profile not found." };
+  const now = new Date();
+  const currentEnd = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
+  const startFrom = currentEnd != null && currentEnd > now ? currentEnd : now;
+  const newEndsAt = new Date(startFrom);
+  newEndsAt.setUTCMonth(newEndsAt.getUTCMonth() + 1);
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      is_subscriber: true,
+      subscription_ends_at: newEndsAt.toISOString(),
+    })
+    .eq("id", profile.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  revalidatePath("/subscription");
+  revalidatePath("/");
+  return {};
+}
+
+/** Server-only: grant 1 month Pro for a user by user_id (e.g. after PayMongo webhook or polling). */
+export async function recordSubscriptionPaymentForUserId(userId: string): Promise<{ error?: string }> {
+  const { createServiceRoleClient } = await import("@/lib/supabase/server");
+  const supabase = createServiceRoleClient();
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("id, subscription_ends_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (fetchError) return { error: fetchError.message };
   if (!profile) return { error: "Profile not found." };
   const now = new Date();
   const currentEnd = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;

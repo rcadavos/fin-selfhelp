@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export function Footer({ className }: { className?: string }) {
@@ -19,6 +20,9 @@ export function Footer({ className }: { className?: string }) {
           <a href="#how-it-works" className="hover:text-foreground">
             How it works
           </a>
+          <Link href="/admin" prefetch={false} className="hover:text-foreground">
+            Admin
+          </Link>
         </div>
       </div>
     </footer>

@@ -12,12 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import type { ExpenseCategoryKey } from "@/types/database.types";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 
 type ExpensesFormProps = {
-  expenses: Record<ExpenseCategoryKey, number>;
-  onExpenseChange: (category: ExpenseCategoryKey, value: number) => void;
+  expenses: Record<string, number>;
+  onExpenseChange: (category: string, value: number) => void;
   onBack: () => void;
   onSubmit: () => void;
   onSave?: () => void;
@@ -38,7 +37,7 @@ function ExpensesFormInner({
 }: ExpensesFormProps) {
   const { data: categories } = useExpenseCategories();
   const handleChange = useCallback(
-    (category: ExpenseCategoryKey) =>
+    (category: string) =>
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value.replace(/\D/g, "");
         const value = raw === "" ? 0 : Math.max(0, parseInt(raw, 10));

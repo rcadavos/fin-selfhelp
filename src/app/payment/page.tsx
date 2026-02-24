@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
-import { recordSubscriptionPayment } from "@/actions/budget";
+import { createPayMongoQRPhPaymentIntent, checkPayMongoPaymentStatus } from "@/actions/paymongo";
 import {
   Card,
   CardContent,
@@ -16,19 +17,124 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Smartphone } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
+import { CreditCard, Smartphone, Loader2 } from "lucide-react";
 
-const PLAN = { name: "Pro", price: 3, originalPrice: 20, interval: "month" };
+function formatPrice(amount: number, currency: string, interval: string): string {
+  return `${formatCurrency(amount, currency)}/${interval}`;
+}
 
-const QR_IMAGE_URL = "/api/payment/qr-image";
+type Plan = { name: string; priceAmount: number; priceCurrency: string; interval: string } | undefined;
+
+function QRPhCard({
+  plan,
+  formatPrice: fmt,
+  paymongoQr,
+  paymongoLoading,
+  paymongoError,
+  onGeneratePayMongo,
+  confirming,
+  confirmError,
+  onConfirm,
+}: {
+  plan: Plan;
+  formatPrice: (a: number, c: string, i: string) => string;
+  paymongoQr: { paymentIntentId: string; qrImageDataUrl: string } | null;
+  paymongoLoading: boolean;
+  paymongoError: string | null;
+  onGeneratePayMongo: () => Promise<void>;
+  confirming: boolean;
+  confirmError: string | null;
+  onConfirm: () => Promise<void>;
+}) {
+  const paymongoQrImageUrl = paymongoQr?.qrImageDataUrl;
+  const notConfigured = paymongoError?.includes("not configured");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Pay with QR PH (PayMongo)</CardTitle>
+        <CardDescription>
+          Scan with GCash, Maya, or any bank app that supports QR PH to pay.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-4">
+        {!paymongoQrImageUrl && (
+          <div className="rounded-lg border bg-muted/30 p-6 min-h-[200px] flex flex-col items-center justify-center gap-3">
+            {notConfigured ? (
+              <p className="text-sm text-muted-foreground text-center">
+                PayMongo is not configured. Set <code className="text-xs bg-muted px-1 rounded">PAYMONGO_SECRET_KEY</code> in .env.local to enable QR PH payments.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground text-center">
+                  Generate a one-time QR code for the exact amount. Valid for 30 minutes.
+                </p>
+                <Button onClick={onGeneratePayMongo} disabled={paymongoLoading}>
+                  {paymongoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generate QR code"}
+                </Button>
+                {paymongoError && (
+                  <p className="text-sm text-destructive">{paymongoError}</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {paymongoQrImageUrl && (
+          <div className="rounded-lg border bg-white p-4 min-h-[240px] flex items-center justify-center">
+            <img
+              src={paymongoQrImageUrl}
+              alt="Scan to pay via QR PH"
+              width={240}
+              height={240}
+              className="object-contain"
+            />
+          </div>
+        )}
+        <div className="text-center space-y-1">
+          <p className="font-semibold text-foreground">
+            Amount: {plan ? fmt(plan.priceAmount, plan.priceCurrency, plan.interval) : "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {paymongoQrImageUrl ? "QR code expires in 30 minutes. Scan and pay, then click below." : "Open your e-wallet or bank app → Scan QR → Confirm payment"}
+          </p>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-2">
+        <Button
+          className="w-full"
+          disabled={confirming || !paymongoQrImageUrl}
+          onClick={onConfirm}
+        >
+          {confirming ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Checking payment…
+            </>
+          ) : (
+            "I've completed payment — activate 1 month Pro"
+          )}
+        </Button>
+        {confirmError && <p className="text-sm text-destructive">{confirmError}</p>}
+        <Button variant="outline" className="w-full" asChild>
+          <Link href="/dashboard">Back to My budget</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
 
 export default function PaymentPage() {
   const router = useRouter();
   const { user, loading } = useUser();
+  const { data: plan } = useQuery(subscriptionPlanQueryOptions());
   const [method, setMethod] = useState<"card" | "qrph">("card");
-  const [qrImageFailed, setQrImageFailed] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [paymongoQr, setPaymongoQr] = useState<{ paymentIntentId: string; qrImageDataUrl: string } | null>(null);
+  const [paymongoLoading, setPaymongoLoading] = useState(false);
+  const [paymongoError, setPaymongoError] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -70,26 +176,30 @@ export default function PaymentPage() {
         <div className="text-center">
           <h1 className="text-2xl font-semibold">Complete payment</h1>
           <p className="mt-1 text-muted-foreground">
-            Pro subscription — unlock reminders & unlimited expenses
+            {plan?.name ?? "Pro"} subscription — unlock reminders & unlimited expenses
           </p>
         </div>
 
         {/* Order summary */}
+        {plan && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Order summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{PLAN.name} subscription</span>
-              <span className="font-medium">${PLAN.price}/{PLAN.interval}</span>
+              <span className="text-muted-foreground">{plan.name} subscription</span>
+              <span className="font-medium">{formatPrice(plan.priceAmount, plan.priceCurrency, plan.interval)}</span>
             </div>
+            {plan.originalPriceAmount != null && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground line-through">Was ${PLAN.originalPrice}/{PLAN.interval}</span>
-              <span className="text-primary font-medium">Now ${PLAN.price}/{PLAN.interval}</span>
+              <span className="text-muted-foreground line-through">Was {formatPrice(plan.originalPriceAmount, plan.priceCurrency, plan.interval)}</span>
+              <span className="text-primary font-medium">Now {formatPrice(plan.priceAmount, plan.priceCurrency, plan.interval)}</span>
             </div>
+            )}
           </CardContent>
         </Card>
+        )}
 
         {/* Payment method tabs */}
         <div className="flex rounded-lg border bg-muted/30 p-1">
@@ -107,7 +217,7 @@ export default function PaymentPage() {
           </button>
           <button
             type="button"
-            onClick={() => setMethod("qrph")}
+            onClick={() => { setMethod("qrph"); setPaymongoError(null); }}
             className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors ${
               method === "qrph"
                 ? "bg-background text-foreground shadow-sm"
@@ -157,78 +267,58 @@ export default function PaymentPage() {
                 className="w-full"
                 disabled
               >
-                Pay ${PLAN.price} — connect Stripe to enable
+                Pay {plan ? formatPrice(plan.priceAmount, plan.priceCurrency, plan.interval) : "—"} — connect Stripe to enable
               </Button>
             </CardFooter>
           </Card>
         )}
 
-        {/* QR PH (Philippines) – your UnionBank QR from src/qr-payment/ (served via API) */}
+        {/* QR PH (Philippines) – PayMongo or static fallback */}
         {method === "qrph" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Pay with QR PH (UnionBank)</CardTitle>
-              <CardDescription>
-                Scan with GCash, Maya, or any bank app that supports QR PH to pay.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <div className="rounded-lg border bg-white p-4 min-h-[240px] flex items-center justify-center">
-                {!qrImageFailed ? (
-                  <img
-                    src={QR_IMAGE_URL}
-                    alt="Scan to pay via UnionBank QR PH"
-                    width={240}
-                    height={240}
-                    className="object-contain"
-                    onError={() => setQrImageFailed(true)}
-                  />
-                ) : (
-                  <div className="text-center text-sm text-muted-foreground max-w-[220px] py-4">
-                    <p className="font-medium text-foreground">Add your QR image</p>
-                    <p className="mt-1">
-                      Place your UnionBank QR file at:
-                    </p>
-                    <code className="mt-2 block text-xs bg-muted px-2 py-1 rounded break-all">
-                      src/qr-payment/unionbank-qr.png
-                    </code>
-                    <p className="mt-2">(or .jpg)</p>
-                  </div>
-                )}
-              </div>
-              <div className="text-center space-y-1">
-                <p className="font-semibold text-foreground">Amount: ${PLAN.price} / {PLAN.interval}</p>
-                <p className="text-xs text-muted-foreground">
-                  Open your e-wallet or bank app → Scan QR above → Confirm payment
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-              <Button
-                className="w-full"
-                disabled={confirming}
-                onClick={async () => {
-                  setConfirming(true);
-                  setConfirmError(null);
-                  const result = await recordSubscriptionPayment();
-                  if (result.error) {
-                    setConfirmError(result.error);
-                    setConfirming(false);
-                    return;
-                  }
+          <QRPhCard
+            plan={plan}
+            formatPrice={formatPrice}
+            paymongoQr={paymongoQr}
+            paymongoLoading={paymongoLoading}
+            paymongoError={paymongoError}
+            onGeneratePayMongo={async () => {
+              setPaymongoLoading(true);
+              setPaymongoError(null);
+              const result = await createPayMongoQRPhPaymentIntent();
+              setPaymongoLoading(false);
+              if (result.error) {
+                setPaymongoError(result.error);
+                return;
+              }
+              if (result.paymentIntentId && result.qrImageDataUrl) {
+                setPaymongoQr({ paymentIntentId: result.paymentIntentId, qrImageDataUrl: result.qrImageDataUrl });
+              }
+            }}
+            confirming={confirming}
+            confirmError={confirmError}
+            onConfirm={async () => {
+              if (!paymongoQr) return;
+              setConfirming(true);
+              setConfirmError(null);
+              const maxAttempts = 30;
+              for (let i = 0; i < maxAttempts; i++) {
+                const result = await checkPayMongoPaymentStatus(paymongoQr.paymentIntentId);
+                if (result.status === "succeeded") {
+                  setConfirming(false);
                   router.push("/subscription");
-                }}
-              >
-                {confirming ? "Activating…" : "I've completed payment — activate 1 month Pro"}
-              </Button>
-              {confirmError && (
-                <p className="text-sm text-destructive">{confirmError}</p>
-              )}
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/dashboard">Back to My budget</Link>
-              </Button>
-            </CardFooter>
-          </Card>
+                  return;
+                }
+                if (result.status === "failed" && result.error) {
+                  setConfirmError(result.error);
+                  setConfirming(false);
+                  return;
+                }
+                await new Promise((r) => setTimeout(r, 2000));
+              }
+              setConfirmError("Payment not detected yet. If you already paid, we’ll confirm it shortly.");
+              setConfirming(false);
+            }}
+          />
         )}
 
         <div className="flex justify-center">

@@ -56,6 +56,11 @@ function LoginContent() {
         <CardContent className="space-y-6">
           {/* Password login */}
           <form action={handlePasswordSubmit} className="space-y-4">
+            <input
+              type="hidden"
+              name="next"
+              value={searchParams.get("next") ?? ""}
+            />
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -100,6 +105,11 @@ function LoginContent() {
 
           {/* One-time password (magic link) */}
           <form action={handleOtpSubmit} className="space-y-4">
+            <input
+              type="hidden"
+              name="next"
+              value={searchParams.get("next") ?? ""}
+            />
             <div className="space-y-2">
               <Label htmlFor="otp-email">One-time sign-in link</Label>
               <Input

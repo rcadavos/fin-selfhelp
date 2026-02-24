@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -14,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { getSubscriptionStatus, unsubscribe, type SubscriptionStatus } from "@/actions/budget";
+import { formatCurrency } from "@/lib/utils";
+import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { CreditCard, Loader2 } from "lucide-react";
 
 function formatDate(iso: string | null): string {
@@ -25,6 +28,7 @@ function formatDate(iso: string | null): string {
 export default function SubscriptionPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
+  const { data: plan } = useQuery(subscriptionPlanQueryOptions());
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [unsubmitting, setUnsubmitting] = useState(false);
@@ -108,8 +112,8 @@ export default function SubscriptionPage() {
                 {hasPro
                   ? endsAt
                     ? `Until ${formatDate(endsAt)}`
-                    : isRecurring
-                      ? "$3/month"
+                    : isRecurring && plan
+                      ? `${formatCurrency(plan.priceAmount, plan.priceCurrency)}/${plan.interval}`
                       : "Limited"
                   : "Limited"}
               </span>
@@ -156,7 +160,7 @@ export default function SubscriptionPage() {
               <Button className="w-full" asChild>
                 <Link href="/payment" className="flex items-center justify-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Upgrade to Pro — 1 month
+                  Upgrade to {plan?.name ?? "Pro"} — 1 {plan?.interval ?? "month"}
                 </Link>
               </Button>
             )}

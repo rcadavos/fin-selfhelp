@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,15 +18,16 @@ import { loadExpenseData, updateNetTakeHome, addExpense, updateExpense, deleteEx
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
-import type { ExpenseCategoryKey, ReminderDay } from "@/types/database.types";
+import type { ReminderDay } from "@/types/database.types";
 import { EXPENSE_CATEGORIES, REMINDER_OPTIONS } from "@/types/database.types";
 import type { ExpenseEntryRow } from "@/actions/budget";
+import { categoriesQueryOptions } from "@/lib/query/categories";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { Pencil, Plus, Trash2, Bell } from "lucide-react";
 
-type AddExpenseLine = { id: string; category: ExpenseCategoryKey | ""; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
+type AddExpenseLine = { id: string; category: string; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
 function newAddLine(): AddExpenseLine {
   return { id: crypto.randomUUID(), category: "", amount: "", name: "", dueDate: "", reminderDays: [] };
 }
@@ -39,7 +41,7 @@ function formatReminderLabel(days: number[]): string {
 }
 
 function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
-  const map = new Map<ExpenseCategoryKey, ExpenseEntryRow[]>();
+  const map = new Map<string, ExpenseEntryRow[]>();
   for (const entry of entries) {
     const list = map.get(entry.category_id) ?? [];
     list.push(entry);
@@ -48,13 +50,28 @@ function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
   return map;
 }
 
-function getCategoryLabel(id: ExpenseCategoryKey): string {
-  return EXPENSE_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+function getCategoryLabel(categories: { id: string; label: string }[], id: string): string {
+  return categories.find((c) => c.id === id)?.label ?? id;
+}
+
+function getCategoryBg(categories: { id: string; bgClass: string }[], id: string): string {
+  return categories.find((c) => c.id === id)?.bgClass ?? "";
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useUser();
+  const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
+  const categoriesList = useMemo(
+    () => (categoriesFromDb.length > 0 ? categoriesFromDb : EXPENSE_CATEGORIES),
+    [categoriesFromDb]
+  );
+  const orderedCategoryIds = useMemo(() => {
+    if (categoriesFromDb.length > 0) {
+      return [...categoriesFromDb].sort((a, b) => a.sortOrder - b.sortOrder).map((c) => c.id);
+    }
+    return EXPENSE_CATEGORIES.map((c) => c.id);
+  }, [categoriesFromDb]);
   const [netTakeHome, setNetTakeHome] = useState(0);
   const [entries, setEntries] = useState<ExpenseEntryRow[]>([]);
   const [isSubscriber, setIsSubscriber] = useState(false);
@@ -65,13 +82,13 @@ export default function DashboardPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [addStatus, setAddStatus] = useState<"idle" | "saving" | "error">("idle");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editCategory, setEditCategory] = useState<ExpenseCategoryKey | "">("");
+  const [editCategory, setEditCategory] = useState<string>("");
   const [editAmount, setEditAmount] = useState("");
   const [editName, setEditName] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [addingToCategory, setAddingToCategory] = useState<ExpenseCategoryKey | null>(null);
+  const [addingToCategory, setAddingToCategory] = useState<string | null>(null);
   const [addInlineAmount, setAddInlineAmount] = useState("");
   const [addInlineName, setAddInlineName] = useState("");
   const [addInlineDueDate, setAddInlineDueDate] = useState("");
@@ -141,7 +158,7 @@ export default function DashboardPage() {
     e.preventDefault();
     const toAdd = addLines
       .map((line) => ({
-        category: line.category as ExpenseCategoryKey,
+        category: line.category,
         amount: parseInt(line.amount.replace(/\D/g, ""), 10) || 0,
         name: line.name.trim() || undefined,
         dueDate: line.dueDate.trim() || undefined,
@@ -215,7 +232,7 @@ export default function DashboardPage() {
     setEditStatus("saving");
     const result = await updateExpense(
       editingId,
-      editCategory as ExpenseCategoryKey,
+      editCategory,
       amount,
       editName.trim() || undefined,
       editDueDate.trim() || undefined,
@@ -236,7 +253,7 @@ export default function DashboardPage() {
     }
   }
 
-  function startAddToCategory(categoryId: ExpenseCategoryKey) {
+  function startAddToCategory(categoryId: string) {
     setAddingToCategory(categoryId);
     setAddInlineAmount("");
     setAddInlineName("");
@@ -318,29 +335,6 @@ export default function DashboardPage() {
         Set your take-home pay, then add expenses. Add another line anytime for expenses you forgot.
       </p>
 
-      {/* Subscribe for more – visible to free-tier users, sets expectation before they hit limits */}
-      {!isSubscriber && (
-        <Card className="mb-8 border-dashed bg-muted/20">
-          <CardHeader>
-            <CardTitle className="text-lg">Subscribe for more</CardTitle>
-            <CardDescription>
-              Unlock due-date reminders and more. Subscribers get:
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-              <li><strong className="text-foreground">Due-date reminders</strong> — Get notified 3 days, 1 day, and on the day an expense is due (e.g. bills, loans).</li>
-              <li><strong className="text-foreground">Export budget</strong> — Download your budget and expenses (CSV/PDF) for records or tax prep.</li>
-              <li><strong className="text-foreground">Multiple budgets</strong> — Separate budgets for personal, side gig, or family.</li>
-              <li><strong className="text-foreground">Priority support</strong> — Quick help when you need it.</li>
-            </ul>
-            <p className="pt-2 text-xs text-muted-foreground">
-              Reminder options and more than 5 expenses require a subscription. Pricing and sign-up coming soon.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Net take-home card: show only when not yet set (first time) */}
       {netTakeHome === 0 && (
         <Card className="mb-8 max-w-xl">
@@ -383,28 +377,24 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-4">
             {Array.from(grouped.entries())
-              .sort((a, b) => getCategoryLabel(a[0]).localeCompare(getCategoryLabel(b[0])))
+              .sort((a, b) => {
+                const ai = orderedCategoryIds.indexOf(a[0]);
+                const bi = orderedCategoryIds.indexOf(b[0]);
+                if (ai >= 0 && bi >= 0) return ai - bi;
+                if (ai >= 0) return -1;
+                if (bi >= 0) return 1;
+                return a[0].localeCompare(b[0]);
+              })
               .map(([categoryId, categoryEntries]) => {
                 const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
                 return (
-                  <Card key={categoryId}>
+                  <Card key={categoryId} className={getCategoryBg(categoriesList, categoryId)}>
                     <CardHeader className="pb-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <CardTitle className="text-base">{getCategoryLabel(categoryId)}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="font-bold">{formatCurrency(total)}</Badge>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startAddToCategory(categoryId)}
-                            disabled={addingToCategory === categoryId || !canAddMoreExpenses}
-                            title={!canAddMoreExpenses ? `Free tier limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` : undefined}
-                          >
-                            <Plus className="mr-1 h-4 w-4" />
-                            Add expense
-                          </Button>
-                        </div>
+                        <CardTitle className="text-base">{getCategoryLabel(categoriesList, categoryId)}</CardTitle>
+                        <Badge variant="secondary" className="bg-white dark:bg-white/90 font-bold text-lg px-3 py-1">
+                          {formatCurrency(total)}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -508,12 +498,12 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="min-w-[120px] space-y-1">
                                   <Label className="text-xs">Category</Label>
-                                  <Select value={editCategory} onValueChange={(v) => setEditCategory(v as ExpenseCategoryKey)}>
+                                  <Select value={editCategory} onValueChange={setEditCategory}>
                                     <SelectTrigger className="h-8">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {EXPENSE_CATEGORIES.map((cat) => (
+                                      {categoriesList.map((cat) => (
                                         <SelectItem key={cat.id} value={cat.id}>
                                           {cat.label}
                                         </SelectItem>
@@ -586,7 +576,7 @@ export default function DashboardPage() {
                             ) : (
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <span>{entry.note ? entry.note : getCategoryLabel(entry.category_id)}</span>
+                                  <span>{entry.note ? entry.note : getCategoryLabel(categoriesList, entry.category_id)}</span>
                                   <span className="shrink-0 font-bold">{formatCurrency(entry.amount)}</span>
                                   {entry.due_date && (
                                     <span className="shrink-0 text-xs text-muted-foreground">
@@ -634,6 +624,19 @@ export default function DashboardPage() {
                           );
                         })}
                       </ul>
+                      <div className="mt-3 flex justify-start">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startAddToCategory(categoryId)}
+                          disabled={addingToCategory === categoryId || !canAddMoreExpenses}
+                          title={!canAddMoreExpenses ? `Free tier limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` : undefined}
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          Add expense
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -672,13 +675,13 @@ export default function DashboardPage() {
                   <Label className="text-xs">Category</Label>
                   <Select
                     value={line.category}
-                    onValueChange={(v) => setAddLine(line.id, { category: v as ExpenseCategoryKey })}
+                    onValueChange={(v) => setAddLine(line.id, { category: v })}
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {EXPENSE_CATEGORIES.map((cat) => (
+                      {categoriesList.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.label}
                         </SelectItem>
