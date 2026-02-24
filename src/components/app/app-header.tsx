@@ -44,7 +44,7 @@ export function AppHeader({ className }: { className?: string }) {
           ) : user ? (
             <>
               <Link href="/dashboard" className="text-sm font-medium text-foreground">
-                My budget
+                My Cashflow
               </Link>
               {isAdmin && (
                 <Link href="/admin" prefetch={false} className="text-sm font-medium text-foreground flex items-center gap-1">

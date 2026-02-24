@@ -11,9 +11,9 @@ import { Check, Sparkles } from "lucide-react";
 const benefits = [
   "Due-date reminders (3 days, 1 day, on the day)",
   "Unlimited expenses",
-  "Export budget (CSV/PDF)",
-  "Multiple budgets",
+  "Export cashflow (CSV/PDF)",
   "Priority support",
+  "Can suggest additional modules",
 ];
 
 export function SubscribeSection({ className }: { className?: string }) {
@@ -90,7 +90,20 @@ export function SubscribeSection({ className }: { className?: string }) {
             </CardContent>
             <CardFooter>
               <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/payment">Subscribe & pay</Link>
+                <Link href="/payment" className="flex items-center justify-center gap-2">
+                  <span>Subscribe & pay</span>
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    {plan?.originalPriceAmount != null && (
+                      <span className="font-normal opacity-90 line-through">
+                        {formatCurrency(plan.originalPriceAmount, plan?.priceCurrency)}
+                      </span>
+                    )}
+                    <span>
+                      {plan ? formatCurrency(plan.priceAmount, plan.priceCurrency) : "$3"}
+                      <span className="font-normal opacity-90">/{plan?.interval ?? "month"}</span>
+                    </span>
+                  </span>
+                </Link>
               </Button>
             </CardFooter>
           </Card>

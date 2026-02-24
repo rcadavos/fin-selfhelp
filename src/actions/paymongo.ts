@@ -146,10 +146,18 @@ export async function checkPayMongoPaymentStatus(
     const status = attrs?.status;
     if (status === "succeeded") {
       const { recordSubscriptionPaymentForUserId } = await import("./budget");
+      const { saveSubscriptionPaymentReceipt } = await import("./receipts");
       const userId = attrs?.metadata?.user_id;
       if (userId) {
         const result = await recordSubscriptionPaymentForUserId(userId);
         if (result.error) return { status: "succeeded", error: result.error };
+        await saveSubscriptionPaymentReceipt(userId, {
+          amountCents: attrs?.amount ?? 0,
+          currency: attrs?.currency ?? "PHP",
+          description: attrs?.description ?? "Pro subscription",
+          paymentIntentId,
+          paidAt: new Date(),
+        });
       }
       return { status: "succeeded" };
     }

@@ -10,7 +10,7 @@ const steps = [
     step: 2,
     title: "Add your expenses",
     description:
-      "Fill in what you spend per category—grocery, transport, loans, savings, etc. Leave 0 where it doesn’t apply.",
+      "Fill in what you spend per category—grocery, transport, loans, savings, etc. Select due date for recurring expenses with reminders.",
   },
   {
     step: 3,

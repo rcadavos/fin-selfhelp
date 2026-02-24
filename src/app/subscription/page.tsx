@@ -15,9 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { getSubscriptionStatus, unsubscribe, type SubscriptionStatus } from "@/actions/budget";
+import { getMyPaymentHistory, type SubscriptionPaymentRow } from "@/actions/receipts";
 import { formatCurrency } from "@/lib/utils";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, FileText } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -30,6 +31,7 @@ export default function SubscriptionPage() {
   const { user, loading: userLoading } = useUser();
   const { data: plan } = useQuery(subscriptionPlanQueryOptions());
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
+  const [payments, setPayments] = useState<SubscriptionPaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [unsubmitting, setUnsubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,8 +43,11 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    getSubscriptionStatus().then((data) => {
-      if (!cancelled) setStatus(data ?? null);
+    Promise.all([getSubscriptionStatus(), getMyPaymentHistory()]).then(([data, history]) => {
+      if (!cancelled) {
+        setStatus(data ?? null);
+        setPayments(history.payments ?? []);
+      }
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -170,9 +175,39 @@ export default function SubscriptionPage() {
           </CardFooter>
         </Card>
 
+        {payments.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Payment history</CardTitle>
+              <CardDescription>
+                Download a receipt for any payment below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {payments.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm"
+                  >
+                    <span className="text-muted-foreground">{formatDate(p.paidAt)}</span>
+                    <span className="font-medium">{formatCurrency(p.amountCents / 100, p.currency)}</span>
+                    <Button variant="ghost" size="sm" asChild className="shrink-0">
+                      <Link href={`/subscription/receipt/${p.id}`} className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        Receipt
+                      </Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-center">
           <Button variant="ghost" asChild>
-            <Link href="/dashboard">Back to My budget</Link>
+            <Link href="/dashboard">Back to My Cashflow</Link>
           </Button>
         </div>
       </div>

@@ -11,7 +11,7 @@ export function Footer({ className }: { className?: string }) {
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
         <p className="text-sm text-muted-foreground">
-          Self Help Finance — simple budget tracking for everyone.
+          Self Help Finance — simple cashflow tracking for everyone.
         </p>
         <div className="flex gap-6 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground">

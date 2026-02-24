@@ -16,7 +16,7 @@ export function HeroSection({ className }: HeroSectionProps) {
       )}
     >
       <div className="mx-auto max-w-3xl text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
           Take control of your money
         </h1>
         <p className="mt-6 text-lg text-muted-foreground sm:text-xl">

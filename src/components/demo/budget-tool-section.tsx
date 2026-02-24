@@ -36,7 +36,7 @@ export function BudgetToolSection({
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Your budget
+            Your cashflow
           </h2>
           <p className="mt-2 text-muted-foreground">
             Enter your numbers below to see where you stand.

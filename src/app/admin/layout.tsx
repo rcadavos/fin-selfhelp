@@ -32,7 +32,7 @@ export default async function AdminLayout({
               Pricing
             </Link>
             <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-              My budget
+              My Cashflow
             </Link>
           </nav>
         </div>

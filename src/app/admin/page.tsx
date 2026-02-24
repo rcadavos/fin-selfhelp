@@ -234,7 +234,7 @@ export default function AdminDashboardPage() {
 
       <div className="mt-6">
         <Button variant="outline" asChild>
-          <Link href="/dashboard">Back to My budget</Link>
+          <Link href="/dashboard">Back to My Cashflow</Link>
         </Button>
       </div>
     </main>

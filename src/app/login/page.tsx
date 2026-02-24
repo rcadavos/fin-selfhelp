@@ -50,7 +50,7 @@ function LoginContent() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Log in</CardTitle>
           <CardDescription>
-            Sign in to save and load your budget data.
+            Sign in to save and load your cashflow data.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

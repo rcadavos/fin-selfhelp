@@ -40,7 +40,7 @@ export function BudgetStatusCard({
     <Card className={cn(className)}>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>Budget result</CardTitle>
+          <CardTitle>Cashflow result</CardTitle>
           <Badge
             variant={
               isOverdraft

@@ -4,6 +4,20 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { BudgetState, ReminderDay } from "@/types/database.types";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+
+const VALID_REMINDER_DAYS: ReminderDay[] = [3, 1, 0];
+
+function normalizeReminderDaysBefore(
+  raw: unknown
+): ReminderDay[] | undefined {
+  if (raw == null) return undefined;
+  if (!Array.isArray(raw)) return undefined;
+  const filtered = raw
+    .map((d) => (typeof d === "number" ? d : Number(d)))
+    .filter((d): d is ReminderDay => VALID_REMINDER_DAYS.includes(d as ReminderDay));
+  if (filtered.length === 0) return undefined;
+  return [...new Set(filtered)].sort((a, b) => b - a) as ReminderDay[];
+}
 import { getExpenseCategories } from "@/actions/categories";
 
 export async function getNetTakeHome(): Promise<number | null> {
@@ -32,6 +46,8 @@ export type ExpenseEntryRow = {
 export type ExpenseData = {
   netTakeHome: number;
   isSubscriber: boolean;
+  /** True when the user had a Pro plan but it has expired (subscription_ends_at is in the past). */
+  subscriptionExpired: boolean;
   entries: ExpenseEntryRow[];
 };
 
@@ -50,6 +66,7 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
   const now = new Date();
   const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
   const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
+  const subscriptionExpired = endsAt != null && endsAt <= now;
 
   const { data: entries } = await supabase
     .from("expense_entries")
@@ -60,13 +77,14 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
   return {
     netTakeHome: Number(profile.net_take_home),
     isSubscriber: hasProAccess,
+    subscriptionExpired,
     entries: (entries ?? []).map((row) => ({
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
       note: row.note ?? undefined,
       due_date: row.due_date ?? undefined,
-      reminder_days_before: row.reminder_days_before ?? undefined,
+      reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
     })),
   };
 }

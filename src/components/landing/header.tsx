@@ -56,7 +56,7 @@ export function Header({ className }: HeaderProps) {
               {user ? (
                 <div className="flex items-center gap-3">
                   <Button size="sm" variant="ghost" asChild>
-                    <Link href="/dashboard">My budget</Link>
+                    <Link href="/dashboard">My Cashflow</Link>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { recordSubscriptionPaymentForUserId } from "@/actions/budget";
+import { saveSubscriptionPaymentReceipt } from "@/actions/receipts";
 
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
     }
     const payment = body?.data?.attributes?.data ?? body?.data;
     const paymentIntentId = payment?.attributes?.payment_intent_id;
+    const amountCents = payment?.attributes?.amount;
+    const currency = payment?.attributes?.currency ?? "PHP";
+    const description = payment?.attributes?.description ?? "Pro subscription";
     if (!paymentIntentId) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
@@ -36,6 +40,13 @@ export async function POST(request: Request) {
     const userId = piJson?.data?.attributes?.metadata?.user_id;
     if (userId) {
       await recordSubscriptionPaymentForUserId(userId);
+      await saveSubscriptionPaymentReceipt(userId, {
+        amountCents: amountCents ?? 0,
+        currency,
+        description,
+        paymentIntentId,
+        paidAt: new Date(),
+      });
     }
     return NextResponse.json({ received: true }, { status: 200 });
   } catch {

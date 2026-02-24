@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { loadExpenseData, updateNetTakeHome, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { useUser } from "@/hooks/use-user";
@@ -22,10 +30,12 @@ import type { ReminderDay } from "@/types/database.types";
 import { EXPENSE_CATEGORIES, REMINDER_OPTIONS } from "@/types/database.types";
 import type { ExpenseEntryRow } from "@/actions/budget";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { Pencil, Plus, Trash2, Bell } from "lucide-react";
+import { Pencil, Plus, Trash2, Bell, Check, Sparkles } from "lucide-react";
 
 type AddExpenseLine = { id: string; category: string; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
 function newAddLine(): AddExpenseLine {
@@ -62,6 +72,14 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useUser();
   const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
+  const { data: subscriptionPlan } = useQuery(subscriptionPlanQueryOptions());
+  const dashboardBenefits = [
+    "Due-date reminders (3 days, 1 day, on the day)",
+    "Unlimited expenses",
+    "Export cashflow (CSV/PDF)",
+    "Priority support",
+    "Can suggest additional modules",
+  ];
   const categoriesList = useMemo(
     () => (categoriesFromDb.length > 0 ? categoriesFromDb : EXPENSE_CATEGORIES),
     [categoriesFromDb]
@@ -75,6 +93,7 @@ export default function DashboardPage() {
   const [netTakeHome, setNetTakeHome] = useState(0);
   const [entries, setEntries] = useState<ExpenseEntryRow[]>([]);
   const [isSubscriber, setIsSubscriber] = useState(false);
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
   const [netTakeHomeInput, setNetTakeHomeInput] = useState("");
   const [addLines, setAddLines] = useState<AddExpenseLine[]>(() => [newAddLine()]);
   const { showError: showSnackbar } = useSnackbar();
@@ -101,6 +120,7 @@ export default function DashboardPage() {
       if (data) {
         setNetTakeHome(data.netTakeHome);
         setIsSubscriber(data.isSubscriber);
+        setSubscriptionExpired(data.subscriptionExpired);
         setNetTakeHomeInput(data.netTakeHome > 0 ? String(data.netTakeHome) : "");
         setEntries(data.entries);
       }
@@ -282,6 +302,7 @@ export default function DashboardPage() {
     if (result.error) {
       showSnackbar(result.error);
     } else {
+      if (editingId === entryId) setEditingId(null);
       load();
       refreshBudget();
     }
@@ -330,7 +351,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:py-12">
-      <h1 className="mb-2 text-2xl font-semibold">My budget</h1>
+      <h1 className="mb-2 text-2xl font-semibold">My Cashflow</h1>
       <p className="mb-6 text-muted-foreground">
         Set your take-home pay, then add expenses. Add another line anytime for expenses you forgot.
       </p>
@@ -412,13 +433,13 @@ export default function DashboardPage() {
                               onChange={(e) => setAddInlineName(e.target.value)}
                             />
                           </div>
-                          <div className="min-w-[100px] space-y-1">
+                          <div className="w-20 space-y-1">
                             <Label className="text-xs">Amount (PHP)</Label>
                             <Input
                               type="text"
                               inputMode="numeric"
                               placeholder="0"
-                              className="h-8"
+                              className="h-8 w-full"
                               value={addInlineAmount}
                               onChange={(e) => setAddInlineAmount(e.target.value.replace(/\D/g, ""))}
                             />
@@ -432,40 +453,47 @@ export default function DashboardPage() {
                               onChange={(e) => setAddInlineDueDate(e.target.value)}
                             />
                           </div>
-                          <div className="flex flex-wrap items-end gap-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs flex items-center gap-1">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 shrink-0 gap-1 px-2"
+                                aria-label="Reminders"
+                              >
                                 <Bell className="h-3.5 w-3.5" />
-                                Reminders
-                                {!isSubscriber && (
-                                  <span className="text-muted-foreground font-normal" title="Subscribe to enable reminders">
-                                    (subscribe to enable)
-                                  </span>
+                                {addInlineReminderDays.length > 0 && (
+                                  <span className="text-xs">{formatReminderLabel(addInlineReminderDays)}</span>
                                 )}
-                              </Label>
-                              <div className="flex flex-wrap gap-2">
-                                {REMINDER_OPTIONS.map((opt) => (
-                                  <label
-                                    key={opt.value}
-                                    className={cn(
-                                      "flex items-center gap-1 text-xs",
-                                      !isSubscriber && "cursor-not-allowed opacity-60"
-                                    )}
-                                    title={!isSubscriber ? "Subscribe to enable reminders" : undefined}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={addInlineReminderDays.includes(opt.value)}
-                                      onChange={() => toggleInlineReminder(opt.value)}
-                                      disabled={!isSubscriber}
-                                      className="rounded"
-                                    />
-                                    {opt.value === 0 ? "Due" : `${opt.value}d`}
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-72 min-w-[16rem]">
+                              <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                                You will be reminded by email when an expense is due (at the times you select below).
+                              </DropdownMenuLabel>
+                              {!isSubscriber && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                                    Pro tier only. Subscribe to enable reminders.
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              {REMINDER_OPTIONS.map((opt) => (
+                                <DropdownMenuCheckboxItem
+                                  key={opt.value}
+                                  checked={addInlineReminderDays.includes(opt.value)}
+                                  onCheckedChange={() => toggleInlineReminder(opt.value)}
+                                  disabled={!isSubscriber}
+                                  className="w-full pl-6"
+                                >
+                                  {opt.value === 0 ? "On due date" : `${opt.value} days before`}
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button type="submit" size="sm" disabled={addInlineStatus === "saving"}>
                             {addInlineStatus === "saving" ? "Adding…" : "Add"}
                           </Button>
@@ -496,10 +524,10 @@ export default function DashboardPage() {
                                     className="h-8"
                                   />
                                 </div>
-                                <div className="min-w-[120px] space-y-1">
+                                <div className="min-w-0 flex-1 space-y-1">
                                   <Label className="text-xs">Category</Label>
                                   <Select value={editCategory} onValueChange={setEditCategory}>
-                                    <SelectTrigger className="h-8">
+                                    <SelectTrigger className="h-8 w-full">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -511,14 +539,14 @@ export default function DashboardPage() {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                <div className="min-w-[100px] space-y-1">
+                                <div className="w-20 space-y-1">
                                   <Label className="text-xs">Amount (PHP)</Label>
                                   <Input
                                     type="text"
                                     inputMode="numeric"
                                     value={editAmount}
                                     onChange={(e) => setEditAmount(e.target.value.replace(/\D/g, ""))}
-                                    className="h-8"
+                                    className="h-8 w-full"
                                   />
                                 </div>
                                 <div className="min-w-[130px] space-y-1">
@@ -530,39 +558,59 @@ export default function DashboardPage() {
                                     onChange={(e) => setEditDueDate(e.target.value)}
                                   />
                                 </div>
-                                <div className="flex flex-wrap items-end gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs flex items-center gap-1">
-                                      <Bell className="h-3.5 w-3.5" />
-                                      Reminders
+                                <div className="flex items-end gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                                    onClick={() => editingId && handleDeleteExpense(editingId)}
+                                    disabled={editStatus === "saving" || deletingId !== null}
+                                    aria-label="Remove expense"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 shrink-0 gap-1 px-2"
+                                        aria-label="Reminders"
+                                      >
+                                        <Bell className="h-3.5 w-3.5" />
+                                        {editReminderDays.length > 0 && (
+                                          <span className="text-xs">{formatReminderLabel(editReminderDays)}</span>
+                                        )}
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-72 min-w-[16rem]">
+                                      <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                                        You will be reminded by email when an expense is due (at the times you select below).
+                                      </DropdownMenuLabel>
                                       {!isSubscriber && (
-                                        <span className="text-muted-foreground font-normal" title="Subscribe to enable reminders">
-                                          (subscribe to enable)
-                                        </span>
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                                            Pro tier only. Subscribe to enable reminders.
+                                          </DropdownMenuLabel>
+                                          <DropdownMenuSeparator />
+                                        </>
                                       )}
-                                    </Label>
-                                    <div className="flex flex-wrap gap-2">
                                       {REMINDER_OPTIONS.map((opt) => (
-                                        <label
+                                        <DropdownMenuCheckboxItem
                                           key={opt.value}
-                                          className={cn(
-                                            "flex items-center gap-1 text-xs",
-                                            !isSubscriber && "cursor-not-allowed opacity-60"
-                                          )}
-                                          title={!isSubscriber ? "Subscribe to enable reminders" : undefined}
+                                          checked={editReminderDays.includes(opt.value)}
+                                          onCheckedChange={() => toggleEditReminder(opt.value)}
+                                          disabled={!isSubscriber}
+                                          className="w-full pl-6"
                                         >
-                                          <input
-                                            type="checkbox"
-                                            checked={editReminderDays.includes(opt.value)}
-                                            onChange={() => toggleEditReminder(opt.value)}
-                                            disabled={!isSubscriber}
-                                            className="rounded"
-                                          />
-                                          {opt.value === 0 ? "Due" : `${opt.value}d`}
-                                        </label>
+                                          {opt.value === 0 ? "On due date" : `${opt.value} days before`}
+                                        </DropdownMenuCheckboxItem>
                                       ))}
-                                    </div>
-                                  </div>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                                 <div className="flex gap-1">
                                   <Button type="submit" size="sm" disabled={editStatus === "saving"}>
@@ -581,12 +629,6 @@ export default function DashboardPage() {
                                   {entry.due_date && (
                                     <span className="shrink-0 text-xs text-muted-foreground">
                                       Due: {new Date(entry.due_date).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                                    </span>
-                                  )}
-                                  {(entry.reminder_days_before?.length ?? 0) > 0 && (
-                                    <span className="shrink-0 text-xs text-muted-foreground flex items-center gap-1">
-                                      <Bell className="h-3 w-3" />
-                                      {formatReminderLabel(entry.reminder_days_before ?? [])}
                                     </span>
                                   )}
                                 </div>
@@ -617,6 +659,14 @@ export default function DashboardPage() {
                                       <Trash2 className="h-3.5 w-3.5" />
                                     )}
                                   </Button>
+                                  <span className="flex shrink-0 items-center gap-1 px-1 text-xs text-muted-foreground" title="Reminders">
+                                    <Bell className="h-3.5 w-3.5" />
+                                    {(entry.reminder_days_before?.length ?? 0) > 0 ? (
+                                      formatReminderLabel(entry.reminder_days_before ?? [])
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </span>
                                 </div>
                               </div>
                             )}
@@ -671,13 +721,13 @@ export default function DashboardPage() {
                     onChange={(e) => setAddLine(line.id, { name: e.target.value })}
                   />
                 </div>
-                <div className="min-w-[160px] space-y-1">
+                <div className="min-w-0 flex-1 space-y-1">
                   <Label className="text-xs">Category</Label>
                   <Select
                     value={line.category}
                     onValueChange={(v) => setAddLine(line.id, { category: v })}
                   >
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 w-full">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -689,13 +739,13 @@ export default function DashboardPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="min-w-[100px] space-y-1">
+                <div className="w-20 space-y-1">
                   <Label className="text-xs">Amount (PHP)</Label>
                   <Input
                     type="text"
                     inputMode="numeric"
                     placeholder="0"
-                    className="h-9"
+                    className="h-9 w-full"
                     value={line.amount}
                     onChange={(e) =>
                       setAddLine(line.id, { amount: e.target.value.replace(/\D/g, "") })
@@ -711,41 +761,7 @@ export default function DashboardPage() {
                     onChange={(e) => setAddLine(line.id, { dueDate: e.target.value })}
                   />
                 </div>
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs flex items-center gap-1">
-                      <Bell className="h-3.5 w-3.5" />
-                      Reminders
-                      {!isSubscriber && (
-                        <span className="text-muted-foreground font-normal" title="Subscribe to enable reminders">
-                          (subscribe to enable)
-                        </span>
-                      )}
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {REMINDER_OPTIONS.map((opt) => (
-                        <label
-                          key={opt.value}
-                          className={cn(
-                            "flex items-center gap-1 text-xs",
-                            !isSubscriber && "cursor-not-allowed opacity-60"
-                          )}
-                          title={!isSubscriber ? "Subscribe to enable reminders" : undefined}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={line.reminderDays.includes(opt.value)}
-                            onChange={() => setLineReminder(line.id, opt.value)}
-                            disabled={!isSubscriber}
-                            className="rounded"
-                          />
-                          {opt.value === 0 ? "Due" : `${opt.value}d`}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-end gap-1">
                   <Button
                     type="button"
                     variant="outline"
@@ -757,6 +773,47 @@ export default function DashboardPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 shrink-0 gap-1 px-2"
+                        aria-label="Reminders"
+                      >
+                        <Bell className="h-4 w-4" />
+                        {line.reminderDays.length > 0 && (
+                          <span className="text-xs">{formatReminderLabel(line.reminderDays)}</span>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72 min-w-[16rem]">
+                      <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                        You will be reminded by email when an expense is due (at the times you select below).
+                      </DropdownMenuLabel>
+                      {!isSubscriber && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
+                            Pro tier only. Subscribe to enable reminders.
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      {REMINDER_OPTIONS.map((opt) => (
+                        <DropdownMenuCheckboxItem
+                          key={opt.value}
+                          checked={line.reminderDays.includes(opt.value)}
+                          onCheckedChange={() => setLineReminder(line.id, opt.value)}
+                          disabled={!isSubscriber}
+                          className="w-full pl-6"
+                        >
+                          {opt.value === 0 ? "On due date" : `${opt.value} days before`}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
@@ -825,26 +882,56 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Subscribe for more – again at bottom of My budget so it’s visible after scrolling */}
-      {!isSubscriber && (
-        <Card className="mt-8 border-dashed bg-muted/20">
+      {/* Subscribe for more – again at bottom of My Cashflow so it’s visible after scrolling */}
+      {subscriptionExpired && (
+        <Card className="mx-auto mt-8 max-w-2xl border-primary/50 bg-primary/5 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full" aria-hidden />
           <CardHeader>
-            <CardTitle className="text-lg">Subscribe for more</CardTitle>
-            <CardDescription>
-              Unlock due-date reminders and more. Subscribers get:
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg text-foreground">{subscriptionPlan?.name ?? "Pro"}</CardTitle>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              {subscriptionPlan?.originalPriceAmount != null && (
+                <span className="text-lg text-muted-foreground line-through">
+                  {formatCurrency(subscriptionPlan.originalPriceAmount, subscriptionPlan.priceCurrency)}
+                </span>
+              )}
+              <span className="text-2xl font-bold text-foreground">
+                {subscriptionPlan ? formatCurrency(subscriptionPlan.priceAmount, subscriptionPlan.priceCurrency) : "$3"}
+              </span>
+              <span className="text-sm text-muted-foreground">/{subscriptionPlan?.interval ?? "month"}</span>
+            </div>
+            <CardDescription className="mt-1">
+              Reminders, unlimited expenses, export & more.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-              <li><strong className="text-foreground">Due-date reminders</strong> — Get notified 3 days, 1 day, and on the day an expense is due (e.g. bills, loans).</li>
-              <li><strong className="text-foreground">Export budget</strong> — Download your budget and expenses (CSV/PDF) for records or tax prep.</li>
-              <li><strong className="text-foreground">Multiple budgets</strong> — Separate budgets for personal, side gig, or family.</li>
-              <li><strong className="text-foreground">Priority support</strong> — Quick help when you need it.</li>
-            </ul>
-            <p className="pt-2 text-xs text-muted-foreground">
-              Reminder options and more than 5 expenses require a subscription. Pricing and sign-up coming soon.
-            </p>
+            {dashboardBenefits.map((item) => (
+              <div key={item} className="flex items-start gap-2 text-muted-foreground">
+                <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                <span>{item}</span>
+              </div>
+            ))}
           </CardContent>
+          <CardFooter>
+            <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+              <Link href="/payment" className="flex items-center justify-center gap-2">
+                <span>Subscribe & pay</span>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  {subscriptionPlan?.originalPriceAmount != null && (
+                    <span className="font-normal opacity-90 line-through">
+                      {formatCurrency(subscriptionPlan.originalPriceAmount, subscriptionPlan?.priceCurrency)}
+                    </span>
+                  )}
+                  <span>
+                    {subscriptionPlan ? formatCurrency(subscriptionPlan.priceAmount, subscriptionPlan.priceCurrency) : "$3"}
+                    <span className="font-normal opacity-90">/{subscriptionPlan?.interval ?? "month"}</span>
+                  </span>
+                </span>
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       )}
     </div>

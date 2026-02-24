@@ -47,7 +47,7 @@ export default function SignUpPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create account</CardTitle>
           <CardDescription>
-            Sign up to save your budget and access it from any device.
+            Sign up to save your cashflow and access it from any device.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
