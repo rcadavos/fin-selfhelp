@@ -58,8 +58,8 @@ export function BudgetStatusCard({
           </Badge>
         </div>
         <CardDescription>
-          Net take-home: {formatCurrency(summary.netTakeHome)} — Total expenses:{" "}
-          {formatCurrency(summary.totalExpenses)}
+          Net take-home: <span className="font-bold text-foreground">{formatCurrency(summary.netTakeHome)}</span> — Total expenses:{" "}
+          <span className="font-bold text-foreground">{formatCurrency(summary.totalExpenses)}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

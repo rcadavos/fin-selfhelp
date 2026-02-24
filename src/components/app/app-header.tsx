@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ import {
 import { useUser } from "@/hooks/use-user";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
-import { ChevronDown, User, Shield, LogOut } from "lucide-react";
+import { ChevronDown, User, CreditCard, Shield, LogOut } from "lucide-react";
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
   const name = user?.user_metadata?.full_name;
@@ -21,6 +22,7 @@ function getDisplayName(user: { email?: string | null; user_metadata?: Record<st
 }
 
 export function AppHeader({ className }: { className?: string }) {
+  const router = useRouter();
   const { user, loading } = useUser();
 
   if (loading || !user) return null;
@@ -54,10 +56,20 @@ export function AppHeader({ className }: { className?: string }) {
                   Profile
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  router.push("/subscription");
+                }}
+              >
+                <CreditCard className="h-4 w-4" />
+                Subscription
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/profile/security" className="flex items-center gap-2 cursor-pointer">
                   <Shield className="h-4 w-4" />
-                  Security (change password)
+                  Password & Security
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

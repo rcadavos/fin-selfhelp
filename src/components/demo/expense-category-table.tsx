@@ -35,7 +35,7 @@ const columns: ColumnDef<ExpenseCategoryRow>[] = [
   {
     accessorKey: "amount",
     header: "Amount",
-    cell: ({ row }) => formatCurrency(row.original.amount),
+    cell: ({ row }) => <span className="font-bold">{formatCurrency(row.original.amount)}</span>,
     meta: { className: "text-right" },
   },
 ];
@@ -56,7 +56,7 @@ export function ExpenseCategoryTable({ data, className }: ExpenseCategoryTablePr
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className={header.column.columnDef.meta?.className}
+                  className={(header.column.columnDef.meta as { className?: string })?.className}
                 >
                   {flexRender(
                     header.column.columnDef.header,
@@ -74,7 +74,7 @@ export function ExpenseCategoryTable({ data, className }: ExpenseCategoryTablePr
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    className={cell.column.columnDef.meta?.className}
+                    className={(cell.column.columnDef.meta as { className?: string })?.className}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

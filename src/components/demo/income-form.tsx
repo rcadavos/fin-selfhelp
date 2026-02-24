@@ -59,7 +59,7 @@ export function IncomeForm({
             aria-describedby="net-take-home-hint"
           />
           <p id="net-take-home-hint" className="text-xs text-muted-foreground">
-            {netTakeHome > 0 && formatCurrency(netTakeHome)}
+            {netTakeHome > 0 && <span className="font-bold text-foreground">{formatCurrency(netTakeHome)}</span>}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useSnackbar();
   const [otpPending, setOtpPending] = useState(false);
@@ -72,6 +72,7 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href="/forgot-password"
+                  tabIndex={-1}
                   className="text-xs text-muted-foreground hover:text-primary hover:underline"
                 >
                   Forgot password?
@@ -136,5 +137,13 @@ export default function LoginPage() {
         ← Back to home
       </Link>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen flex flex-col items-center justify-center px-4 py-12"><p className="text-muted-foreground">Loading…</p></main>}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -7,6 +7,7 @@ create table if not exists public.profiles (
   user_id uuid references auth.users(id) on delete cascade,
   net_take_home numeric not null default 0,
   currency text not null default 'PHP',
+  is_subscriber boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -17,9 +18,15 @@ create table if not exists public.expense_entries (
   category_id text not null,
   amount numeric not null default 0,
   note text,
+  due_date date,
+  reminder_days_before smallint[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.expense_entries add column if not exists due_date date;
+alter table public.expense_entries add column if not exists reminder_days_before smallint[];
+alter table public.profiles add column if not exists is_subscriber boolean not null default false;
 
 -- 2. Unique constraint
 create unique index if not exists profiles_user_id_key on public.profiles (user_id);

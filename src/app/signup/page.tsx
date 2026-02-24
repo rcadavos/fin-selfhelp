@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useUser } from "@/hooks/use-user";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -19,12 +22,23 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
 }
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const { user, loading } = useUser();
   const { showError, showSuccess } = useSnackbar();
+
+  useEffect(() => {
+    if (loading) return;
+    if (user) router.replace("/dashboard");
+  }, [user, loading, router]);
 
   async function handleSubmit(formData: FormData) {
     const result = await signUp(formData);
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);
+  }
+
+  if (loading || user) {
+    return null;
   }
 
   return (

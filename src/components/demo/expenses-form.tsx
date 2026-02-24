@@ -54,7 +54,7 @@ function ExpensesFormInner({
       <CardHeader>
         <CardTitle>Where did your money go?</CardTitle>
         <CardDescription>
-          Enter spending per category (monthly). Use 0 for categories that don’t apply.
+          Enter spending per category (monthly). Use 0 for categories that don't apply.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
