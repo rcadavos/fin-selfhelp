@@ -31,7 +31,7 @@ export default async function AdminLayout({
             <Link href="/admin/pricing" className="text-sm font-medium text-foreground">
               Pricing
             </Link>
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link href="/my-cashflow" className="text-sm text-muted-foreground hover:text-foreground">
               My Cashflow
             </Link>
           </nav>

@@ -99,3 +99,37 @@ export type DbExpenseEntry = {
 
 /** Free-tier users can only have this many expenses; only these count toward summary and status. */
 export const FREE_TIER_EXPENSE_LIMIT = 5;
+
+/** Net worth item type. */
+export type NetWorthItemType = "asset" | "liability";
+
+/** Category for net worth items (property = house, vehicle = car, etc.). */
+export type NetWorthCategoryKey =
+  | "property"
+  | "vehicle"
+  | "loan"
+  | "gold_jewelry"
+  | "investment"
+  | "intellectual_assets"
+  | "receivables_rights"
+  | "other";
+
+/** Business use = can generate income (asset); personal = liability. */
+export type NetWorthUseType = "business" | "personal" | null;
+
+/** Income (net take-home) category keys for multi-row income entry. */
+export type IncomeCategoryKey = "salary" | "business" | "gift" | "investment" | "other";
+
+export const INCOME_CATEGORIES: { value: IncomeCategoryKey; label: string }[] = [
+  { value: "salary", label: "Salary" },
+  { value: "business", label: "Business" },
+  { value: "gift", label: "Gift" },
+  { value: "investment", label: "Investment" },
+  { value: "other", label: "Other" },
+];
+
+/** Expense category keys that can be suggested as asset/liability. */
+export const NET_WORTH_DECLARABLE_EXPENSE_CATEGORIES = [
+  { expenseCategoryId: "rent" as const, netWorthCategoryKey: "property" as const, label: "Property / House", alwaysAsset: true },
+  { expenseCategoryId: "transport" as const, netWorthCategoryKey: "vehicle" as const, label: "Vehicle / Car", alwaysAsset: false },
+] as const;

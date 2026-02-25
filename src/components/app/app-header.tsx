@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,10 +22,18 @@ function getDisplayName(user: { email?: string | null; user_metadata?: Record<st
   return user?.email ?? "Account";
 }
 
+const navLinkClass = "text-sm font-medium transition-colors";
+const navLinkActiveClass = "text-primary font-semibold";
+
 export function AppHeader({ className }: { className?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
+
+  const isMyCashflow = pathname?.startsWith("/my-cashflow");
+  const isMyNetWorth = pathname?.startsWith("/my-net-worth");
+  const isAdminPage = pathname?.startsWith("/admin");
 
   return (
     <header
@@ -35,7 +43,7 @@ export function AppHeader({ className }: { className?: string }) {
       )}
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
-        <Link href={user ? "/dashboard" : "/"} className="text-lg font-semibold">
+        <Link href={user ? "/my-cashflow" : "/"} className="text-lg font-semibold">
           Self Help Finance
         </Link>
         <nav className="ml-auto flex items-center gap-4">
@@ -43,11 +51,24 @@ export function AppHeader({ className }: { className?: string }) {
             <span className="text-sm text-muted-foreground">…</span>
           ) : user ? (
             <>
-              <Link href="/dashboard" className="text-sm font-medium text-foreground">
+              <Link
+                href="/my-cashflow"
+                className={cn(navLinkClass, isMyCashflow ? navLinkActiveClass : "text-foreground hover:text-primary")}
+              >
                 My Cashflow
               </Link>
+              <Link
+                href="/my-net-worth"
+                className={cn(navLinkClass, isMyNetWorth ? navLinkActiveClass : "text-foreground hover:text-primary")}
+              >
+                My Net Worth
+              </Link>
               {isAdmin && (
-                <Link href="/admin" prefetch={false} className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Link
+                  href="/admin"
+                  prefetch={false}
+                  className={cn(navLinkClass, isAdminPage ? navLinkActiveClass : "text-foreground hover:text-primary", "flex items-center gap-1")}
+                >
                   <Settings2 className="h-4 w-4" />
                   Admin
                 </Link>

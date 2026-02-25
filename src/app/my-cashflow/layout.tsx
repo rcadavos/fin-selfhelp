@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/app/app-header";
 import { NetTakeHomeBar } from "@/components/app/net-take-home-bar";
 import { BudgetRefreshProvider } from "@/contexts/budget-refresh";
 
-export default function DashboardLayout({
+export default function MyCashflowLayout({
   children,
 }: {
   children: React.ReactNode;

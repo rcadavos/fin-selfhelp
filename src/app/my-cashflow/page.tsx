@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { loadExpenseData, updateNetTakeHome, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
+import { loadExpenseData, saveIncomeEntries, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
@@ -68,7 +69,7 @@ function getCategoryBg(categories: { id: string; bgClass: string }[], id: string
   return categories.find((c) => c.id === id)?.bgClass ?? "";
 }
 
-export default function DashboardPage() {
+export default function MyCashflowPage() {
   const router = useRouter();
   const { user, loading } = useUser();
   const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
@@ -147,7 +148,7 @@ export default function DashboardPage() {
   async function handleSaveNetTakeHome() {
     const value = parseInt(netTakeHomeInput.replace(/\D/g, ""), 10) || 0;
     setSaveStatus("saving");
-    const result = await updateNetTakeHome(value);
+    const result = await saveIncomeEntries(value > 0 ? [{ category_key: "salary", amount: value }] : []);
     if (result.error) {
       showSnackbar(result.error);
       setSaveStatus("error");
@@ -366,13 +367,11 @@ export default function DashboardPage() {
           <CardContent className="flex flex-wrap items-end gap-3">
             <div className="flex-1 space-y-2 min-w-[140px]">
               <Label htmlFor="net">Amount (PHP)</Label>
-              <Input
+              <AmountInput
                 id="net"
-                type="text"
-                inputMode="numeric"
                 placeholder="0"
                 value={netTakeHomeInput}
-                onChange={(e) => setNetTakeHomeInput(e.target.value.replace(/\D/g, ""))}
+                onChange={setNetTakeHomeInput}
               />
             </div>
             <Button
@@ -435,13 +434,11 @@ export default function DashboardPage() {
                           </div>
                           <div className="w-20 space-y-1">
                             <Label className="text-xs">Amount (PHP)</Label>
-                            <Input
-                              type="text"
-                              inputMode="numeric"
+                            <AmountInput
                               placeholder="0"
                               className="h-8 w-full"
                               value={addInlineAmount}
-                              onChange={(e) => setAddInlineAmount(e.target.value.replace(/\D/g, ""))}
+                              onChange={setAddInlineAmount}
                             />
                           </div>
                           <div className="min-w-[130px] space-y-1">
@@ -541,11 +538,9 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="w-20 space-y-1">
                                   <Label className="text-xs">Amount (PHP)</Label>
-                                  <Input
-                                    type="text"
-                                    inputMode="numeric"
+                                  <AmountInput
                                     value={editAmount}
-                                    onChange={(e) => setEditAmount(e.target.value.replace(/\D/g, ""))}
+                                    onChange={setEditAmount}
                                     className="h-8 w-full"
                                   />
                                 </div>
@@ -659,14 +654,16 @@ export default function DashboardPage() {
                                       <Trash2 className="h-3.5 w-3.5" />
                                     )}
                                   </Button>
-                                  <span className="flex shrink-0 items-center gap-1 px-1 text-xs text-muted-foreground" title="Reminders">
-                                    <Bell className="h-3.5 w-3.5" />
-                                    {(entry.reminder_days_before?.length ?? 0) > 0 ? (
-                                      formatReminderLabel(entry.reminder_days_before ?? [])
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </span>
+                                  {entry.due_date && (
+                                    <span className="flex shrink-0 items-center gap-1 px-1 text-xs text-muted-foreground" title="Reminders">
+                                      <Bell className="h-3.5 w-3.5" />
+                                      {(entry.reminder_days_before?.length ?? 0) > 0 ? (
+                                        formatReminderLabel(entry.reminder_days_before ?? [])
+                                      ) : (
+                                        "—"
+                                      )}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -741,15 +738,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="w-20 space-y-1">
                   <Label className="text-xs">Amount (PHP)</Label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
+                  <AmountInput
                     placeholder="0"
                     className="h-9 w-full"
                     value={line.amount}
-                    onChange={(e) =>
-                      setAddLine(line.id, { amount: e.target.value.replace(/\D/g, "") })
-                    }
+                    onChange={(raw) => setAddLine(line.id, { amount: raw })}
                   />
                 </div>
                 <div className="min-w-[130px] space-y-1">

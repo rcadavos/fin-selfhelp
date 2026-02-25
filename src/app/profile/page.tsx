@@ -47,7 +47,7 @@ export default function ProfilePage() {
           </div>
           <div className="pt-2">
             <Button variant="outline" asChild>
-              <Link href="/dashboard">Back to My Cashflow</Link>
+              <Link href="/my-cashflow">Back to My Cashflow</Link>
             </Button>
           </div>
         </CardContent>

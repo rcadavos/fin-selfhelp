@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { loadExpenseData, updateNetTakeHome } from "@/actions/budget";
+import { loadExpenseData, saveIncomeEntries } from "@/actions/budget";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+import { INCOME_CATEGORIES } from "@/types/database.types";
+import type { IncomeCategoryKey } from "@/types/database.types";
 import { formatCurrency } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
@@ -18,12 +20,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
-import { Pencil, AlertTriangle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Pencil, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
 
 type FinancialStatus = "overdraft" | "on_track" | "left_over" | "no_expenses";
+
+type IncomeRowEdit = { category_key: IncomeCategoryKey; amount: string };
 
 function getStatus(netTakeHome: number, totalExpenses: number, hasEntries: boolean): FinancialStatus | null {
   if (!hasEntries) return "no_expenses";
@@ -39,11 +50,12 @@ export function NetTakeHomeBar() {
   const { refreshKey, refreshBudget } = useBudgetRefresh();
   const { showError } = useSnackbar();
   const [netTakeHome, setNetTakeHome] = useState<number | null>(null);
+  const [incomeEntries, setIncomeEntries] = useState<{ id: string; category_key: string; amount: number }[]>([]);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [hasEntries, setHasEntries] = useState(false);
   const [freeTierLimitApplied, setFreeTierLimitApplied] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editValue, setEditValue] = useState("");
+  const [editRows, setEditRows] = useState<IncomeRowEdit[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,6 +63,7 @@ export function NetTakeHomeBar() {
     loadExpenseData().then((data) => {
       if (data) {
         setNetTakeHome(data.netTakeHome);
+        setIncomeEntries(data.incomeEntries);
         const entries = data.entries;
         const isSubscriber = data.isSubscriber;
         const limited = !isSubscriber && entries.length > FREE_TIER_EXPENSE_LIMIT;
@@ -61,6 +74,7 @@ export function NetTakeHomeBar() {
         setFreeTierLimitApplied(limited);
       } else {
         setNetTakeHome(null);
+        setIncomeEntries([]);
         setTotalExpenses(0);
         setHasEntries(false);
         setFreeTierLimitApplied(false);
@@ -69,19 +83,62 @@ export function NetTakeHomeBar() {
   }, [user, pathname, refreshKey]);
 
   useEffect(() => {
-    if (editOpen && netTakeHome != null) setEditValue(String(netTakeHome));
-  }, [editOpen, netTakeHome]);
+    if (editOpen) {
+      if (incomeEntries.length > 0) {
+        setEditRows(
+          incomeEntries.map((e) => ({
+            category_key: (e.category_key as IncomeCategoryKey) || "salary",
+            amount: String(e.amount),
+          }))
+        );
+      } else if (netTakeHome != null && netTakeHome > 0) {
+        setEditRows([{ category_key: "salary", amount: String(netTakeHome) }]);
+      } else {
+        setEditRows([{ category_key: "salary", amount: "" }]);
+      }
+    }
+  }, [editOpen, incomeEntries, netTakeHome]);
+
+  const editTotal = useMemo(() => {
+    return editRows.reduce((s, r) => s + (parseInt(r.amount.replace(/\D/g, ""), 10) || 0), 0);
+  }, [editRows]);
+
+  function setEditRow(index: number, update: Partial<IncomeRowEdit>) {
+    setEditRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...update };
+      return next;
+    });
+  }
+
+  function addRow() {
+    setEditRows((prev) => [...prev, { category_key: "salary", amount: "" }]);
+  }
+
+  function removeRow(index: number) {
+    setEditRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    const value = parseInt(editValue.replace(/\D/g, ""), 10) || 0;
+    const rows = editRows.map((r) => ({
+      category_key: r.category_key,
+      amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0,
+    }));
+    const valid = rows.filter((r) => r.amount > 0);
+    if (valid.length === 0) {
+      showError("Add at least one income row with amount greater than 0.");
+      return;
+    }
     setSaving(true);
-    const result = await updateNetTakeHome(value);
+    const result = await saveIncomeEntries(valid);
     setSaving(false);
     if (result.error) {
       showError(result.error);
     } else {
-      setNetTakeHome(value);
+      const total = valid.reduce((s, r) => s + r.amount, 0);
+      setNetTakeHome(total);
+      setIncomeEntries(valid.map((r, i) => ({ id: String(i), category_key: r.category_key, amount: r.amount })));
       refreshBudget();
       setEditOpen(false);
     }
@@ -114,17 +171,15 @@ export function NetTakeHomeBar() {
               "Net take-home: —"
             )}
           </span>
-          {netTakeHome != null && netTakeHome > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => setEditOpen(true)}
-              aria-label="Edit net take-home pay"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit net take-home pay"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
         </div>
         {statusConfig && (
           <div className="flex shrink-0 items-center gap-2">
@@ -153,22 +208,65 @@ export function NetTakeHomeBar() {
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit net take-home pay</DialogTitle>
-            <DialogDescription>Your monthly income after tax and deductions.</DialogDescription>
+            <DialogTitle>Net take-home pay</DialogTitle>
+            <DialogDescription>
+              Add income by category. Total is shown below and saved when you click Save.
+            </DialogDescription>
           </DialogHeader>
+
+          {/* Total above the card */}
+          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+            <p className="text-sm text-muted-foreground">Total (before save)</p>
+            <p className="text-xl font-bold">{formatCurrency(editTotal)}</p>
+          </div>
+
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-net">Amount (PHP)</Label>
-              <Input
-                id="edit-net"
-                type="text"
-                inputMode="numeric"
-                placeholder="0"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value.replace(/\D/g, ""))}
-              />
+              <Label>Income by category</Label>
+              <div className="p-1 space-y-2 max-h-64 overflow-y-auto">
+                {editRows.map((row, index) => (
+                  <div key={index} className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={row.category_key}
+                      onValueChange={(v) => setEditRow(index, { category_key: v as IncomeCategoryKey })}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INCOME_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <AmountInput
+                      placeholder="0"
+                      className="w-28"
+                      value={row.amount}
+                      onChange={(raw) => setEditRow(index, { amount: raw })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeRow(index)}
+                      disabled={editRows.length <= 1}
+                      aria-label="Remove row"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addRow} className="gap-1">
+                <Plus className="h-4 w-4" />
+                Add row
+              </Button>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>

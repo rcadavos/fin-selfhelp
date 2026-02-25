@@ -31,11 +31,11 @@ export async function getAdminGuard(): Promise<{ allowed: boolean; redirectTo: s
       .select("is_admin")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (error || !profile) return { allowed: false, redirectTo: "/dashboard" };
-    if (!profile.is_admin) return { allowed: false, redirectTo: "/dashboard" };
+    if (error || !profile) return { allowed: false, redirectTo: "/my-cashflow" };
+    if (!profile.is_admin) return { allowed: false, redirectTo: "/my-cashflow" };
     return { allowed: true, redirectTo: null };
   } catch {
-    return { allowed: false, redirectTo: "/dashboard" };
+    return { allowed: false, redirectTo: "/my-cashflow" };
   }
 }
 

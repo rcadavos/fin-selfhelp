@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { signIn, signInWithOtp } from "@/actions/auth";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useUser } from "@/hooks/use-user";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -21,9 +22,18 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
 }
 
 function LoginContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading } = useUser();
   const { showError, showSuccess } = useSnackbar();
   const [otpPending, setOtpPending] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/my-cashflow");
+      return;
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     if (searchParams.get("reset") === "success") {
@@ -42,6 +52,14 @@ function LoginContent() {
     setOtpPending(false);
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);
+  }
+
+  if (loading || user) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <p className="text-muted-foreground">Loading…</p>
+      </main>
+    );
   }
 
   return (

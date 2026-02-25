@@ -28,7 +28,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (user) router.replace("/dashboard");
+    if (user) router.replace("/my-cashflow");
   }, [user, loading, router]);
 
   async function handleSubmit(formData: FormData) {

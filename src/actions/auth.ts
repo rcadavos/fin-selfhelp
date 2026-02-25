@@ -16,8 +16,8 @@ export async function signIn(formData: FormData) {
   if (error) {
     return { error: error.message };
   }
-  const next = (formData.get("next") as string)?.trim() || "/dashboard";
-  redirect(next.startsWith("/") ? next : "/dashboard");
+  const next = (formData.get("next") as string)?.trim() || "/my-cashflow";
+  redirect(next.startsWith("/") ? next : "/my-cashflow");
 }
 
 export async function signUp(formData: FormData) {
@@ -38,7 +38,7 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/my-cashflow`,
     },
   });
   if (error) {
@@ -55,7 +55,7 @@ export async function signInWithOtp(formData: FormData) {
     return { error: "Email is required." };
   }
 
-  const next = (formData.get("next") as string)?.trim() || "/dashboard";
+  const next = (formData.get("next") as string)?.trim() || "/my-cashflow";
   const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback${next && next.startsWith("/") ? `?next=${encodeURIComponent(next)}` : ""}`;
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim(),

@@ -118,7 +118,7 @@ function QRPhCard({
         </Button>
         {confirmError && <p className="text-sm text-destructive">{confirmError}</p>}
         <Button variant="outline" className="w-full" asChild>
-          <Link href="/dashboard">Back to My Cashflow</Link>
+          <Link href="/my-cashflow">Back to My Cashflow</Link>
         </Button>
       </CardFooter>
     </Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,7 +26,10 @@ function getDisplayName(user: { email?: string | null; user_metadata?: Record<st
 }
 
 export function Header({ className }: HeaderProps) {
+  const pathname = usePathname();
   const { user, loading } = useUser();
+  const isMyCashflow = pathname?.startsWith("/my-cashflow");
+  const isMyNetWorth = pathname?.startsWith("/my-net-worth");
 
   return (
     <header
@@ -55,8 +59,11 @@ export function Header({ className }: HeaderProps) {
             <>
               {user ? (
                 <div className="flex items-center gap-3">
-                  <Button size="sm" variant="ghost" asChild>
-                    <Link href="/dashboard">My Cashflow</Link>
+                  <Button size="sm" variant="ghost" asChild className={cn(isMyCashflow && "bg-primary/10 text-primary font-semibold")}>
+                    <Link href="/my-cashflow">My Cashflow</Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" asChild className={cn(isMyNetWorth && "bg-primary/10 text-primary font-semibold")}>
+                    <Link href="/my-net-worth">My Net Worth</Link>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

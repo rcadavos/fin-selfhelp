@@ -91,7 +91,7 @@ export async function createExpenseCategory(params: {
       });
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
-    revalidatePath("/dashboard");
+    revalidatePath("/my-cashflow");
     revalidatePath("/");
     return {};
   } catch (e) {
@@ -125,7 +125,7 @@ export async function updateExpenseCategory(
       .eq("id", id);
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
-    revalidatePath("/dashboard");
+    revalidatePath("/my-cashflow");
     revalidatePath("/");
     return {};
   } catch (e) {
@@ -149,7 +149,7 @@ export async function deleteExpenseCategory(id: string): Promise<{ error?: strin
     const { error } = await supabase.from("expense_categories").delete().eq("id", id);
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
-    revalidatePath("/dashboard");
+    revalidatePath("/my-cashflow");
     revalidatePath("/");
     return {};
   } catch (e) {
