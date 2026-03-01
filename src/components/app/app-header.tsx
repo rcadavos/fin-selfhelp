@@ -33,6 +33,7 @@ export function AppHeader({ className }: { className?: string }) {
 
   const isMyCashflow = pathname?.startsWith("/my-cashflow");
   const isMyNetWorth = pathname?.startsWith("/my-net-worth");
+  const isCalculators = pathname?.startsWith("/calculators");
   const isAdminPage = pathname?.startsWith("/admin");
 
   return (
@@ -44,7 +45,7 @@ export function AppHeader({ className }: { className?: string }) {
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link href={user ? "/my-cashflow" : "/"} className="text-lg font-semibold">
-          Self Help Finance
+          Financial Tracker
         </Link>
         <nav className="ml-auto flex items-center gap-4">
           {loading ? (
@@ -62,6 +63,12 @@ export function AppHeader({ className }: { className?: string }) {
                 className={cn(navLinkClass, isMyNetWorth ? navLinkActiveClass : "text-foreground hover:text-primary")}
               >
                 My Net Worth
+              </Link>
+              <Link
+                href="/calculators"
+                className={cn(navLinkClass, isCalculators ? navLinkActiveClass : "text-foreground hover:text-primary")}
+              >
+                Calculators
               </Link>
               {isAdmin && (
                 <Link

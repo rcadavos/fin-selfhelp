@@ -14,7 +14,8 @@ export async function getIsAdmin(): Promise<boolean> {
       .eq("user_id", user.id)
       .maybeSingle();
     return Boolean(profile?.is_admin);
-  } catch {
+  } catch (err) {
+    console.error("[getIsAdmin] error (check SUPABASE_SERVICE_ROLE_KEY):", err);
     return false;
   }
 }
@@ -31,10 +32,15 @@ export async function getAdminGuard(): Promise<{ allowed: boolean; redirectTo: s
       .select("is_admin")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (error || !profile) return { allowed: false, redirectTo: "/my-cashflow" };
+    if (error) {
+      console.error("[getAdminGuard] profile fetch error:", error.message);
+      return { allowed: false, redirectTo: "/my-cashflow" };
+    }
+    if (!profile) return { allowed: false, redirectTo: "/my-cashflow" };
     if (!profile.is_admin) return { allowed: false, redirectTo: "/my-cashflow" };
     return { allowed: true, redirectTo: null };
-  } catch {
+  } catch (err) {
+    console.error("[getAdminGuard] error (check SUPABASE_SERVICE_ROLE_KEY and profiles.is_admin):", err);
     return { allowed: false, redirectTo: "/my-cashflow" };
   }
 }

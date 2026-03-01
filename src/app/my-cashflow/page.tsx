@@ -28,7 +28,8 @@ import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
 import type { ReminderDay } from "@/types/database.types";
-import { EXPENSE_CATEGORIES, REMINDER_OPTIONS } from "@/types/database.types";
+import { EXPENSE_CATEGORIES, REMINDER_OPTIONS, INCOME_CATEGORIES } from "@/types/database.types";
+import type { IncomeCategoryKey } from "@/types/database.types";
 import type { ExpenseEntryRow } from "@/actions/budget";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
@@ -37,6 +38,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { Pencil, Plus, Trash2, Bell, Check, Sparkles } from "lucide-react";
+
+type IncomeCardRow = { category_key: IncomeCategoryKey; amount: string };
 
 type AddExpenseLine = { id: string; category: string; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
 function newAddLine(): AddExpenseLine {
@@ -79,7 +82,7 @@ export default function MyCashflowPage() {
     "Unlimited expenses",
     "Export cashflow (CSV/PDF)",
     "Priority support",
-    "Can suggest additional modules",
+    "Can leave review and suggestions",
   ];
   const categoriesList = useMemo(
     () => (categoriesFromDb.length > 0 ? categoriesFromDb : EXPENSE_CATEGORIES),
@@ -91,11 +94,12 @@ export default function MyCashflowPage() {
     }
     return EXPENSE_CATEGORIES.map((c) => c.id);
   }, [categoriesFromDb]);
+  const [budgetDataLoaded, setBudgetDataLoaded] = useState(false);
   const [netTakeHome, setNetTakeHome] = useState(0);
   const [entries, setEntries] = useState<ExpenseEntryRow[]>([]);
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [subscriptionExpired, setSubscriptionExpired] = useState(false);
-  const [netTakeHomeInput, setNetTakeHomeInput] = useState("");
+  const [incomeCardRows, setIncomeCardRows] = useState<IncomeCardRow[]>(() => [{ category_key: "salary", amount: "" }]);
   const [addLines, setAddLines] = useState<AddExpenseLine[]>(() => [newAddLine()]);
   const { showError: showSnackbar } = useSnackbar();
   const { refreshBudget } = useBudgetRefresh();
@@ -122,10 +126,20 @@ export default function MyCashflowPage() {
         setNetTakeHome(data.netTakeHome);
         setIsSubscriber(data.isSubscriber);
         setSubscriptionExpired(data.subscriptionExpired);
-        setNetTakeHomeInput(data.netTakeHome > 0 ? String(data.netTakeHome) : "");
+        if (data.netTakeHome === 0 && data.incomeEntries?.length > 0) {
+          setIncomeCardRows(
+            data.incomeEntries.map((e) => ({
+              category_key: (e.category_key as IncomeCategoryKey) || "salary",
+              amount: String(e.amount),
+            }))
+          );
+        } else if (data.netTakeHome === 0) {
+          setIncomeCardRows([{ category_key: "salary", amount: "" }]);
+        }
         setEntries(data.entries);
       }
-    });
+      setBudgetDataLoaded(true);
+    }).catch(() => setBudgetDataLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -145,15 +159,46 @@ export default function MyCashflowPage() {
   const grouped = groupEntriesByCategory(entries);
   const canAddMoreExpenses = isSubscriber || entries.length < FREE_TIER_EXPENSE_LIMIT;
 
-  async function handleSaveNetTakeHome() {
-    const value = parseInt(netTakeHomeInput.replace(/\D/g, ""), 10) || 0;
+  const incomeCardTotal = useMemo(
+    () => incomeCardRows.reduce((s, r) => s + (parseInt(r.amount.replace(/\D/g, ""), 10) || 0), 0),
+    [incomeCardRows]
+  );
+
+  function setIncomeCardRow(index: number, update: Partial<IncomeCardRow>) {
+    setIncomeCardRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...update };
+      return next;
+    });
+  }
+
+  function addIncomeCardRow() {
+    setIncomeCardRows((prev) => [...prev, { category_key: "salary", amount: "" }]);
+  }
+
+  function removeIncomeCardRow(index: number) {
+    setIncomeCardRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
+  async function handleSaveNetTakeHome(e: React.FormEvent) {
+    e.preventDefault();
+    const rows = incomeCardRows.map((r) => ({
+      category_key: r.category_key,
+      amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0,
+    }));
+    const valid = rows.filter((r) => r.amount > 0);
+    if (valid.length === 0) {
+      showSnackbar("Add at least one income row with amount greater than 0.");
+      return;
+    }
     setSaveStatus("saving");
-    const result = await saveIncomeEntries(value > 0 ? [{ category_key: "salary", amount: value }] : []);
+    const result = await saveIncomeEntries(valid);
     if (result.error) {
       showSnackbar(result.error);
       setSaveStatus("error");
     } else {
-      setNetTakeHome(value);
+      const total = valid.reduce((s, r) => s + r.amount, 0);
+      setNetTakeHome(total);
       setSaveStatus("saved");
       load();
       refreshBudget();
@@ -350,6 +395,14 @@ export default function MyCashflowPage() {
     );
   }
 
+  if (!budgetDataLoaded) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading your cashflow…</p>
+      </main>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:py-12">
       <h1 className="mb-2 text-2xl font-semibold">My Cashflow</h1>
@@ -362,25 +415,65 @@ export default function MyCashflowPage() {
         <Card className="mb-8 max-w-xl">
           <CardHeader>
             <CardTitle>Net take-home pay</CardTitle>
-            <CardDescription>Your monthly income after tax and deductions.</CardDescription>
+            <CardDescription>
+              Add income by category. Total is shown below and saved when you click Save.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 space-y-2 min-w-[140px]">
-              <Label htmlFor="net">Amount (PHP)</Label>
-              <AmountInput
-                id="net"
-                placeholder="0"
-                value={netTakeHomeInput}
-                onChange={setNetTakeHomeInput}
-              />
+          <CardContent>
+            <div className="rounded-lg border bg-muted/30 px-4 py-3 mb-4">
+              <p className="text-sm text-muted-foreground">Total (before save)</p>
+              <p className="text-xl font-bold">{formatCurrency(incomeCardTotal)}</p>
             </div>
-            <Button
-              type="button"
-              onClick={handleSaveNetTakeHome}
-              disabled={saveStatus === "saving"}
-            >
-              {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : "Save"}
-            </Button>
+            <form onSubmit={handleSaveNetTakeHome} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Income by category</Label>
+                <div className="p-1 space-y-2 max-h-64 overflow-y-auto">
+                  {incomeCardRows.map((row, index) => (
+                    <div key={index} className="flex flex-wrap items-center gap-2">
+                      <Select
+                        value={row.category_key}
+                        onValueChange={(v) => setIncomeCardRow(index, { category_key: v as IncomeCategoryKey })}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INCOME_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <AmountInput
+                        placeholder="0"
+                        className="w-28"
+                        value={row.amount}
+                        onChange={(raw) => setIncomeCardRow(index, { amount: raw })}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeIncomeCardRow(index)}
+                        disabled={incomeCardRows.length <= 1}
+                        aria-label="Remove row"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addIncomeCardRow} className="gap-1">
+                  <Plus className="h-4 w-4" />
+                  Add row
+                </Button>
+              </div>
+              <Button type="submit" disabled={saveStatus === "saving"}>
+                {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : "Save"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       )}
@@ -506,8 +599,8 @@ export default function MyCashflowPage() {
                           <li
                             key={entry.id}
                             className={cn(
-                              "flex flex-col gap-2",
-                              isExcludedFromCount && "opacity-50 text-muted-foreground"
+                              "flex flex-col gap-2 transition-[filter,opacity]",
+                              isExcludedFromCount && "blur-[2px] opacity-60 pointer-events-none select-none text-muted-foreground"
                             )}
                           >
                             {editingId === entry.id ? (

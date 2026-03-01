@@ -13,7 +13,7 @@ const benefits = [
   "Unlimited expenses",
   "Export cashflow (CSV/PDF)",
   "Priority support",
-  "Can suggest additional modules",
+  "Can leave review and suggestions",
 ];
 
 export function SubscribeSection({ className }: { className?: string }) {

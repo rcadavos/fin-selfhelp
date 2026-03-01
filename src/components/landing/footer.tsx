@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { FooterFeedback } from "./footer-feedback";
 
 export function Footer({ className }: { className?: string }) {
   return (
@@ -9,9 +9,10 @@ export function Footer({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
+      <FooterFeedback />
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row pt-8">
         <p className="text-sm text-muted-foreground">
-          Self Help Finance — simple cashflow tracking for everyone.
+          Financial Tracker — simple cashflow tracking for everyone.
         </p>
         <div className="flex gap-6 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground">
@@ -20,9 +21,9 @@ export function Footer({ className }: { className?: string }) {
           <a href="#how-it-works" className="hover:text-foreground">
             How it works
           </a>
-          <Link href="/admin" prefetch={false} className="hover:text-foreground">
-            Admin
-          </Link>
+          <a href="#reviews" className="hover:text-foreground">
+            Reviews
+          </a>
         </div>
       </div>
     </footer>

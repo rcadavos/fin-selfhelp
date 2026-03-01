@@ -40,7 +40,7 @@ export function Header({ className }: HeaderProps) {
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link href="/" className="text-lg font-semibold">
-          Self Help Finance
+          Financial Tracker
         </Link>
         <nav className="ml-auto flex items-center gap-4">
           <a

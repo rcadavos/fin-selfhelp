@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Self Help Finance | Simple cashflow tracker",
+  title: "Financial Tracker | Simple cashflow tracker",
   description:
     "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.",
 };
