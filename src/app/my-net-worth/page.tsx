@@ -32,7 +32,7 @@ import {
   type NetWorthUseType,
 } from "@/types/database.types";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
-import { Pencil, Trash2, Plus, Home, Car, Wallet, HelpCircle } from "lucide-react";
+import { Pencil, Trash2, Plus, Home, Car, Wallet, HelpCircle, ThumbsUp, Frown } from "lucide-react";
 
 const CATEGORY_OPTIONS: { value: NetWorthCategoryKey; label: string }[] = [
   { value: "property", label: "Property / House" },
@@ -189,6 +189,44 @@ export default function NetWorthPage() {
       <p className="mb-6 text-muted-foreground">
         Track assets and liabilities. Property (e.g. house) is an asset; vehicles used for personal use are liabilities (they don’t generate income).
       </p>
+
+      {/* Status: only when user has both assets and liabilities */}
+      {assets.length > 0 && liabilities.length > 0 && (
+        <Card className={cn(
+          "mb-6",
+          netWorthCents >= 0
+            ? "border-emerald-500/50 bg-emerald-500/10"
+            : "border-amber-500/50 bg-amber-500/10"
+        )}>
+          <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+            {netWorthCents >= 0 ? (
+              <>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                  <ThumbsUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-800 dark:text-emerald-200">You are doing great</p>
+                  <p className="text-sm text-muted-foreground">
+                    Your assets outweigh your liabilities. Keep it up!
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
+                  <Frown className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-800 dark:text-amber-200">Oh no — you’re in debt</p>
+                  <p className="text-sm text-muted-foreground">
+                    Don’t worry, you can still fix your debt. Track your cashflow and chip away at liabilities over time.
+                  </p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Suggestions from expenses */}
       {suggestions.length > 0 && (

@@ -13,6 +13,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { getMyReview, getReviewEligibility, type MyReviewRow, submitSuggestion, submitReview, updateReview } from "@/actions/feedback";
+import { getSubscriptionStatus } from "@/actions/budget";
+import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { MessageSquare, Star, Send, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,21 @@ import { useMutation } from "@tanstack/react-query";
 
 export function FooterFeedback({ className }: { className?: string }) {
   const { showError: showSnackbar, showSuccess } = useSnackbar();
+  const { user, loading: userLoading } = useUser();
+  const [isPaidTier, setIsPaidTier] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setIsPaidTier(null);
+      return;
+    }
+    let cancelled = false;
+    getSubscriptionStatus().then((status) => {
+      if (cancelled) return;
+      setIsPaidTier(status?.hasProAccess ?? false);
+    });
+    return () => { cancelled = true; };
+  }, [user]);
   const [suggestionEmail, setSuggestionEmail] = useState("");
   const [suggestionContent, setSuggestionContent] = useState("");
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "sending" | "sent">("idle");
@@ -72,6 +89,7 @@ export function FooterFeedback({ className }: { className?: string }) {
   }
 
   useEffect(() => {
+    if (!user || !isPaidTier) return;
     let cancelled = false;
     (async () => {
       const res = await getReviewEligibility();
@@ -87,7 +105,7 @@ export function FooterFeedback({ className }: { className?: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user, isPaidTier]);
 
   async function handleSuggestion(e: React.FormEvent) {
     e.preventDefault();
@@ -134,9 +152,13 @@ export function FooterFeedback({ className }: { className?: string }) {
     }
   }
 
+  if (userLoading || !user || isPaidTier !== true) {
+    return null;
+  }
+
   return (
     <div className={cn("bg-muted/40 rounded-lg mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8", className)}>
-      <h3 className="text-lg font-semibold text-foreground mb-6">Suggestions & reviews</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-6">Suggestions & Reviews</h3>
       <div className="grid gap-8 sm:grid-cols-2">
         {/* Suggestion form */}
         <div className="rounded-lg border bg-background p-4">

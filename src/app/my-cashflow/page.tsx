@@ -113,6 +113,7 @@ export default function MyCashflowPage() {
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [addingToCategory, setAddingToCategory] = useState<string | null>(null);
+  const [addInlineCategory, setAddInlineCategory] = useState("");
   const [addInlineAmount, setAddInlineAmount] = useState("");
   const [addInlineName, setAddInlineName] = useState("");
   const [addInlineDueDate, setAddInlineDueDate] = useState("");
@@ -321,6 +322,7 @@ export default function MyCashflowPage() {
 
   function startAddToCategory(categoryId: string) {
     setAddingToCategory(categoryId);
+    setAddInlineCategory(categoryId);
     setAddInlineAmount("");
     setAddInlineName("");
     setAddInlineDueDate("");
@@ -330,6 +332,7 @@ export default function MyCashflowPage() {
 
   function cancelAddToCategory() {
     setAddingToCategory(null);
+    setAddInlineCategory("");
     setAddInlineAmount("");
     setAddInlineName("");
     setAddInlineDueDate("");
@@ -357,7 +360,7 @@ export default function MyCashflowPage() {
 
   async function handleAddToCategory(e: React.FormEvent) {
     e.preventDefault();
-    if (!addingToCategory) return;
+    if (!addInlineCategory) return;
     const amount = parseInt(addInlineAmount.replace(/\D/g, ""), 10) || 0;
     if (amount <= 0) return;
     setAddInlineStatus("saving");
@@ -366,7 +369,7 @@ export default function MyCashflowPage() {
         ? addInlineReminderDays
         : undefined;
     const result = await addExpense(
-      addingToCategory,
+      addInlineCategory,
       amount,
       addInlineName.trim() || undefined,
       addInlineDueDate.trim() || undefined,
@@ -505,7 +508,7 @@ export default function MyCashflowPage() {
                     <CardHeader className="pb-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <CardTitle className="text-base">{getCategoryLabel(categoriesList, categoryId)}</CardTitle>
-                        <Badge variant="secondary" className="bg-white dark:bg-white/90 font-bold text-lg px-3 py-1">
+                        <Badge variant="secondary" className="bg-white dark:bg-white/90 font-bold text-lg px-3 py-1 text-zinc-900">
                           {formatCurrency(total)}
                         </Badge>
                       </div>
@@ -524,6 +527,21 @@ export default function MyCashflowPage() {
                               value={addInlineName}
                               onChange={(e) => setAddInlineName(e.target.value)}
                             />
+                          </div>
+                          <div className="min-w-[140px] space-y-1">
+                            <Label className="text-xs">Category</Label>
+                            <Select value={addInlineCategory} onValueChange={setAddInlineCategory}>
+                              <SelectTrigger className="h-8 w-full">
+                                <SelectValue placeholder="Category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categoriesList.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="w-20 space-y-1">
                             <Label className="text-xs">Amount (PHP)</Label>
