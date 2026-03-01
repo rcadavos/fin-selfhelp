@@ -6,12 +6,14 @@ const DEFAULT_DESCRIPTION =
   "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.";
 const TWITTER_HANDLE = ""; // e.g. "@fin-track" if you have one
 
-/** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in .env.local (e.g. https://fin-track.cloud) */
+/** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in production (e.g. https://fin-track.cloud). Must be HTTPS for Open Graph. */
 export function getBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://fin-track.cloud";
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://fin-track.cloud";
+  const url = raw.startsWith("http") ? raw : `https://${raw.replace(/^\/\//, "")}`;
+  return url.replace(/^http:\/\//, "https://");
 }
 
 export const seo = {
