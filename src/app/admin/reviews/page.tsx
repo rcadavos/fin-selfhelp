@@ -28,6 +28,7 @@ import {
 import { Loader2, Check, X, Star, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
