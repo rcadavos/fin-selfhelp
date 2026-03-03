@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 const SITE_NAME = "Financial Tracker";
-const DEFAULT_TITLE = "Financial Tracker | Simple cashflow tracker";
+const DEFAULT_TITLE = "Financial Tracker — Track Take-Home Pay & Expenses by Category";
 const DEFAULT_DESCRIPTION =
   "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.";
 const TWITTER_HANDLE = ""; // e.g. "@fin-track" if you have one
