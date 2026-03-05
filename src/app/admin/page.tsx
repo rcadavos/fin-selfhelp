@@ -31,20 +31,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { setUserSubscription, type AdminUserRow } from "@/actions/admin";
-import { Loader2, UserMinus, CreditCard } from "lucide-react";
+import { setUserSubscription, setUserAdmin, type AdminUserRow } from "@/actions/admin";
+import { Loader2, CreditCard, Clock, Shield, ShieldOff } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
-function subscriptionStatus(row: AdminUserRow): { label: string; variant: "secondary" | "default" | "destructive" } {
+function subscriptionStatus(row: AdminUserRow): { label: string; variant: "secondary" | "default" | "destructive" | "outline" } {
   const now = new Date();
   const endsAt = row.subscription_ends_at ? new Date(row.subscription_ends_at) : null;
   const hasProAccess = (endsAt != null && endsAt > now) || row.is_subscriber;
-  if (!hasProAccess) return { label: "Free", variant: "secondary" };
-  if (endsAt && endsAt < now) return { label: "Expired", variant: "destructive" };
+  if (!hasProAccess) {
+    if (endsAt != null && endsAt < now) return { label: "Expired", variant: "destructive" };
+    return { label: "Free", variant: "secondary" };
+  }
+  if (!row.is_subscriber) return { label: "Trial", variant: "outline" };
   return { label: "Pro", variant: "default" };
 }
 
@@ -52,12 +55,26 @@ export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
   const { data: users = [], isLoading, error } = useQuery(adminUsersQueryOptions());
   const [paidUser, setPaidUser] = useState<AdminUserRow | null>(null);
+  const [trialUser, setTrialUser] = useState<AdminUserRow | null>(null);
   const [expiresAt, setExpiresAt] = useState("");
+  const [trialExpiresAt, setTrialExpiresAt] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const setFreeMutation = useMutation({
+  const setFreeTrialMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const result = await setUserSubscription(userId, "free");
+      const result = await setUserSubscription(userId, "free_trial");
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryOptions().queryKey });
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const setAdminMutation = useMutation({
+    mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
+      const result = await setUserAdmin(userId, isAdmin);
       if (result.error) throw new Error(result.error);
       return result;
     },
@@ -82,17 +99,47 @@ export default function AdminDashboardPage() {
     onError: (err: Error) => setActionError(err.message),
   });
 
+  const setTrialMutation = useMutation({
+    mutationFn: async ({ userId, expiresAt: date }: { userId: string; expiresAt: string }) => {
+      const result = await setUserSubscription(userId, "free_trial", date);
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryOptions().queryKey });
+      setTrialUser(null);
+      setTrialExpiresAt("");
+      setActionError(null);
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
   function openSetPaid(row: AdminUserRow) {
     setPaidUser(row);
+    setTrialUser(null);
     const defaultEnd = new Date();
     defaultEnd.setMonth(defaultEnd.getMonth() + 1);
     setExpiresAt(defaultEnd.toISOString().slice(0, 10));
     setActionError(null);
   }
 
+  function openSetTrial(row: AdminUserRow) {
+    setTrialUser(row);
+    setPaidUser(null);
+    const defaultEnd = new Date();
+    defaultEnd.setDate(defaultEnd.getDate() + 7);
+    setTrialExpiresAt(defaultEnd.toISOString().slice(0, 10));
+    setActionError(null);
+  }
+
   function submitSetPaid() {
     if (!paidUser || !expiresAt.trim()) return;
     setPaidMutation.mutate({ userId: paidUser.id, expiresAt: expiresAt.trim() });
+  }
+
+  function submitSetTrial() {
+    if (!trialUser || !trialExpiresAt.trim()) return;
+    setTrialMutation.mutate({ userId: trialUser.id, expiresAt: trialExpiresAt.trim() });
   }
 
   if (isLoading) {
@@ -109,7 +156,7 @@ export default function AdminDashboardPage() {
         <CardHeader>
           <CardTitle>Users</CardTitle>
           <CardDescription>
-            Subscription status and expiry. Set users to free or paid (with expiry date).
+            Subscription status: Free Trial (7 days), Trial (custom expiry), or Pro (paid). One-click Free Trial adds 7 days.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -143,7 +190,12 @@ export default function AdminDashboardPage() {
                         {formatDate(u.created_at)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={status.variant}>{status.label}</Badge>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={status.variant}>{status.label}</Badge>
+                          {u.is_admin && (
+                            <Badge variant="secondary">Admin</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {u.subscription_ends_at
@@ -151,21 +203,49 @@ export default function AdminDashboardPage() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setFreeMutation.mutate(u.id)}
-                            disabled={setFreeMutation.isPending}
+                            onClick={() => setAdminMutation.mutate({ userId: u.id, isAdmin: !u.is_admin })}
+                            disabled={setAdminMutation.isPending}
                           >
-                            {setFreeMutation.isPending && setFreeMutation.variables === u.id ? (
+                            {setAdminMutation.isPending && setAdminMutation.variables?.userId === u.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : u.is_admin ? (
+                              <>
+                                <ShieldOff className="h-4 w-4 mr-1" />
+                                Remove admin
+                              </>
+                            ) : (
+                              <>
+                                <Shield className="h-4 w-4 mr-1" />
+                                Make admin
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFreeTrialMutation.mutate(u.id)}
+                            disabled={setFreeTrialMutation.isPending}
+                          >
+                            {setFreeTrialMutation.isPending && setFreeTrialMutation.variables === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <>
-                                <UserMinus className="h-4 w-4 mr-1" />
-                                Free
+                                <Clock className="h-4 w-4 mr-1" />
+                                Free Trial
                               </>
                             )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSetTrial(u)}
+                          >
+                            <Clock className="h-4 w-4 mr-1" />
+                            Trial
                           </Button>
                           <Button
                             variant="outline"
@@ -191,7 +271,7 @@ export default function AdminDashboardPage() {
           <DialogHeader>
             <DialogTitle>Set to paid (Pro)</DialogTitle>
             <DialogDescription>
-              {paidUser?.email ?? "User"} — choose an expiry date for Pro access.
+              {paidUser?.email ?? "User"} — choose an expiry date. Pro users can leave reviews and suggestions.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -209,24 +289,46 @@ export default function AdminDashboardPage() {
             )}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setPaidUser(null)}
-            >
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setPaidUser(null)}>Cancel</Button>
             <Button
               onClick={submitSetPaid}
               disabled={!expiresAt.trim() || setPaidMutation.isPending}
             >
-              {setPaidMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Set paid"
-              )}
+              {setPaidMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : "Set paid"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!trialUser} onOpenChange={(open) => !open && setTrialUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set to free trial</DialogTitle>
+            <DialogDescription>
+              {trialUser?.email ?? "User"} — Pro access until expiry. Trial users cannot submit reviews or suggestions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="trial-expires-at">Expires at</Label>
+              <Input
+                id="trial-expires-at"
+                type="date"
+                value={trialExpiresAt}
+                onChange={(e) => setTrialExpiresAt(e.target.value)}
+              />
+            </div>
+            {actionError && (
+              <p className="text-sm text-destructive">{actionError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrialUser(null)}>Cancel</Button>
+            <Button
+              onClick={submitSetTrial}
+              disabled={!trialExpiresAt.trim() || setTrialMutation.isPending}
+            >
+              {setTrialMutation.isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : "Set trial"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -33,7 +33,7 @@ export function FooterFeedback({ className }: { className?: string }) {
     let cancelled = false;
     getSubscriptionStatus().then((status) => {
       if (cancelled) return;
-      setIsPaidTier(status?.hasProAccess ?? false);
+      setIsPaidTier(status?.isPaidTier ?? false);
     });
     return () => { cancelled = true; };
   }, [user]);

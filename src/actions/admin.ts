@@ -51,6 +51,7 @@ export type AdminUserRow = {
   created_at: string;
   is_subscriber: boolean;
   subscription_ends_at: string | null;
+  is_admin: boolean;
 };
 
 export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error?: string }> {
@@ -63,19 +64,49 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
     created_at: string;
     is_subscriber: boolean;
     subscription_ends_at: string | null;
+    is_admin: boolean;
   }) => ({
     id: row.id,
     email: row.email ?? null,
     created_at: row.created_at,
     is_subscriber: Boolean(row.is_subscriber),
     subscription_ends_at: row.subscription_ends_at ?? null,
+    is_admin: Boolean(row.is_admin),
   }));
   return { users };
 }
 
+export async function setUserAdmin(
+  userId: string,
+  isAdmin: boolean
+): Promise<{ error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not logged in." };
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!profile?.is_admin) return { error: "Forbidden." };
+    const { error } = await supabase.rpc("set_user_admin", {
+      target_user_id: userId,
+      p_is_admin: isAdmin,
+    });
+    if (error) return { error: error.message };
+    return {};
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to update admin." };
+  }
+}
+
+export type SubscriptionTier = "free" | "free_trial" | "paid";
+
 export async function setUserSubscription(
   userId: string,
-  tier: "free" | "paid",
+  tier: SubscriptionTier,
   expiresAt?: string
 ): Promise<{ error?: string }> {
   try {
@@ -89,11 +120,10 @@ export async function setUserSubscription(
       .eq("user_id", user.id)
       .maybeSingle();
     if (!profile?.is_admin) return { error: "Forbidden." };
-    // Call RPC with anon client so auth.uid() is set and the RPC's admin check passes
     const { error } = await supabase.rpc("update_user_subscription", {
       target_user_id: userId,
-      p_is_subscriber: tier === "paid",
-      p_subscription_ends_at: tier === "paid" && expiresAt ? expiresAt : null,
+      p_tier: tier,
+      p_expires_at: expiresAt?.trim() || null,
     });
     if (error) return { error: error.message };
     return {};

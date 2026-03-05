@@ -402,6 +402,8 @@ export async function saveBudget(state: BudgetState): Promise<{ error?: string }
 
 export type SubscriptionStatus = {
   hasProAccess: boolean;
+  /** True only for paying subscribers (is_subscriber). False for free and free_trial. */
+  isPaidTier: boolean;
   subscriptionEndsAt: string | null;
   isRecurring: boolean;
 };
@@ -419,8 +421,10 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus | null
   const now = new Date();
   const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
   const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
+  const isPaidTier = Boolean(profile.is_subscriber);
   return {
     hasProAccess,
+    isPaidTier,
     subscriptionEndsAt: profile.subscription_ends_at ?? null,
     isRecurring: Boolean(profile.is_subscriber),
   };
