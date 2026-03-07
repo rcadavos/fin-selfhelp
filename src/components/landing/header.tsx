@@ -47,21 +47,9 @@ export function Header({ className }: HeaderProps) {
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link href="/" className="text-lg font-semibold">
-          Financial Tracker
+          FinTrack
         </Link>
         <nav className="ml-auto flex items-center gap-4">
-          <a
-            href="#features"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Features
-          </a>
-          <a
-            href="#how-it-works"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            How it works
-          </a>
           {!loading && (
             <>
               {user ? (
