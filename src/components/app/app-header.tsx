@@ -20,7 +20,7 @@ import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
-import { ChevronDown, User, CreditCard, Shield, LogOut, Settings2, Sun, Moon, Monitor } from "lucide-react";
+import { ChevronDown, User, CreditCard, Shield, LogOut, Settings2, Sun, Moon, Monitor, Menu } from "lucide-react";
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
   const name = user?.user_metadata?.full_name;
@@ -54,39 +54,75 @@ export function AppHeader({ className }: { className?: string }) {
         <Link href={user ? "/my-cashflow" : "/"} className="text-lg font-semibold">
           Financial Tracker
         </Link>
-        <nav className="ml-auto flex items-center gap-4">
+        <nav className="ml-auto flex items-center gap-2 sm:gap-4">
           {loading ? (
             <span className="text-sm text-muted-foreground">…</span>
           ) : user ? (
             <>
-              <Link
-                href="/my-cashflow"
-                className={cn(navLinkClass, isMyCashflow ? navLinkActiveClass : "text-foreground hover:text-primary")}
-              >
-                My Cashflow
-              </Link>
-              <Link
-                href="/my-net-worth"
-                className={cn(navLinkClass, isMyNetWorth ? navLinkActiveClass : "text-foreground hover:text-primary")}
-              >
-                My Net Worth
-              </Link>
-              <Link
-                href="/calculators"
-                className={cn(navLinkClass, isCalculators ? navLinkActiveClass : "text-foreground hover:text-primary")}
-              >
-                Calculators
-              </Link>
-              {isAdmin && (
+              {/* Desktop nav: visible from sm up */}
+              <div className="hidden sm:flex items-center gap-4">
                 <Link
-                  href="/admin"
-                  prefetch={false}
-                  className={cn(navLinkClass, isAdminPage ? navLinkActiveClass : "text-foreground hover:text-primary", "flex items-center gap-1")}
+                  href="/my-cashflow"
+                  className={cn(navLinkClass, isMyCashflow ? navLinkActiveClass : "text-foreground hover:text-primary")}
                 >
-                  <Settings2 className="h-4 w-4" />
-                  Admin
+                  My Cashflow
                 </Link>
-              )}
+                <Link
+                  href="/my-net-worth"
+                  className={cn(navLinkClass, isMyNetWorth ? navLinkActiveClass : "text-foreground hover:text-primary")}
+                >
+                  My Net Worth
+                </Link>
+                <Link
+                  href="/calculators"
+                  className={cn(navLinkClass, isCalculators ? navLinkActiveClass : "text-foreground hover:text-primary")}
+                >
+                  Calculators
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    prefetch={false}
+                    className={cn(navLinkClass, isAdminPage ? navLinkActiveClass : "text-foreground hover:text-primary", "flex items-center gap-1")}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
+              </div>
+              {/* Mobile nav: hamburger menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="sm:hidden size-10 shrink-0">
+                    <Menu className="h-5 w-5" aria-label="Open menu" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 sm:hidden">
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-cashflow" className={cn("cursor-pointer", isMyCashflow && "bg-primary/10 text-primary font-semibold")}>
+                      My Cashflow
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-net-worth" className={cn("cursor-pointer", isMyNetWorth && "bg-primary/10 text-primary font-semibold")}>
+                      My Net Worth
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/calculators" className={cn("cursor-pointer", isCalculators && "bg-primary/10 text-primary font-semibold")}>
+                      Calculators
+                    </Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" prefetch={false} className={cn("cursor-pointer flex items-center gap-2", isAdminPage && "bg-primary/10 text-primary font-semibold")}>
+                        <Settings2 className="h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-1 max-w-[200px] sm:max-w-[260px]">
@@ -152,9 +188,11 @@ export function AppHeader({ className }: { className?: string }) {
             </>
           ) : (
             <>
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Home
-              </Link>
+              {pathname !== "/login" && (
+                <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                  Home
+                </Link>
+              )}
               <Link href="/login" className="text-sm font-medium text-foreground">
                 Log in
               </Link>
