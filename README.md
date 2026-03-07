@@ -2,7 +2,7 @@
 
 ## SEO, Web Vitals & sharing
 
-- **Metadata:** Root layout sets default title template (`%s | Financial Tracker`), description, keywords, and per-route overrides for `/calculators`, `/login`, `/signup`, and calculator sub-routes.
+- **Metadata:** Root layout sets default title template (`%s | FinTrack`), description, keywords, and per-route overrides for `/calculators`, `/login`, `/signup`, and calculator sub-routes.
 - **Sharing (Open Graph & Twitter):** All supported meta tags are set via `src/lib/seo.ts`: `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, `og:site_name`, `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`, plus canonical and `metadataBase`. OG image is generated at `src/app/opengraph-image.tsx` (1200×630).
 - **Sitemap & robots:** `src/app/sitemap.ts` and `src/app/robots.ts` use `NEXT_PUBLIC_SITE_URL`; set it to your production URL so canonical, sitemap URL, and OG links are correct.
 - **Structured data:** Root layout injects JSON-LD `WebApplication` schema for the homepage.
@@ -21,7 +21,7 @@ For links to show the correct image and title when shared (e.g. on Messenger or 
 
 2. **Re-fetch after deploy:** Facebook/Messenger cache OG data. After deploying, use the [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) and enter `https://fin-track.cloud` (or your URL), then click **Scrape Again** so the new meta tags and image are picked up.
 
-3. **Check the image URL:** In production, open the page source or inspect the meta tags and confirm `<meta property="og:image" content="https://fin-track.cloud/opengraph-image" />`. Then open `https://fin-track.cloud/opengraph-image` in a browser; it should show the Financial Tracker image (1200×630).
+3. **Check the image URL:** In production, open the page source or inspect the meta tags and confirm `<meta property="og:image" content="https://fin-track.cloud/opengraph-image" />`. Then open `https://fin-track.cloud/opengraph-image` in a browser; it should show the FinTrack image (1200×630).
 
 ## Support / contact email (e.g. info@fin-track.cloud)
 

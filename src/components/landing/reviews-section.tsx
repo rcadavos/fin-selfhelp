@@ -23,7 +23,7 @@ export function ReviewsSection({ className }: { className?: string }) {
             Reviews
           </h2>
           <p className="mt-2 text-md text-muted-foreground">
-            Reviews from paid users using this Financial Tracker.
+            Reviews from paid users using this FinTrack.
           </p>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-const SITE_NAME = "Financial Tracker";
-const DEFAULT_TITLE = "Financial Tracker — Track Take-Home Pay & Expenses";
+const SITE_NAME = "FinTrack";
+const DEFAULT_TITLE = "FinTrack — Track Take-Home Pay & Expenses";
 const DEFAULT_DESCRIPTION =
   "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.";
 const TWITTER_HANDLE = ""; // e.g. "@fin-track" if you have one
@@ -96,7 +96,7 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
   };
 }
 
-/** Default site-wide metadata (root layout). Uses title template so child routes get "Page | Financial Tracker". */
+/** Default site-wide metadata (root layout). Uses title template so child routes get "Page | FinTrack". */
 export function buildDefaultMetadata(): Metadata {
   const base = buildPageMetadata({
     title: DEFAULT_TITLE,

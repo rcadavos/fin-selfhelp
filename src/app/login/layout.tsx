@@ -3,7 +3,7 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: "Log in",
-  description: "Sign in to Financial Tracker to manage your cashflow and expenses.",
+  description: "Sign in to FinTrack to manage your cashflow and expenses.",
   path: "/login",
 });
 

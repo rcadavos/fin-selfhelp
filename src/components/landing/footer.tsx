@@ -14,7 +14,7 @@ export function Footer({ className }: { className?: string }) {
       <FooterFeedback />
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row pt-8">
         <p className="text-sm text-muted-foreground">
-          Financial Tracker — simple cashflow tracking for everyone.
+          FinTrack — simple cashflow tracking for everyone.
           {SUPPORT_EMAIL && (
             <> Contact:{" "}
               <a href={`mailto:${SUPPORT_EMAIL}`} className="underline hover:text-foreground">

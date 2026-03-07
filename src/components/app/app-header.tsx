@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -52,7 +53,7 @@ export function AppHeader({ className }: { className?: string }) {
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link href={user ? "/my-cashflow" : "/"} className="text-lg font-semibold">
-          Financial Tracker
+          FinTrack
         </Link>
         <nav className="ml-auto flex items-center gap-2 sm:gap-4">
           {loading ? (
@@ -125,12 +126,26 @@ export function AppHeader({ className }: { className?: string }) {
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1 max-w-[200px] sm:max-w-[260px]">
-                    <span className="truncate">{getDisplayName(user)}</span>
-                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="size-10 shrink-0 p-0 sm:size-auto sm:gap-1 sm:px-3 sm:max-w-[200px] md:max-w-[260px]"
+                    aria-label="Account menu"
+                  >
+                    <User className="h-5 w-5 sm:hidden" aria-hidden />
+                    <span className="hidden sm:inline truncate">{getDisplayName(user)}</span>
+                    <ChevronDown className="hidden sm:block h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
+                  {user?.email && (
+                    <>
+                      <DropdownMenuLabel className="font-normal text-muted-foreground truncate px-2 py-1.5">
+                        {user.email}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
                       <User className="h-4 w-4" />

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Financial Tracker — Simple cashflow tracker for take-home pay and expenses";
+export const alt = "FinTrack — Simple cashflow tracker for take-home pay and expenses";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default function OpenGraphImage() {
           }}
         >
           <div style={{ fontSize: 56, fontWeight: 700, marginBottom: 16 }}>
-            Financial Tracker
+            FinTrack
           </div>
           <div style={{ fontSize: 28, opacity: 0.95, maxWidth: 640, marginBottom: 32 }}>
             Simple cashflow tracker — track take-home pay and expenses by category

@@ -95,7 +95,7 @@ export default function ReceiptPage() {
 
         {/* Receipt content – print-friendly */}
         <article className="border rounded-lg bg-white text-black p-6 shadow-sm print:shadow-none print:border print:p-6">
-          <h1 className="text-xl font-semibold mb-1">Financial Tracker</h1>
+          <h1 className="text-xl font-semibold mb-1">FinTrack</h1>
           <p className="text-sm text-neutral-500 mb-6">Payment receipt</p>
 
           <dl className="space-y-2 text-sm">
