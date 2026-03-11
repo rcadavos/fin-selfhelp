@@ -10,5 +10,4 @@ export const adminUsersQueryOptions = () =>
       if (error) throw new Error(error);
       return users;
     },
-    staleTime: 30 * 1000,
   });

@@ -10,5 +10,4 @@ export const approvedReviewsQueryOptions = () =>
       if (result.error) throw new Error(result.error);
       return result.reviews;
     },
-    staleTime: 2 * 60 * 1000,
   });

@@ -10,5 +10,4 @@ export const adminCategoriesQueryOptions = () =>
       if (error) throw new Error(error);
       return categories;
     },
-    staleTime: 30 * 1000,
   });

@@ -10,5 +10,4 @@ export const adminPricingQueryOptions = () =>
       if (error) throw new Error(error);
       return plan;
     },
-    staleTime: 30 * 1000,
   });

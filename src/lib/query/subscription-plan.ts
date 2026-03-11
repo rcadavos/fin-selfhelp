@@ -18,5 +18,4 @@ export const subscriptionPlanQueryOptions = () =>
       const plan = await getSubscriptionPlan();
       return plan ?? DEFAULT_PLAN;
     },
-    staleTime: 5 * 60 * 1000,
   });
