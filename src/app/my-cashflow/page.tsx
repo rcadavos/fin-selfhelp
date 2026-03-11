@@ -37,7 +37,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { Pencil, Plus, Trash2, Bell, Check, Sparkles } from "lucide-react";
+import { Pencil, Plus, Trash2, Bell, Check, Sparkles, CheckCircle2 } from "lucide-react";
 
 type IncomeCardRow = { category_key: IncomeCategoryKey; amount: string };
 
@@ -120,6 +120,35 @@ export default function MyCashflowPage() {
   const [addInlineReminderDays, setAddInlineReminderDays] = useState<ReminderDay[]>([]);
   const [addInlineStatus, setAddInlineStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [paidThisMonth, setPaidThisMonth] = useState<Set<string>>(new Set());
+
+  const paidStorageKey = (() => {
+    const now = new Date();
+    return `paid-this-month-${now.getFullYear()}-${now.getMonth() + 1}`;
+  })();
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(paidStorageKey);
+      if (stored) setPaidThisMonth(new Set(JSON.parse(stored)));
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function togglePaid(entryId: string) {
+    setPaidThisMonth((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      try {
+        localStorage.setItem(paidStorageKey, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
 
   const load = useCallback(() => {
     loadExpenseData().then((data) => {
@@ -156,6 +185,7 @@ export default function MyCashflowPage() {
   const entriesCounted = freeTierLimitApplied ? entries.slice(0, FREE_TIER_EXPENSE_LIMIT) : entries;
   const countedEntryIds = freeTierLimitApplied ? new Set(entriesCounted.map((e) => e.id)) : new Set<string>();
   const totalExpenses = entriesCounted.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidThisMonth = entriesCounted.reduce((sum, e) => sum + (paidThisMonth.has(e.id) ? e.amount : 0), 0);
   const balance = netTakeHome - totalExpenses;
   const grouped = groupEntriesByCategory(entries);
   const canAddMoreExpenses = isSubscriber || entries.length < FREE_TIER_EXPENSE_LIMIT;
@@ -730,12 +760,38 @@ export default function MyCashflowPage() {
                             ) : (
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <span>{entry.note ? entry.note : getCategoryLabel(categoriesList, entry.category_id)}</span>
-                                  <span className="shrink-0 font-bold">{formatCurrency(entry.amount)}</span>
+                                  <span className={cn(paidThisMonth.has(entry.id) && "line-through text-muted-foreground/60")}>
+                                    {entry.note ? entry.note : getCategoryLabel(categoriesList, entry.category_id)}
+                                  </span>
+                                  <span className={cn("shrink-0 font-bold", paidThisMonth.has(entry.id) && "line-through text-muted-foreground/60")}>
+                                    {formatCurrency(entry.amount)}
+                                  </span>
                                   {entry.due_date && (
                                     <span className="shrink-0 text-xs text-muted-foreground">
                                       Due: {new Date(entry.due_date).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                                     </span>
+                                  )}
+                                  {paidThisMonth.has(entry.id) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => togglePaid(entry.id)}
+                                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60 transition-colors"
+                                      title="Mark unpaid"
+                                      aria-label="Mark unpaid"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Paid this month
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => togglePaid(entry.id)}
+                                      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground hover:bg-emerald-100 hover:text-emerald-700 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-400 transition-colors"
+                                      title="Mark Paid this Month"
+                                      aria-label="Mark paid this month"
+                                    >
+                                      Mark Paid
+                                    </button>
                                   )}
                                 </div>
                                 <div className="flex shrink-0 items-center gap-0">
@@ -974,6 +1030,12 @@ export default function MyCashflowPage() {
           <p className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total expenses</span>
             <span className="font-bold">{formatCurrency(totalExpenses)}</span>
+          </p>
+          <p className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Bills paid this month</span>
+            <span className={cn("font-bold", totalPaidThisMonth > 0 ? "text-emerald-600" : "")}>
+              {formatCurrency(totalPaidThisMonth)}
+            </span>
           </p>
           <p className="flex justify-between font-semibold">
             <span>Balance</span>
