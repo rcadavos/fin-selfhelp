@@ -27,6 +27,8 @@ function LoginContent() {
   const { user, loading } = useUser();
   const { showError, showSuccess } = useSnackbar();
   const [otpPending, setOtpPending] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (!loading && user) {
@@ -43,7 +45,10 @@ function LoginContent() {
 
   async function handlePasswordSubmit(formData: FormData) {
     const result = await signIn(formData);
-    if (result?.error) showError(result.error);
+    if (result?.error) {
+      showError(result.error);
+      setPassword("");
+    }
   }
 
   async function handleOtpSubmit(formData: FormData) {
@@ -88,6 +93,8 @@ function LoginContent() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -107,6 +114,8 @@ function LoginContent() {
                 type="password"
                 required
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <SubmitButton>Log in with password</SubmitButton>
