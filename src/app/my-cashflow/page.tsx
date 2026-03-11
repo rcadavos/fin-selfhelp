@@ -437,10 +437,10 @@ export default function MyCashflowPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8 sm:py-12">
+    <div className="container mx-auto max-w-4xl px-4 py-4">
       <h1 className="mb-2 text-2xl font-semibold">My Cashflow</h1>
       <p className="mb-6 text-muted-foreground">
-        Set your take-home pay, then add expenses. Add another line anytime for expenses you forgot.
+        Set your take-home pay, then add expenses. Add another line anytime for expenses you missed to input.
       </p>
 
       {/* Net take-home card: show only when not yet set (first time) */}

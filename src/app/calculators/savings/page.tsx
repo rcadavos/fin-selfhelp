@@ -14,7 +14,7 @@ import {
 } from "@/lib/savings-calculator";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, Info } from "lucide-react";
+import { TrendingUp, Info, ChevronLeft } from "lucide-react";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -66,13 +66,13 @@ export default function SavingsCalculatorPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 sm:py-12">
+    <div className="container mx-auto max-w-2xl px-4 py-4">
       <div className="mb-6">
         <Link
           href="/calculators"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Calculators
+          <ChevronLeft className="h-4 w-4" />Calculators
         </Link>
       </div>
       <h1 className="mb-2 text-2xl font-semibold">Savings & Investment Calculator</h1>

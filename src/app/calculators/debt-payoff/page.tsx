@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { runDebtPayoffCalculation } from "@/lib/debt-payoff-calculator";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar, Info } from "lucide-react";
+import { Calendar, Info, ChevronLeft } from "lucide-react";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -50,13 +50,13 @@ export default function DebtPayoffCalculatorPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 sm:py-12">
+    <div className="container mx-auto max-w-2xl px-4 py-4">
       <div className="mb-6">
         <Link
           href="/calculators"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Calculators
+          <ChevronLeft className="h-4 w-4" />Calculators
         </Link>
       </div>
       <h1 className="mb-2 text-2xl font-semibold">Debt Payoff Calculator</h1>

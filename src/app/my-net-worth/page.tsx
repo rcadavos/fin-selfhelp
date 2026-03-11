@@ -184,7 +184,7 @@ export default function NetWorthPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-4">
       <h1 className="mb-2 text-2xl font-semibold">My Net Worth</h1>
       <p className="mb-6 text-muted-foreground">
         Track assets and liabilities. Property (e.g. house) is an asset; vehicles used for personal use are liabilities (they don’t generate income).

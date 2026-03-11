@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSuggestionsForAdmin, type SuggestionForAdminRow } from "@/actions/feedback";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 function formatDate(iso: string): string {
@@ -39,9 +39,9 @@ export default function AdminSuggestionsPage() {
       <div className="mb-6">
         <Link
           href="/admin"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Back to Admin
+          <ChevronLeft className="h-4 w-4" />Back to Admin
         </Link>
       </div>
       <Card>

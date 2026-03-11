@@ -25,7 +25,7 @@ import {
   updateReview,
   type ReviewForAdminRow,
 } from "@/actions/feedback";
-import { Loader2, Check, X, Star, Pencil } from "lucide-react";
+import { Loader2, Check, X, Star, Pencil, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -108,9 +108,9 @@ export default function AdminReviewsPage() {
       <div className="mb-6">
         <Link
           href="/admin"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Back to Admin
+          <ChevronLeft className="h-4 w-4" />Back to Admin
         </Link>
       </div>
       <Card>

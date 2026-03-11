@@ -66,4 +66,11 @@
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
   }
+
+  /* Prevent Radix UI / react-remove-scroll from causing layout shift.
+     Uses higher specificity (html body) to beat the !important injected style tag. */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
+  }
 }

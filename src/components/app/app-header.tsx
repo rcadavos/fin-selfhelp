@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,18 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { signOut } from "@/actions/auth";
 import { cn } from "@/lib/utils";
-import { ChevronDown, User, CreditCard, Shield, LogOut, Settings2, Sun, Moon, Monitor, Menu } from "lucide-react";
+import { ChevronDown, User, CreditCard, Shield, LogOut, Settings2, Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
   const name = user?.user_metadata?.full_name;
@@ -37,7 +32,6 @@ export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
   const { user, loading } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
-  const { theme, setTheme } = useTheme();
 
   const isMyCashflow = pathname?.startsWith("/my-cashflow");
   const isMyNetWorth = pathname?.startsWith("/my-net-worth");
@@ -62,6 +56,7 @@ export function AppHeader({ className }: { className?: string }) {
             <>
               {/* Desktop nav: visible from sm up */}
               <div className="hidden sm:flex items-center gap-4">
+                <ThemeToggle />
                 <Link
                   href="/my-cashflow"
                   className={cn(navLinkClass, isMyCashflow ? navLinkActiveClass : "text-foreground hover:text-primary")}
@@ -92,6 +87,9 @@ export function AppHeader({ className }: { className?: string }) {
                 )}
               </div>
               {/* Mobile nav: hamburger menu */}
+              <div className="sm:hidden">
+                <ThemeToggle />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="sm:hidden size-10 shrink-0">
@@ -168,25 +166,6 @@ export function AppHeader({ className }: { className?: string }) {
                       Password & Security
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">Theme</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={(v) => setTheme(v)}>
-                        <DropdownMenuRadioItem value="light" className="cursor-pointer gap-2">
-                          <Sun className="h-4 w-4" />
-                          Light
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="dark" className="cursor-pointer gap-2">
-                          <Moon className="h-4 w-4" />
-                          Dark
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="system" className="cursor-pointer gap-2">
-                          <Monitor className="h-4 w-4" />
-                          System
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={(e: Event) => {

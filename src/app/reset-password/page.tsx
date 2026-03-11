@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { ChevronLeft } from "lucide-react";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 
 export default function ResetPasswordPage() {
@@ -85,8 +86,8 @@ export default function ResetPasswordPage() {
           </p>
         </CardContent>
       </Card>
-      <Link href="/" className="mt-6 text-sm text-muted-foreground hover:text-foreground">
-        ← Back to home
+      <Link href="/" className="mt-6 inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" />Back to home
       </Link>
     </main>
   );
