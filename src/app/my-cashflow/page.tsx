@@ -23,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { loadExpenseData, saveIncomeEntries, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
+import { loadExpenseData, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
@@ -37,7 +37,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { Pencil, Plus, Trash2, Bell, Check, Sparkles, CheckCircle2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Bell, Check, Sparkles, CheckCircle2, Info } from "lucide-react";
 
 type IncomeCardRow = { category_key: IncomeCategoryKey; amount: string };
 
@@ -95,11 +95,31 @@ export default function MyCashflowPage() {
     return EXPENSE_CATEGORIES.map((c) => c.id);
   }, [categoriesFromDb]);
   const [budgetDataLoaded, setBudgetDataLoaded] = useState(false);
-  const [netTakeHome, setNetTakeHome] = useState(0);
+  const [netTakeHome, setNetTakeHome] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const stored = localStorage.getItem("cashflow-income");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.total > 0) return parsed.total;
+      }
+    } catch {}
+    return 0;
+  });
   const [entries, setEntries] = useState<ExpenseEntryRow[]>([]);
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [subscriptionExpired, setSubscriptionExpired] = useState(false);
-  const [incomeCardRows, setIncomeCardRows] = useState<IncomeCardRow[]>(() => [{ category_key: "salary", amount: "" }]);
+  const [incomeCardRows, setIncomeCardRows] = useState<IncomeCardRow[]>(() => {
+    if (typeof window === "undefined") return [{ category_key: "salary", amount: "" }];
+    try {
+      const stored = localStorage.getItem("cashflow-income");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.rows?.length) return parsed.rows;
+      }
+    } catch {}
+    return [{ category_key: "salary", amount: "" }];
+  });
   const [addLines, setAddLines] = useState<AddExpenseLine[]>(() => [newAddLine()]);
   const { showError: showSnackbar } = useSnackbar();
   const { refreshBudget } = useBudgetRefresh();
@@ -120,7 +140,10 @@ export default function MyCashflowPage() {
   const [addInlineReminderDays, setAddInlineReminderDays] = useState<ReminderDay[]>([]);
   const [addInlineStatus, setAddInlineStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showIncomeEdit, setShowIncomeEdit] = useState(false);
   const [paidThisMonth, setPaidThisMonth] = useState<Set<string>>(new Set());
+
+  const INCOME_STORAGE_KEY = "cashflow-income";
 
   const paidStorageKey = (() => {
     const now = new Date();
@@ -153,19 +176,8 @@ export default function MyCashflowPage() {
   const load = useCallback(() => {
     loadExpenseData().then((data) => {
       if (data) {
-        setNetTakeHome(data.netTakeHome);
         setIsSubscriber(data.isSubscriber);
         setSubscriptionExpired(data.subscriptionExpired);
-        if (data.netTakeHome === 0 && data.incomeEntries?.length > 0) {
-          setIncomeCardRows(
-            data.incomeEntries.map((e) => ({
-              category_key: (e.category_key as IncomeCategoryKey) || "salary",
-              amount: String(e.amount),
-            }))
-          );
-        } else if (data.netTakeHome === 0) {
-          setIncomeCardRows([{ category_key: "salary", amount: "" }]);
-        }
         setEntries(data.entries);
       }
       setBudgetDataLoaded(true);
@@ -211,30 +223,26 @@ export default function MyCashflowPage() {
     setIncomeCardRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   }
 
-  async function handleSaveNetTakeHome(e: React.FormEvent) {
+  function handleSaveNetTakeHome(e: React.FormEvent) {
     e.preventDefault();
-    const rows = incomeCardRows.map((r) => ({
-      category_key: r.category_key,
-      amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0,
-    }));
-    const valid = rows.filter((r) => r.amount > 0);
+    const valid = incomeCardRows
+      .map((r) => ({ ...r, amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0 }))
+      .filter((r) => r.amount > 0);
     if (valid.length === 0) {
       showSnackbar("Add at least one income row with amount greater than 0.");
       return;
     }
-    setSaveStatus("saving");
-    const result = await saveIncomeEntries(valid);
-    if (result.error) {
-      showSnackbar(result.error);
-      setSaveStatus("error");
-    } else {
-      const total = valid.reduce((s, r) => s + r.amount, 0);
-      setNetTakeHome(total);
-      setSaveStatus("saved");
-      load();
-      refreshBudget();
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    }
+    const total = valid.reduce((s, r) => s + r.amount, 0);
+    const rowsToStore = valid.map((r) => ({ category_key: r.category_key, amount: String(r.amount) }));
+    try {
+      localStorage.setItem(INCOME_STORAGE_KEY, JSON.stringify({ rows: rowsToStore, total }));
+    } catch {}
+    setNetTakeHome(total);
+    setIncomeCardRows(rowsToStore);
+    setShowIncomeEdit(false);
+    setSaveStatus("saved");
+    refreshBudget();
+    setTimeout(() => setSaveStatus("idle"), 2000);
   }
 
   function setAddLine(id: string, patch: Partial<AddExpenseLine>) {
@@ -443,16 +451,30 @@ export default function MyCashflowPage() {
         Set your take-home pay, then add expenses. Add another line anytime for expenses you missed to input.
       </p>
 
-      {/* Net take-home card: show only when not yet set (first time) */}
-      {netTakeHome === 0 && (
+      {/* Net take-home card */}
+      {(netTakeHome === 0 || showIncomeEdit) && (
         <Card className="mb-8 max-w-xl">
           <CardHeader>
             <CardTitle>Net take-home pay</CardTitle>
             <CardDescription>
-              Add income by category. Total is shown below and saved when you click Save.
+              Add income by category. Total is shown below and saved on this device only.
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 mb-4">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>
+                {showIncomeEdit ? (
+                  <>
+                    <strong>Privacy note:</strong> Your income is <strong>not stored in our database</strong>. Changes are saved only in this browser&apos;s local storage. Clearing your cache or using another device will reset it.
+                  </>
+                ) : (
+                  <>
+                    Your income is <strong>not saved to your account</strong> — it is stored only in this browser&apos;s local storage. If you clear your cache or switch to another device, you&apos;ll need to enter it again.
+                  </>
+                )}
+              </span>
+            </div>
             <div className="rounded-lg border bg-muted/30 px-4 py-3 mb-4">
               <p className="text-sm text-muted-foreground">Total (before save)</p>
               <p className="text-xl font-bold">{formatCurrency(incomeCardTotal)}</p>
@@ -503,9 +525,16 @@ export default function MyCashflowPage() {
                   Add row
                 </Button>
               </div>
-              <Button type="submit" disabled={saveStatus === "saving"}>
-                {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : "Save"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="submit" disabled={saveStatus === "saving"}>
+                  {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : "Save"}
+                </Button>
+                {showIncomeEdit && (
+                  <Button type="button" variant="outline" onClick={() => setShowIncomeEdit(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -1024,7 +1053,18 @@ export default function MyCashflowPage() {
             </p>
           )}
           <p className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Net take-home</span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              Net take-home
+              <button
+                type="button"
+                onClick={() => { setShowIncomeEdit(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Edit income (saved on this device only)"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </button>
+            </span>
             <span className="font-bold">{formatCurrency(netTakeHome)}</span>
           </p>
           <p className="flex justify-between text-sm">

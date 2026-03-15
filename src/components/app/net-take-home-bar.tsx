@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { loadExpenseData, saveIncomeEntries } from "@/actions/budget";
+import { loadExpenseData } from "@/actions/budget";
 import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
 import { INCOME_CATEGORIES } from "@/types/database.types";
 import type { IncomeCategoryKey } from "@/types/database.types";
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { Pencil, AlertTriangle, Plus, Trash2, Info } from "lucide-react";
 import { Popover } from "@/components/ui/popover";
 
 type FinancialStatus = "overdraft" | "on_track" | "left_over" | "no_expenses";
@@ -49,21 +49,29 @@ export function NetTakeHomeBar() {
   const pathname = usePathname();
   const { refreshKey, refreshBudget } = useBudgetRefresh();
   const { showError } = useSnackbar();
-  const [netTakeHome, setNetTakeHome] = useState<number | null>(null);
-  const [incomeEntries, setIncomeEntries] = useState<{ id: string; category_key: string; amount: number }[]>([]);
+  const INCOME_STORAGE_KEY = "cashflow-income";
+
+  const [netTakeHome, setNetTakeHome] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem("cashflow-income");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.total > 0) return parsed.total;
+      }
+    } catch {}
+    return null;
+  });
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [hasEntries, setHasEntries] = useState(false);
   const [freeTierLimitApplied, setFreeTierLimitApplied] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editRows, setEditRows] = useState<IncomeRowEdit[]>([]);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     loadExpenseData().then((data) => {
       if (data) {
-        setNetTakeHome(data.netTakeHome);
-        setIncomeEntries(data.incomeEntries);
         const entries = data.entries;
         const isSubscriber = data.isSubscriber;
         const limited = !isSubscriber && entries.length > FREE_TIER_EXPENSE_LIMIT;
@@ -73,8 +81,6 @@ export function NetTakeHomeBar() {
         setHasEntries(entriesCounted.length > 0);
         setFreeTierLimitApplied(limited);
       } else {
-        setNetTakeHome(null);
-        setIncomeEntries([]);
         setTotalExpenses(0);
         setHasEntries(false);
         setFreeTierLimitApplied(false);
@@ -83,21 +89,19 @@ export function NetTakeHomeBar() {
   }, [user, pathname, refreshKey]);
 
   useEffect(() => {
-    if (editOpen) {
-      if (incomeEntries.length > 0) {
-        setEditRows(
-          incomeEntries.map((e) => ({
-            category_key: (e.category_key as IncomeCategoryKey) || "salary",
-            amount: String(e.amount),
-          }))
-        );
-      } else if (netTakeHome != null && netTakeHome > 0) {
-        setEditRows([{ category_key: "salary", amount: String(netTakeHome) }]);
-      } else {
-        setEditRows([{ category_key: "salary", amount: "" }]);
+    if (!editOpen) return;
+    try {
+      const stored = localStorage.getItem(INCOME_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.rows?.length) {
+          setEditRows(parsed.rows);
+          return;
+        }
       }
-    }
-  }, [editOpen, incomeEntries, netTakeHome]);
+    } catch {}
+    setEditRows([{ category_key: "salary", amount: "" }]);
+  }, [editOpen, INCOME_STORAGE_KEY]);
 
   const editTotal = useMemo(() => {
     return editRows.reduce((s, r) => s + (parseInt(r.amount.replace(/\D/g, ""), 10) || 0), 0);
@@ -119,29 +123,23 @@ export function NetTakeHomeBar() {
     setEditRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   }
 
-  async function handleSaveEdit(e: React.FormEvent) {
+  function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    const rows = editRows.map((r) => ({
-      category_key: r.category_key,
-      amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0,
-    }));
-    const valid = rows.filter((r) => r.amount > 0);
+    const valid = editRows
+      .map((r) => ({ category_key: r.category_key, amount: parseInt(r.amount.replace(/\D/g, ""), 10) || 0 }))
+      .filter((r) => r.amount > 0);
     if (valid.length === 0) {
       showError("Add at least one income row with amount greater than 0.");
       return;
     }
-    setSaving(true);
-    const result = await saveIncomeEntries(valid);
-    setSaving(false);
-    if (result.error) {
-      showError(result.error);
-    } else {
-      const total = valid.reduce((s, r) => s + r.amount, 0);
-      setNetTakeHome(total);
-      setIncomeEntries(valid.map((r, i) => ({ id: String(i), category_key: r.category_key, amount: r.amount })));
-      refreshBudget();
-      setEditOpen(false);
-    }
+    const total = valid.reduce((s, r) => s + r.amount, 0);
+    const rowsToStore = valid.map((r) => ({ category_key: r.category_key, amount: String(r.amount) }));
+    try {
+      localStorage.setItem(INCOME_STORAGE_KEY, JSON.stringify({ rows: rowsToStore, total }));
+    } catch {}
+    setNetTakeHome(total);
+    refreshBudget();
+    setEditOpen(false);
   }
 
   if (!user) return null;
@@ -212,11 +210,18 @@ export function NetTakeHomeBar() {
           <DialogHeader>
             <DialogTitle>Net take-home pay</DialogTitle>
             <DialogDescription>
-              Add income by category. Total is shown below and saved when you click Save.
+              Add income by category. Saved on this device only — not in your account.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Total above the card */}
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>
+              <strong>Privacy note:</strong> Your income is <strong>not stored in our database</strong>. It is saved only in this browser&apos;s local storage. Clearing your cache or using another device will reset it.
+            </span>
+          </div>
+
+          {/* Total above the form */}
           <div className="rounded-lg border bg-muted/30 px-4 py-3">
             <p className="text-sm text-muted-foreground">Total (before save)</p>
             <p className="text-xl font-bold">{formatCurrency(editTotal)}</p>
@@ -272,9 +277,7 @@ export function NetTakeHomeBar() {
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
+              <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>
