@@ -25,7 +25,8 @@ export type NetWorthData = {
   expenseTotalsByCategory: ExpenseTotalByCategory[];
 };
 
-export async function loadNetWorthData(): Promise<NetWorthData | null> {
+/** Load only expense totals by category for "Add from expenses" suggestions. Net worth items are stored in localStorage. */
+export async function loadExpenseTotalsForNetWorthSuggestions(): Promise<ExpenseTotalByCategory[] | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,40 +40,22 @@ export async function loadNetWorthData(): Promise<NetWorthData | null> {
     .single();
   if (!profile) return null;
 
-  const [itemsRes, entriesRes] = await Promise.all([
-    supabase
-      .from("net_worth_items")
-      .select("id, type, category_key, name, amount_cents, currency, use_type")
-      .eq("profile_id", profile.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("expense_entries")
-      .select("category_id, amount")
-      .eq("profile_id", profile.id),
-  ]);
+  const { data: entries } = await supabase
+    .from("expense_entries")
+    .select("category_id, amount")
+    .eq("profile_id", profile.id);
 
-  const items: NetWorthItemRow[] = (itemsRes.data ?? []).map((row) => ({
-    id: row.id,
-    type: row.type as NetWorthItemType,
-    category_key: (row.category_key ?? "other") as NetWorthCategoryKey,
-    name: row.name ?? null,
-    amount_cents: Number(row.amount_cents),
-    currency: row.currency ?? "PHP",
-    use_type: (row.use_type as NetWorthUseType) ?? null,
-  }));
-
-  const entries = entriesRes.data ?? [];
+  const list = entries ?? [];
   const totalsByCategory = new Map<string, number>();
-  for (const e of entries) {
+  for (const e of list) {
     const cat = String(e.category_id ?? "");
     const amt = Number(e.amount ?? 0);
     totalsByCategory.set(cat, (totalsByCategory.get(cat) ?? 0) + amt);
   }
-  const expenseTotalsByCategory: ExpenseTotalByCategory[] = Array.from(
-    totalsByCategory.entries()
-  ).map(([category_id, total_amount]) => ({ category_id, total_amount }));
-
-  return { items, expenseTotalsByCategory };
+  return Array.from(totalsByCategory.entries()).map(([category_id, total_amount]) => ({
+    category_id,
+    total_amount,
+  }));
 }
 
 export async function addNetWorthItem(

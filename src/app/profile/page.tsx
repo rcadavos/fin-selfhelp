@@ -23,14 +23,14 @@ export default function ProfilePage() {
 
   if (loading || !user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
   }
 
   return (
-    <main className="container mx-auto max-w-md px-4 py-12">
+    <main className="container mx-auto max-w-md py-12">
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>

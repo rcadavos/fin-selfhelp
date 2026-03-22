@@ -10,7 +10,7 @@ import { Footer } from "@/components/landing/footer";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="app-layout">
       <Header />
       <HeroSection />
       <FeaturesSection />

@@ -47,7 +47,7 @@ export default function ReceiptPage() {
 
   if (userLoading || !user) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
@@ -55,7 +55,7 @@ export default function ReceiptPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </main>
     );
@@ -63,7 +63,7 @@ export default function ReceiptPage() {
 
   if (error || !payment) {
     return (
-      <main className="min-h-screen px-4 py-12">
+      <main className="w-full min-w-0 flex-1 bg-background px-4 py-12">
         <div className="mx-auto max-w-md text-center space-y-4">
           <p className="text-destructive">{error ?? "Receipt not found."}</p>
           <Button asChild variant="outline">
@@ -77,7 +77,7 @@ export default function ReceiptPage() {
   const amount = payment.amountCents / 100;
 
   return (
-    <main className="min-h-screen px-4 py-8 print:py-4">
+    <main className="w-full min-w-0 flex-1 bg-background px-4 py-8 print:min-h-0 print:py-4">
       <div className="mx-auto max-w-lg">
         {/* Screen-only actions */}
         <div className="flex flex-wrap items-center gap-2 mb-6 print:hidden">

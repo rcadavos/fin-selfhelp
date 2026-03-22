@@ -9,7 +9,7 @@ export default function MyCashflowLayout({
 }) {
   return (
     <BudgetRefreshProvider>
-      <div className="min-h-screen bg-background">
+      <div className="app-layout">
         <AppHeader />
         <NetTakeHomeBar />
         {children}

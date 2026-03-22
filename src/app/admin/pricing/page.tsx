@@ -88,7 +88,7 @@ export default function AdminPricingPage() {
 
   if (error || !plan) {
     return (
-      <main className="container mx-auto max-w-lg px-4 py-8">
+      <main className="container mx-auto max-w-lg py-8">
         <p className="text-destructive">{(error as Error)?.message ?? "Plan not found."}</p>
         <Button variant="outline" asChild className="mt-4">
           <Link href="/admin">Back to Admin</Link>
@@ -102,7 +102,7 @@ export default function AdminPricingPage() {
   const displayOriginal = originalPriceAmount !== "" ? originalPriceAmount : (plan.originalPriceAmount != null ? String(plan.originalPriceAmount) : "");
 
   return (
-    <main className="container mx-auto max-w-lg px-4 py-8">
+    <main className="container mx-auto max-w-lg py-8">
       <Card>
         <CardHeader>
           <CardTitle>Subscription pricing</CardTitle>

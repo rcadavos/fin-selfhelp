@@ -62,14 +62,14 @@ function LoginContent() {
 
   if (loading || user) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <main className="app-main-centered">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Log in</CardTitle>
@@ -180,7 +180,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen flex flex-col items-center justify-center px-4 py-12"><p className="text-muted-foreground">Loading…</p></main>}>
+    <Suspense fallback={<main className="app-main-centered"><p className="text-muted-foreground">Loading…</p></main>}>
       <LoginContent />
     </Suspense>
   );

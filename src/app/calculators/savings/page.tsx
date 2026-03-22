@@ -59,14 +59,14 @@ export default function SavingsCalculatorPage() {
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-4">
+    <div className="container mx-auto max-w-2xl py-4">
       <div className="mb-6">
         <Link
           href="/calculators"

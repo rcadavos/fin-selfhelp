@@ -71,7 +71,7 @@ export default function SubscriptionPage() {
 
   if (userLoading || !user) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
@@ -79,7 +79,7 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </main>
     );
@@ -90,7 +90,7 @@ export default function SubscriptionPage() {
   const endsAt = status?.subscriptionEndsAt ?? null;
 
   return (
-    <main className="min-h-screen px-4 py-12">
+    <main className="w-full min-w-0 flex-1 bg-background px-4 py-12">
       <div className="mx-auto max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-semibold">Subscription</h1>

@@ -159,7 +159,7 @@ export default function AdminCategoriesPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-4xl px-4 py-8">
+    <main className="container mx-auto max-w-4xl py-8">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-4">

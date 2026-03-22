@@ -97,14 +97,14 @@ export default function AdminReviewsPage() {
 
   if (isLoading) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8 flex justify-center">
+      <main className="container mx-auto max-w-4xl flex justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </main>
     );
   }
 
   return (
-    <main className="container mx-auto max-w-4xl px-4 py-8">
+    <main className="container mx-auto max-w-4xl py-8">
       <div className="mb-6">
         <Link
           href="/admin"

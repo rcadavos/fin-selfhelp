@@ -15,13 +15,13 @@ export default async function AdminLayout({
   if (!guard.allowed) redirect(guard.redirectTo ?? "/");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-layout">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
-        <div className="flex h-14 items-center justify-between px-4 sm:px-6">
-          <Link href="/admin" className="text-lg font-semibold">
+        <div className="flex h-14 min-w-0 items-center justify-between gap-2 px-4 sm:px-6">
+          <Link href="/admin" className="shrink-0 text-lg font-semibold">
             Admin
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex max-w-full flex-1 flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm sm:gap-x-4">
             <Link href="/admin" className="text-sm font-medium text-foreground">
               Users
             </Link>

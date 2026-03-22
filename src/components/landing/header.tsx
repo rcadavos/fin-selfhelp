@@ -20,7 +20,7 @@ export function Header({ className }: HeaderProps) {
         <Link href="/" className="text-lg font-semibold">
           FinTrack
         </Link>
-        <nav className="ml-auto flex items-center gap-4">
+        <nav className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
           <Button size="sm" variant="ghost" asChild>
             <Link href="/login">Log in</Link>
           </Button>

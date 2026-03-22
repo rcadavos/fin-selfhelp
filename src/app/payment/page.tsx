@@ -138,7 +138,7 @@ export default function PaymentPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
@@ -146,7 +146,7 @@ export default function PaymentPage() {
 
   if (!user) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <main className="app-main-centered">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Sign in to subscribe</CardTitle>
@@ -171,7 +171,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-12">
+    <main className="w-full min-w-0 flex-1 bg-background px-4 py-12">
       <div className="mx-auto max-w-lg space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-semibold">Complete payment</h1>

@@ -15,13 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  loadNetWorthData,
-  addNetWorthItem,
-  updateNetWorthItem,
-  deleteNetWorthItem,
+  loadExpenseTotalsForNetWorthSuggestions,
   type NetWorthItemRow,
   type NetWorthData,
 } from "@/actions/net-worth";
+import {
+  getNetWorthItems,
+  saveNetWorthItems,
+  generateNetWorthItemId,
+} from "@/lib/net-worth-storage";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency, cn } from "@/lib/utils";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -32,7 +34,7 @@ import {
   type NetWorthUseType,
 } from "@/types/database.types";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
-import { Pencil, Trash2, Plus, Home, Car, Wallet, HelpCircle, ThumbsUp, Frown } from "lucide-react";
+import { Pencil, Trash2, Plus, Home, Car, Wallet, HelpCircle, ThumbsUp, Frown, Info } from "lucide-react";
 
 const CATEGORY_OPTIONS: { value: NetWorthCategoryKey; label: string }[] = [
   { value: "property", label: "Property / House" },
@@ -78,7 +80,11 @@ export default function NetWorthPage() {
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
-    loadNetWorthData().then(setData);
+    const items = getNetWorthItems();
+    setData((prev) => ({ items, expenseTotalsByCategory: prev?.expenseTotalsByCategory ?? [] }));
+    loadExpenseTotalsForNetWorthSuggestions().then((totals) => {
+      setData((prev) => (prev ? { ...prev, expenseTotalsByCategory: totals ?? [] } : null));
+    });
   }, []);
 
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function NetWorthPage() {
     setAdding("asset");
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = parseFloat(formAmount.replace(/\D/g, "")) || 0;
     const amountCents = Math.round(amountNum * 100);
@@ -129,50 +135,53 @@ export default function NetWorthPage() {
       return;
     }
     setSaveStatus("saving");
-    const result = await addNetWorthItem(
-      formType,
-      formCategory,
-      amountCents,
-      formName.trim() || null,
-      formCategory === "vehicle" ? formUseType : null
-    );
-    if (result.error) {
-      showSnackbar(result.error);
-      setSaveStatus("error");
-    } else {
-      setAdding(null);
-      setAddingFromSuggestion(null);
-      setFormAmount("");
-      setFormName("");
-      setSaveStatus("idle");
-      load();
-    }
+    const currentItems = getNetWorthItems();
+    const newItem: NetWorthItemRow = {
+      id: generateNetWorthItemId(),
+      type: formType,
+      category_key: formCategory,
+      name: formName.trim() || null,
+      amount_cents: amountCents,
+      currency: "PHP",
+      use_type: formCategory === "vehicle" ? formUseType ?? null : null,
+    };
+    const updated = [...currentItems, newItem];
+    saveNetWorthItems(updated);
+    setData((prev) => (prev ? { ...prev, items: updated } : null));
+    setAdding(null);
+    setAddingFromSuggestion(null);
+    setFormAmount("");
+    setFormName("");
+    setSaveStatus("idle");
   };
 
-  const handleUpdate = async (item: NetWorthItemRow) => {
+  const handleUpdate = (item: NetWorthItemRow) => {
     const amountNum = parseFloat(editAmount.replace(/\D/g, "")) || 0;
     const amountCents = Math.round(amountNum * 100);
     if (amountCents <= 0) return;
     setEditStatus("saving");
-    const result = await updateNetWorthItem(item.id, {
-      name: editName.trim() || null,
-      amount_cents: amountCents,
-      use_type: item.category_key === "vehicle" ? item.use_type : null,
-    });
-    if (result.error) {
-      showSnackbar(result.error);
-      setEditStatus("error");
-    } else {
-      setEditingId(null);
-      setEditStatus("idle");
-      load();
-    }
+    const currentItems = getNetWorthItems();
+    const updated = currentItems.map((i) =>
+      i.id === item.id
+        ? {
+            ...i,
+            name: editName.trim() || null,
+            amount_cents: amountCents,
+            use_type: item.category_key === "vehicle" ? item.use_type : null,
+          }
+        : i
+    );
+    saveNetWorthItems(updated);
+    setData((prev) => (prev ? { ...prev, items: updated } : null));
+    setEditingId(null);
+    setEditStatus("idle");
   };
 
-  const handleDelete = async (itemId: string) => {
-    const result = await deleteNetWorthItem(itemId);
-    if (result.error) showSnackbar(result.error);
-    else load();
+  const handleDelete = (itemId: string) => {
+    const currentItems = getNetWorthItems();
+    const updated = currentItems.filter((i) => i.id !== itemId);
+    saveNetWorthItems(updated);
+    setData((prev) => (prev ? { ...prev, items: updated } : null));
   };
 
   const assets = data?.items.filter((i) => i.type === "asset") ?? [];
@@ -184,11 +193,17 @@ export default function NetWorthPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-4">
+    <div className="container mx-auto max-w-4xl py-4">
       <h1 className="mb-2 text-2xl font-semibold">My Net Worth</h1>
-      <p className="mb-6 text-muted-foreground">
+      <p className="mb-4 text-muted-foreground">
         Track assets and liabilities. Property (e.g. house) is an asset; vehicles used for personal use are liabilities (they don’t generate income).
       </p>
+      <div className="mb-6 flex gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+        <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+        <span>
+          <strong className="text-foreground">Privacy note:</strong> Your net worth data is <strong>not stored in our database</strong>. It is saved only in this browser&apos;s local storage. Clearing your cache or using another device will reset it.
+        </span>
+      </div>
 
       {/* Status: only when user has both assets and liabilities */}
       {assets.length > 0 && liabilities.length > 0 && (

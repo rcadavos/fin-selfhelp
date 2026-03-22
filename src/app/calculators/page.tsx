@@ -12,14 +12,14 @@ export default function CalculatorsPage() {
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-4">
+    <div className="container mx-auto max-w-4xl py-4">
       <h1 className="mb-2 text-2xl font-semibold">Calculators</h1>
       <p className="mb-8 text-muted-foreground">
         Plan savings, debt payoff, and more. Pick a calculator below.

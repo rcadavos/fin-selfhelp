@@ -430,7 +430,7 @@ export default function MyCashflowPage() {
 
   if (loading || !user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
       </main>
     );
@@ -438,14 +438,14 @@ export default function MyCashflowPage() {
 
   if (!budgetDataLoaded) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="app-main-centered">
         <p className="text-muted-foreground">Loading your cashflow…</p>
       </main>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-4">
+    <div className="container mx-auto max-w-4xl py-4">
       <h1 className="mb-2 text-2xl font-semibold">My Cashflow</h1>
       <p className="mb-6 text-muted-foreground">
         Set your take-home pay, then add expenses. Add another line anytime for expenses you missed to input.

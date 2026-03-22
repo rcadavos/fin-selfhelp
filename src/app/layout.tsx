@@ -62,7 +62,7 @@ export default async function RootLayout({
         />
         <Providers>
           <HydrationBoundary state={dehydrate(queryClient)}>
-            {children}
+            <div className="app-root">{children}</div>
           </HydrationBoundary>
         </Providers>
       </body>
