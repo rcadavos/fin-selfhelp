@@ -92,7 +92,7 @@ export async function addNetWorthItem(
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   return {};
 }
 
@@ -138,7 +138,7 @@ export async function updateNetWorthItem(
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   return {};
 }
 
@@ -203,6 +203,6 @@ export async function deleteNetWorthItem(itemId: string): Promise<{ error?: stri
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   return {};
 }

@@ -61,7 +61,7 @@ export async function toggleExpensePayment(
       .eq("id", existing.id);
     if (error) return { error: error.message };
     revalidatePath("/dashboard");
-    revalidatePath("/my-expenses");
+    revalidatePath("/dashboard/my-expenses");
     return { paid: false };
   }
 
@@ -72,7 +72,7 @@ export async function toggleExpensePayment(
   });
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   return { paid: true };
 }
 
@@ -178,4 +178,63 @@ export async function getPaymentHistoryMonthsForGrantor(
   }
 
   return { stats };
+}
+
+function parseGranteeToggleRpc(data: unknown): { ok?: boolean; paid?: boolean; error?: string } | null {
+  if (data == null) return null;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data) as { ok?: boolean; paid?: boolean; error?: string };
+    } catch {
+      return null;
+    }
+  }
+  if (typeof data === "object" && !Array.isArray(data)) {
+    return data as { ok?: boolean; paid?: boolean; error?: string };
+  }
+  return null;
+}
+
+/** Grantee marks partner bill paid/unpaid for the given month (same rows as owner’s toggleExpensePayment). */
+export async function granteeSharedToggleExpensePayment(
+  grantorUserId: string,
+  expenseEntryId: string,
+  paidMonth: string
+): Promise<{ error?: string; paid?: boolean }> {
+  if (!/^\d{4}-\d{2}$/.test(paidMonth)) {
+    return { error: "Invalid month." };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+
+  const { data: grantorProfile } = await supabase.from("profiles").select("id").eq("user_id", grantorUserId).single();
+  if (!grantorProfile) return { error: "Account not found." };
+
+  const { data: share } = await supabase
+    .from("account_shares")
+    .select("id")
+    .eq("grantor_profile_id", grantorProfile.id)
+    .eq("grantee_user_id", user.id)
+    .eq("status", "accepted")
+    .eq("can_view_expenses", true)
+    .maybeSingle();
+  if (!share) return { error: "No shared access to this account." };
+
+  const { data, error } = await supabase.rpc("grantee_toggle_expense_payment", {
+    p_expense_entry_id: expenseEntryId,
+    p_paid_month: paidMonth,
+  });
+  if (error) return { error: error.message };
+  const result = parseGranteeToggleRpc(data);
+  if (!result?.ok) return { error: result?.error?.replace(/_/g, " ") ?? "Could not update payment." };
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/account/shared");
+  revalidatePath(`/account/shared/${grantorUserId}/my-expenses`);
+
+  return { paid: result.paid };
 }

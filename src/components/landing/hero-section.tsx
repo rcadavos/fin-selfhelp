@@ -67,10 +67,11 @@ export function HeroSection({ className }: HeroSectionProps) {
             Built for life in the Philippines
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Take control of your money
+            Track your personal needs in one place
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
-            Track bills, mark what you&apos;ve paid each month, and see your dashboard at a glance — like the apps you already trust, without the noise.
+            Bills, to-buy lists, and tasks—mark what you&apos;ve paid each month and see your dashboard at a glance,
+            like the apps you already trust, without the noise.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
             <Button size="lg" asChild className="min-w-[200px] shadow-md">

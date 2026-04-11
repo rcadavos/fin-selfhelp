@@ -28,7 +28,12 @@ export async function listOutgoingShares(): Promise<{ error?: string; shares?: A
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const { data, error } = await supabase
@@ -63,8 +68,31 @@ export async function listIncomingShares(): Promise<{ error?: string; shares?: A
   return { shares: (data ?? []) as AccountShareRow[] };
 }
 
+export type AcceptedShareWithGrantorRow = {
+  share: AccountShareRow;
+  grantorUserId: string;
+  /** Display name from auth metadata, or null if unset. */
+  grantorDisplayName: string | null;
+  grantorEmail: string | null;
+};
+
+function parseGrantorDisplayRpc(data: unknown): { ok?: boolean; name?: string | null; email?: string | null } | null {
+  if (data == null) return null;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data) as { ok?: boolean; name?: string | null; email?: string | null };
+    } catch {
+      return null;
+    }
+  }
+  if (typeof data === "object" && !Array.isArray(data)) {
+    return data as { ok?: boolean; name?: string | null; email?: string | null };
+  }
+  return null;
+}
+
 export async function listAcceptedSharesWithGrantors(): Promise<
-  { error?: string; rows?: { share: AccountShareRow; grantorUserId: string; grantorEmail: string | null }[] }
+  { error?: string; rows?: AcceptedShareWithGrantorRow[] }
 > {
   const supabase = await createClient();
   const {
@@ -82,16 +110,33 @@ export async function listAcceptedSharesWithGrantors(): Promise<
 
   if (error) return { error: error.message };
 
-  const rows: { share: AccountShareRow; grantorUserId: string; grantorEmail: string | null }[] = [];
+  const rows: AcceptedShareWithGrantorRow[] = [];
   for (const s of (shares ?? []) as AccountShareRow[]) {
     const { data: prof } = await supabase.from("profiles").select("user_id").eq("id", s.grantor_profile_id).single();
-    if (prof?.user_id) {
-      rows.push({
-        share: s,
-        grantorUserId: prof.user_id as string,
-        grantorEmail: null,
-      });
+    if (!prof?.user_id) continue;
+
+    const grantorUserId = prof.user_id as string;
+    let grantorDisplayName: string | null = null;
+    let grantorEmail: string | null = null;
+
+    const { data: rpcData, error: rpcErr } = await supabase.rpc("grantee_grantor_display", {
+      p_grantor_user_id: grantorUserId,
+    });
+    if (!rpcErr) {
+      const parsed = parseGrantorDisplayRpc(rpcData);
+      if (parsed?.ok) {
+        const n = typeof parsed.name === "string" ? parsed.name.trim() : "";
+        grantorEmail = typeof parsed.email === "string" ? parsed.email : null;
+        grantorDisplayName = n.length > 0 ? n : null;
+      }
     }
+
+    rows.push({
+      share: s,
+      grantorUserId,
+      grantorDisplayName,
+      grantorEmail,
+    });
   }
   return { rows };
 }
@@ -118,7 +163,12 @@ export async function createAccountShare(input: {
     return { error: "You cannot invite your own email." };
   }
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const { data: inserted, error } = await supabase
@@ -141,8 +191,8 @@ export async function createAccountShare(input: {
     return { error: error.message };
   }
 
-  revalidatePath("/settings/sharing");
-  revalidatePath("/shared");
+  revalidatePath("/account/settings/sharing");
+  revalidatePath("/account/shared");
   return { share: inserted as AccountShareRow };
 }
 
@@ -160,7 +210,12 @@ export async function updateAccountSharePermissions(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const payload: Record<string, unknown> = {};
@@ -190,8 +245,8 @@ export async function updateAccountSharePermissions(
     .in("status", ["pending", "accepted"]);
 
   if (error) return { error: error.message };
-  revalidatePath("/settings/sharing");
-  revalidatePath("/shared");
+  revalidatePath("/account/settings/sharing");
+  revalidatePath("/account/shared");
   return {};
 }
 
@@ -202,7 +257,12 @@ export async function revokeAccountShare(shareId: string): Promise<{ error?: str
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const { error } = await supabase
@@ -213,8 +273,8 @@ export async function revokeAccountShare(shareId: string): Promise<{ error?: str
     .in("status", ["pending", "accepted"]);
 
   if (error) return { error: error.message };
-  revalidatePath("/settings/sharing");
-  revalidatePath("/shared");
+  revalidatePath("/account/settings/sharing");
+  revalidatePath("/account/shared");
   return {};
 }
 
@@ -225,7 +285,12 @@ export async function deletePendingInvite(shareId: string): Promise<{ error?: st
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const { error } = await supabase
@@ -236,7 +301,7 @@ export async function deletePendingInvite(shareId: string): Promise<{ error?: st
     .eq("status", "pending");
 
   if (error) return { error: error.message };
-  revalidatePath("/settings/sharing");
+  revalidatePath("/account/settings/sharing");
   return {};
 }
 
@@ -256,8 +321,8 @@ export async function acceptAccountShare(shareId: string, token: string): Promis
     }
   }
   if (!result?.ok) return { error: result?.error ?? "Could not accept invite." };
-  revalidatePath("/settings/sharing");
-  revalidatePath("/shared");
+  revalidatePath("/account/settings/sharing");
+  revalidatePath("/account/shared");
   return {};
 }
 
@@ -268,7 +333,12 @@ export async function getShareForGrantor(shareId: string): Promise<{ error?: str
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
   const { data, error } = await supabase

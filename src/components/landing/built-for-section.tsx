@@ -29,7 +29,8 @@ export function BuiltForSection({ className }: { className?: string }) {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Built for real routines</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            OmniTrak is for people who want clarity without turning finance into a second job.
+            For anyone who wants to track bills, lists, and routines in daily life—without turning finance into a second
+            job.
           </p>
         </div>
         <ul className="mt-12 grid gap-6 sm:grid-cols-3">

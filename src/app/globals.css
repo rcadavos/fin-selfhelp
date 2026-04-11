@@ -50,15 +50,23 @@
 }
 
 @layer components {
+  /* Fills body flex column; min-h-0 avoids overflow past viewport (no double scroll with inner overflow-y) */
   .app-root {
-    @apply flex min-h-dvh w-full min-w-0 flex-col;
+    @apply flex min-h-0 min-w-0 w-full flex-1 flex-col;
   }
   .app-layout {
     @apply flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background;
   }
-  /* AppShell routes: one scroll surface (main column), sidebar height matches viewport */
+  /* AppShell (md+): bounded height so main column gets flex min-h-0 + overflow-y (wheel scroll works) */
   .app-layout--shell {
-    @apply min-h-dvh lg:min-h-0 lg:h-dvh lg:max-h-dvh lg:overflow-hidden;
+    @apply flex min-h-0 min-w-0 flex-1 flex-col;
+  }
+  @media (min-width: 768px) {
+    .app-layout--shell {
+      height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+      max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+      overflow: hidden;
+    }
   }
   .app-main-centered {
     @apply flex w-full min-w-0 flex-1 flex-col items-center justify-center bg-background px-4 py-12;
@@ -70,12 +78,16 @@
     @apply border-border;
   }
   html {
+    height: 100%;
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground antialiased;
+    display: flex;
+    flex-direction: column;
     overflow-x: clip;
+    min-height: 100%;
     min-height: 100dvh;
     min-height: 100vh;
     padding-left: env(safe-area-inset-left, 0);

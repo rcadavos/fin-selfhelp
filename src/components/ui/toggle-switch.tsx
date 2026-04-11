@@ -27,15 +27,17 @@ export function ToggleSwitch({
       disabled={disabled}
       onClick={() => !disabled && onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-7 w-12 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         checked ? "bg-primary" : "bg-input",
         disabled && "cursor-not-allowed opacity-50"
       )}
     >
       <span
+        aria-hidden
         className={cn(
-          "pointer-events-none absolute top-0.5 h-6 w-6 rounded-full bg-background shadow-md ring-0 transition-[left] duration-200",
-          checked ? "left-[calc(100%-1.625rem)]" : "left-0.5"
+          "pointer-events-none absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-background shadow-md transition-transform duration-200 ease-in-out",
+          checked ? "translate-x-[1.25rem]" : "translate-x-0"
         )}
       />
     </button>

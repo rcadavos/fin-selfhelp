@@ -1,4 +1,7 @@
-/** Stored in localStorage; synced to a module cache for formatters used outside React. */
+/**
+ * Preferences: primary store is `profiles.user_preferences` (JSON) when logged in;
+ * localStorage mirrors for offline / logged-out formatting.
+ */
 
 export const USER_PREFERENCES_STORAGE_KEY = "omnitrak-user-preferences-v1";
 
@@ -28,6 +31,39 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   subscriptionAlertsEnabled: true,
 };
 
+const DATE_FORMAT_SET = new Set<string>(["mdy", "dmy", "ymd", "d_MMM_y"]);
+const TIME_FORMAT_SET = new Set<string>(["12h", "24h"]);
+const NUMBER_GROUPING_SET = new Set<string>(["comma", "dot"]);
+const LANGUAGE_SET = new Set<string>(["en", "fil"]);
+
+/** Merge DB or localStorage JSON with defaults; drop invalid keys. */
+export function normalizeUserPreferences(raw: unknown): UserPreferences {
+  const base: UserPreferences = { ...DEFAULT_USER_PREFERENCES };
+  if (!raw || typeof raw !== "object") return base;
+  const o = raw as Record<string, unknown>;
+
+  if (typeof o.dateFormat === "string" && DATE_FORMAT_SET.has(o.dateFormat)) {
+    base.dateFormat = o.dateFormat as DateFormatId;
+  }
+  if (typeof o.timeFormat === "string" && TIME_FORMAT_SET.has(o.timeFormat)) {
+    base.timeFormat = o.timeFormat as TimeFormatId;
+  }
+  if (typeof o.numberGrouping === "string" && NUMBER_GROUPING_SET.has(o.numberGrouping)) {
+    base.numberGrouping = o.numberGrouping as NumberGroupingId;
+  }
+  if (typeof o.language === "string" && LANGUAGE_SET.has(o.language)) {
+    base.language = o.language as UserPreferences["language"];
+  }
+  if (typeof o.currency === "string" && /^[A-Z]{3}$/i.test(o.currency)) {
+    base.currency = o.currency.toUpperCase();
+  }
+  if (typeof o.notificationsEnabled === "boolean") base.notificationsEnabled = o.notificationsEnabled;
+  if (typeof o.billRemindersEnabled === "boolean") base.billRemindersEnabled = o.billRemindersEnabled;
+  if (typeof o.subscriptionAlertsEnabled === "boolean") base.subscriptionAlertsEnabled = o.subscriptionAlertsEnabled;
+
+  return base;
+}
+
 let clientPreferenceCache: UserPreferences = { ...DEFAULT_USER_PREFERENCES };
 
 export function setClientPreferenceCache(prefs: UserPreferences): void {
@@ -43,8 +79,8 @@ export function loadUserPreferences(): UserPreferences {
   try {
     const raw = localStorage.getItem(USER_PREFERENCES_STORAGE_KEY);
     if (!raw) return { ...DEFAULT_USER_PREFERENCES };
-    const parsed = JSON.parse(raw) as Partial<UserPreferences>;
-    return { ...DEFAULT_USER_PREFERENCES, ...parsed };
+    const parsed = JSON.parse(raw) as unknown;
+    return normalizeUserPreferences(parsed);
   } catch {
     return { ...DEFAULT_USER_PREFERENCES };
   }

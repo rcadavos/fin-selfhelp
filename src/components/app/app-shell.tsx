@@ -6,17 +6,24 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/hooks/use-user";
+import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:h-dvh lg:max-h-dvh lg:flex-row lg:overflow-hidden">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col md:overflow-hidden">
       <AppSidebar />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden">
+      {/* pl-56 reserves space for fixed sidebar so page content is full width of the remaining viewport (not squeezed / trimmed) */}
+      <div
+        className={cn(
+          "flex h-full min-h-0 min-w-0 w-full flex-1 flex-col md:min-h-0 md:overflow-hidden",
+          user && "md:pl-56"
+        )}
+      >
         {user ? (
           <header
-            className="relative z-0 hidden h-14 shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:block"
+            className="relative z-0 hidden h-14 shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block"
             aria-label="App toolbar"
           >
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 sm:px-20 md:px-28">
@@ -47,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>
         ) : null}
         <AppHeader />
-        <div className="min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-y-contain">
+        <div className="min-h-0 flex-1 md:h-full md:min-h-0 md:overflow-y-auto md:overscroll-y-contain">
           {children}
         </div>
       </div>

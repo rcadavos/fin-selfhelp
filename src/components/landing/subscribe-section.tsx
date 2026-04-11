@@ -90,7 +90,7 @@ export function SubscribeSection({ className }: { className?: string }) {
             </CardContent>
             <CardFooter>
               <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/payment" className="flex items-center justify-center gap-2">
+                <Link href="/account/subscription/payment" className="flex items-center justify-center gap-2">
                   <span>Subscribe & pay</span>
                   <span className="flex items-center gap-1.5 font-semibold">
                     {plan?.originalPriceAmount != null && (

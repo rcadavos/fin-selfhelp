@@ -22,14 +22,20 @@ import {
   getAccountDisplayName,
 } from "@/components/app/account-dropdown-menu";
 
+function isSidebarNavActive(pathname: string | null | undefined, href: string): boolean {
+  if (!pathname) return false;
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/my-expenses", label: "My Expenses", icon: Banknote },
-  { href: "/to-buy", label: "To-Buy", icon: ShoppingCart },
-  { href: "/to-do", label: "To-Do", icon: ClipboardList },
-  { href: "/calculators", label: "Calculators", icon: Calculator },
-  { href: "/settings", label: "Settings", icon: SlidersHorizontal },
-  { href: "/shared", label: "Shared with me", icon: UsersRound },
+  { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote },
+  { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart },
+  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList },
+  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator },
+  { href: "/account/settings", label: "Settings", icon: SlidersHorizontal },
+  { href: "/account/shared", label: "Shared with me", icon: UsersRound },
 ] as const;
 
 export function AppSidebar({ className }: { className?: string }) {
@@ -42,7 +48,11 @@ export function AppSidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "hidden h-full min-h-0 max-h-full w-56 shrink-0 flex-col overflow-hidden border-r bg-muted/20 lg:flex lg:self-stretch",
+        /* Fixed left: does not shrink the main column in flex; main uses md:pl-56 for offset */
+        "fixed left-0 top-0 z-40 hidden w-56 flex-col overflow-hidden border-r border-border/80 bg-muted/30 shadow-sm backdrop-blur-sm",
+        "md:flex",
+        "h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]",
+        "max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]",
         className
       )}
     >
@@ -56,8 +66,7 @@ export function AppSidebar({ className }: { className?: string }) {
         aria-label="Main navigation"
       >
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href || (href.length > 1 && !!pathname?.startsWith(`${href}/`));
+          const active = isSidebarNavActive(pathname, href);
           return (
             <Link
               key={href}

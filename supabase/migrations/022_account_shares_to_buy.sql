@@ -58,7 +58,7 @@ create policy "account_shares_select_grantee"
     or (
       status = 'pending'
       and grantee_user_id is null
-      and lower(trim(both from invite_email)) = lower(trim(both from auth.jwt() ->> 'email')))
+      and lower(trim(both from invite_email)) = lower(trim(both from (auth.jwt() ->> 'email')))
     )
   );
 

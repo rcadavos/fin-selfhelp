@@ -274,7 +274,7 @@ export async function saveIncomeEntries(rows: IncomeEntryInput[]): Promise<{ err
   if (updateErr) return { error: updateErr.message };
 
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -304,7 +304,7 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
     if (insertErr) return { error: `Save failed: ${insertErr.message}` };
     if (!newProfile) return { error: "Save failed: no profile returned." };
     revalidatePath("/dashboard");
-    revalidatePath("/my-expenses");
+    revalidatePath("/dashboard/my-expenses");
     revalidatePath("/");
     return {};
   }
@@ -320,7 +320,7 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
   if (updateErr) return { error: `Save failed: ${updateErr.message}` };
   if (!updated) return { error: "Save failed: update did not apply. Check RLS policies." };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -378,7 +378,7 @@ export async function addExpense(
     .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -416,7 +416,7 @@ export async function updateExpense(
     .eq("profile_id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -438,7 +438,7 @@ export async function deleteExpense(entryId: string): Promise<{ error?: string }
     .eq("profile_id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
+  revalidatePath("/dashboard/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -549,8 +549,8 @@ export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
     .eq("id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
-  revalidatePath("/subscription");
+  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/account/subscription");
   revalidatePath("/");
   return {};
 }
@@ -580,8 +580,8 @@ export async function recordSubscriptionPaymentForUserId(userId: string): Promis
     .eq("id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
-  revalidatePath("/subscription");
+  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/account/subscription");
   revalidatePath("/");
   return {};
 }
@@ -602,8 +602,8 @@ export async function unsubscribe(): Promise<{ error?: string }> {
     .eq("id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/my-expenses");
-  revalidatePath("/subscription");
+  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/account/subscription");
   revalidatePath("/");
   return {};
 }

@@ -27,6 +27,7 @@ create table if not exists public.expense_entries (
 alter table public.expense_entries add column if not exists due_date date;
 alter table public.expense_entries add column if not exists reminder_days_before smallint[];
 alter table public.profiles add column if not exists is_subscriber boolean not null default false;
+alter table public.profiles add column if not exists user_preferences jsonb not null default '{}'::jsonb;
 
 -- 2. Unique constraint
 create unique index if not exists profiles_user_id_key on public.profiles (user_id);

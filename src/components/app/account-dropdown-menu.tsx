@@ -55,19 +55,19 @@ export function AccountDropdownMenu({
           </>
         )}
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex cursor-pointer items-center gap-2">
+          <Link href="/account/settings" className="flex cursor-pointer items-center gap-2">
             <SlidersHorizontal className="h-4 w-4" />
             Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/shared" className="flex cursor-pointer items-center gap-2">
+          <Link href="/account/shared" className="flex cursor-pointer items-center gap-2">
             <UsersRound className="h-4 w-4" />
             Shared with me
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex cursor-pointer items-center gap-2">
+          <Link href="/account/profile" className="flex cursor-pointer items-center gap-2">
             <UserIcon className="h-4 w-4" />
             Profile
           </Link>
@@ -76,16 +76,16 @@ export function AccountDropdownMenu({
           className="flex cursor-pointer items-center gap-2"
           onSelect={(e) => {
             e.preventDefault();
-            router.push("/subscription");
+            router.push("/account/subscription");
           }}
         >
           <CreditCard className="h-4 w-4" />
           Subscription
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/profile/security" className="flex cursor-pointer items-center gap-2">
+          <Link href="/account/security" className="flex cursor-pointer items-center gap-2">
             <Shield className="h-4 w-4" />
-            Password & Security
+            Security
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

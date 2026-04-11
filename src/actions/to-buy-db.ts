@@ -123,3 +123,39 @@ export async function loadSharedToBuyForGrantor(
   if (error) return { error: error.message };
   return { items: (data ?? []).map((r) => rowToItem(r as ToBuyDbRow)) };
 }
+
+function parseRpcOk(data: unknown): { ok?: boolean; error?: string } | null {
+  if (data == null) return null;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data) as { ok?: boolean; error?: string };
+    } catch {
+      return null;
+    }
+  }
+  if (typeof data === "object" && !Array.isArray(data)) {
+    return data as { ok?: boolean; error?: string };
+  }
+  return null;
+}
+
+/** Grantee crosses items off the partner list (updates `checked` only). */
+export async function granteeSharedSetToBuyChecked(
+  itemId: string,
+  checked: boolean
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+
+  const { data, error } = await supabase.rpc("grantee_set_to_buy_item_checked", {
+    p_item_id: itemId,
+    p_checked: checked,
+  });
+  if (error) return { error: error.message };
+  const result = parseRpcOk(data);
+  if (!result?.ok) return { error: result?.error?.replace(/_/g, " ") ?? "Could not update item." };
+  return {};
+}

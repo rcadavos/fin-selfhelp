@@ -92,7 +92,7 @@ export async function createExpenseCategory(params: {
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
     revalidatePath("/dashboard");
-    revalidatePath("/my-expenses");
+    revalidatePath("/dashboard/my-expenses");
     revalidatePath("/");
     return {};
   } catch (e) {
@@ -127,7 +127,7 @@ export async function updateExpenseCategory(
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
     revalidatePath("/dashboard");
-    revalidatePath("/my-expenses");
+    revalidatePath("/dashboard/my-expenses");
     revalidatePath("/");
     return {};
   } catch (e) {
@@ -152,7 +152,7 @@ export async function deleteExpenseCategory(id: string): Promise<{ error?: strin
     if (error) return { error: error.message };
     revalidatePath("/admin/categories");
     revalidatePath("/dashboard");
-    revalidatePath("/my-expenses");
+    revalidatePath("/dashboard/my-expenses");
     revalidatePath("/");
     return {};
   } catch (e) {

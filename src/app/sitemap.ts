@@ -8,19 +8,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },
     {
-      url: `${baseUrl}/calculators`,
+      url: `${baseUrl}/dashboard/calculators`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/calculators/savings`,
+      url: `${baseUrl}/dashboard/calculators/savings`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/calculators/debt-payoff`,
+      url: `${baseUrl}/dashboard/calculators/debt-payoff`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,

@@ -69,6 +69,8 @@ export type DbProfile = {
   user_id: string;
   net_take_home: number;
   currency: string;
+  /** JSON blob: date/time/currency/notifications — see `normalizeUserPreferences` */
+  user_preferences?: Record<string, unknown> | null;
   is_subscriber?: boolean;
   subscription_ends_at?: string | null;
   is_admin?: boolean;

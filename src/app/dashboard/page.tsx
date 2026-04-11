@@ -1,4 +1,4 @@
-import { ExpenseCashflowPage } from "@/components/pages/expense-cashflow-page";
+import { ExpenseCashflowPage } from "@/components/dashboard/expense-cashflow-page";
 
 export default function DashboardPage() {
   return <ExpenseCashflowPage pageVariant="dashboard" />;

@@ -86,8 +86,8 @@ export async function updateSubscriptionPlan(params: {
       .eq("id", "default");
     if (error) return { error: error.message };
     revalidatePath("/admin/pricing");
-    revalidatePath("/payment");
-    revalidatePath("/subscription");
+    revalidatePath("/account/subscription/payment");
+    revalidatePath("/account/subscription");
     revalidatePath("/");
     return {};
   } catch (e) {

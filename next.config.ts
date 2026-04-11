@@ -16,10 +16,24 @@ const SUPABASE_WSS_ORIGIN = SUPABASE_ORIGIN?.replace(/^https:/, "wss:");
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      { source: "/profile", destination: "/account/profile", permanent: true },
+      { source: "/profile/security", destination: "/account/security", permanent: true },
+      { source: "/payment", destination: "/account/subscription/payment", permanent: true },
+      { source: "/subscription", destination: "/account/subscription", permanent: true },
+      { source: "/subscription/:path*", destination: "/account/subscription/:path*", permanent: true },
+      { source: "/settings", destination: "/account/settings", permanent: true },
+      { source: "/settings/:path*", destination: "/account/settings/:path*", permanent: true },
+      { source: "/shared", destination: "/account/shared", permanent: true },
+      { source: "/shared/:path*", destination: "/account/shared/:path*", permanent: true },
       { source: "/net-worth", destination: "/dashboard", permanent: true },
       { source: "/my-net-worth", destination: "/dashboard", permanent: true },
-      { source: "/my-cashflow", destination: "/my-expenses", permanent: true },
-      { source: "/shared/:grantorUserId/my-cashflow", destination: "/shared/:grantorUserId/my-expenses", permanent: true },
+      { source: "/my-cashflow", destination: "/dashboard/my-expenses", permanent: true },
+      { source: "/my-expenses", destination: "/dashboard/my-expenses", permanent: true },
+      { source: "/to-buy", destination: "/dashboard/to-buy", permanent: true },
+      { source: "/to-do", destination: "/dashboard/to-do", permanent: true },
+      { source: "/calculators", destination: "/dashboard/calculators", permanent: true },
+      { source: "/calculators/:path*", destination: "/dashboard/calculators/:path*", permanent: true },
+      { source: "/shared/:grantorUserId/my-cashflow", destination: "/account/shared/:grantorUserId/my-expenses", permanent: true },
     ];
   },
   async headers() {

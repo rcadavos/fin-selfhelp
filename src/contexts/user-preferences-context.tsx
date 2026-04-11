@@ -4,11 +4,16 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useUser } from "@/hooks/use-user";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { fetchUserPreferencesFromDb, persistUserPreferences } from "@/actions/user-preferences";
 import {
   type UserPreferences,
   DEFAULT_USER_PREFERENCES,
@@ -34,7 +39,13 @@ type UserPreferencesContextValue = {
 const UserPreferencesContext = createContext<UserPreferencesContextValue | null>(null);
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
+  const { user, loading } = useUser();
+  const { showError } = useSnackbar();
   const [preferences, setPreferencesState] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
+  /** Logged-out: true after first auth resolution. Logged-in: true after fetch applies or user edits before fetch. */
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
+  /** When true, incoming DB fetch must not overwrite local edits (e.g. user changed settings before fetch returned). */
+  const ignoreFetchRef = useRef(false);
 
   useLayoutEffect(() => {
     const loaded = loadUserPreferences();
@@ -42,23 +53,68 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     setClientPreferenceCache(loaded);
   }, []);
 
+  useEffect(() => {
+    ignoreFetchRef.current = false;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      const local = loadUserPreferences();
+      setPreferencesState(local);
+      setClientPreferenceCache(local);
+      setInitialSyncDone(true);
+      return;
+    }
+
+    setInitialSyncDone(false);
+    let cancelled = false;
+    void fetchUserPreferencesFromDb().then((prefs) => {
+      if (cancelled) return;
+      if (ignoreFetchRef.current) {
+        setInitialSyncDone(true);
+        return;
+      }
+      setPreferencesState(prefs);
+      saveUserPreferences(prefs);
+      setClientPreferenceCache(prefs);
+      setInitialSyncDone(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, loading]);
+
+  useEffect(() => {
+    saveUserPreferences(preferences);
+    setClientPreferenceCache(preferences);
+  }, [preferences]);
+
+  useEffect(() => {
+    if (loading || !user || !initialSyncDone) return;
+    void persistUserPreferences(preferences).then((r) => {
+      if (r.error) showError(r.error);
+    });
+  }, [preferences, user, loading, initialSyncDone, showError]);
+
   const setPreferences = useCallback(
     (next: UserPreferences | ((prev: UserPreferences) => UserPreferences)) => {
-      setPreferencesState((prev) => {
-        const resolved = typeof next === "function" ? next(prev) : next;
-        saveUserPreferences(resolved);
-        return resolved;
-      });
+      ignoreFetchRef.current = true;
+      if (user) setInitialSyncDone(true);
+      setPreferencesState((prev) => (typeof next === "function" ? next(prev) : next));
     },
-    []
+    [user]
   );
 
-  const updatePreference = useCallback(<K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
-    setPreferences((prev) => {
-      const next = { ...prev, [key]: value };
-      return next;
-    });
-  }, [setPreferences]);
+  const updatePreference = useCallback(
+    <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
+      ignoreFetchRef.current = true;
+      if (user) setInitialSyncDone(true);
+      setPreferencesState((prev) => ({ ...prev, [key]: value }));
+    },
+    [user]
+  );
 
   const formatCurrency = useCallback(
     (amount: number, currencyOverride?: string) =>
@@ -97,9 +153,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     [preferences, setPreferences, updatePreference, formatCurrency, formatDate, formatTime, formatNumber]
   );
 
-  return (
-    <UserPreferencesContext.Provider value={value}>{children}</UserPreferencesContext.Provider>
-  );
+  return <UserPreferencesContext.Provider value={value}>{children}</UserPreferencesContext.Provider>;
 }
 
 export function useUserPreferences(): UserPreferencesContextValue {
@@ -110,7 +164,6 @@ export function useUserPreferences(): UserPreferencesContextValue {
   return ctx;
 }
 
-/** Safe for optional usage (e.g. future server boundaries); returns null outside provider. */
 export function useUserPreferencesOptional(): UserPreferencesContextValue | null {
   return useContext(UserPreferencesContext);
 }
