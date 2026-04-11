@@ -1,4 +1,4 @@
-import { AppHeader } from "@/components/app/app-header";
+import { AppShell } from "@/components/app/app-shell";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
@@ -14,9 +14,8 @@ export default function CalculatorsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="app-layout">
-      <AppHeader />
-      {children}
+    <div className="app-layout app-layout--shell">
+      <AppShell>{children}</AppShell>
     </div>
   );
 }

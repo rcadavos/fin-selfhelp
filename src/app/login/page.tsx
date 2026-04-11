@@ -33,7 +33,7 @@ function LoginContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/my-cashflow");
+      router.replace("/dashboard");
       return;
     }
   }, [user, loading, router]);

@@ -207,7 +207,7 @@ export default function SubscriptionPage() {
 
         <div className="flex justify-center">
           <Button variant="ghost" asChild>
-            <Link href="/my-cashflow">Back to My Cashflow</Link>
+            <Link href="/dashboard">Back to Dashboard</Link>
           </Button>
         </div>
       </div>

@@ -47,7 +47,7 @@ export function SubscribeSection({ className }: { className?: string }) {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>Up to 5 expenses</p>
-              <p>Net take-home & balance</p>
+              <p>Payment tracking dashboard</p>
               <p>Categories & summary</p>
             </CardContent>
             <CardFooter>

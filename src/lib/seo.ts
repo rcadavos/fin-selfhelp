@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-const SITE_NAME = "FinTrack";
-const DEFAULT_TITLE = "FinTrack — Track Take-Home Pay & Expenses";
+const SITE_NAME = "OmniTrak";
+const DEFAULT_TITLE = "OmniTrak — Your one-stop personal tracker for everything";
 const DEFAULT_DESCRIPTION =
-  "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.";
-const TWITTER_HANDLE = ""; // e.g. "@fin-track" if you have one
+  "Bill payment tracker and expense dashboard: track bills by category, mark paid each month, to-buy and to-do lists, and calculators — see at a glance where you stand.";
+const TWITTER_HANDLE = ""; // e.g. "@omnitrak" if you have one
 
-/** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in production (e.g. https://fin-track.cloud). Must be HTTPS for Open Graph. */
+/** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in production. Must be HTTPS for Open Graph. */
 export function getBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
@@ -75,14 +75,20 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
     title: title,
     description,
     keywords: [
+      "OmniTrak",
+      "personal tracker",
+      "bill payment tracker",
+      "expense dashboard",
       "cashflow tracker",
       "expense tracker",
-      "take-home pay",
+      "to-do list",
       "budget",
       "personal finance",
       "Philippines",
       "savings calculator",
       "debt payoff",
+      "to-buy list",
+      "shopping list",
     ],
     authors: [{ name: SITE_NAME, url: baseUrl }],
     creator: SITE_NAME,
@@ -96,7 +102,7 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
   };
 }
 
-/** Default site-wide metadata (root layout). Uses title template so child routes get "Page | FinTrack". */
+/** Default site-wide metadata (root layout). Uses title template so child routes get "Page | OmniTrak". */
 export function buildDefaultMetadata(): Metadata {
   const base = buildPageMetadata({
     title: DEFAULT_TITLE,

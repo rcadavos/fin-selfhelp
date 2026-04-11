@@ -91,8 +91,8 @@ export async function addNetWorthItem(
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/my-net-worth");
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   return {};
 }
 
@@ -137,9 +137,48 @@ export async function updateNetWorthItem(
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/my-net-worth");
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   return {};
+}
+
+/** Read-only: partner's net worth rows from DB when they enabled sharing. */
+export async function loadSharedNetWorthItems(grantorUserId: string): Promise<NetWorthItemRow[] | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: grantorProfile } = await supabase.from("profiles").select("id").eq("user_id", grantorUserId).single();
+  if (!grantorProfile) return null;
+
+  const { data: share } = await supabase
+    .from("account_shares")
+    .select("id")
+    .eq("grantor_profile_id", grantorProfile.id)
+    .eq("grantee_user_id", user.id)
+    .eq("status", "accepted")
+    .eq("can_view_net_worth", true)
+    .maybeSingle();
+  if (!share) return null;
+
+  const { data, error } = await supabase
+    .from("net_worth_items")
+    .select("id, type, category_key, name, amount_cents, currency, use_type")
+    .eq("profile_id", grantorProfile.id)
+    .order("created_at", { ascending: true });
+
+  if (error) return null;
+  return (data ?? []).map((row) => ({
+    id: row.id as string,
+    type: row.type as NetWorthItemRow["type"],
+    category_key: row.category_key as NetWorthCategoryKey,
+    name: row.name as string | null,
+    amount_cents: Number(row.amount_cents),
+    currency: String(row.currency ?? "PHP"),
+    use_type: (row.use_type as NetWorthItemRow["use_type"]) ?? null,
+  }));
 }
 
 export async function deleteNetWorthItem(itemId: string): Promise<{ error?: string }> {
@@ -163,7 +202,7 @@ export async function deleteNetWorthItem(itemId: string): Promise<{ error?: stri
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/my-net-worth");
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   return {};
 }

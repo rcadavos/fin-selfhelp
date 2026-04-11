@@ -1,10 +1,20 @@
 import { ImageResponse } from "next/og";
+import { getBaseUrl } from "@/lib/seo";
 
-export const alt = "FinTrack — Simple cashflow tracker for take-home pay and expenses";
+export const alt =
+  "OmniTrak — Your one-stop personal tracker for everything";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default function OpenGraphImage() {
+  const host = (() => {
+    try {
+      return new URL(getBaseUrl()).hostname;
+    } catch {
+      return "";
+    }
+  })();
+
   return new ImageResponse(
     (
       <div
@@ -31,10 +41,10 @@ export default function OpenGraphImage() {
           }}
         >
           <div style={{ fontSize: 56, fontWeight: 700, marginBottom: 16 }}>
-            FinTrack
+            OmniTrak
           </div>
-          <div style={{ fontSize: 28, opacity: 0.95, maxWidth: 640, marginBottom: 32 }}>
-            Simple cashflow tracker — track take-home pay and expenses by category
+          <div style={{ fontSize: 28, opacity: 0.95, maxWidth: 720, marginBottom: 32 }}>
+            Your one-stop personal tracker for everything
           </div>
           <div
             style={{
@@ -46,7 +56,7 @@ export default function OpenGraphImage() {
               border: "2px solid rgba(255,255,255,0.9)",
             }}
           >
-            Try it free at fin-track.cloud →
+            {host ? `Try it free at ${host} →` : "Try it free →"}
           </div>
         </div>
       </div>

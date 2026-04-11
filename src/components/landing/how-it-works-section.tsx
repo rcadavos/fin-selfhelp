@@ -3,20 +3,21 @@ import { cn } from "@/lib/utils";
 const steps = [
   {
     step: 1,
-    title: "Enter your income",
-    description: "Add your monthly net take-home pay in PHP (or your currency).",
+    title: "Add your bills",
+    description:
+      "Enter what you owe by category — rent, utilities, loans, savings, and more. Set due dates when you want reminders.",
   },
   {
     step: 2,
-    title: "Add your expenses",
+    title: "Track payments monthly",
     description:
-      "Fill in what you spend per category—grocery, transport, loans, savings, etc. Select due date for recurring expenses with reminders.",
+      "Each month, mark bills as paid so your dashboard always reflects what is done and what is still outstanding.",
   },
   {
     step: 3,
-    title: "See your result",
+    title: "See your dashboard",
     description:
-      "Get an instant view: overdraft, break-even, or money left over, plus a breakdown by category.",
+      "View totals, paid vs unpaid, and trends over recent months so you can plan with confidence.",
   },
 ];
 

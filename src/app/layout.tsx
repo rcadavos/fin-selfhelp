@@ -44,9 +44,9 @@ export default async function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: "FinTrack",
+    name: "OmniTrak",
     description:
-      "Track your take-home pay and expenses by category. See at a glance if you're overdraft, breaking even, or have money left over.",
+      "Bill payment tracker and expense dashboard: bills by category, monthly paid status, to-buy and to-do lists, and calculators.",
     url: baseUrl,
     applicationCategory: "FinanceApplication",
   };

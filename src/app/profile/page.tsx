@@ -45,9 +45,12 @@ export default function ProfilePage() {
             <p className="text-sm font-medium text-muted-foreground">Email</p>
             <p className="text-sm">{user.email ?? "—"}</p>
           </div>
-          <div className="pt-2">
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row">
             <Button variant="outline" asChild>
-              <Link href="/my-cashflow">Back to My Cashflow</Link>
+              <Link href="/settings">Settings</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard">Back to Dashboard</Link>
             </Button>
           </div>
         </CardContent>

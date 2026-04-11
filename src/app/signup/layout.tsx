@@ -3,7 +3,7 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: "Sign up",
-  description: "Create your FinTrack account to start tracking take-home pay and expenses.",
+  description: "Create your OmniTrak account — your one-stop personal tracker for bills, cashflow, lists, and more.",
   path: "/signup",
 });
 

@@ -57,7 +57,7 @@ export default function AdminReviewsPage() {
   const [editRating, setEditRating] = useState<number | null>(null);
 
   const { data: reviews = [], isLoading, error } = useQuery({
-    queryKey: ["fin-selfhelp", "admin", "reviews"],
+    queryKey: ["omni-trak", "admin", "reviews"],
     queryFn: async () => {
       const res = await getReviewsForAdmin();
       if (res.error) throw new Error(res.error);
@@ -68,14 +68,14 @@ export default function AdminReviewsPage() {
   const approveMutation = useMutation({
     mutationFn: (id: string) => setReviewStatus(id, "approved"),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fin-selfhelp", "admin", "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["omni-trak", "admin", "reviews"] });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (id: string) => setReviewStatus(id, "rejected"),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fin-selfhelp", "admin", "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["omni-trak", "admin", "reviews"] });
     },
   });
 
@@ -83,7 +83,7 @@ export default function AdminReviewsPage() {
     mutationFn: ({ id, authorName, content, rating }: { id: string; authorName: string; content: string; rating: number | null }) =>
       updateReview(id, { authorName, content, rating }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fin-selfhelp", "admin", "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["omni-trak", "admin", "reviews"] });
       setEditingReviewId(null);
     },
   });

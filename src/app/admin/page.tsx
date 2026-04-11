@@ -336,7 +336,7 @@ export default function AdminDashboardPage() {
 
       <div className="mt-6">
         <Button variant="outline" asChild>
-          <Link href="/my-cashflow">Back to My Cashflow</Link>
+          <Link href="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
     </main>

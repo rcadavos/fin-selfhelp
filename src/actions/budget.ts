@@ -19,6 +19,7 @@ function normalizeReminderDaysBefore(
   return [...new Set(filtered)].sort((a, b) => b - a) as ReminderDay[];
 }
 import { getExpenseCategories } from "@/actions/categories";
+import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 export async function getNetTakeHome(): Promise<number | null> {
   const supabase = await createClient();
@@ -57,9 +58,16 @@ export type ExpenseData = {
   subscriptionExpired: boolean;
   incomeEntries: IncomeEntryRow[];
   entries: ExpenseEntryRow[];
+  /** YYYY-MM used for paidEntryIds */
+  paidMonth: string;
+  /** Expense entry IDs marked paid for paidMonth */
+  paidEntryIds: string[];
+  /** Read-only view of a partner's expenses (account sharing). */
+  readOnly?: boolean;
+  grantorUserId?: string;
 };
 
-export async function loadExpenseData(): Promise<ExpenseData | null> {
+export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -76,9 +84,12 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
   const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
   const subscriptionExpired = endsAt != null && endsAt <= now;
 
+  const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
+
   const [
     { data: incomeRows },
     { data: entries },
+    { data: paymentRows },
   ] = await Promise.all([
     supabase
       .from("income_entries")
@@ -90,6 +101,11 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
       .select("id, category_id, amount, note, due_date, reminder_days_before")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("expense_payments")
+      .select("expense_entry_id")
+      .eq("profile_id", profile.id)
+      .eq("paid_month", month),
   ]);
 
   const incomeEntries: IncomeEntryRow[] = (incomeRows ?? []).map((row) => ({
@@ -114,6 +130,78 @@ export async function loadExpenseData(): Promise<ExpenseData | null> {
       due_date: row.due_date ?? undefined,
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
     })),
+    paidMonth: month,
+    paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
+  };
+}
+
+/** Load another user's expense dashboard when they have shared access with you (read-only). */
+export async function loadSharedExpenseData(
+  grantorUserId: string,
+  paidMonth?: string
+): Promise<ExpenseData | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: grantorProfile } = await supabase
+    .from("profiles")
+    .select("id, net_take_home, is_subscriber, subscription_ends_at")
+    .eq("user_id", grantorUserId)
+    .single();
+  if (!grantorProfile) return null;
+
+  const { data: share } = await supabase
+    .from("account_shares")
+    .select("id")
+    .eq("grantor_profile_id", grantorProfile.id)
+    .eq("grantee_user_id", user.id)
+    .eq("status", "accepted")
+    .eq("can_view_expenses", true)
+    .maybeSingle();
+  if (!share) return null;
+
+  const now = new Date();
+  const endsAt = grantorProfile.subscription_ends_at
+    ? new Date(grantorProfile.subscription_ends_at as string)
+    : null;
+  const hasProAccess = (endsAt != null && endsAt > now) || Boolean(grantorProfile.is_subscriber);
+  const subscriptionExpired = endsAt != null && endsAt <= now;
+
+  const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
+
+  const [{ data: entries }, { data: paymentRows }] = await Promise.all([
+    supabase
+      .from("expense_entries")
+      .select("id, category_id, amount, note, due_date, reminder_days_before")
+      .eq("profile_id", grantorProfile.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("expense_payments")
+      .select("expense_entry_id")
+      .eq("profile_id", grantorProfile.id)
+      .eq("paid_month", month),
+  ]);
+
+  return {
+    netTakeHome: Number(grantorProfile.net_take_home),
+    isSubscriber: hasProAccess,
+    subscriptionExpired,
+    incomeEntries: [],
+    entries: (entries ?? []).map((row) => ({
+      id: row.id,
+      category_id: String(row.category_id ?? ""),
+      amount: Number(row.amount),
+      note: row.note ?? undefined,
+      due_date: row.due_date ?? undefined,
+      reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
+    })),
+    paidMonth: month,
+    paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
+    readOnly: true,
+    grantorUserId,
   };
 }
 
@@ -185,7 +273,8 @@ export async function saveIncomeEntries(rows: IncomeEntryInput[]): Promise<{ err
     .eq("id", profile.id);
   if (updateErr) return { error: updateErr.message };
 
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -214,7 +303,8 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
       .single();
     if (insertErr) return { error: `Save failed: ${insertErr.message}` };
     if (!newProfile) return { error: "Save failed: no profile returned." };
-    revalidatePath("/my-cashflow");
+    revalidatePath("/dashboard");
+    revalidatePath("/my-expenses");
     revalidatePath("/");
     return {};
   }
@@ -229,7 +319,8 @@ export async function updateNetTakeHome(amount: number): Promise<{ error?: strin
 
   if (updateErr) return { error: `Save failed: ${updateErr.message}` };
   if (!updated) return { error: "Save failed: update did not apply. Check RLS policies." };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -286,7 +377,8 @@ export async function addExpense(
     .select("id")
     .single();
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -323,7 +415,8 @@ export async function updateExpense(
     .eq("id", entryId)
     .eq("profile_id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -344,7 +437,8 @@ export async function deleteExpense(entryId: string): Promise<{ error?: string }
     .eq("id", entryId)
     .eq("profile_id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/");
   return {};
 }
@@ -454,7 +548,8 @@ export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
     })
     .eq("id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/subscription");
   revalidatePath("/");
   return {};
@@ -484,7 +579,8 @@ export async function recordSubscriptionPaymentForUserId(userId: string): Promis
     })
     .eq("id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/subscription");
   revalidatePath("/");
   return {};
@@ -505,7 +601,8 @@ export async function unsubscribe(): Promise<{ error?: string }> {
     .update({ is_subscriber: false })
     .eq("id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/my-cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/my-expenses");
   revalidatePath("/subscription");
   revalidatePath("/");
   return {};

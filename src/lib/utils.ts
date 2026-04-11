@@ -1,17 +1,21 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {
+  formatCurrencyWithPreferences,
+  formatNumberWithPreferences,
+  getClientPreferenceCache,
+} from "@/lib/user-preferences";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = "PHP"): string {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+export function formatCurrency(amount: number, currency?: string): string {
+  const prefs = getClientPreferenceCache();
+  return formatCurrencyWithPreferences(amount, {
+    ...prefs,
+    currency: currency ?? prefs.currency,
+  });
 }
 
 /** Format number with thousand separators for amount inputs (e.g. 50000 -> "50,000"). */
@@ -21,7 +25,8 @@ export function formatAmountWithCommas(value: string | number): string {
   if (digits === "") return "";
   const num = Number(digits);
   if (Number.isNaN(num)) return "";
-  return num.toLocaleString("en-PH", { maximumFractionDigits: 0 });
+  const prefs = getClientPreferenceCache();
+  return formatNumberWithPreferences(num, prefs);
 }
 
 /** Parse input value (with commas) to raw digits string for storage. */

@@ -18,7 +18,7 @@ function formatDate(iso: string): string {
 
 export default function AdminSuggestionsPage() {
   const { data: suggestions = [], isLoading, error } = useQuery({
-    queryKey: ["fin-selfhelp", "admin", "suggestions"],
+    queryKey: ["omni-trak", "admin", "suggestions"],
     queryFn: async () => {
       const res = await getSuggestionsForAdmin();
       if (res.error) throw new Error(res.error);

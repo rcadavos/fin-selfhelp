@@ -16,8 +16,10 @@ const SUPABASE_WSS_ORIGIN = SUPABASE_ORIGIN?.replace(/^https:/, "wss:");
 const nextConfig: NextConfig = {
   async redirects() {
     return [
-      { source: "/dashboard", destination: "/my-cashflow", permanent: true },
-      { source: "/net-worth", destination: "/my-net-worth", permanent: true },
+      { source: "/net-worth", destination: "/dashboard", permanent: true },
+      { source: "/my-net-worth", destination: "/dashboard", permanent: true },
+      { source: "/my-cashflow", destination: "/my-expenses", permanent: true },
+      { source: "/shared/:grantorUserId/my-cashflow", destination: "/shared/:grantorUserId/my-expenses", permanent: true },
     ];
   },
   async headers() {

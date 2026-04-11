@@ -1,4 +1,4 @@
-import { AppHeader } from "@/components/app/app-header";
+import { AppShell } from "@/components/app/app-shell";
 
 export default function PaymentLayout({
   children,
@@ -6,9 +6,8 @@ export default function PaymentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="app-layout">
-      <AppHeader />
-      {children}
+    <div className="app-layout app-layout--shell">
+      <AppShell>{children}</AppShell>
     </div>
   );
 }

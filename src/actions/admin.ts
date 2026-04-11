@@ -34,14 +34,14 @@ export async function getAdminGuard(): Promise<{ allowed: boolean; redirectTo: s
       .maybeSingle();
     if (error) {
       console.error("[getAdminGuard] profile fetch error:", error.message);
-      return { allowed: false, redirectTo: "/my-cashflow" };
+      return { allowed: false, redirectTo: "/dashboard" };
     }
-    if (!profile) return { allowed: false, redirectTo: "/my-cashflow" };
-    if (!profile.is_admin) return { allowed: false, redirectTo: "/my-cashflow" };
+    if (!profile) return { allowed: false, redirectTo: "/dashboard" };
+    if (!profile.is_admin) return { allowed: false, redirectTo: "/dashboard" };
     return { allowed: true, redirectTo: null };
   } catch (err) {
     console.error("[getAdminGuard] error (check SUPABASE_SERVICE_ROLE_KEY and profiles.is_admin):", err);
-    return { allowed: false, redirectTo: "/my-cashflow" };
+    return { allowed: false, redirectTo: "/dashboard" };
   }
 }
 
