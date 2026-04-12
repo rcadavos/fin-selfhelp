@@ -1,10 +1,11 @@
 import { LegalDocShell } from "@/components/legal/legal-doc-shell";
 import { buildPageMetadata } from "@/lib/seo";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export const metadata = buildPageMetadata({
   title: "We do not sell your data",
   description: "OmniTrak does not sell your personal information.",
-  path: "/no-sale",
+  path: LEGAL_ROUTES.noSale,
 });
 
 export default function NoSalePage() {

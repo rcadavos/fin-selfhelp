@@ -27,5 +27,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     { url: `${baseUrl}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/signup`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${baseUrl}/legal`, lastModified: now, changeFrequency: "yearly", priority: 0.35 },
+    { url: `${baseUrl}/legal/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/legal/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/legal/cookies`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/legal/no-sale`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

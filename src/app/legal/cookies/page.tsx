@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { LegalDocShell } from "@/components/legal/legal-doc-shell";
 import { buildPageMetadata } from "@/lib/seo";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export const metadata = buildPageMetadata({
   title: "Cookie notice",
   description: "How OmniTrak uses cookies and similar technologies.",
-  path: "/cookies",
+  path: LEGAL_ROUTES.cookies,
 });
 
 export default function CookiesPage() {
@@ -40,6 +41,11 @@ export default function CookiesPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-foreground">Your choices</h2>
         <p>
+          When you first visit the site, we ask you to choose <strong>essential only</strong> or{" "}
+          <strong>accept all</strong>. That choice is stored in your browser (local storage) so we
+          do not show the prompt again on future visits unless you clear site data.
+        </p>
+        <p>
           You can control cookies through your browser settings. Blocking essential cookies may
           prevent parts of the Service (such as staying logged in) from working correctly.
         </p>
@@ -48,7 +54,10 @@ export default function CookiesPage() {
         <h2 className="text-lg font-semibold text-foreground">More information</h2>
         <p>
           For broader information about how we handle personal data, see our{" "}
-          <Link href="/privacy" className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link
+            href={LEGAL_ROUTES.privacy}
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
             Privacy policy
           </Link>
           .

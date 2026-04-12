@@ -1,10 +1,11 @@
 import { LegalDocShell } from "@/components/legal/legal-doc-shell";
 import { buildPageMetadata } from "@/lib/seo";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export const metadata = buildPageMetadata({
   title: "Terms of service",
   description: "OmniTrak terms of service and user agreement.",
-  path: "/terms",
+  path: LEGAL_ROUTES.terms,
 });
 
 export default function TermsPage() {

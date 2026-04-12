@@ -58,10 +58,11 @@ export async function submitReview(params: {
           .from("reviews")
           .select("id")
           .eq("author_user_id", user.id)
+          .in("status", ["pending", "approved"])
           .limit(1)
           .maybeSingle();
         if (existingError) return { error: existingError.message };
-        if (existing) return { error: "You already submitted a review." };
+        if (existing) return { error: "You already have a review in progress or published." };
       } catch {
         // If service role isn't configured, rely on the DB unique index.
       }
@@ -97,6 +98,7 @@ export async function getReviewEligibility(): Promise<{ canSubmit: boolean; reas
       .from("reviews")
       .select("id")
       .eq("author_user_id", user.id)
+      .in("status", ["pending", "approved"])
       .limit(1)
       .maybeSingle();
     if (error) return { canSubmit: true, error: error.message };
@@ -126,6 +128,9 @@ export async function getMyReview(): Promise<{ review: MyReviewRow | null; error
       .from("reviews")
       .select("id, author_name, content, rating, status, created_at")
       .eq("author_user_id", user.id)
+      .in("status", ["pending", "approved"])
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!error) {
       if (!data) return { review: null };
@@ -147,6 +152,9 @@ export async function getMyReview(): Promise<{ review: MyReviewRow | null; error
       .from("reviews")
       .select("id, author_name, content, rating, status, created_at")
       .eq("author_user_id", user.id)
+      .in("status", ["pending", "approved"])
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (error2) return { review: null, error: error2.message };
     if (!data2) return { review: null };
@@ -176,8 +184,9 @@ export type ApprovedReviewRow = {
 /** Public: fetch only approved reviews for landing page. */
 export async function getApprovedReviews(): Promise<{ reviews: ApprovedReviewRow[]; error?: string }> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
+    // Service role avoids relying on session + RLS for public listing; only approved rows are selected.
+    const admin = createServiceRoleClient();
+    const { data, error } = await admin
       .from("reviews")
       .select("id, author_name, content, rating, created_at")
       .eq("status", "approved")

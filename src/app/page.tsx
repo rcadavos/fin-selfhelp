@@ -13,6 +13,8 @@ import { getSubscriptionPlan } from "@/actions/subscription-plan";
 import { getApprovedReviews } from "@/actions/feedback";
 import { SUBSCRIPTION_PLAN_FALLBACK } from "@/lib/query/subscription-plan";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [planRow, reviewsResult] = await Promise.all([
     getSubscriptionPlan(),

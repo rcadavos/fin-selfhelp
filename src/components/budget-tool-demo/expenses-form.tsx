@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 
@@ -53,7 +54,7 @@ function ExpensesFormInner({
       <CardHeader>
         <CardTitle>Where did your money go?</CardTitle>
         <CardDescription>
-          Enter spending per category (monthly). Use 0 for categories that don't apply.
+          Enter spending per category (monthly). Use 0 for categories that don&apos;t apply.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -115,10 +116,10 @@ export function ExpensesForm(props: ExpensesFormProps) {
         <Card className={props.className}>
           <CardHeader>
             <CardTitle>Where did your money go?</CardTitle>
-            <CardDescription>Loading...</CardDescription>
+            <CardDescription>Loading…</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 animate-pulse rounded bg-muted" />
+            <Skeleton className="h-64 w-full rounded-md" />
           </CardContent>
         </Card>
       }

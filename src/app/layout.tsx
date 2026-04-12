@@ -7,6 +7,8 @@ import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { buildDefaultMetadata, getBaseUrl } from "@/lib/seo";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ScrollToTopButton } from "@/components/app/scroll-to-top-button";
+import { CookieConsentDialog } from "@/components/app/cookie-consent-dialog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,7 +64,11 @@ export default async function RootLayout({
         />
         <Providers>
           <HydrationBoundary state={dehydrate(queryClient)}>
-            <div className="app-root">{children}</div>
+            <div className="app-root">
+              {children}
+              <ScrollToTopButton />
+              <CookieConsentDialog />
+            </div>
           </HydrationBoundary>
         </Providers>
       </body>

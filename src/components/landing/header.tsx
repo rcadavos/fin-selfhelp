@@ -11,7 +11,7 @@ type HeaderProps = {
 };
 
 export function Header({ className }: HeaderProps) {
-  const { user, loading } = useUser();
+  const { user } = useUser();
 
   return (
     <header
@@ -26,9 +26,7 @@ export function Header({ className }: HeaderProps) {
         </Link>
         <nav className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
           <ThemeToggle />
-          {loading ? (
-            <span className="text-sm text-muted-foreground">…</span>
-          ) : user ? (
+          {user ? (
             <Button size="sm" asChild>
               <Link href="/dashboard">Go to Dashboard</Link>
             </Button>

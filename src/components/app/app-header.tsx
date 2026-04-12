@@ -18,7 +18,7 @@ import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
 
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
-  const { user, loading } = useUser();
+  const { user } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
 
   const isDashboardHome = pathname === "/dashboard";
@@ -43,9 +43,7 @@ export function AppHeader({ className }: { className?: string }) {
           OmniTrak
         </Link>
         <nav className="ml-auto flex items-center gap-2 sm:gap-4">
-          {loading ? (
-            <span className="text-sm text-muted-foreground">…</span>
-          ) : user ? (
+          {user ? (
             <>
               {/* Mobile only (below md): md+ uses sidebar + shell toolbar */}
               <div className="flex md:hidden items-center gap-2">

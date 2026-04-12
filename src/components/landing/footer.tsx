@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 import { cn } from "@/lib/utils";
 import { FooterFeedback } from "./footer-feedback";
 import { ExternalLink } from "lucide-react";
@@ -17,10 +18,10 @@ const productLinks = [
 ] as const;
 
 const legalLinks = [
-  { href: "/terms", label: "Terms of service" },
-  { href: "/privacy", label: "Privacy policy" },
-  { href: "/cookies", label: "Cookie notice" },
-  { href: "/no-sale", label: "We don't sell your data" },
+  { href: LEGAL_ROUTES.terms, label: "Terms of service" },
+  { href: LEGAL_ROUTES.privacy, label: "Privacy policy" },
+  { href: LEGAL_ROUTES.cookies, label: "Cookie notice" },
+  { href: LEGAL_ROUTES.noSale, label: "We don't sell your data" },
 ] as const;
 
 export function Footer({ className }: { className?: string }) {

@@ -76,9 +76,8 @@ export function FooterFeedback({ className }: { className?: string }) {
 
   function statusVariant(
     status: string
-  ): "secondary" | "default" | "destructive" | "outline" | "pending" {
+  ): "secondary" | "default" | "outline" | "pending" {
     if (status === "approved") return "default";
-    if (status === "rejected") return "destructive";
     if (status === "pending") return "pending";
     return "secondary";
   }
@@ -253,7 +252,7 @@ export function FooterFeedback({ className }: { className?: string }) {
                     <p className="text-xs text-muted-foreground">
                       {myReview.status === "pending"
                         ? "You can edit your review until it's approved. It will be visible publicly after approval."
-                        : "Your review is visible publicly only after approval."}
+                        : "Your review is published on the site."}
                     </p>
                   </div>
                   <Dialog open={editingMyReview} onOpenChange={setEditingMyReview}>
