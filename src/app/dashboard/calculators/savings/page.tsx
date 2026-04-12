@@ -12,6 +12,7 @@ import {
   PH_DEFAULT_INTEREST_RATE_PCT,
   PH_DEFAULT_INFLATION_RATE_PCT,
 } from "@/lib/savings-calculator";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency } from "@/lib/utils";
 import { TrendingUp, Info, ChevronLeft } from "lucide-react";
@@ -58,11 +59,7 @@ export default function SavingsCalculatorPage() {
 
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
-    return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
-      </main>
-    );
+    return <DashboardSkeleton variant="calculator-detail" />;
   }
 
   return (

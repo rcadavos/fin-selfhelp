@@ -19,6 +19,7 @@ function normalizeReminderDaysBefore(
   return [...new Set(filtered)].sort((a, b) => b - a) as ReminderDay[];
 }
 import { getExpenseCategories } from "@/actions/categories";
+import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 export async function getNetTakeHome(): Promise<number | null> {
@@ -362,7 +363,9 @@ export async function addExpense(
       return { error: `Free tier is limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` };
     }
   }
-  const due = dueDate?.trim() ? dueDate.trim() : null;
+  const dueRaw = dueDate?.trim() ?? "";
+  const dueNorm = dueRaw ? normalizeDueDateForStorage(dueRaw) : null;
+  if (dueRaw && !dueNorm) return { error: "Invalid due date." };
   const reminders = reminderDaysBefore?.length ? reminderDaysBefore : null;
   const { error } = await supabase
     .from("expense_entries")
@@ -371,7 +374,7 @@ export async function addExpense(
       category_id: categoryId,
       amount,
       ...(note != null && { note: note.trim() || null }),
-      ...(due && { due_date: due }),
+      ...(dueNorm && { due_date: dueNorm }),
       ...(reminders && { reminder_days_before: reminders }),
     })
     .select("id")
@@ -401,7 +404,16 @@ export async function updateExpense(
     .single();
   if (!profile) return { error: "Profile not found." };
   if (amount <= 0) return { error: "Amount must be greater than 0." };
-  const due = dueDate !== undefined ? (dueDate?.trim() ? dueDate.trim() : null) : undefined;
+  let due: string | null | undefined = undefined;
+  if (dueDate !== undefined) {
+    const raw = dueDate?.trim() ?? "";
+    if (!raw) due = null;
+    else {
+      const norm = normalizeDueDateForStorage(raw);
+      if (!norm) return { error: "Invalid due date." };
+      due = norm;
+    }
+  }
   const reminders = reminderDaysBefore !== undefined ? (reminderDaysBefore?.length ? reminderDaysBefore : null) : undefined;
   const { error } = await supabase
     .from("expense_entries")

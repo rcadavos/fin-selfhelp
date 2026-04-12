@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isStaleRefreshTokenError } from "@/lib/supabase/stale-session-error";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -27,7 +28,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const { error } = await supabase.auth.getUser();
+  if (error && isStaleRefreshTokenError(error)) {
+    await supabase.auth.signOut({ scope: "local" });
+  }
 
   return supabaseResponse;
 }

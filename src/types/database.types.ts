@@ -93,6 +93,7 @@ export type DbExpenseEntry = {
   category_id: ExpenseCategoryKey;
   amount: number;
   note?: string;
+  /** Monthly due day; stored as YYYY-MM-DD with canonical `1970-01-{DD}` (only the day is meaningful). */
   due_date?: string | null;
   reminder_days_before?: number[] | null;
   created_at: string;

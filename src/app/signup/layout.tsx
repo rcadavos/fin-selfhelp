@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/app/app-header";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
@@ -7,14 +6,14 @@ export const metadata = buildPageMetadata({
   path: "/signup",
 });
 
+/** Same viewport shell as login so auth pages align on desktop. */
 export default function SignupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="app-layout">
-      <AppHeader />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background md:h-[100dvh] md:max-h-[100dvh] md:overflow-hidden">
       {children}
     </div>
   );

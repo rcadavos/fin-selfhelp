@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -31,16 +32,36 @@ import { useBudgetRefresh } from "@/contexts/budget-refresh";
 import type { ReminderDay } from "@/types/database.types";
 import { EXPENSE_CATEGORIES, REMINDER_OPTIONS } from "@/types/database.types";
 import type { ExpenseEntryRow } from "@/actions/budget";
+import {
+  effectiveDueDateInPaidMonth,
+  formatReminderDateList,
+  formatYmdLocal,
+} from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import {
-  Pencil, Plus, Trash2, Bell, Check, Sparkles, CheckCircle2,
-  ArrowUpRight, CircleDollarSign, LayoutDashboard, CalendarRange,
+  DEFAULT_USER_PREFERENCES,
+  formatDateWithPreferences,
+} from "@/lib/user-preferences";
+import {
+  Plus,
+  Trash2,
+  Bell,
+  Check,
+  Sparkles,
+  CheckCircle2,
+  ArrowUpRight,
+  CircleDollarSign,
+  LayoutDashboard,
+  CalendarRange,
+  MoreHorizontal,
 } from "lucide-react";
 
 type AddExpenseLine = { id: string; category: string; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
@@ -74,6 +95,26 @@ function getCategoryBg(categories: { id: string; bgClass: string }[], id: string
   return categories.find((c) => c.id === id)?.bgClass ?? "";
 }
 
+type ExpensePayStatus = "paid" | "outstanding" | "unpaid";
+
+function startOfTodayLocal(): Date {
+  const t = new Date();
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+function getExpensePayStatus(
+  entry: ExpenseEntryRow,
+  paidIds: Set<string>,
+  paidMonthYm: string
+): ExpensePayStatus {
+  if (paidIds.has(entry.id)) return "paid";
+  if (!entry.due_date) return "unpaid";
+  const due = effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm);
+  if (!due) return "unpaid";
+  if (due < startOfTodayLocal()) return "outstanding";
+  return "unpaid";
+}
+
 export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
 
 export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashflowPageVariant }) {
@@ -103,6 +144,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [isSubscriber, setIsSubscriber] = useState(false);
   const [subscriptionExpired, setSubscriptionExpired] = useState(false);
   const [paidMonthLabel, setPaidMonthLabel] = useState("");
+  const paidMonthYm = useMemo(
+    () => (/^\d{4}-\d{2}$/.test(paidMonthLabel) ? paidMonthLabel : getCurrentPaidMonth()),
+    [paidMonthLabel]
+  );
   const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
   const [paymentHistory, setPaymentHistory] = useState<PaymentMonthStats[]>([]);
   const [addLines, setAddLines] = useState<AddExpenseLine[]>(() => [newAddLine()]);
@@ -125,6 +170,19 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [addInlineStatus, setAddInlineStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingPaidId, setTogglingPaidId] = useState<string | null>(null);
+  const [inlineNameEditId, setInlineNameEditId] = useState<string | null>(null);
+  const [inlineNameDraft, setInlineNameDraft] = useState("");
+  const skipInlineNameBlurCommitRef = useRef(false);
+  const prefsOptional = useUserPreferencesOptional();
+
+  const formatPrefDate = useCallback(
+    (input: Date | string) =>
+      formatDateWithPreferences(
+        input,
+        prefsOptional?.preferences ?? DEFAULT_USER_PREFERENCES
+      ),
+    [prefsOptional?.preferences]
+  );
 
   async function togglePaid(entryId: string) {
     const month = getCurrentPaidMonth();
@@ -156,6 +214,55 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       })
       .catch(() => setBudgetDataLoaded(true));
   }, []);
+
+  const commitInlineNameEdit = useCallback(
+    async (entryId: string) => {
+      if (inlineNameEditId !== entryId) return;
+      const entry = entries.find((e) => e.id === entryId);
+      if (!entry) {
+        setInlineNameEditId(null);
+        setInlineNameDraft("");
+        return;
+      }
+      const next = inlineNameDraft.trim();
+      const prev = (entry.note ?? "").trim();
+      if (next === prev) {
+        setInlineNameEditId(null);
+        setInlineNameDraft("");
+        return;
+      }
+      const reminders =
+        isSubscriber && entry.due_date
+          ? entry.reminder_days_before?.length
+            ? (entry.reminder_days_before as ReminderDay[])
+            : null
+          : undefined;
+      const result = await updateExpense(
+        entry.id,
+        entry.category_id,
+        entry.amount,
+        next || undefined,
+        entry.due_date ?? undefined,
+        reminders
+      );
+      if (result.error) showSnackbar(result.error);
+      else {
+        load();
+        refreshBudget();
+      }
+      setInlineNameEditId(null);
+      setInlineNameDraft("");
+    },
+    [
+      inlineNameEditId,
+      inlineNameDraft,
+      entries,
+      isSubscriber,
+      showSnackbar,
+      load,
+      refreshBudget,
+    ]
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -225,11 +332,16 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   }
 
   function startEdit(entry: ExpenseEntryRow) {
+    setInlineNameEditId(null);
+    setInlineNameDraft("");
     setEditingId(entry.id);
     setEditCategory(entry.category_id);
     setEditAmount(String(entry.amount));
     setEditName(entry.note ?? "");
-    setEditDueDate(entry.due_date ?? "");
+    const effDue = entry.due_date
+      ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
+      : null;
+    setEditDueDate(effDue ? formatYmdLocal(effDue) : "");
     setEditReminderDays((entry.reminder_days_before ?? []) as ReminderDay[]);
     setEditStatus("idle");
   }
@@ -241,6 +353,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setEditName("");
     setEditDueDate("");
     setEditReminderDays([]);
+  }
+
+  async function beginInlineNameEdit(entry: ExpenseEntryRow) {
+    if (editingId) cancelEdit();
+    if (inlineNameEditId === entry.id) {
+      await commitInlineNameEdit(entry.id);
+      return;
+    }
+    if (inlineNameEditId) await commitInlineNameEdit(inlineNameEditId);
+    setInlineNameEditId(entry.id);
+    setInlineNameDraft(entry.note ?? "");
   }
 
   function toggleEditReminder(day: ReminderDay) {
@@ -365,17 +488,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
 
   if (loading || !user) {
     return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
-      </main>
+      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
     );
   }
 
   if (!budgetDataLoaded) {
     return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading your expenses…</p>
-      </main>
+      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
     );
   }
 
@@ -435,15 +554,77 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8">
       {pageVariant === "expenses" && (
-        <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard" className="gap-1.5">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
-        </div>
+        <>
+          <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard" className="gap-1.5">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          </div>
+          {entriesCounted.length > 0 && (
+            <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
+              <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" aria-hidden />
+
+              <div className="relative flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="flex items-center gap-1.5 text-xs font-medium opacity-90 sm:text-sm">
+                    <CalendarRange className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                    This month ({paidMonthLabel})
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums sm:text-base">
+                    <span>
+                      <span className="opacity-80">Total </span>
+                      <span className="font-bold">{formatCurrency(totalExpenses)}</span>
+                    </span>
+                    <span>
+                      <span className="opacity-80">Paid </span>
+                      <span className="font-bold text-emerald-200">{formatCurrency(totalPaidThisMonth)}</span>
+                    </span>
+                    <span>
+                      <span className="opacity-80">Unpaid </span>
+                      <span className="font-bold text-amber-200">{formatCurrency(unpaidThisMonth)}</span>
+                    </span>
+                  </div>
+                </div>
+                {totalExpenses > 0 && (
+                  <div
+                    className="relative mx-auto h-14 w-14 shrink-0 rounded-full sm:mx-0"
+                    style={{
+                      background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
+                    }}
+                    aria-hidden
+                  >
+                    <div className="absolute inset-2 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[9px] font-medium leading-tight text-primary-foreground">
+                      <span className="opacity-80">Paid</span>
+                      <span className="text-xs font-bold tabular-nums sm:text-sm">{paidPct}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {totalExpenses > 0 && (
+                <div className="relative mt-3 space-y-1">
+                  <div className="flex justify-between text-[10px] font-medium opacity-80 sm:text-xs">
+                    <span>Paid vs total</span>
+                    <span className="tabular-nums">
+                      {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
+                    </span>
+                  </div>
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/20 sm:h-3">
+                    <div
+                      className="bg-emerald-300 transition-all duration-500"
+                      style={{ width: `${paidPct}%` }}
+                    />
+                    <div className="flex-1 bg-white/10" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {pageVariant === "dashboard" && (
@@ -628,8 +809,18 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               })
               .map(([categoryId, categoryEntries]) => {
                 const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
-                const catPct =
-                  totalExpenses > 0 ? Math.min(100, Math.round((total / totalExpenses) * 100)) : 0;
+                const countedInCategory = freeTierLimitApplied
+                  ? categoryEntries.filter((e) => countedEntryIds.has(e.id))
+                  : categoryEntries;
+                const catTotalCounted = countedInCategory.reduce((s, e) => s + e.amount, 0);
+                const catPaidCounted = countedInCategory.reduce(
+                  (s, e) => s + (paidIds.has(e.id) ? e.amount : 0),
+                  0
+                );
+                const catPaidPct =
+                  catTotalCounted > 0
+                    ? Math.min(100, Math.round((catPaidCounted / catTotalCounted) * 100))
+                    : 0;
                 return (
                   <Card key={categoryId} className={cn("overflow-hidden", getCategoryBg(categoriesList, categoryId))}>
                     <CardHeader className="pb-2">
@@ -640,18 +831,18 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                         </div>
                         <span className="text-lg font-bold tabular-nums">{formatCurrency(total)}</span>
                       </div>
-                      {totalExpenses > 0 && (
-                        <div className="mt-1.5 flex items-center gap-2">
+                      {catTotalCounted > 0 && (
+                        <div className="mt-1.5 flex items-center gap-2" title="Share of this category marked paid for the current month">
                           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
                             <div
                               className={cn(
-                                "h-full rounded-full transition-all duration-500",
-                                catPct > 40 ? "bg-amber-500" : "bg-primary/60"
+                                "h-full rounded-full bg-emerald-500 transition-all duration-500",
+                                catPaidPct === 0 && "opacity-40"
                               )}
-                              style={{ width: `${catPct}%` }}
+                              style={{ width: `${catPaidPct}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{catPct}%</span>
+                          <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{catPaidPct}%</span>
                         </div>
                       )}
                     </CardHeader>
@@ -682,7 +873,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                           </div>
                           <div className="min-w-[130px] space-y-1">
                             <Label className="text-xs">Due date</Label>
-                            <Input type="date" className="h-8" value={addInlineDueDate} onChange={(e) => setAddInlineDueDate(e.target.value)} />
+                            <Input
+                              type="date"
+                              className="h-8"
+                              title="Same calendar day each month"
+                              value={addInlineDueDate}
+                              onChange={(e) => setAddInlineDueDate(e.target.value)}
+                            />
                           </div>
                           <ReminderDropdown days={addInlineReminderDays} onToggle={toggleInlineReminder} />
                           <Button type="submit" size="sm" disabled={addInlineStatus === "saving"}>
@@ -694,6 +891,18 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                       <ul className="divide-y divide-border/50">
                         {categoryEntries.map((entry) => {
                           const isExcludedFromCount = freeTierLimitApplied && !countedEntryIds.has(entry.id);
+                          const payStatus = getExpensePayStatus(entry, paidIds, paidMonthYm);
+                          const displayName =
+                            entry.note?.trim() || getCategoryLabel(categoriesList, entry.category_id);
+                          const dueEffective = entry.due_date
+                            ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
+                            : null;
+                          const dueText =
+                            dueEffective && !Number.isNaN(dueEffective.getTime())
+                              ? `Due ${formatPrefDate(dueEffective)}`
+                              : null;
+                          const hasReminders = (entry.reminder_days_before?.length ?? 0) > 0;
+                          const reminderLine = `Reminder date${(entry.reminder_days_before?.length ?? 0) !== 1 ? "s" : ""}: ${formatReminderDateList(entry.due_date ?? undefined, entry.reminder_days_before ?? undefined, formatPrefDate, paidMonthYm)}`;
                           return (
                           <li
                             key={entry.id}
@@ -725,7 +934,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                                 </div>
                                 <div className="min-w-[130px] space-y-1">
                                   <Label className="text-xs">Due date</Label>
-                                  <Input type="date" className="h-8" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} />
+                                  <Input
+                                    type="date"
+                                    className="h-8"
+                                    title="Same calendar day each month"
+                                    value={editDueDate}
+                                    onChange={(e) => setEditDueDate(e.target.value)}
+                                  />
                                 </div>
                                 <div className="flex items-end gap-1">
                                   <Button
@@ -749,62 +964,135 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                                 </div>
                               </form>
                             ) : (
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <span className={cn("text-sm font-medium", paidIds.has(entry.id) && "line-through text-muted-foreground/60")}>
-                                    {entry.note ? entry.note : getCategoryLabel(categoriesList, entry.category_id)}
-                                  </span>
-                                  <span className={cn("shrink-0 text-sm font-bold tabular-nums", paidIds.has(entry.id) && "line-through text-muted-foreground/60")}>
+                              <div className="flex flex-col gap-1 py-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                                    {inlineNameEditId === entry.id ? (
+                                      <Input
+                                        value={inlineNameDraft}
+                                        onChange={(e) => setInlineNameDraft(e.target.value)}
+                                        className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
+                                        placeholder="Name"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            void commitInlineNameEdit(entry.id);
+                                          }
+                                          if (e.key === "Escape") {
+                                            skipInlineNameBlurCommitRef.current = true;
+                                            setInlineNameEditId(null);
+                                            setInlineNameDraft(entry.note ?? "");
+                                          }
+                                        }}
+                                        onBlur={() => {
+                                          if (skipInlineNameBlurCommitRef.current) {
+                                            skipInlineNameBlurCommitRef.current = false;
+                                            return;
+                                          }
+                                          void commitInlineNameEdit(entry.id);
+                                        }}
+                                        aria-label="Expense name"
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className={cn(
+                                          "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
+                                          paidIds.has(entry.id) &&
+                                            "text-muted-foreground line-through decoration-muted-foreground"
+                                        )}
+                                        onClick={() => void beginInlineNameEdit(entry)}
+                                      >
+                                        {displayName}
+                                      </button>
+                                    )}
+                                    {payStatus === "paid" ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="shrink-0 border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
+                                      >
+                                        Paid
+                                      </Badge>
+                                    ) : payStatus === "outstanding" ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="shrink-0 border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
+                                      >
+                                        Outstanding
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="shrink-0 text-xs font-medium text-muted-foreground"
+                                      >
+                                        Unpaid
+                                      </Badge>
+                                    )}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                                          aria-label="Expense actions"
+                                          disabled={deletingId !== null || togglingPaidId === entry.id}
+                                          onPointerDown={(e) => {
+                                            if (inlineNameEditId === entry.id) e.preventDefault();
+                                          }}
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-48">
+                                        <DropdownMenuItem
+                                          onSelect={() => {
+                                            startEdit(entry);
+                                          }}
+                                        >
+                                          Edit
+                                        </DropdownMenuItem>
+                                        {!paidIds.has(entry.id) ? (
+                                          <DropdownMenuItem
+                                            onSelect={() => {
+                                              void togglePaid(entry.id);
+                                            }}
+                                            disabled={togglingPaidId === entry.id}
+                                          >
+                                            Mark as Paid
+                                          </DropdownMenuItem>
+                                        ) : (
+                                          <DropdownMenuItem
+                                            onSelect={() => {
+                                              void togglePaid(entry.id);
+                                            }}
+                                            disabled={togglingPaidId === entry.id}
+                                          >
+                                            Mark as Unpaid
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                  <span
+                                    className={cn(
+                                      "shrink-0 text-sm font-bold tabular-nums",
+                                      paidIds.has(entry.id) && "text-muted-foreground line-through"
+                                    )}
+                                  >
                                     {formatCurrency(entry.amount)}
                                   </span>
-                                  {entry.due_date && (
-                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                      Due: {new Date(entry.due_date).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                                    </span>
-                                  )}
-                                  {paidIds.has(entry.id) ? (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 shrink-0 gap-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
-                                      onClick={() => togglePaid(entry.id)}
-                                      disabled={togglingPaidId === entry.id}
-                                      title="Mark unpaid"
-                                      aria-label="Mark unpaid"
-                                    >
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      {togglingPaidId === entry.id ? "…" : "Paid"}
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      variant="default"
-                                      size="sm"
-                                      className="h-7 shrink-0"
-                                      onClick={() => togglePaid(entry.id)}
-                                      disabled={togglingPaidId === entry.id}
-                                      title="Mark Paid this Month"
-                                      aria-label="Mark paid this month"
-                                    >
-                                      {togglingPaidId === entry.id ? "…" : "Mark Paid"}
-                                    </Button>
-                                  )}
                                 </div>
-                                <div className="flex shrink-0 items-center gap-0">
-                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(entry)} aria-label="Edit expense" disabled={deletingId !== null}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteExpense(entry.id)} disabled={deletingId !== null} aria-label="Remove expense">
-                                    {deletingId === entry.id ? <span className="text-xs">…</span> : <Trash2 className="h-3.5 w-3.5" />}
-                                  </Button>
-                                  {entry.due_date && (
-                                    <span className="flex shrink-0 items-center gap-1 px-1 text-xs text-muted-foreground" title="Reminders">
-                                      <Bell className="h-3.5 w-3.5" />
-                                      {(entry.reminder_days_before?.length ?? 0) > 0 ? formatReminderLabel(entry.reminder_days_before ?? []) : "—"}
-                                    </span>
-                                  )}
-                                </div>
+                                {(dueText || hasReminders) && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {dueText ? <span>{dueText}</span> : null}
+                                    {dueText && hasReminders ? (
+                                      <span className="text-muted-foreground/50"> · </span>
+                                    ) : null}
+                                    {hasReminders ? <span>{reminderLine}</span> : null}
+                                  </p>
+                                )}
                               </div>
                             )}
                           </li>
@@ -878,7 +1166,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </div>
                 <div className="min-w-[130px] space-y-1">
                   <Label className="text-xs">Due date</Label>
-                  <Input type="date" className="h-9" value={line.dueDate} onChange={(e) => setAddLine(line.id, { dueDate: e.target.value })} />
+                  <Input
+                    type="date"
+                    className="h-9"
+                    title="Same calendar day each month"
+                    value={line.dueDate}
+                    onChange={(e) => setAddLine(line.id, { dueDate: e.target.value })}
+                  />
                 </div>
                 <div className="flex items-end gap-1">
                   <Button
@@ -931,56 +1225,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         </>
       )}
 
-      {/* ════════════════════ SUMMARY ════════════════════ */}
-      <Card className="mb-6 overflow-hidden">
-        <div className="h-1 w-full bg-gradient-to-r from-primary via-emerald-400 to-blue-500" />
-        <CardHeader>
-          <CardTitle className="text-base">Monthly Summary</CardTitle>
-          {freeTierLimitApplied && (
-            <CardDescription className="text-amber-700 dark:text-amber-300">
-              Only first {FREE_TIER_EXPENSE_LIMIT} expenses count toward this total. Subscribe to include all.
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {freeTierLimitApplied && (
-            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-              {FREE_TIER_EXPENSE_LIMIT} of {entries.length} expenses included (free tier). Status above is not accurate for full budget.
-            </p>
-          )}
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Month</span>
-            <span className="font-medium tabular-nums">{paidMonthLabel}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total expenses</span>
-            <span className="font-bold tabular-nums">{formatCurrency(totalExpenses)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Bills paid this month</span>
-            <span className={cn("font-bold tabular-nums", totalPaidThisMonth > 0 ? "text-emerald-600" : "")}>
-              {formatCurrency(totalPaidThisMonth)}
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Still unpaid</span>
-            <span className="font-bold tabular-nums text-amber-700 dark:text-amber-300">
-              {formatCurrency(unpaidThisMonth)}
-            </span>
-          </div>
-          <div className="border-t pt-3">
-            <div className="flex justify-between text-base font-semibold">
-              <span>Bills marked paid</span>
-              <span className="tabular-nums">
-                {paidCount} / {entriesCounted.length}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ════════════════════ SUBSCRIBE CTA ════════════════════ */}
-      {subscriptionExpired && (
+      {subscriptionExpired && !isSubscriber && (
         <Card className="mx-auto max-w-2xl border-primary/50 bg-primary/5 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full" aria-hidden />
           <CardHeader>

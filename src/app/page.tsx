@@ -1,5 +1,3 @@
-"use client";
-
 import { Header } from "@/components/landing/header";
 import { HeroSection } from "@/components/landing/hero-section";
 import { FeaturesSection } from "@/components/landing/features-section";
@@ -11,8 +9,18 @@ import { FaqSection } from "@/components/landing/faq-section";
 import { ReviewsSection } from "@/components/landing/reviews-section";
 import { CtaBandSection } from "@/components/landing/cta-band-section";
 import { Footer } from "@/components/landing/footer";
+import { getSubscriptionPlan } from "@/actions/subscription-plan";
+import { getApprovedReviews } from "@/actions/feedback";
+import { SUBSCRIPTION_PLAN_FALLBACK } from "@/lib/query/subscription-plan";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [planRow, reviewsResult] = await Promise.all([
+    getSubscriptionPlan(),
+    getApprovedReviews(),
+  ]);
+  const plan = planRow ?? SUBSCRIPTION_PLAN_FALLBACK;
+  const reviews = reviewsResult.error ? [] : reviewsResult.reviews;
+
   return (
     <main className="app-layout">
       <Header />
@@ -21,9 +29,9 @@ export default function HomePage() {
       <HowItWorksSection />
       <HighlightsSection />
       <BuiltForSection />
-      <SubscribeSection />
+      <SubscribeSection plan={plan} />
       <FaqSection />
-      <ReviewsSection />
+      <ReviewsSection reviews={reviews} />
       <CtaBandSection />
       <Footer />
     </main>

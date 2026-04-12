@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
-import { ChevronLeft } from "lucide-react";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { ChevronLeft, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -19,6 +22,50 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <Button type="submit" className="w-full" disabled={pending}>
       {pending ? "Creating account…" : children}
     </Button>
+  );
+}
+
+function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
+  return (
+    <aside
+      className={cn(
+        "relative hidden flex-col border-border/60 bg-muted/25 p-8 lg:p-10",
+        "md:flex md:min-h-0 md:overflow-hidden md:border-r",
+        showFooter ? "justify-between" : "justify-center"
+      )}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent" aria-hidden />
+      <div className="relative flex min-h-0 flex-1 flex-col justify-center gap-6">
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary">OmniTrak</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">Create your account</h1>
+          {showFooter ? (
+            <>
+              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Track bills, cashflow, and lists in one place. Start free and add more when you&apos;re ready.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
+                  Free to start
+                </span>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+      {showFooter ? (
+        <div className="relative mt-6 shrink-0 md:mt-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+            Back to home
+          </Link>
+        </div>
+      ) : null}
+    </aside>
   );
 }
 
@@ -39,56 +86,105 @@ export default function SignUpPage() {
   }
 
   if (loading || user) {
-    return null;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
+        <SignupBrandPanel />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 md:px-6 md:py-5">
+          <p className="text-sm text-muted-foreground">{user ? "Redirecting…" : "Loading…"}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="app-main-centered">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create account</CardTitle>
-          <CardDescription>
-            Sign up to save your cashflow and access it from any device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form action={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                autoComplete="new-password"
-                placeholder="At least 6 characters"
-              />
-            </div>
-            <SubmitButton>Sign up</SubmitButton>
-          </form>
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
-              Log in
+    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 md:hidden">
+        <Link href="/" className="text-base font-semibold tracking-tight">
+          OmniTrak
+        </Link>
+        <ThemeToggle />
+      </header>
+
+      <SignupBrandPanel showFooter />
+
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col justify-center px-4 py-6 sm:px-6 md:px-8 md:py-5 lg:px-10",
+          "md:max-h-full md:overflow-y-auto md:overflow-x-hidden",
+          "min-h-[min(100%,32rem)] md:min-h-0"
+        )}
+      >
+        <div className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl">
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
+              <CardTitle className="text-xl md:text-lg">Sign up</CardTitle>
+              <CardDescription className="text-sm md:text-xs">
+                Google or email — you&apos;ll use the same account to log in later.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
+              <GoogleSignInButton next="/dashboard" />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+
+              <form action={handleSubmit} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+                <SubmitButton>Create account</SubmitButton>
+              </form>
+
+              <p className="border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
+                Already have an account?{" "}
+                <Link href="/login" className="font-medium text-primary underline-offset-2 hover:underline">
+                  Log in
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="mt-4 flex justify-center md:hidden">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+              Back to home
             </Link>
-          </p>
-        </CardContent>
-      </Card>
-      <Link href="/" className="mt-6 inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" />Back to home
-      </Link>
-    </main>
+          </div>
+
+          <div className="mt-3 hidden justify-end md:flex">
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

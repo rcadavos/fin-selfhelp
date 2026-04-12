@@ -1,11 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
-import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
+import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
 import { Check, Sparkles } from "lucide-react";
 
 const benefits = [
@@ -16,8 +13,13 @@ const benefits = [
   "Can leave review and suggestions",
 ];
 
-export function SubscribeSection({ className }: { className?: string }) {
-  const { data: plan } = useQuery(subscriptionPlanQueryOptions());
+export function SubscribeSection({
+  className,
+  plan,
+}: {
+  className?: string;
+  plan: SubscriptionPlanRow;
+}) {
   return (
     <section
       id="subscribe"
@@ -63,18 +65,18 @@ export function SubscribeSection({ className }: { className?: string }) {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg text-foreground">{plan?.name ?? "Pro"}</CardTitle>
+                <CardTitle className="text-lg text-foreground">{plan.name}</CardTitle>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                {plan?.originalPriceAmount != null && (
+                {plan.originalPriceAmount != null && (
                   <span className="text-lg text-muted-foreground line-through">
                     {formatCurrency(plan.originalPriceAmount, plan.priceCurrency)}
                   </span>
                 )}
                 <span className="text-2xl font-bold text-foreground">
-                  {plan ? formatCurrency(plan.priceAmount, plan.priceCurrency) : "$3"}
+                  {formatCurrency(plan.priceAmount, plan.priceCurrency)}
                 </span>
-                <span className="text-sm text-muted-foreground">/{plan?.interval ?? "month"}</span>
+                <span className="text-sm text-muted-foreground">/{plan.interval}</span>
               </div>
               <CardDescription className="mt-1">
                 Reminders, unlimited expenses, export & more.
@@ -93,14 +95,14 @@ export function SubscribeSection({ className }: { className?: string }) {
                 <Link href="/account/subscription/payment" className="flex items-center justify-center gap-2">
                   <span>Subscribe & pay</span>
                   <span className="flex items-center gap-1.5 font-semibold">
-                    {plan?.originalPriceAmount != null && (
+                    {plan.originalPriceAmount != null && (
                       <span className="font-normal opacity-90 line-through">
-                        {formatCurrency(plan.originalPriceAmount, plan?.priceCurrency)}
+                        {formatCurrency(plan.originalPriceAmount, plan.priceCurrency)}
                       </span>
                     )}
                     <span>
-                      {plan ? formatCurrency(plan.priceAmount, plan.priceCurrency) : "$3"}
-                      <span className="font-normal opacity-90">/{plan?.interval ?? "month"}</span>
+                      {formatCurrency(plan.priceAmount, plan.priceCurrency)}
+                      <span className="font-normal opacity-90">/{plan.interval}</span>
                     </span>
                   </span>
                 </Link>

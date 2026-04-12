@@ -5,7 +5,7 @@
 
 export const USER_PREFERENCES_STORAGE_KEY = "omnitrak-user-preferences-v1";
 
-export type DateFormatId = "mdy" | "dmy" | "ymd" | "d_MMM_y";
+export type DateFormatId = "mdy" | "dmy" | "ymd" | "d_MMM_y" | "MMMM_D_YYYY";
 export type TimeFormatId = "12h" | "24h";
 export type NumberGroupingId = "comma" | "dot";
 
@@ -31,7 +31,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   subscriptionAlertsEnabled: true,
 };
 
-const DATE_FORMAT_SET = new Set<string>(["mdy", "dmy", "ymd", "d_MMM_y"]);
+const DATE_FORMAT_SET = new Set<string>(["mdy", "dmy", "ymd", "d_MMM_y", "MMMM_D_YYYY"]);
 const TIME_FORMAT_SET = new Set<string>(["12h", "24h"]);
 const NUMBER_GROUPING_SET = new Set<string>(["comma", "dot"]);
 const LANGUAGE_SET = new Set<string>(["en", "fil"]);
@@ -117,6 +117,8 @@ export function formatDateWithPreferences(
       return `${y}-${pad2(m)}-${pad2(day)}`;
     case "d_MMM_y":
       return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+    case "MMMM_D_YYYY":
+      return d.toLocaleDateString(locale, { month: "long", day: "numeric", year: "numeric" });
     case "mdy":
     default:
       return `${pad2(m)}/${pad2(day)}/${y}`;
@@ -176,6 +178,7 @@ export const DATE_FORMAT_OPTIONS: { value: DateFormatId; label: string }[] = [
   { value: "dmy", label: "DD/MM/YYYY" },
   { value: "ymd", label: "YYYY-MM-DD (ISO-style)" },
   { value: "d_MMM_y", label: "DD MMM YYYY (e.g. 11 Apr 2026)" },
+  { value: "MMMM_D_YYYY", label: "MMMM D, YYYY (e.g. April 12, 2026)" },
 ];
 
 export const TIME_FORMAT_OPTIONS: { value: TimeFormatId; label: string }[] = [

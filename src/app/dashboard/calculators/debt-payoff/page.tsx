@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { runDebtPayoffCalculation } from "@/lib/debt-payoff-calculator";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar, Info, ChevronLeft } from "lucide-react";
@@ -42,11 +43,7 @@ export default function DebtPayoffCalculatorPage() {
 
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
-    return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
-      </main>
-    );
+    return <DashboardSkeleton variant="calculator-detail" />;
   }
 
   return (

@@ -1,8 +1,5 @@
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { approvedReviewsQueryOptions } from "@/lib/query/approved-reviews";
+import type { ApprovedReviewRow } from "@/actions/feedback";
 import { Star, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,10 +7,14 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "long" });
 }
 
-export function ReviewsSection({ className }: { className?: string }) {
-  const { data: reviews = [], isLoading } = useQuery(approvedReviewsQueryOptions());
-
-  if (isLoading || reviews.length === 0) return null;
+export function ReviewsSection({
+  className,
+  reviews,
+}: {
+  className?: string;
+  reviews: ApprovedReviewRow[];
+}) {
+  if (reviews.length === 0) return null;
 
   return (
     <section id="reviews" className={cn("px-4 py-16 sm:px-6 lg:px-8 border-t", className)}>

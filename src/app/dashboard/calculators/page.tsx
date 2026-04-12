@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useUser } from "@/hooks/use-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, CreditCard } from "lucide-react";
@@ -11,11 +12,7 @@ export default function CalculatorsPage() {
 
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
-    return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
-      </main>
-    );
+    return <DashboardSkeleton variant="calculators-index" />;
   }
 
   return (
