@@ -74,29 +74,29 @@ function CardShell({ children }: { children: ReactNode }) {
   return <div className="mb-6 overflow-hidden rounded-xl border bg-card shadow-sm">{children}</div>;
 }
 
-/** Matches My Expenses “this month” green summary card. */
+/** Matches My Expenses “this month” green summary card (compact). */
 function MyExpensesHeroSkeleton() {
   return (
     <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
-      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
-      <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" aria-hidden />
-      <div className="relative flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-4 w-52 bg-primary-foreground/25 sm:h-5 sm:w-60" />
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <Skeleton className="h-4 w-[5.5rem] bg-primary-foreground/20 sm:h-5" />
-            <Skeleton className="h-4 w-[5.5rem] bg-primary-foreground/20 sm:h-5" />
-            <Skeleton className="h-4 w-[5.5rem] bg-primary-foreground/20 sm:h-5" />
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 sm:h-36 sm:w-36" aria-hidden />
+      <div className="absolute -bottom-5 -left-5 h-20 w-20 rounded-full bg-white/5 sm:h-24 sm:w-24" aria-hidden />
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Skeleton className="h-3.5 w-48 bg-primary-foreground/25 sm:h-4 sm:w-52" />
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
+            <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
+            <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
           </div>
         </div>
-        <Skeleton className="mx-auto h-14 w-14 shrink-0 rounded-full bg-primary-foreground/25 sm:mx-0" />
+        <Skeleton className="mx-auto h-20 w-20 shrink-0 rounded-full bg-primary-foreground/25 sm:mx-0" />
       </div>
-      <div className="relative mt-3 space-y-1">
+      <div className="relative mt-4 space-y-1">
         <div className="flex justify-between gap-4">
-          <Skeleton className="h-3 w-28 bg-primary-foreground/20" />
-          <Skeleton className="h-3 w-36 bg-primary-foreground/20" />
+          <Skeleton className="h-2.5 w-24 bg-primary-foreground/20 sm:h-3 sm:w-28" />
+          <Skeleton className="h-2.5 w-28 bg-primary-foreground/20 sm:h-3 sm:w-32" />
         </div>
-        <Skeleton className="h-2.5 w-full rounded-full bg-primary-foreground/25 sm:h-3" />
+        <Skeleton className="h-2.5 w-full rounded-full bg-primary-foreground/25" />
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
+import { SiteLogo } from "@/components/app/site-logo";
 
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -59,8 +60,14 @@ export function AppHeader({ className }: { className?: string }) {
       )}
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
-        <Link href="/" className={cn("text-lg font-semibold", user && "md:hidden")}>
-          OmniTrak
+        <Link
+          href="/"
+          className={cn("flex items-center", user && "md:hidden")}
+          title="mnitrak"
+          aria-label="mnitrak home"
+        >
+          <SiteLogo />
+          <span className="sr-only">mnitrak</span>
         </Link>
         <nav className="ml-auto flex items-center gap-2 sm:gap-4">
           {user ? (

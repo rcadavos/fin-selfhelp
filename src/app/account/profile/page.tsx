@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { ProfileAvatarUploader } from "@/components/account/profile-avatar-uploader";
 import { Loader2 } from "lucide-react";
 
 function getNameFromMeta(meta: Record<string, unknown> | undefined): string {
@@ -78,11 +79,13 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Edit your name and phone. Your email is tied to sign-in and isn&apos;t editable here.
+            Photo, name, and phone. Your email is tied to sign-in and isn&apos;t editable here.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-8">
+          <ProfileAvatarUploader user={user} showError={showError} showSuccess={showSuccess} />
+
+          <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 pt-6">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full name</Label>
               <Input

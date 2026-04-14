@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
+import { SiteLogo } from "@/components/app/site-logo";
 
 type HeaderProps = {
   className?: string;
@@ -21,8 +22,9 @@ export function Header({ className }: HeaderProps) {
       )}
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="text-lg font-semibold">
-          OmniTrak
+        <Link href="/" className="flex items-center" title="mnitrak" aria-label="mnitrak home">
+          <SiteLogo />
+          <span className="sr-only">mnitrak</span>
         </Link>
         <nav className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
           <ThemeToggle />

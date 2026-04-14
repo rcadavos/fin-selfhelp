@@ -24,6 +24,7 @@ import {
   AccountDropdownMenu,
   getAccountDisplayName,
 } from "@/components/app/account-dropdown-menu";
+import { SiteLogo } from "@/components/app/site-logo";
 
 function isSidebarNavActive(pathname: string | null | undefined, href: string): boolean {
   if (!pathname) return false;
@@ -60,9 +61,15 @@ export function AppSidebar({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="flex h-14 shrink-0 items-center border-b px-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          OmniTrak
+      <div className="flex h-14 shrink-0 items-center border-b px-3">
+        <Link
+          href="/"
+          className="flex min-w-0 max-w-full items-center"
+          title="mnitrak"
+          aria-label="mnitrak home"
+        >
+          <SiteLogo className="max-w-full" />
+          <span className="sr-only">mnitrak</span>
         </Link>
       </div>
       <nav

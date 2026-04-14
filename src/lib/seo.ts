@@ -115,5 +115,8 @@ export function buildDefaultMetadata(): Metadata {
       default: DEFAULT_TITLE,
       template: `%s | ${SITE_NAME}`,
     },
+    icons: {
+      icon: [{ url: "/favicon.png", type: "image/png" }],
+    },
   };
 }

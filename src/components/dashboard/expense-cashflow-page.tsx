@@ -62,6 +62,10 @@ import {
   formatDateWithPreferences,
 } from "@/lib/user-preferences";
 import {
+  readExpensesCategorizedPreference,
+  writeExpensesCategorizedPreference,
+} from "@/lib/expenses-categorized-preference";
+import {
   Plus,
   Trash2,
   Check,
@@ -73,6 +77,8 @@ import {
   CalendarRange,
   MoreHorizontal,
   Loader2,
+  Pencil,
+  XCircle,
 } from "lucide-react";
 
 const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
@@ -246,6 +252,16 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [expensesCategorized, setExpensesCategorized] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
   const prefsOptional = useUserPreferencesOptional();
+
+  useEffect(() => {
+    const stored = readExpensesCategorizedPreference();
+    if (stored !== null) setExpensesCategorized(stored);
+  }, []);
+
+  const setExpensesCategorizedPersisted = useCallback((next: boolean) => {
+    setExpensesCategorized(next);
+    writeExpensesCategorizedPreference(next);
+  }, []);
 
   const formatPrefDate = useCallback(
     (input: Date | string) =>
@@ -592,28 +608,34 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-48">
                     <DropdownMenuItem
+                      className="cursor-pointer"
                       onSelect={() => {
                         startEdit(entry);
                       }}
                     >
+                      <Pencil className="text-muted-foreground" aria-hidden />
                       Edit
                     </DropdownMenuItem>
                     {!paidIds.has(entry.id) ? (
                       <DropdownMenuItem
+                        className="cursor-pointer"
                         onSelect={() => {
                           void togglePaid(entry.id);
                         }}
                         disabled={togglingPaidId === entry.id}
                       >
+                        <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" aria-hidden />
                         Mark as Paid
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
+                        className="cursor-pointer"
                         onSelect={() => {
                           void togglePaid(entry.id);
                         }}
                         disabled={togglingPaidId === entry.id}
                       >
+                        <XCircle className="text-muted-foreground" aria-hidden />
                         Mark as Unpaid
                       </DropdownMenuItem>
                     )}
@@ -803,16 +825,16 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
           </div>
           {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
-              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
-              <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" aria-hidden />
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 sm:h-36 sm:w-36" aria-hidden />
+              <div className="absolute -bottom-5 -left-5 h-20 w-20 rounded-full bg-white/5 sm:h-24 sm:w-24" aria-hidden />
 
-              <div className="relative flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-2">
+              <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="flex items-center gap-1.5 text-xs font-medium opacity-90 sm:text-sm">
                     <CalendarRange className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
                     This month ({paidMonthLabel})
                   </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums sm:text-base">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs tabular-nums sm:text-sm">
                     <span>
                       <span className="opacity-80">Total </span>
                       <span className="font-bold">{formatCurrency(totalExpenses)}</span>
@@ -829,7 +851,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </div>
                 {totalExpenses > 0 && (
                   <div
-                    className="relative mx-auto h-14 w-14 shrink-0 rounded-full sm:mx-0"
+                    className="relative mx-auto h-20 w-20 shrink-0 rounded-full sm:mx-0"
                     style={{
                       background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
                     }}
@@ -837,20 +859,20 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   >
                     <div className="absolute inset-2 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[9px] font-medium leading-tight text-primary-foreground">
                       <span className="opacity-80">Paid</span>
-                      <span className="text-xs font-bold tabular-nums sm:text-sm">{paidPct}%</span>
+                      <span className="text-sm font-bold tabular-nums">{paidPct}%</span>
                     </div>
                   </div>
                 )}
               </div>
               {totalExpenses > 0 && (
-                <div className="relative mt-3 space-y-1">
-                  <div className="flex justify-between text-[10px] font-medium opacity-80 sm:text-xs">
+                <div className="relative mt-4 space-y-1">
+                  <div className="flex justify-between text-[11px] font-medium opacity-80 sm:text-xs">
                     <span>Paid vs total</span>
                     <span className="tabular-nums">
                       {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
                     </span>
                   </div>
-                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/20 sm:h-3">
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/20">
                     <div
                       className="bg-emerald-300 transition-all duration-500"
                       style={{ width: `${paidPct}%` }}
@@ -868,8 +890,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <>
       {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
       <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" aria-hidden />
-        <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-white/5" aria-hidden />
+        <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
+        <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
 
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1042,7 +1064,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   aria-labelledby="expenses-section-heading expenses-categorized-label"
                   checked={expensesCategorized}
                   className="shrink-0"
-                onCheckedChange={setExpensesCategorized}
+                  onCheckedChange={setExpensesCategorizedPersisted}
                 />
               </div>
             </div>
@@ -1090,6 +1112,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   catTotalCounted > 0
                     ? Math.min(100, Math.round((catPaidCounted / catTotalCounted) * 100))
                     : 0;
+                const allItemsPaidInCategory =
+                  categoryEntries.length > 0 && categoryEntries.every((e) => paidIds.has(e.id));
                 return (
                   <Card
                     key={categoryId === "" ? "uncategorized" : categoryId}
@@ -1106,7 +1130,15 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                           <CardTitle className="text-base">{getCategoryLabel(categoriesList, categoryId)}</CardTitle>
                           <span className="text-xs text-muted-foreground">{categoryEntries.length} item{categoryEntries.length !== 1 ? "s" : ""}</span>
                         </div>
-                        <span className="text-lg font-bold tabular-nums">{formatCurrency(total)}</span>
+                        <span
+                          className={cn(
+                            "text-lg font-bold tabular-nums",
+                            allItemsPaidInCategory &&
+                              "text-muted-foreground line-through decoration-muted-foreground"
+                          )}
+                        >
+                          {formatCurrency(total)}
+                        </span>
                       </div>
                       {catTotalCounted > 0 && (
                         <div className="mt-1.5 flex items-center gap-2" title="Share of this category marked paid for the current month">
