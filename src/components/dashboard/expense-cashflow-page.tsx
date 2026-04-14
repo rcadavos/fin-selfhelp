@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -19,18 +19,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { loadExpenseData, addExpense, updateExpense, deleteExpense } from "@/actions/budget";
-import { getPaymentHistoryMonths, toggleExpensePayment, type PaymentMonthStats } from "@/actions/expense-payments";
-import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+import { addExpense, updateExpense, deleteExpense } from "@/actions/budget";
+import { toggleExpensePayment, type PaymentMonthStats } from "@/actions/expense-payments";
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
 import type { ReminderDay } from "@/types/database.types";
-import { EXPENSE_CATEGORIES, REMINDER_OPTIONS } from "@/types/database.types";
+import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import type { ExpenseEntryRow } from "@/actions/budget";
 import {
   effectiveDueDateInPaidMonth,
@@ -39,12 +35,27 @@ import {
 } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import {
+  EXPENSE_PAYMENT_HISTORY_MONTHS,
+  expenseDataQueryOptions,
+  expensePaymentHistoryQueryOptions,
+} from "@/lib/query/expenses";
+import { queryKeys } from "@/lib/query/keys";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import {
   DEFAULT_USER_PREFERENCES,
@@ -53,7 +64,6 @@ import {
 import {
   Plus,
   Trash2,
-  Bell,
   Check,
   Sparkles,
   CheckCircle2,
@@ -62,19 +72,52 @@ import {
   LayoutDashboard,
   CalendarRange,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react";
 
-type AddExpenseLine = { id: string; category: string; amount: string; name: string; dueDate: string; reminderDays: ReminderDay[] };
-function newAddLine(): AddExpenseLine {
-  return { id: crypto.randomUUID(), category: "", amount: "", name: "", dueDate: "", reminderDays: [] };
+const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
+
+function reminderKeyFromDays(days: ReminderDay[]): string {
+  const normalized = [
+    ...new Set(days.filter((d): d is ReminderDay => d === 0 || d === 1 || d === 3)),
+  ];
+  if (normalized.length === 0) return "";
+  normalized.sort(
+    (a, b) => REMINDER_DAY_SORT_ORDER.indexOf(a) - REMINDER_DAY_SORT_ORDER.indexOf(b)
+  );
+  return normalized.join(",");
 }
 
-function formatReminderLabel(days: number[]): string {
-  if (!days.length) return "—";
-  return days
-    .sort((a, b) => b - a)
-    .map((d) => (d === 0 ? "Due" : `${d}d`))
-    .join(", ");
+function daysFromReminderKey(key: string): ReminderDay[] {
+  if (!key) return [];
+  const out: ReminderDay[] = [];
+  for (const part of key.split(",")) {
+    const n = Number(part);
+    if (n === 0 || n === 1 || n === 3) out.push(n);
+  }
+  return [...new Set(out)];
+}
+
+const EDIT_REMINDER_NONE = "__none__";
+
+/** Select sentinel for optional expense category (stored as empty string in DB). */
+const CATEGORY_SELECT_NONE = "__no_category__";
+
+const EDIT_REMINDER_SELECT_ITEMS: { value: string; label: string }[] = [
+  { value: EDIT_REMINDER_NONE, label: "None" },
+  { value: "3", label: "3 days before" },
+  { value: "1", label: "1 day before" },
+  { value: "0", label: "On due date" },
+  { value: "3,1", label: "3 days before and 1 day before" },
+  { value: "3,0", label: "3 days before and on due date" },
+  { value: "1,0", label: "1 day before and on due date" },
+  { value: "3,1,0", label: "All reminders" },
+];
+
+function reminderSelectValueFromDays(days: ReminderDay[]): string {
+  if (days.length === 0) return EDIT_REMINDER_NONE;
+  const k = reminderKeyFromDays(days);
+  return EDIT_REMINDER_SELECT_ITEMS.some((i) => i.value === k) ? k : EDIT_REMINDER_NONE;
 }
 
 function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
@@ -88,11 +131,26 @@ function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
 }
 
 function getCategoryLabel(categories: { id: string; label: string }[], id: string): string {
+  if (!id) return "Uncategorized";
   return categories.find((c) => c.id === id)?.label ?? id;
 }
 
 function getCategoryBg(categories: { id: string; bgClass: string }[], id: string): string {
   return categories.find((c) => c.id === id)?.bgClass ?? "";
+}
+
+function ProPremiumExpenseDivider() {
+  return (
+    <div className="relative py-3" role="separator" aria-label="Pro and Premium only below">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-border"
+        aria-hidden
+      />
+      <p className="relative mx-auto w-fit max-w-[95%] bg-background px-2 text-center text-xs font-medium text-muted-foreground">
+        ——— Pro/Premium users only ———
+      </p>
+    </div>
+  );
 }
 
 type ExpensePayStatus = "paid" | "outstanding" | "unpaid";
@@ -120,14 +178,27 @@ export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
 export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashflowPageVariant }) {
   const router = useRouter();
   const { user, loading } = useUser();
+  const queryClient = useQueryClient();
   const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
   const { data: subscriptionPlan } = useQuery(subscriptionPlanQueryOptions());
+  const paidMonthQueryKey = getCurrentPaidMonth();
+  const expenseDataQuery = useQuery({
+    ...expenseDataQueryOptions(paidMonthQueryKey),
+    enabled: !!user && !loading,
+  });
+  const expensePaymentHistoryQuery = useQuery({
+    ...expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
+    enabled: !!user && !loading,
+  });
+  const invalidateExpenseQueries = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
+  }, [queryClient]);
   const dashboardBenefits = [
-    "Due-date reminders (3 days, 1 day, on the day)",
-    "Unlimited expenses",
+    "Due-date reminders (3 days, 1 day, on the day) — Pro or Premium",
+    "Unlimited expenses on every plan",
     "Export cashflow (CSV/PDF)",
     "Priority support",
-    "Can leave review and suggestions",
+    "Can leave review and suggestions (paid subscribers)",
   ];
   const categoriesList = useMemo(
     () => (categoriesFromDb.length > 0 ? categoriesFromDb : EXPENSE_CATEGORIES),
@@ -139,21 +210,27 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     }
     return EXPENSE_CATEGORIES.map((c) => c.id);
   }, [categoriesFromDb]);
-  const [budgetDataLoaded, setBudgetDataLoaded] = useState(false);
-  const [entries, setEntries] = useState<ExpenseEntryRow[]>([]);
-  const [isSubscriber, setIsSubscriber] = useState(false);
-  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
-  const [paidMonthLabel, setPaidMonthLabel] = useState("");
+  const entries = expenseDataQuery.data?.entries ?? [];
+  const isSubscriber = expenseDataQuery.data?.isSubscriber ?? false;
+  const subscriptionExpired = expenseDataQuery.data?.subscriptionExpired ?? false;
+  const paidMonthLabel = expenseDataQuery.data?.paidMonth ?? "";
   const paidMonthYm = useMemo(
     () => (/^\d{4}-\d{2}$/.test(paidMonthLabel) ? paidMonthLabel : getCurrentPaidMonth()),
     [paidMonthLabel]
   );
-  const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
-  const [paymentHistory, setPaymentHistory] = useState<PaymentMonthStats[]>([]);
-  const [addLines, setAddLines] = useState<AddExpenseLine[]>(() => [newAddLine()]);
+  const paidIds = useMemo(
+    () => new Set(expenseDataQuery.data?.paidEntryIds ?? []),
+    [expenseDataQuery.data]
+  );
+  const paymentHistory: PaymentMonthStats[] = expensePaymentHistoryQuery.data ?? [];
   const { showError: showSnackbar } = useSnackbar();
   const { refreshBudget } = useBudgetRefresh();
   const [addStatus, setAddStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [addCategory, setAddCategory] = useState("");
+  const [addAmount, setAddAmount] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addDueDate, setAddDueDate] = useState("");
+  const [addReminderDays, setAddReminderDays] = useState<ReminderDay[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCategory, setEditCategory] = useState<string>("");
   const [editAmount, setEditAmount] = useState("");
@@ -161,18 +238,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [editDueDate, setEditDueDate] = useState("");
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [addingToCategory, setAddingToCategory] = useState<string | null>(null);
-  const [addInlineCategory, setAddInlineCategory] = useState("");
-  const [addInlineAmount, setAddInlineAmount] = useState("");
-  const [addInlineName, setAddInlineName] = useState("");
-  const [addInlineDueDate, setAddInlineDueDate] = useState("");
-  const [addInlineReminderDays, setAddInlineReminderDays] = useState<ReminderDay[]>([]);
-  const [addInlineStatus, setAddInlineStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingPaidId, setTogglingPaidId] = useState<string | null>(null);
   const [inlineNameEditId, setInlineNameEditId] = useState<string | null>(null);
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
+  const [expensesCategorized, setExpensesCategorized] = useState(false);
+  const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
   const prefsOptional = useUserPreferencesOptional();
 
   const formatPrefDate = useCallback(
@@ -194,26 +266,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       return;
     }
     refreshBudget();
-    load();
+    invalidateExpenseQueries();
   }
-
-  const load = useCallback(() => {
-    const month = getCurrentPaidMonth();
-    Promise.all([loadExpenseData(month), getPaymentHistoryMonths(6)])
-      .then(([data, hist]) => {
-        if (data) {
-          setIsSubscriber(data.isSubscriber);
-          setSubscriptionExpired(data.subscriptionExpired);
-          setEntries(data.entries);
-          setPaidMonthLabel(data.paidMonth);
-          setPaidIds(new Set(data.paidEntryIds));
-        }
-        if (hist?.stats) setPaymentHistory(hist.stats);
-        else setPaymentHistory([]);
-        setBudgetDataLoaded(true);
-      })
-      .catch(() => setBudgetDataLoaded(true));
-  }, []);
 
   const commitInlineNameEdit = useCallback(
     async (entryId: string) => {
@@ -247,7 +301,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       );
       if (result.error) showSnackbar(result.error);
       else {
-        load();
+        invalidateExpenseQueries();
         refreshBudget();
       }
       setInlineNameEditId(null);
@@ -259,7 +313,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       entries,
       isSubscriber,
       showSnackbar,
-      load,
+      invalidateExpenseQueries,
       refreshBudget,
     ]
   );
@@ -270,74 +324,95 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       router.replace("/login");
       return;
     }
-    load();
-  }, [user, loading, router, load]);
+  }, [user, loading, router]);
 
-  const freeTierLimitApplied = !isSubscriber && entries.length > FREE_TIER_EXPENSE_LIMIT;
-  const entriesCounted = freeTierLimitApplied ? entries.slice(0, FREE_TIER_EXPENSE_LIMIT) : entries;
-  const countedEntryIds = freeTierLimitApplied ? new Set(entriesCounted.map((e) => e.id)) : new Set<string>();
-  const totalExpenses = entriesCounted.reduce((sum, e) => sum + e.amount, 0);
-  const totalPaidThisMonth = entriesCounted.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
+  const totalExpenses = entries.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidThisMonth = entries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
-  const grouped = groupEntriesByCategory(entries);
-  const canAddMoreExpenses = isSubscriber || entries.length < FREE_TIER_EXPENSE_LIMIT;
+  const sortedCategoryGroups = useMemo(() => {
+    const g = groupEntriesByCategory(entries);
+    const pairs = Array.from(g.entries());
+    const uncategorized = pairs.find(([id]) => id === "");
+    const rest = pairs.filter(([id]) => id !== "");
+    rest.sort((a, b) => {
+      const ai = orderedCategoryIds.indexOf(a[0]);
+      const bi = orderedCategoryIds.indexOf(b[0]);
+      if (ai >= 0 && bi >= 0) return ai - bi;
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return a[0].localeCompare(b[0]);
+    });
+    return uncategorized ? [...rest, uncategorized] : rest;
+  }, [entries, orderedCategoryIds]);
+  const flatEntriesOrdered = useMemo(
+    () => sortedCategoryGroups.flatMap(([, categoryEntries]) => categoryEntries),
+    [sortedCategoryGroups]
+  );
+  const editingEntry = useMemo(
+    () => (editingId ? (entries.find((e) => e.id === editingId) ?? null) : null),
+    [editingId, entries]
+  );
+  const editReminderSelectValue = useMemo(
+    () => reminderSelectValueFromDays(editReminderDays),
+    [editReminderDays]
+  );
+  const addReminderSelectValue = useMemo(
+    () => reminderSelectValueFromDays(addReminderDays),
+    [addReminderDays]
+  );
 
-  const paidCount = entriesCounted.filter((e) => paidIds.has(e.id)).length;
+  const paidCount = entries.filter((e) => paidIds.has(e.id)).length;
   const paidPct = totalExpenses > 0 ? Math.min(100, Math.round((totalPaidThisMonth / totalExpenses) * 100)) : 0;
   const paidCountPct =
-    entriesCounted.length > 0 ? Math.round((paidCount / entriesCounted.length) * 100) : 0;
+    entries.length > 0 ? Math.round((paidCount / entries.length) * 100) : 0;
 
-  function setAddLine(id: string, patch: Partial<AddExpenseLine>) {
-    setAddLines((prev) =>
-      prev.map((line) => (line.id === id ? { ...line, ...patch } : line))
-    );
-  }
-
-  function addAddLine() {
-    setAddLines((prev) => [...prev, newAddLine()]);
-  }
-
-  function removeAddLine(id: string) {
-    setAddLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)));
+  function resetAddExpenseForm() {
+    setAddCategory("");
+    setAddAmount("");
+    setAddName("");
+    setAddDueDate("");
+    setAddReminderDays([]);
+    setAddStatus("idle");
   }
 
   async function handleAddExpense(e: React.FormEvent) {
     e.preventDefault();
-    const toAdd = addLines
-      .map((line) => ({
-        category: line.category,
-        amount: parseInt(line.amount.replace(/\D/g, ""), 10) || 0,
-        name: line.name.trim() || undefined,
-        dueDate: line.dueDate.trim() || undefined,
-        reminderDays: isSubscriber && line.dueDate.trim() && line.reminderDays.length ? line.reminderDays : undefined,
-      }))
-      .filter((l) => l.category && l.amount > 0);
-    if (toAdd.length === 0) return;
+    const amount = parseInt(addAmount.replace(/\D/g, ""), 10) || 0;
+    if (!addName.trim() || amount <= 0) return;
+    const dueDate = addDueDate.trim() || undefined;
+    const reminderDays =
+      isSubscriber && dueDate && addReminderDays.length ? addReminderDays : undefined;
     setAddStatus("saving");
-    let hadError = false;
-    for (const { category, amount, name, dueDate, reminderDays } of toAdd) {
-      const result = await addExpense(category, amount, name, dueDate, reminderDays);
-      if (result.error) {
-        showSnackbar(result.error);
-        hadError = true;
-        break;
-      }
-    }
-    if (!hadError) {
-      setAddLines([newAddLine()]);
-      load();
+    const result = await addExpense(
+      addCategory || "",
+      amount,
+      addName.trim(),
+      dueDate,
+      reminderDays
+    );
+    if (result.error) {
+      showSnackbar(result.error);
+    } else {
+      resetAddExpenseForm();
+      invalidateExpenseQueries();
       refreshBudget();
+      setAddExpenseModalOpen(false);
     }
     setAddStatus("idle");
   }
 
   function startEdit(entry: ExpenseEntryRow) {
+    setAddExpenseModalOpen(false);
     setInlineNameEditId(null);
     setInlineNameDraft("");
     setEditingId(entry.id);
     setEditCategory(entry.category_id);
     setEditAmount(String(entry.amount));
-    setEditName(entry.note ?? "");
+    setEditName(
+      entry.note?.trim()
+        ? entry.note
+        : getCategoryLabel(categoriesList, entry.category_id)
+    );
     const effDue = entry.due_date
       ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
       : null;
@@ -353,6 +428,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setEditName("");
     setEditDueDate("");
     setEditReminderDays([]);
+    setEditStatus("idle");
   }
 
   async function beginInlineNameEdit(entry: ExpenseEntryRow) {
@@ -366,38 +442,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setInlineNameDraft(entry.note ?? "");
   }
 
-  function toggleEditReminder(day: ReminderDay) {
-    setEditReminderDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => b - a)
-    );
-  }
-
-  function setLineReminder(lineId: string, day: ReminderDay) {
-    setAddLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId
-          ? {
-              ...l,
-              reminderDays: l.reminderDays.includes(day)
-                ? l.reminderDays.filter((d) => d !== day)
-                : [...l.reminderDays, day].sort((a, b) => b - a),
-            }
-          : l
-      )
-    );
-  }
-
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingId || !editCategory || !editAmount) return;
+    if (!editingId || !editName.trim() || !editAmount) return;
     const amount = parseInt(editAmount.replace(/\D/g, ""), 10) || 0;
     if (amount <= 0) return;
     setEditStatus("saving");
     const result = await updateExpense(
       editingId,
-      editCategory,
+      editCategory || "",
       amount,
-      editName.trim() || undefined,
+      editName.trim(),
       editDueDate.trim() || undefined,
       isSubscriber && editDueDate.trim() ? (editReminderDays.length ? editReminderDays : null) : undefined
     );
@@ -405,40 +460,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       showSnackbar(result.error);
       setEditStatus("error");
     } else {
-      load();
+      invalidateExpenseQueries();
       refreshBudget();
-      setEditingId(null);
-      setEditCategory("");
-      setEditAmount("");
-      setEditName("");
-      setEditDueDate("");
-      setEditStatus("idle");
+      cancelEdit();
     }
-  }
-
-  function startAddToCategory(categoryId: string) {
-    setAddingToCategory(categoryId);
-    setAddInlineCategory(categoryId);
-    setAddInlineAmount("");
-    setAddInlineName("");
-    setAddInlineDueDate("");
-    setAddInlineReminderDays([]);
-    setAddInlineStatus("idle");
-  }
-
-  function cancelAddToCategory() {
-    setAddingToCategory(null);
-    setAddInlineCategory("");
-    setAddInlineAmount("");
-    setAddInlineName("");
-    setAddInlineDueDate("");
-    setAddInlineReminderDays([]);
-  }
-
-  function toggleInlineReminder(day: ReminderDay) {
-    setAddInlineReminderDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => b - a)
-    );
   }
 
   async function handleDeleteExpense(entryId: string) {
@@ -447,43 +472,11 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     if (result.error) {
       showSnackbar(result.error);
     } else {
-      if (editingId === entryId) setEditingId(null);
-      load();
+      if (editingId === entryId) cancelEdit();
+      invalidateExpenseQueries();
       refreshBudget();
     }
     setDeletingId(null);
-  }
-
-  async function handleAddToCategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!addInlineCategory) return;
-    const amount = parseInt(addInlineAmount.replace(/\D/g, ""), 10) || 0;
-    if (amount <= 0) return;
-    setAddInlineStatus("saving");
-    const reminderDays =
-      isSubscriber && addInlineDueDate.trim() && addInlineReminderDays.length
-        ? addInlineReminderDays
-        : undefined;
-    const result = await addExpense(
-      addInlineCategory,
-      amount,
-      addInlineName.trim() || undefined,
-      addInlineDueDate.trim() || undefined,
-      reminderDays ?? undefined
-    );
-    if (result.error) {
-      showSnackbar(result.error);
-      setAddInlineStatus("error");
-    } else {
-      load();
-      refreshBudget();
-      setAddingToCategory(null);
-      setAddInlineAmount("");
-      setAddInlineName("");
-      setAddInlineDueDate("");
-      setAddInlineReminderDays([]);
-      setAddInlineStatus("idle");
-    }
   }
 
   if (loading || !user) {
@@ -492,67 +485,311 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     );
   }
 
-  if (!budgetDataLoaded) {
+  if (expenseDataQuery.isPending || expensePaymentHistoryQuery.isPending) {
     return (
       <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
     );
   }
 
-  // ── Reminder dropdown (shared for edit/add forms) ──
-  function ReminderDropdown({
-    days,
-    onToggle,
-    disabled,
-  }: {
-    days: ReminderDay[];
-    onToggle: (day: ReminderDay) => void;
-    disabled?: boolean;
-  }) {
+  function renderExpenseEntryRow(entry: ExpenseEntryRow) {
+    const payStatus = getExpensePayStatus(entry, paidIds, paidMonthYm);
+    const displayName =
+      entry.note?.trim() || getCategoryLabel(categoriesList, entry.category_id);
+    const dueEffective = entry.due_date
+      ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
+      : null;
+    const dueText =
+      dueEffective && !Number.isNaN(dueEffective.getTime())
+        ? `Due ${formatPrefDate(dueEffective)}`
+        : null;
+    const hasReminders = (entry.reminder_days_before?.length ?? 0) > 0;
+    const reminderLine = `Reminder date${(entry.reminder_days_before?.length ?? 0) !== 1 ? "s" : ""}: ${formatReminderDateList(entry.due_date ?? undefined, entry.reminder_days_before ?? undefined, formatPrefDate, paidMonthYm)}`;
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 shrink-0 gap-1 px-2"
-            aria-label="Reminders"
-          >
-            <Bell className="h-3.5 w-3.5" />
-            {days.length > 0 && <span className="text-xs">{formatReminderLabel(days)}</span>}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72 min-w-[16rem]">
-          <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
-            You will be reminded by email when an expense is due (at the times you select below).
-          </DropdownMenuLabel>
-          {!isSubscriber && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-muted-foreground font-normal text-left text-xs">
-                Pro tier only. Subscribe to enable reminders.
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-            </>
-          )}
-          {REMINDER_OPTIONS.map((opt) => (
-            <DropdownMenuCheckboxItem
-              key={opt.value}
-              checked={days.includes(opt.value)}
-              onCheckedChange={() => onToggle(opt.value)}
-              disabled={disabled || !isSubscriber}
-              className="w-full pl-6"
-            >
-              {opt.value === 0 ? "On due date" : `${opt.value} days before`}
-            </DropdownMenuCheckboxItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <li
+        key={entry.id}
+        className="py-2.5 first:pt-0 last:pb-0 transition-[filter,opacity]"
+      >
+          <div className="flex flex-col gap-1 py-1">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {inlineNameEditId === entry.id ? (
+                  <Input
+                    value={inlineNameDraft}
+                    onChange={(e) => setInlineNameDraft(e.target.value)}
+                    className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
+                    placeholder="Label"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitInlineNameEdit(entry.id);
+                      }
+                      if (e.key === "Escape") {
+                        skipInlineNameBlurCommitRef.current = true;
+                        setInlineNameEditId(null);
+                        setInlineNameDraft(entry.note ?? "");
+                      }
+                    }}
+                    onBlur={() => {
+                      if (skipInlineNameBlurCommitRef.current) {
+                        skipInlineNameBlurCommitRef.current = false;
+                        return;
+                      }
+                      void commitInlineNameEdit(entry.id);
+                    }}
+                    aria-label="Expense name"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className={cn(
+                      "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
+                      paidIds.has(entry.id) &&
+                        "text-muted-foreground line-through decoration-muted-foreground"
+                    )}
+                    onClick={() => void beginInlineNameEdit(entry)}
+                  >
+                    {displayName}
+                  </button>
+                )}
+                {payStatus === "paid" ? (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
+                  >
+                    Paid
+                  </Badge>
+                ) : payStatus === "outstanding" ? (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
+                  >
+                    Outstanding
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 text-xs font-medium text-muted-foreground"
+                  >
+                    Unpaid
+                  </Badge>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label="Expense actions"
+                      disabled={deletingId !== null || togglingPaidId === entry.id}
+                      onPointerDown={(e) => {
+                        if (inlineNameEditId === entry.id) e.preventDefault();
+                      }}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        startEdit(entry);
+                      }}
+                    >
+                      Edit
+                    </DropdownMenuItem>
+                    {!paidIds.has(entry.id) ? (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          void togglePaid(entry.id);
+                        }}
+                        disabled={togglingPaidId === entry.id}
+                      >
+                        Mark as Paid
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          void togglePaid(entry.id);
+                        }}
+                        disabled={togglingPaidId === entry.id}
+                      >
+                        Mark as Unpaid
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-sm font-bold tabular-nums",
+                  paidIds.has(entry.id) && "text-muted-foreground line-through"
+                )}
+              >
+                {formatCurrency(entry.amount)}
+              </span>
+            </div>
+            {(dueText || hasReminders) && (
+              <p className="text-xs text-muted-foreground">
+                {dueText ? <span>{dueText}</span> : null}
+                {dueText && hasReminders ? (
+                  <span className="text-muted-foreground/50"> · </span>
+                ) : null}
+                {hasReminders ? <span>{reminderLine}</span> : null}
+              </p>
+            )}
+          </div>
+      </li>
     );
   }
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8">
+      <Dialog
+        open={editingId !== null}
+        onOpenChange={(open) => {
+          if (!open) cancelEdit();
+        }}
+      >
+        <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
+          <DialogHeader>
+            <DialogTitle>Edit expense</DialogTitle>
+            {editingEntry ? (
+              <DialogDescription>
+                {getCategoryLabel(categoriesList, editingEntry.category_id)}
+                {" · "}
+                {formatCurrency(editingEntry.amount)}
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-expense-label">
+                Label <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-expense-label"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g. Netflix, HOA dues"
+                className="h-9"
+                required
+                aria-required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-category">Category</Label>
+                <Select
+                  value={
+                    !editCategory
+                      ? CATEGORY_SELECT_NONE
+                      : categoriesList.some((c) => c.id === editCategory)
+                        ? editCategory
+                        : CATEGORY_SELECT_NONE
+                  }
+                  onValueChange={(v) => setEditCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
+                >
+                  <SelectTrigger id="edit-expense-category" className="h-9 w-full">
+                    <SelectValue placeholder="Optional" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
+                    {categoriesList.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-amount">Amount</Label>
+                <AmountInput
+                  id="edit-expense-amount"
+                  value={editAmount}
+                  onChange={setEditAmount}
+                  className="h-9 w-full"
+                />
+              </div>
+            </div>
+            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-due">Due date</Label>
+                <Input
+                  id="edit-expense-due"
+                  type="date"
+                  className="h-9"
+                  title={
+                    isSubscriber
+                      ? "Same calendar day each month"
+                      : "Pro or Premium — unlock due dates and reminders"
+                  }
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  disabled={!isSubscriber}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-reminder">Reminder</Label>
+                <Select
+                  value={editReminderSelectValue}
+                  onValueChange={(v) =>
+                    setEditReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
+                  }
+                  disabled={!isSubscriber}
+                >
+                  <SelectTrigger id="edit-expense-reminder" className="h-9 w-full">
+                    <SelectValue placeholder="Choose reminder times" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Remove expense"
+                title="Remove expense"
+                onClick={() => editingId && handleDeleteExpense(editingId)}
+                disabled={editStatus === "saving" || deletingId !== null}
+              >
+                {deletingId === editingId ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                )}
+              </Button>
+              <div className="flex w-full gap-2 sm:w-auto sm:justify-end">
+                <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 sm:flex-none"
+                  disabled={
+                    editStatus === "saving" ||
+                    !editName.trim() ||
+                    (parseInt(editAmount.replace(/\D/g, ""), 10) || 0) <= 0
+                  }
+                >
+                  {editStatus === "saving" ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       {pageVariant === "expenses" && (
         <>
           <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
@@ -564,7 +801,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               </Link>
             </Button>
           </div>
-          {entriesCounted.length > 0 && (
+          {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
               <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
               <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/5" aria-hidden />
@@ -646,9 +883,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge className="border-white/30 bg-white/20 text-white hover:bg-white/30">
-                {paidCount} of {entriesCounted.length} bills marked paid
+                {paidCount} of {entries.length} bills marked paid
               </Badge>
-              {entriesCounted.length > 0 && (
+              {entries.length > 0 && (
                 <Badge className="border-white/30 bg-white/20 text-white hover:bg-white/30">
                   {paidCountPct}% complete
                 </Badge>
@@ -697,7 +934,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             <LayoutDashboard className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Bills tracked</p>
-          <p className="text-lg font-bold">{entriesCounted.length}</p>
+          <p className="text-lg font-bold">{entries.length}</p>
         </div>
 
         <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -781,37 +1018,69 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
 
       {pageVariant === "expenses" && (
         <>
-      {/* ════════════════════ EXPENSES BY CATEGORY ════════════════════ */}
+      {/* ════════════════════ EXPENSES ════════════════════ */}
       <div className="mb-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Expenses by category</h2>
-          {entries.length > 0 && (
-            <span className="text-sm text-muted-foreground">{entries.length} item{entries.length !== 1 ? "s" : ""}</span>
-          )}
+        <div className="mb-4 flex flex-row items-start justify-between gap-3 sm:gap-6">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <h2
+                id="expenses-section-heading"
+                className="text-lg font-semibold leading-none tracking-tight"
+              >
+                Expenses
+              </h2>
+              <div className="inline-flex min-h-5 items-center gap-2.5">
+                <Label
+                  id="expenses-categorized-label"
+                  htmlFor="expenses-categorized"
+                  className="mb-0 cursor-pointer select-none text-sm font-medium leading-none text-muted-foreground"
+                >
+                  Categorized
+                </Label>
+                <ToggleSwitch
+                  id="expenses-categorized"
+                  aria-labelledby="expenses-section-heading expenses-categorized-label"
+                  checked={expensesCategorized}
+                  className="shrink-0"
+                onCheckedChange={setExpensesCategorized}
+                />
+              </div>
+            </div>
+            {entries.length > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {entries.length} item{entries.length !== 1 ? "s" : ""}
+              </p>
+            ) : null}
+          </div>
+          <div className="shrink-0 pt-0.5">
+            <Button
+              type="button"
+              className="shrink-0 gap-2 whitespace-nowrap"
+              onClick={() => {
+                resetAddExpenseForm();
+                setAddExpenseModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 shrink-0" aria-hidden />
+              Add expense
+            </Button>
+          </div>
         </div>
         {entries.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
               <CircleDollarSign className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-3 text-muted-foreground">No expenses yet. Add one below to get started.</p>
+              <p className="mt-3 text-muted-foreground">
+                No expenses yet. Use <span className="font-medium text-foreground">Add expense</span> to create your
+                first one.
+              </p>
             </CardContent>
           </Card>
-        ) : (
+        ) : expensesCategorized ? (
           <div className="space-y-3">
-            {Array.from(grouped.entries())
-              .sort((a, b) => {
-                const ai = orderedCategoryIds.indexOf(a[0]);
-                const bi = orderedCategoryIds.indexOf(b[0]);
-                if (ai >= 0 && bi >= 0) return ai - bi;
-                if (ai >= 0) return -1;
-                if (bi >= 0) return 1;
-                return a[0].localeCompare(b[0]);
-              })
-              .map(([categoryId, categoryEntries]) => {
+            {sortedCategoryGroups.map(([categoryId, categoryEntries]) => {
                 const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
-                const countedInCategory = freeTierLimitApplied
-                  ? categoryEntries.filter((e) => countedEntryIds.has(e.id))
-                  : categoryEntries;
+                const countedInCategory = categoryEntries;
                 const catTotalCounted = countedInCategory.reduce((s, e) => s + e.amount, 0);
                 const catPaidCounted = countedInCategory.reduce(
                   (s, e) => s + (paidIds.has(e.id) ? e.amount : 0),
@@ -822,7 +1091,15 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                     ? Math.min(100, Math.round((catPaidCounted / catTotalCounted) * 100))
                     : 0;
                 return (
-                  <Card key={categoryId} className={cn("overflow-hidden", getCategoryBg(categoriesList, categoryId))}>
+                  <Card
+                    key={categoryId === "" ? "uncategorized" : categoryId}
+                    className={cn(
+                      "overflow-hidden",
+                      categoryId
+                        ? getCategoryBg(categoriesList, categoryId)
+                        : "border-dashed border-muted-foreground/25 bg-muted/25"
+                    )}
+                  >
                     <CardHeader className="pb-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -847,381 +1124,143 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                       )}
                     </CardHeader>
                     <CardContent>
-                      {addingToCategory === categoryId && (
-                        <form
-                          onSubmit={handleAddToCategory}
-                          className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border bg-muted/30 p-3"
-                        >
-                          <div className="min-w-[140px] space-y-1">
-                            <Label className="text-xs">Name</Label>
-                            <Input placeholder="Optional label" className="h-8" value={addInlineName} onChange={(e) => setAddInlineName(e.target.value)} />
-                          </div>
-                          <div className="min-w-[140px] space-y-1">
-                            <Label className="text-xs">Category</Label>
-                            <Select value={addInlineCategory} onValueChange={setAddInlineCategory}>
-                              <SelectTrigger className="h-8 w-full"><SelectValue placeholder="Category" /></SelectTrigger>
-                              <SelectContent>
-                                {categoriesList.map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="w-20 space-y-1">
-                            <Label className="text-xs">Amount</Label>
-                            <AmountInput placeholder="0" className="h-8 w-full" value={addInlineAmount} onChange={setAddInlineAmount} />
-                          </div>
-                          <div className="min-w-[130px] space-y-1">
-                            <Label className="text-xs">Due date</Label>
-                            <Input
-                              type="date"
-                              className="h-8"
-                              title="Same calendar day each month"
-                              value={addInlineDueDate}
-                              onChange={(e) => setAddInlineDueDate(e.target.value)}
-                            />
-                          </div>
-                          <ReminderDropdown days={addInlineReminderDays} onToggle={toggleInlineReminder} />
-                          <Button type="submit" size="sm" disabled={addInlineStatus === "saving"}>
-                            {addInlineStatus === "saving" ? "Adding…" : "Add"}
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" onClick={cancelAddToCategory}>Cancel</Button>
-                        </form>
-                      )}
                       <ul className="divide-y divide-border/50">
-                        {categoryEntries.map((entry) => {
-                          const isExcludedFromCount = freeTierLimitApplied && !countedEntryIds.has(entry.id);
-                          const payStatus = getExpensePayStatus(entry, paidIds, paidMonthYm);
-                          const displayName =
-                            entry.note?.trim() || getCategoryLabel(categoriesList, entry.category_id);
-                          const dueEffective = entry.due_date
-                            ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
-                            : null;
-                          const dueText =
-                            dueEffective && !Number.isNaN(dueEffective.getTime())
-                              ? `Due ${formatPrefDate(dueEffective)}`
-                              : null;
-                          const hasReminders = (entry.reminder_days_before?.length ?? 0) > 0;
-                          const reminderLine = `Reminder date${(entry.reminder_days_before?.length ?? 0) !== 1 ? "s" : ""}: ${formatReminderDateList(entry.due_date ?? undefined, entry.reminder_days_before ?? undefined, formatPrefDate, paidMonthYm)}`;
-                          return (
-                          <li
-                            key={entry.id}
-                            className={cn(
-                              "py-2.5 first:pt-0 last:pb-0 transition-[filter,opacity]",
-                              isExcludedFromCount && "blur-[2px] opacity-60 pointer-events-none select-none text-muted-foreground"
-                            )}
-                          >
-                            {editingId === entry.id ? (
-                              <form onSubmit={handleSaveEdit} className="flex flex-wrap items-end gap-2 rounded-lg border bg-muted/30 p-3">
-                                <div className="min-w-[140px] space-y-1">
-                                  <Label className="text-xs">Name</Label>
-                                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Optional label" className="h-8" />
-                                </div>
-                                <div className="min-w-0 flex-1 space-y-1">
-                                  <Label className="text-xs">Category</Label>
-                                  <Select value={editCategory} onValueChange={setEditCategory}>
-                                    <SelectTrigger className="h-8 w-full"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {categoriesList.map((cat) => (
-                                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="w-20 space-y-1">
-                                  <Label className="text-xs">Amount</Label>
-                                  <AmountInput value={editAmount} onChange={setEditAmount} className="h-8 w-full" />
-                                </div>
-                                <div className="min-w-[130px] space-y-1">
-                                  <Label className="text-xs">Due date</Label>
-                                  <Input
-                                    type="date"
-                                    className="h-8"
-                                    title="Same calendar day each month"
-                                    value={editDueDate}
-                                    onChange={(e) => setEditDueDate(e.target.value)}
-                                  />
-                                </div>
-                                <div className="flex items-end gap-1">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-                                    onClick={() => editingId && handleDeleteExpense(editingId)}
-                                    disabled={editStatus === "saving" || deletingId !== null}
-                                    aria-label="Remove expense"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <ReminderDropdown days={editReminderDays} onToggle={toggleEditReminder} />
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button type="submit" size="sm" disabled={editStatus === "saving"}>
-                                    {editStatus === "saving" ? "Saving…" : "Save"}
-                                  </Button>
-                                  <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>Cancel</Button>
-                                </div>
-                              </form>
-                            ) : (
-                              <div className="flex flex-col gap-1 py-1">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                                    {inlineNameEditId === entry.id ? (
-                                      <Input
-                                        value={inlineNameDraft}
-                                        onChange={(e) => setInlineNameDraft(e.target.value)}
-                                        className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
-                                        placeholder="Name"
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            void commitInlineNameEdit(entry.id);
-                                          }
-                                          if (e.key === "Escape") {
-                                            skipInlineNameBlurCommitRef.current = true;
-                                            setInlineNameEditId(null);
-                                            setInlineNameDraft(entry.note ?? "");
-                                          }
-                                        }}
-                                        onBlur={() => {
-                                          if (skipInlineNameBlurCommitRef.current) {
-                                            skipInlineNameBlurCommitRef.current = false;
-                                            return;
-                                          }
-                                          void commitInlineNameEdit(entry.id);
-                                        }}
-                                        aria-label="Expense name"
-                                      />
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className={cn(
-                                          "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
-                                          paidIds.has(entry.id) &&
-                                            "text-muted-foreground line-through decoration-muted-foreground"
-                                        )}
-                                        onClick={() => void beginInlineNameEdit(entry)}
-                                      >
-                                        {displayName}
-                                      </button>
-                                    )}
-                                    {payStatus === "paid" ? (
-                                      <Badge
-                                        variant="outline"
-                                        className="shrink-0 border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
-                                      >
-                                        Paid
-                                      </Badge>
-                                    ) : payStatus === "outstanding" ? (
-                                      <Badge
-                                        variant="outline"
-                                        className="shrink-0 border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
-                                      >
-                                        Outstanding
-                                      </Badge>
-                                    ) : (
-                                      <Badge
-                                        variant="outline"
-                                        className="shrink-0 text-xs font-medium text-muted-foreground"
-                                      >
-                                        Unpaid
-                                      </Badge>
-                                    )}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                                          aria-label="Expense actions"
-                                          disabled={deletingId !== null || togglingPaidId === entry.id}
-                                          onPointerDown={(e) => {
-                                            if (inlineNameEditId === entry.id) e.preventDefault();
-                                          }}
-                                        >
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="start" className="w-48">
-                                        <DropdownMenuItem
-                                          onSelect={() => {
-                                            startEdit(entry);
-                                          }}
-                                        >
-                                          Edit
-                                        </DropdownMenuItem>
-                                        {!paidIds.has(entry.id) ? (
-                                          <DropdownMenuItem
-                                            onSelect={() => {
-                                              void togglePaid(entry.id);
-                                            }}
-                                            disabled={togglingPaidId === entry.id}
-                                          >
-                                            Mark as Paid
-                                          </DropdownMenuItem>
-                                        ) : (
-                                          <DropdownMenuItem
-                                            onSelect={() => {
-                                              void togglePaid(entry.id);
-                                            }}
-                                            disabled={togglingPaidId === entry.id}
-                                          >
-                                            Mark as Unpaid
-                                          </DropdownMenuItem>
-                                        )}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                  <span
-                                    className={cn(
-                                      "shrink-0 text-sm font-bold tabular-nums",
-                                      paidIds.has(entry.id) && "text-muted-foreground line-through"
-                                    )}
-                                  >
-                                    {formatCurrency(entry.amount)}
-                                  </span>
-                                </div>
-                                {(dueText || hasReminders) && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {dueText ? <span>{dueText}</span> : null}
-                                    {dueText && hasReminders ? (
-                                      <span className="text-muted-foreground/50"> · </span>
-                                    ) : null}
-                                    {hasReminders ? <span>{reminderLine}</span> : null}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </li>
-                          );
-                        })}
+                        {categoryEntries.map((entry) => renderExpenseEntryRow(entry))}
                       </ul>
-                      <div className="mt-3 flex justify-start">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => startAddToCategory(categoryId)}
-                          disabled={addingToCategory === categoryId || !canAddMoreExpenses}
-                          title={!canAddMoreExpenses ? `Free tier limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` : undefined}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Add expense
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                 );
               })}
           </div>
+        ) : (
+          <Card className="overflow-hidden border-primary/15 bg-muted/20">
+            <CardContent className="px-4 py-3 sm:px-4">
+              <ul className="divide-y divide-border/50">
+                {flatEntriesOrdered.map((entry) => renderExpenseEntryRow(entry))}
+              </ul>
+            </CardContent>
+          </Card>
         )}
       </div>
 
-      {/* ════════════════════ ADD EXPENSE CARD ════════════════════ */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Plus className="h-4 w-4" />
+      <Dialog open={addExpenseModalOpen} onOpenChange={setAddExpenseModalOpen}>
+        <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
+          <DialogHeader>
+            <DialogTitle>Add expense</DialogTitle>
+            <DialogDescription>
+              
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddExpense} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="add-expense-label">
+                Label <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="add-expense-label"
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder="e.g. Netflix, HOA dues"
+                className="h-9"
+                required
+                aria-required
+              />
             </div>
-            <div>
-              <CardTitle className="text-base">Add expense</CardTitle>
-              <CardDescription className="text-xs">
-                {canAddMoreExpenses
-                  ? "Add one or more expenses. You can add multiple of the same type."
-                  : `Free tier is limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.`}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddExpense} className="space-y-3">
-            {addLines.map((line) => (
-              <div
-                key={line.id}
-                className="flex flex-wrap items-end gap-2 rounded-lg border bg-muted/20 p-3"
-              >
-                <div className="min-w-[140px] space-y-1">
-                  <Label className="text-xs">Name</Label>
-                  <Input placeholder="Optional label" className="h-9" value={line.name} onChange={(e) => setAddLine(line.id, { name: e.target.value })} />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <Label className="text-xs">Category</Label>
-                  <Select value={line.category} onValueChange={(v) => setAddLine(line.id, { category: v })}>
-                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Category" /></SelectTrigger>
-                    <SelectContent>
-                      {categoriesList.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="w-20 space-y-1">
-                  <Label className="text-xs">Amount</Label>
-                  <AmountInput placeholder="0" className="h-9 w-full" value={line.amount} onChange={(raw) => setAddLine(line.id, { amount: raw })} />
-                </div>
-                <div className="min-w-[130px] space-y-1">
-                  <Label className="text-xs">Due date</Label>
-                  <Input
-                    type="date"
-                    className="h-9"
-                    title="Same calendar day each month"
-                    value={line.dueDate}
-                    onChange={(e) => setAddLine(line.id, { dueDate: e.target.value })}
-                  />
-                </div>
-                <div className="flex items-end gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={() => removeAddLine(line.id)}
-                    disabled={addLines.length <= 1}
-                    aria-label="Remove row"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <ReminderDropdown
-                    days={line.reminderDays}
-                    onToggle={(day) => setLineReminder(line.id, day)}
-                  />
-                </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="add-expense-category">Category</Label>
+                <Select
+                  value={
+                    !addCategory
+                      ? CATEGORY_SELECT_NONE
+                      : categoriesList.some((c) => c.id === addCategory)
+                        ? addCategory
+                        : CATEGORY_SELECT_NONE
+                  }
+                  onValueChange={(v) => setAddCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
+                >
+                  <SelectTrigger id="add-expense-category" className="h-9 w-full">
+                    <SelectValue placeholder="Optional" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
+                    {categoriesList.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addAddLine}
-                disabled={!canAddMoreExpenses}
-                title={!canAddMoreExpenses ? `Free tier limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` : undefined}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Add another row
+              <div className="space-y-2">
+                <Label htmlFor="add-expense-amount">Amount</Label>
+                <AmountInput
+                  id="add-expense-amount"
+                  value={addAmount}
+                  onChange={setAddAmount}
+                  className="h-9 w-full"
+                />
+              </div>
+            </div>
+            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="add-expense-due">Due date</Label>
+                <Input
+                  id="add-expense-due"
+                  type="date"
+                  className="h-9"
+                  title={
+                    isSubscriber
+                      ? "Same calendar day each month"
+                      : "Pro or Premium — unlock due dates and reminders"
+                  }
+                  value={addDueDate}
+                  onChange={(e) => setAddDueDate(e.target.value)}
+                  disabled={!isSubscriber}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-expense-reminder">Reminder</Label>
+                <Select
+                  value={addReminderSelectValue}
+                  onValueChange={(v) =>
+                    setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
+                  }
+                  disabled={!isSubscriber}
+                >
+                  <SelectTrigger id="add-expense-reminder" className="h-9 w-full">
+                    <SelectValue placeholder="Choose reminder times" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:justify-end sm:gap-2">
+              <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => setAddExpenseModalOpen(false)}>
+                Cancel
               </Button>
               <Button
                 type="submit"
+                className="flex-1 sm:flex-none"
                 disabled={
                   addStatus === "saving" ||
-                  !canAddMoreExpenses ||
-                  !addLines.some(
-                    (l) => l.category && (parseInt(l.amount.replace(/\D/g, ""), 10) || 0) > 0
-                  )
+                  !addName.trim() ||
+                  (parseInt(addAmount.replace(/\D/g, ""), 10) || 0) <= 0
                 }
-                title={!canAddMoreExpenses ? `Free tier limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` : undefined}
               >
-                {addStatus === "saving" ? "Adding…" : "Add all"}
+                {addStatus === "saving" ? "Adding…" : "Add expense"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
         </>
       )}
 

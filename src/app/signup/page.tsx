@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { BadgeCheck, ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
@@ -108,6 +108,7 @@ export default function SignUpPage() {
       <SignupBrandPanel showFooter />
 
       <div
+        data-app-scroll="true"
         className={cn(
           "flex min-h-0 flex-1 flex-col justify-center px-4 py-6 sm:px-6 md:px-8 md:py-5 lg:px-10",
           "md:max-h-full md:overflow-y-auto md:overflow-x-hidden",
@@ -157,6 +158,20 @@ export default function SignUpPage() {
                     autoComplete="new-password"
                     placeholder="At least 6 characters"
                   />
+                </div>
+                <div
+                  className="space-y-2 text-xs leading-snug text-muted-foreground/80"
+                  role="status"
+                  aria-label="Privacy and security"
+                >
+                  <div className="flex gap-2">
+                    <Lock className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+                    <span>Your information is securely encrypted</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <BadgeCheck className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+                    <span>We&apos;ll never sell your personal info</span>
+                  </div>
                 </div>
                 <SubmitButton>Create account</SubmitButton>
               </form>

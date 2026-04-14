@@ -64,10 +64,10 @@ export function HeroSection({ className }: HeroSectionProps) {
       <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
         <div className="max-w-xl text-center lg:text-left">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-            Built for life in the Philippines
+            You can&apos;t grow what you don&apos;t track
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Track your personal needs in one place
+            Your one-stop personal tracker for everything
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
             Bills, to-buy lists, and tasks—mark what you&apos;ve paid each month and see your dashboard at a glance,

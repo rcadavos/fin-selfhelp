@@ -12,7 +12,21 @@ import {
 import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { cn } from "@/lib/utils";
-import { User, Settings2, Menu, SlidersHorizontal } from "lucide-react";
+import {
+  User,
+  Settings2,
+  Menu,
+  SlidersHorizontal,
+  Building2,
+  Wallet,
+  Gem,
+  LayoutDashboard,
+  Banknote,
+  Calculator,
+  ShoppingCart,
+  ClipboardList,
+  UsersRound,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
 
@@ -27,7 +41,13 @@ export function AppHeader({ className }: { className?: string }) {
   const isToBuy = pathname === "/dashboard/to-buy" || pathname?.startsWith("/dashboard/to-buy/");
   const isToDo = pathname === "/dashboard/to-do" || pathname?.startsWith("/dashboard/to-do/");
   const isCalculators = pathname?.startsWith("/dashboard/calculators");
+  const isRentTracker =
+    pathname === "/dashboard/rent-tracker" || pathname?.startsWith("/dashboard/rent-tracker/");
+  const isPaymentTracker =
+    pathname === "/dashboard/payment-tracker" || pathname?.startsWith("/dashboard/payment-tracker/");
   const isSettings = pathname?.startsWith("/account/settings");
+  const isShared =
+    pathname === "/account/shared" || Boolean(pathname?.startsWith("/account/shared/"));
   const isAdminPage = pathname?.startsWith("/admin");
 
   return (
@@ -54,42 +74,128 @@ export function AppHeader({ className }: { className?: string }) {
                       <Menu className="h-5 w-5" aria-label="Open menu" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 md:hidden">
+                  <DropdownMenuContent align="end" className="min-w-[13.5rem] md:hidden">
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className={cn("cursor-pointer", isDashboardHome && "bg-primary/10 text-primary font-semibold")}>
+                      <Link
+                        href="/dashboard"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isDashboardHome && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <LayoutDashboard className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/my-expenses" className={cn("cursor-pointer", isMyExpenses && "bg-primary/10 text-primary font-semibold")}>
+                      <Link
+                        href="/dashboard/my-expenses"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isMyExpenses && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <Banknote className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         My Expenses
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/calculators" className={cn("cursor-pointer", isCalculators && "bg-primary/10 text-primary font-semibold")}>
+                      <Link
+                        href="/dashboard/calculators"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isCalculators && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <Calculator className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         Calculators
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/to-buy" className={cn("cursor-pointer", isToBuy && "bg-primary/10 text-primary font-semibold")}>
+                      <Link
+                        href="/dashboard/to-buy"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isToBuy && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <ShoppingCart className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         To-Buy List
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/to-do" className={cn("cursor-pointer", isToDo && "bg-primary/10 text-primary font-semibold")}>
+                      <Link
+                        href="/dashboard/to-do"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isToDo && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <ClipboardList className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         To-Do List
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/account/settings" className={cn("cursor-pointer flex items-center gap-2", isSettings && "bg-primary/10 text-primary font-semibold")}>
-                        <SlidersHorizontal className="h-4 w-4" />
+                      <Link
+                        href="/dashboard/rent-tracker"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isRentTracker && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <Building2 className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        Rent Tracker
+                        <Gem className="ml-auto h-3.5 w-3.5 shrink-0 text-sky-500" aria-label="Premium" />
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/dashboard/payment-tracker"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isPaymentTracker && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <Wallet className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        Payment Tracker
+                        <Gem className="ml-auto h-3.5 w-3.5 shrink-0 text-sky-500" aria-label="Premium" />
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/account/shared"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isShared && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <UsersRound className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        Shared with me
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/account/settings"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isSettings && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <SlidersHorizontal className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         Settings
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem asChild>
-                        <Link href="/admin" prefetch={false} className={cn("cursor-pointer flex items-center gap-2", isAdminPage && "bg-primary/10 text-primary font-semibold")}>
-                          <Settings2 className="h-4 w-4" />
+                        <Link
+                          href="/admin"
+                          prefetch={false}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-2",
+                            isAdminPage && "bg-primary/10 font-semibold text-primary"
+                          )}
+                        >
+                          <Settings2 className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                           Admin
                         </Link>
                       </DropdownMenuItem>

@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  hasProLevelProductAccess,
+  normalizeDbTier,
+} from "@/lib/subscription-tier";
 
 export type AccountShareRow = {
   id: string;
@@ -19,6 +23,28 @@ export type AccountShareRow = {
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+async function assertGrantorCanManageSharing(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<{ error?: string }> {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("subscription_tier, subscription_ends_at, is_subscriber")
+    .eq("user_id", userId)
+    .single();
+  if (error || !profile) return { error: error?.message ?? "Profile not found." };
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const isSub = Boolean(profile.is_subscriber);
+  if (!hasProLevelProductAccess(tier, endsIso, isSub)) {
+    return {
+      error:
+        "Partner sharing is available on Pro or Premium with an active subscription. Upgrade to send invites or change what you share.",
+    };
+  }
+  return {};
 }
 
 export async function listOutgoingShares(): Promise<{ error?: string; shares?: AccountShareRow[] }> {
@@ -171,6 +197,9 @@ export async function createAccountShare(input: {
   if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
 
+  const gate = await assertGrantorCanManageSharing(supabase, user.id);
+  if (gate.error) return { error: gate.error };
+
   const { data: inserted, error } = await supabase
     .from("account_shares")
     .insert({
@@ -217,6 +246,9 @@ export async function updateAccountSharePermissions(
     .single();
   if (profileError) return { error: profileError.message };
   if (!profile) return { error: "Profile not found." };
+
+  const gate = await assertGrantorCanManageSharing(supabase, user.id);
+  if (gate.error) return { error: gate.error };
 
   const payload: Record<string, unknown> = {};
   if (patch.canViewExpenses !== undefined) payload.can_view_expenses = patch.canViewExpenses;

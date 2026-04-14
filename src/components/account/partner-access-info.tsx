@@ -5,6 +5,9 @@ export function PartnerAccessInfo({ className }: { className?: string }) {
   return (
     <div className={cn("space-y-3 text-sm text-muted-foreground", className)}>
       <p className="font-medium text-foreground">What shared access means</p>
+      <p className="text-xs text-muted-foreground">
+        Sending invites and changing what you share requires an active Pro or Premium subscription on your account.
+      </p>
       <ul className="list-disc space-y-1.5 pl-5">
         <li>
           <span className="text-foreground">My Expenses</span> — Your partner can open your bills for the current month

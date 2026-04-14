@@ -51,6 +51,7 @@ export type AdminUserRow = {
   created_at: string;
   is_subscriber: boolean;
   subscription_ends_at: string | null;
+  subscription_tier: string;
   is_admin: boolean;
 };
 
@@ -64,6 +65,7 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
     created_at: string;
     is_subscriber: boolean;
     subscription_ends_at: string | null;
+    subscription_tier: string | null;
     is_admin: boolean;
   }) => ({
     id: row.id,
@@ -71,6 +73,7 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
     created_at: row.created_at,
     is_subscriber: Boolean(row.is_subscriber),
     subscription_ends_at: row.subscription_ends_at ?? null,
+    subscription_tier: row.subscription_tier ?? "free",
     is_admin: Boolean(row.is_admin),
   }));
   return { users };
@@ -102,7 +105,7 @@ export async function setUserAdmin(
   }
 }
 
-export type SubscriptionTier = "free" | "free_trial" | "paid";
+export type SubscriptionTier = "free" | "pro" | "premium";
 
 export async function setUserSubscription(
   userId: string,

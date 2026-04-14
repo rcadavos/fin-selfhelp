@@ -13,30 +13,22 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { getMyReview, getReviewEligibility, type MyReviewRow, submitSuggestion, submitReview, updateReview } from "@/actions/feedback";
-import { getSubscriptionStatus } from "@/actions/budget";
 import { useUser } from "@/hooks/use-user";
+import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { MessageSquare, Star, Send, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function FooterFeedback({ className }: { className?: string }) {
   const { showError: showSnackbar, showSuccess } = useSnackbar();
   const { user, loading: userLoading } = useUser();
-  const [isPaidTier, setIsPaidTier] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-      setIsPaidTier(null);
-      return;
-    }
-    let cancelled = false;
-    getSubscriptionStatus().then((status) => {
-      if (cancelled) return;
-      setIsPaidTier(status?.isPaidTier ?? false);
-    });
-    return () => { cancelled = true; };
-  }, [user]);
+  const subscriptionQuery = useQuery({
+    ...subscriptionStatusQueryOptions(),
+    enabled: !!user && !userLoading,
+  });
+  const isPaidTier =
+    !user ? null : subscriptionQuery.isPending ? null : (subscriptionQuery.data?.isPaidTier ?? false);
   const [suggestionEmail, setSuggestionEmail] = useState("");
   const [suggestionContent, setSuggestionContent] = useState("");
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "sending" | "sent">("idle");

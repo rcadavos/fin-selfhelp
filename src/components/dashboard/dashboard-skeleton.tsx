@@ -118,12 +118,15 @@ function MyExpensesCategoryRowSkeleton() {
   );
 }
 
-/** “Expenses by category” + category cards with list rows + Add expense. */
+/** “Expenses” heading + categorized toggle + category cards + Add expense. */
 function MyExpensesCategorySectionSkeleton() {
   return (
     <div className="mb-6">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <Skeleton className="h-7 w-52" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Skeleton className="h-7 w-28" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+        </div>
         <Skeleton className="h-4 w-20" />
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">

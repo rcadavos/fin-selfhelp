@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +15,10 @@ import {
   generateToBuyItemId,
   type ToBuyItem,
 } from "@/lib/to-buy-storage";
-import { loadMyToBuyFromServer, replaceMyToBuyOnServer } from "@/actions/to-buy-db";
-import { loadMyToDoFromServer, replaceMyToDoOnServer } from "@/actions/to-do-db";
+import { replaceMyToBuyOnServer } from "@/actions/to-buy-db";
+import { replaceMyToDoOnServer } from "@/actions/to-do-db";
+import { queryKeys } from "@/lib/query/keys";
+import { toBuyItemsQueryOptions, toDoItemsQueryOptions } from "@/lib/query/to-buy-to-do-lists";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
@@ -72,15 +75,27 @@ function InlineItemName({
 export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   const router = useRouter();
   const { user, loading } = useUser();
-  const [items, setItems] = useState<ToBuyItem[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const listQueryKey = useMemo(
+    () => (mode === "buy" ? queryKeys.toBuyItems() : queryKeys.toDoItems()),
+    [mode]
+  );
+  const toBuyQuery = useQuery({
+    ...toBuyItemsQueryOptions(),
+    enabled: !!user && !loading && mode === "buy",
+  });
+  const toDoQuery = useQuery({
+    ...toDoItemsQueryOptions(),
+    enabled: !!user && !loading && mode === "do",
+  });
+  const listQuery = mode === "buy" ? toBuyQuery : toDoQuery;
+  const items = listQuery.data ?? [];
   const [composer, setComposer] = useState("");
   const skipComposerBlur = useRef(false);
 
   const cfg = useMemo(() => {
     if (mode === "buy") {
       return {
-        load: loadMyToBuyFromServer,
         replace: replaceMyToBuyOnServer,
         getLocal: getToBuyItems,
         saveLocal: saveToBuyItems,
@@ -91,7 +106,6 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       } as const;
     }
     return {
-      load: loadMyToDoFromServer,
       replace: replaceMyToDoOnServer,
       getLocal: getToDoItems,
       saveLocal: saveToDoItems,
@@ -105,17 +119,20 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   const persist = useCallback(
     (next: ToBuyItem[]) => {
       const ordered = orderItemsLikeNotes(next);
-      setItems(ordered);
+      queryClient.setQueryData(listQueryKey, ordered);
       if (user) {
         void cfg.replace(ordered).then(({ error }) => {
           if (error) cfg.saveLocal(ordered);
-          else cfg.clearLocal();
+          else {
+            cfg.clearLocal();
+            void queryClient.invalidateQueries({ queryKey: listQueryKey });
+          }
         });
       } else {
         cfg.saveLocal(ordered);
       }
     },
-    [user, cfg]
+    [user, cfg, queryClient, listQueryKey]
   );
 
   useEffect(() => {
@@ -124,35 +141,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       router.replace("/login");
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const { items: remote, error } = await cfg.load();
-      if (cancelled) return;
-      if (error) {
-        setItems(orderItemsLikeNotes(cfg.getLocal()));
-        setLoaded(true);
-        return;
-      }
-      let list = remote ?? [];
-      if (list.length === 0) {
-        const local = cfg.getLocal();
-        if (local.length > 0) {
-          const ordered = orderItemsLikeNotes(local);
-          const { error: syncErr } = await cfg.replace(ordered);
-          if (!syncErr) {
-            cfg.clearLocal();
-            const again = await cfg.load();
-            list = again.items ?? [];
-          }
-        }
-      }
-      setItems(orderItemsLikeNotes(list));
-      setLoaded(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, user, router, cfg]);
+  }, [loading, user, router]);
 
   function commitComposer() {
     const name = composer.trim();
@@ -182,7 +171,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
     persist(items.map((it) => (it.id === id ? { ...it, name } : it)));
   }
 
-  if (loading || !loaded) {
+  if (loading || !user || listQuery.isPending) {
     return <DashboardSkeleton variant="to-buy-list" />;
   }
 

@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { BudgetState, ReminderDay } from "@/types/database.types";
-import { FREE_TIER_EXPENSE_LIMIT } from "@/types/database.types";
+import {
+  hasPremiumProductAccess,
+  hasProLevelProductAccess,
+  normalizeDbTier,
+  type SubscriptionTierId,
+} from "@/lib/subscription-tier";
 
 const VALID_REMINDER_DAYS: ReminderDay[] = [3, 1, 0];
 
@@ -54,7 +59,10 @@ export type IncomeEntryRow = {
 
 export type ExpenseData = {
   netTakeHome: number;
+  /** Pro or Premium with an active subscription window — due dates, reminders, unlimited lists. */
   isSubscriber: boolean;
+  subscriptionTier: SubscriptionTierId;
+  hasPremiumAccess: boolean;
   /** True when the user had a Pro plan but it has expired (subscription_ends_at is in the past). */
   subscriptionExpired: boolean;
   incomeEntries: IncomeEntryRow[];
@@ -75,21 +83,25 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, net_take_home, is_subscriber, subscription_ends_at")
+    .select("id, net_take_home, is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", user.id)
     .single();
   if (!profile) return null;
 
   const now = new Date();
   const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
-  const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const isSub = Boolean(profile.is_subscriber);
+  const hasProAccess = hasProLevelProductAccess(tier, endsIso, isSub);
+  const hasPremiumAccess = hasPremiumProductAccess(tier, endsIso, isSub);
   const subscriptionExpired = endsAt != null && endsAt <= now;
 
   const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
 
   const [
     { data: incomeRows },
-    { data: entries },
+    { data: entriesRaw },
     { data: paymentRows },
   ] = await Promise.all([
     supabase
@@ -118,12 +130,37 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
   const totalFromIncome = incomeEntries.reduce((s, r) => s + r.amount, 0);
   const netTakeHome = incomeEntries.length > 0 ? totalFromIncome : Number(profile.net_take_home);
 
+  let entries = entriesRaw ?? [];
+  if (!hasProAccess) {
+    const hasDueOrReminder = entries.some(
+      (row) =>
+        row.due_date != null ||
+        (row.reminder_days_before != null &&
+          (!Array.isArray(row.reminder_days_before) || row.reminder_days_before.length > 0))
+    );
+    if (hasDueOrReminder) {
+      const { error: clearErr } = await supabase
+        .from("expense_entries")
+        .update({ due_date: null, reminder_days_before: null })
+        .eq("profile_id", profile.id);
+      if (!clearErr) {
+        entries = entries.map((row) => ({
+          ...row,
+          due_date: null,
+          reminder_days_before: null,
+        }));
+      }
+    }
+  }
+
   return {
     netTakeHome,
     isSubscriber: hasProAccess,
+    subscriptionTier: tier,
+    hasPremiumAccess,
     subscriptionExpired,
     incomeEntries,
-    entries: (entries ?? []).map((row) => ({
+    entries: entries.map((row) => ({
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
@@ -149,7 +186,7 @@ export async function loadSharedExpenseData(
 
   const { data: grantorProfile } = await supabase
     .from("profiles")
-    .select("id, net_take_home, is_subscriber, subscription_ends_at")
+    .select("id, net_take_home, is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", grantorUserId)
     .single();
   if (!grantorProfile) return null;
@@ -168,7 +205,11 @@ export async function loadSharedExpenseData(
   const endsAt = grantorProfile.subscription_ends_at
     ? new Date(grantorProfile.subscription_ends_at as string)
     : null;
-  const hasProAccess = (endsAt != null && endsAt > now) || Boolean(grantorProfile.is_subscriber);
+  const gTier = normalizeDbTier(grantorProfile.subscription_tier as string | null);
+  const gEndsIso = grantorProfile.subscription_ends_at as string | null;
+  const gSub = Boolean(grantorProfile.is_subscriber);
+  const hasProAccess = hasProLevelProductAccess(gTier, gEndsIso, gSub);
+  const hasPremiumAccess = hasPremiumProductAccess(gTier, gEndsIso, gSub);
   const subscriptionExpired = endsAt != null && endsAt <= now;
 
   const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
@@ -189,6 +230,8 @@ export async function loadSharedExpenseData(
   return {
     netTakeHome: Number(grantorProfile.net_take_home),
     isSubscriber: hasProAccess,
+    subscriptionTier: gTier,
+    hasPremiumAccess,
     subscriptionExpired,
     incomeEntries: [],
     entries: (entries ?? []).map((row) => ({
@@ -196,8 +239,10 @@ export async function loadSharedExpenseData(
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
       note: row.note ?? undefined,
-      due_date: row.due_date ?? undefined,
-      reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
+      due_date: hasProAccess ? (row.due_date ?? undefined) : undefined,
+      reminder_days_before: hasProAccess
+        ? normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined
+        : undefined,
     })),
     paidMonth: month,
     paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
@@ -338,35 +383,29 @@ export async function addExpense(
   if (!user) return { error: "Not logged in." };
   let { data: profile } = await supabase
     .from("profiles")
-    .select("id, is_subscriber, subscription_ends_at")
+    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!profile) {
     const { data: newProfile, error: insertErr } = await supabase
       .from("profiles")
       .insert({ user_id: user.id, net_take_home: 0, currency: "PHP" })
-      .select("id, is_subscriber, subscription_ends_at")
+      .select("id, is_subscriber, subscription_ends_at, subscription_tier")
       .single();
     if (insertErr || !newProfile) return { error: insertErr?.message ?? "Could not create profile." };
     profile = newProfile;
   }
   if (amount <= 0) return { error: "Amount must be greater than 0." };
-  const now = new Date();
-  const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
-  const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
-  if (!hasProAccess) {
-    const { count } = await supabase
-      .from("expense_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("profile_id", profile.id);
-    if ((count ?? 0) >= FREE_TIER_EXPENSE_LIMIT) {
-      return { error: `Free tier is limited to ${FREE_TIER_EXPENSE_LIMIT} expenses. Subscribe to add more.` };
-    }
-  }
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
   const dueRaw = dueDate?.trim() ?? "";
   const dueNorm = dueRaw ? normalizeDueDateForStorage(dueRaw) : null;
   if (dueRaw && !dueNorm) return { error: "Invalid due date." };
   const reminders = reminderDaysBefore?.length ? reminderDaysBefore : null;
+  if (!hasProAccess && (dueNorm || reminders)) {
+    return { error: "Due dates and reminders are available on Pro or Premium." };
+  }
   const { error } = await supabase
     .from("expense_entries")
     .insert({
@@ -399,11 +438,14 @@ export async function updateExpense(
   if (!user) return { error: "Not logged in." };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "Profile not found." };
   if (amount <= 0) return { error: "Amount must be greater than 0." };
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
   let due: string | null | undefined = undefined;
   if (dueDate !== undefined) {
     const raw = dueDate?.trim() ?? "";
@@ -415,6 +457,14 @@ export async function updateExpense(
     }
   }
   const reminders = reminderDaysBefore !== undefined ? (reminderDaysBefore?.length ? reminderDaysBefore : null) : undefined;
+  if (!hasProAccess) {
+    if (due !== undefined && due !== null) {
+      return { error: "Due dates are available on Pro or Premium." };
+    }
+    if (reminders !== undefined && reminders !== null) {
+      return { error: "Reminders are available on Pro or Premium." };
+    }
+  }
   const { error } = await supabase
     .from("expense_entries")
     .update({
@@ -508,7 +558,9 @@ export async function saveBudget(state: BudgetState): Promise<{ error?: string }
 
 export type SubscriptionStatus = {
   hasProAccess: boolean;
-  /** True only for paying subscribers (is_subscriber). False for free and free_trial. */
+  hasPremiumAccess: boolean;
+  subscriptionTier: SubscriptionTierId;
+  /** True only for paying subscribers (is_subscriber). False for free / comped access without billing. */
   isPaidTier: boolean;
   subscriptionEndsAt: string | null;
   isRecurring: boolean;
@@ -520,16 +572,20 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus | null
   if (!user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_subscriber, subscription_ends_at")
+    .select("is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", user.id)
     .single();
   if (!profile) return null;
-  const now = new Date();
-  const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
-  const hasProAccess = (endsAt != null && endsAt > now) || Boolean(profile.is_subscriber);
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const isSub = Boolean(profile.is_subscriber);
+  const hasProAccess = hasProLevelProductAccess(tier, endsIso, isSub);
+  const hasPremiumAccess = hasPremiumProductAccess(tier, endsIso, isSub);
   const isPaidTier = Boolean(profile.is_subscriber);
   return {
     hasProAccess,
+    hasPremiumAccess,
+    subscriptionTier: tier,
     isPaidTier,
     subscriptionEndsAt: profile.subscription_ends_at ?? null,
     isRecurring: Boolean(profile.is_subscriber),
@@ -537,7 +593,9 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus | null
 }
 
 /** Call after successful payment: grants 1 month of Pro from now (or extends from current end if still in period). */
-export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
+export async function recordSubscriptionPayment(
+  tier: "pro" | "premium" = "pro"
+): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
@@ -556,6 +614,7 @@ export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
     .from("profiles")
     .update({
       is_subscriber: true,
+      subscription_tier: tier,
       subscription_ends_at: newEndsAt.toISOString(),
     })
     .eq("id", profile.id);
@@ -567,8 +626,11 @@ export async function recordSubscriptionPayment(): Promise<{ error?: string }> {
   return {};
 }
 
-/** Server-only: grant 1 month Pro for a user by user_id (e.g. after PayMongo webhook or polling). */
-export async function recordSubscriptionPaymentForUserId(userId: string): Promise<{ error?: string }> {
+/** Server-only: grant 1 month Pro or Premium for a user by user_id (e.g. after PayMongo webhook or polling). */
+export async function recordSubscriptionPaymentForUserId(
+  userId: string,
+  tier: "pro" | "premium" = "pro"
+): Promise<{ error?: string }> {
   const { createServiceRoleClient } = await import("@/lib/supabase/server");
   const supabase = createServiceRoleClient();
   const { data: profile, error: fetchError } = await supabase
@@ -587,6 +649,7 @@ export async function recordSubscriptionPaymentForUserId(userId: string): Promis
     .from("profiles")
     .update({
       is_subscriber: true,
+      subscription_tier: tier,
       subscription_ends_at: newEndsAt.toISOString(),
     })
     .eq("id", profile.id);

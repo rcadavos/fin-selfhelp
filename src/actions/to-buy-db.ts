@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { ToBuyCategory, ToBuyItem } from "@/lib/to-buy-storage";
+import {
+  FREE_TIER_MAX_LIST_ITEMS,
+  hasProLevelProductAccess,
+  normalizeDbTier,
+} from "@/lib/subscription-tier";
 
 const VALID_CATEGORIES: ToBuyCategory[] = [
   "grocery",
@@ -68,6 +73,23 @@ export async function replaceMyToBuyOnServer(items: ToBuyItem[]): Promise<{ erro
   const supabase = await createClient();
   const { error: e, profileId } = await getMyProfileId(supabase);
   if (e || !profileId) return { error: e ?? "Not logged in." };
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("subscription_tier, subscription_ends_at, is_subscriber")
+    .eq("id", profileId)
+    .maybeSingle();
+  const tier = normalizeDbTier(prof?.subscription_tier as string | null);
+  const hasPro = hasProLevelProductAccess(
+    tier,
+    (prof?.subscription_ends_at as string | null) ?? null,
+    Boolean(prof?.is_subscriber)
+  );
+  if (!hasPro && items.length > FREE_TIER_MAX_LIST_ITEMS) {
+    return {
+      error: `Free plan allows up to ${FREE_TIER_MAX_LIST_ITEMS} to-buy items. Upgrade to Pro for unlimited.`,
+    };
+  }
 
   const { error: delErr } = await supabase.from("to_buy_items").delete().eq("profile_id", profileId);
   if (delErr) return { error: delErr.message };

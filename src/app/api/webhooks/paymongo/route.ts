@@ -38,8 +38,10 @@ export async function POST(request: Request) {
     }
     const piJson = await res.json();
     const userId = piJson?.data?.attributes?.metadata?.user_id;
+    const tierRaw = piJson?.data?.attributes?.metadata?.subscription_tier;
+    const tier = tierRaw === "premium" ? "premium" : "pro";
     if (userId) {
-      await recordSubscriptionPaymentForUserId(userId);
+      await recordSubscriptionPaymentForUserId(userId, tier);
       await saveSubscriptionPaymentReceipt(userId, {
         amountCents: amountCents ?? 0,
         currency,

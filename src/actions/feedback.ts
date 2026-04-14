@@ -2,7 +2,7 @@
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 
-/** Returns true if current user is paid (is_subscriber), false if free/trial, null if not logged in. */
+/** Returns true if current user is paid (is_subscriber), false if not on a paid plan, null if not logged in. */
 async function getCurrentUserIsPaidTier(): Promise<boolean | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +24,7 @@ export async function submitSuggestion(params: {
   try {
     const isPaid = await getCurrentUserIsPaidTier();
     if (isPaid === null) return { error: "Sign in to submit a suggestion." };
-    if (!isPaid) return { error: "Suggestions are for paid subscribers only. Free trial users cannot submit." };
+    if (!isPaid) return { error: "Suggestions are for paid subscribers only." };
     const supabase = await createClient();
     const { error } = await supabase.from("suggestions").insert({
       email: params.email?.trim() || null,
@@ -91,7 +91,7 @@ export async function getReviewEligibility(): Promise<{ canSubmit: boolean; reas
     if (!user) return { canSubmit: false, reason: "Sign in with a paid account to submit a review." };
 
     const isPaid = await getCurrentUserIsPaidTier();
-    if (!isPaid) return { canSubmit: false, reason: "Reviews are for paid subscribers only. Free trial users cannot submit." };
+    if (!isPaid) return { canSubmit: false, reason: "Reviews are for paid subscribers only." };
 
     const admin = createServiceRoleClient();
     const { data: existing, error } = await admin

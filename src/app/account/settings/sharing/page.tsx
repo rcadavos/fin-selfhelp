@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
 } from "@/actions/account-sharing";
 import { getBaseUrl } from "@/lib/seo";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
+import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 import { UsersRound, Link2, Trash2, Ban, ExternalLink } from "lucide-react";
 
 function permBadges(s: AccountShareRow) {
@@ -33,6 +35,11 @@ function permBadges(s: AccountShareRow) {
 export default function SharingSettingsPage() {
   const router = useRouter();
   const { user, loading } = useUser();
+  const { data: subscriptionStatus, isPending: subscriptionLoading } = useQuery({
+    ...subscriptionStatusQueryOptions(),
+    enabled: !!user && !loading,
+  });
+  const canShare = subscriptionStatus?.hasProAccess ?? false;
   const { showError, showSuccess } = useSnackbar();
   const [outgoing, setOutgoing] = useState<AccountShareRow[]>([]);
   const [incoming, setIncoming] = useState<AccountShareRow[]>([]);
@@ -106,7 +113,7 @@ export default function SharingSettingsPage() {
     else await refresh();
   }
 
-  if (loading || !user) {
+  if (loading || !user || subscriptionLoading) {
     return (
       <main className="app-main-centered">
         <p className="text-muted-foreground">Loading…</p>
@@ -143,37 +150,47 @@ export default function SharingSettingsPage() {
           <CardTitle className="text-lg">Invite someone</CardTitle>
           <CardDescription>
             Enter their email (must match the account they will use to accept). Choose which areas to share — see
-            above for what they can change.
+            above for what they can change. Invites require an active Pro or Premium plan on your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onInvite} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Partner email</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                autoComplete="email"
-                placeholder="partner@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-medium">They can view</legend>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={pe} onChange={(e) => setPe(e.target.checked)} className="rounded border-input" />
-                My Expenses (bills, mark paid for the month — no editing amounts)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={ptb} onChange={(e) => setPtb(e.target.checked)} className="rounded border-input" />
-                To-buy list
-              </label>
-            </fieldset>
-            <Button type="submit" disabled={busy || !email.includes("@")}>
-              Create invite
-            </Button>
-          </form>
+          {!canShare ? (
+            <p className="text-sm text-muted-foreground">
+              Partner sharing is included with Pro and Premium.{" "}
+              <Link href="/account/subscription/payment" className="font-medium text-primary underline-offset-4 hover:underline">
+                View plans and upgrade
+              </Link>{" "}
+              to send invites. You can still revoke or delete existing invites below.
+            </p>
+          ) : (
+            <form onSubmit={onInvite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Partner email</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="partner@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">They can view</legend>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={pe} onChange={(e) => setPe(e.target.checked)} className="rounded border-input" />
+                  My Expenses (bills, mark paid for the month — no editing amounts)
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={ptb} onChange={(e) => setPtb(e.target.checked)} className="rounded border-input" />
+                  To-buy list
+                </label>
+              </fieldset>
+              <Button type="submit" disabled={busy || !email.includes("@")}>
+                Create invite
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
 
@@ -228,7 +245,7 @@ export default function SharingSettingsPage() {
                       <input
                         type="checkbox"
                         checked={s.can_view_expenses}
-                        disabled={busy}
+                        disabled={busy || !canShare}
                         onChange={(e) => onUpdatePerms(s, { canViewExpenses: e.target.checked })}
                       />
                       My Expenses
@@ -237,11 +254,16 @@ export default function SharingSettingsPage() {
                       <input
                         type="checkbox"
                         checked={s.can_view_to_buy}
-                        disabled={busy}
+                        disabled={busy || !canShare}
                         onChange={(e) => onUpdatePerms(s, { canViewToBuy: e.target.checked })}
                       />
                       To-buy
                     </label>
+                    {!canShare ? (
+                      <p className="w-full text-muted-foreground">
+                        Renew Pro or Premium to change shared areas. You can still revoke access above.
+                      </p>
+                    ) : null}
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">

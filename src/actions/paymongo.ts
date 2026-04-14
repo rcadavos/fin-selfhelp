@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getSubscriptionPlan } from "./subscription-plan";
+import { getSubscriptionPlans } from "./subscription-plan";
 
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 
@@ -14,7 +14,9 @@ function getSecretKey(): string | null {
 }
 
 /** Create a Payment Intent and attach a QR Ph payment method; return QR image for display. */
-export async function createPayMongoQRPhPaymentIntent(): Promise<{
+export async function createPayMongoQRPhPaymentIntent(
+  planId: "pro" | "premium" = "pro"
+): Promise<{
   paymentIntentId?: string;
   qrImageDataUrl?: string;
   error?: string;
@@ -28,7 +30,8 @@ export async function createPayMongoQRPhPaymentIntent(): Promise<{
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not logged in." };
 
-  const plan = await getSubscriptionPlan();
+  const { pro, premium } = await getSubscriptionPlans();
+  const plan = planId === "premium" ? premium ?? pro : pro;
   if (!plan) return { error: "Subscription plan not found." };
   // PayMongo QR PH uses PHP; amount in centavos (100 centavos = 1 PHP). Min 2000 centavos = 20 PHP.
   const amountCentavos = Math.round(plan.priceAmount * 100);
@@ -55,7 +58,7 @@ export async function createPayMongoQRPhPaymentIntent(): Promise<{
             currency,
             payment_method_allowed: ["qrph"],
             description: `${plan.name} subscription (1 ${plan.interval})`,
-            metadata: { user_id: user.id },
+            metadata: { user_id: user.id, subscription_tier: planId },
           },
         },
       }),
@@ -148,8 +151,10 @@ export async function checkPayMongoPaymentStatus(
       const { recordSubscriptionPaymentForUserId } = await import("./budget");
       const { saveSubscriptionPaymentReceipt } = await import("./receipts");
       const userId = attrs?.metadata?.user_id;
+      const tierRaw = attrs?.metadata?.subscription_tier;
+      const tier = tierRaw === "premium" ? "premium" : "pro";
       if (userId) {
-        const result = await recordSubscriptionPaymentForUserId(userId);
+        const result = await recordSubscriptionPaymentForUserId(userId, tier);
         if (result.error) return { status: "succeeded", error: result.error };
         await saveSubscriptionPaymentReceipt(userId, {
           amountCents: attrs?.amount ?? 0,

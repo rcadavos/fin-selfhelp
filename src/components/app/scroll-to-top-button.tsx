@@ -8,20 +8,29 @@ import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD_PX = 320;
 
-function getMainScrollEl(): HTMLElement | null {
-  return document.querySelector('[data-app-scroll="true"]');
+/** Primary scroll regions (AppShell main column, admin content, auth form columns, etc.). */
+function getScrollRoots(): HTMLElement[] {
+  if (typeof document === "undefined") return [];
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-app-scroll="true"]'));
 }
 
 function currentScrollTop(): number {
-  const shell = getMainScrollEl();
-  const yShell = shell?.scrollTop ?? 0;
-  const yWin = typeof window !== "undefined" ? window.scrollY || document.documentElement.scrollTop : 0;
-  return Math.max(yShell, yWin);
+  let max = 0;
+  if (typeof window !== "undefined") {
+    const docEl = document.documentElement?.scrollTop ?? 0;
+    const body = document.body?.scrollTop ?? 0;
+    max = Math.max(max, window.scrollY, docEl, body);
+  }
+  for (const el of getScrollRoots()) {
+    max = Math.max(max, el.scrollTop);
+  }
+  return max;
 }
 
-function scrollBothToTop(): void {
-  const shell = getMainScrollEl();
-  shell?.scrollTo({ top: 0, behavior: "smooth" });
+function scrollAllToTop(): void {
+  for (const el of getScrollRoots()) {
+    el.scrollTo({ top: 0, behavior: "smooth" });
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -37,13 +46,13 @@ export function ScrollToTopButton() {
     update();
     const onScroll = () => update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    const shell = getMainScrollEl();
-    shell?.addEventListener("scroll", onScroll, { passive: true });
+    const roots = getScrollRoots();
+    roots.forEach((el) => el.addEventListener("scroll", onScroll, { passive: true }));
     const t = window.setTimeout(update, 0);
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("scroll", onScroll);
-      shell?.removeEventListener("scroll", onScroll);
+      roots.forEach((el) => el.removeEventListener("scroll", onScroll));
     };
   }, [pathname, update]);
 
@@ -54,7 +63,7 @@ export function ScrollToTopButton() {
       size="icon"
       aria-label="Back to top"
       title="Back to top"
-      onClick={scrollBothToTop}
+      onClick={scrollAllToTop}
       className={cn(
         "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border bg-background/95 shadow-md backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
         "hover:bg-muted",

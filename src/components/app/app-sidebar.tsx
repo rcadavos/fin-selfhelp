@@ -11,6 +11,9 @@ import {
   UsersRound,
   Banknote,
   ClipboardList,
+  Building2,
+  Wallet,
+  Gem,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -29,13 +32,14 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
 }
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote },
-  { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart },
-  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList },
-  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator },
-  { href: "/account/settings", label: "Settings", icon: SlidersHorizontal },
-  { href: "/account/shared", label: "Shared with me", icon: UsersRound },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
+  { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote, premium: false },
+  { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
+  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
+  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
+  { href: "/dashboard/rent-tracker", label: "Rent Tracker", icon: Building2, premium: true },
+  { href: "/dashboard/payment-tracker", label: "Payment Tracker", icon: Wallet, premium: true },
+  { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
 ] as const;
 
 export function AppSidebar({ className }: { className?: string }) {
@@ -65,7 +69,7 @@ export function AppSidebar({ className }: { className?: string }) {
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"
         aria-label="Main navigation"
       >
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon, premium }) => {
           const active = isSidebarNavActive(pathname, href);
           return (
             <Link
@@ -79,7 +83,10 @@ export function AppSidebar({ className }: { className?: string }) {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+              {premium ? (
+                <Gem className="h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" aria-label="Premium" />
+              ) : null}
             </Link>
           );
         })}
@@ -99,6 +106,20 @@ export function AppSidebar({ className }: { className?: string }) {
           </Link>
         )}
       </nav>
+      <div className="shrink-0 px-3 py-2">
+        <Link
+          href="/account/shared"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            isSidebarNavActive(pathname, "/account/shared")
+              ? "bg-primary/15 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">Shared with me</span>
+        </Link>
+      </div>
       <div
         className={cn(
           "w-full shrink-0 border-t bg-muted/95 p-3 backdrop-blur",

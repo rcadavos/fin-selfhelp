@@ -3,107 +3,131 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Gem, Sparkles } from "lucide-react";
 
-const benefits = [
-  "Due-date reminders (3 days, 1 day, on the day)",
-  "Unlimited expenses",
-  "Export cashflow (CSV/PDF)",
-  "Priority support",
-  "Can leave review and suggestions",
+const proBenefits = [
+  "Due dates & email reminders",
+  "Unlimited to-buy & to-do",
+  "Partner sharing (invite by email)",
+  "Reviews & Suggestions",
 ];
+
+const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];
 
 export function SubscribeSection({
   className,
-  plan,
+  proPlan,
+  premiumPlan,
 }: {
   className?: string;
-  plan: SubscriptionPlanRow;
+  proPlan: SubscriptionPlanRow;
+  premiumPlan: SubscriptionPlanRow;
 }) {
   return (
-    <section
-      id="subscribe"
-      className={cn(
-        "border-t bg-muted/30 px-4 py-16 sm:px-6 lg:px-8",
-        className
-      )}
-    >
-      <div className="mx-auto max-w-5xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Subscribe for more
-          </h2>
+    <section id="subscribe" className={cn("border-t bg-muted/30 px-4 py-16 sm:px-6 lg:px-8", className)}>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Plans</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Unlock reminders, unlimited expenses, and extra features.
+            Start free, upgrade to Pro for reminders and unlimited lists, or Premium for extra modules.
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 max-w-3xl mx-auto">
-          {/* Free tier card */}
-          <Card className="border-border/50">
+        <div className="mx-auto grid max-w-5xl items-stretch gap-6 lg:grid-cols-3">
+          <Card className="flex h-full flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Free</CardTitle>
-              <CardDescription>
-                Get started with basic tracking.
-              </CardDescription>
+              <CardDescription>Track bills and cashflow with no card required.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Up to 5 expenses</p>
-              <p>Payment tracking dashboard</p>
-              <p>Categories & summary</p>
+            <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
+              <p>Unlimited expense rows</p>
+              <p>To-buy & to-do up to 10 items each</p>
+              <p>No due dates or reminder emails (upgrade to Pro)</p>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="mt-auto w-full">
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/signup">Create account</Link>
               </Button>
             </CardFooter>
           </Card>
 
-          {/* Subscriber card – colored */}
-          <Card className="border-primary/50 bg-primary/5 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full" aria-hidden />
+          <Card className="relative flex h-full flex-col overflow-hidden border-primary/50 bg-primary/5 shadow-sm">
+            <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-primary/10" aria-hidden />
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg text-foreground">{plan.name}</CardTitle>
+                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+                <CardTitle className="text-lg text-foreground">{proPlan.name}</CardTitle>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                {plan.originalPriceAmount != null && (
+                {proPlan.originalPriceAmount != null && (
                   <span className="text-lg text-muted-foreground line-through">
-                    {formatCurrency(plan.originalPriceAmount, plan.priceCurrency)}
+                    {formatCurrency(proPlan.originalPriceAmount, proPlan.priceCurrency)}
                   </span>
                 )}
                 <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(plan.priceAmount, plan.priceCurrency)}
+                  {formatCurrency(proPlan.priceAmount, proPlan.priceCurrency)}
                 </span>
-                <span className="text-sm text-muted-foreground">/{plan.interval}</span>
+                <span className="text-sm text-muted-foreground">/{proPlan.interval}</span>
               </div>
-              <CardDescription className="mt-1">
-                Reminders, unlimited expenses, export & more.
-              </CardDescription>
+              <CardDescription className="mt-1">Full access on My Expenses, To Buy and To do</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {benefits.map((item) => (
+            <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
+              {proBenefits.map((item) => (
                 <div key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span>{item}</span>
                 </div>
               ))}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="relative z-10 mt-auto w-full">
               <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/account/subscription/payment" className="flex items-center justify-center gap-2">
-                  <span>Subscribe & pay</span>
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    {plan.originalPriceAmount != null && (
-                      <span className="font-normal opacity-90 line-through">
-                        {formatCurrency(plan.originalPriceAmount, plan.priceCurrency)}
-                      </span>
-                    )}
-                    <span>
-                      {formatCurrency(plan.priceAmount, plan.priceCurrency)}
-                      <span className="font-normal opacity-90">/{plan.interval}</span>
-                    </span>
+                <Link href="/account/subscription/payment?plan=pro" className="flex items-center justify-center gap-2">
+                  <span>Get Pro</span>
+                  <span className="font-semibold">
+                    {formatCurrency(proPlan.priceAmount, proPlan.priceCurrency)}/{proPlan.interval}
+                  </span>
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="relative flex h-full flex-col overflow-hidden border-sky-500/40 bg-sky-500/[0.06] shadow-sm dark:bg-sky-950/20">
+            <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-sky-500/10" aria-hidden />
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Gem className="h-5 w-5 text-sky-600 dark:text-sky-400" aria-hidden />
+                <CardTitle className="text-lg text-foreground">{premiumPlan.name}</CardTitle>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                {premiumPlan.originalPriceAmount != null && (
+                  <span className="text-lg text-muted-foreground line-through">
+                    {formatCurrency(premiumPlan.originalPriceAmount, premiumPlan.priceCurrency)}
+                  </span>
+                )}
+                <span className="text-2xl font-bold text-foreground">
+                  {formatCurrency(premiumPlan.priceAmount, premiumPlan.priceCurrency)}
+                </span>
+                <span className="text-sm text-muted-foreground">/{premiumPlan.interval}</span>
+              </div>
+              <CardDescription className="mt-1">Pro plus premium-only trackers.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
+              {premiumExtra.map((item) => (
+                <div key={item} className="flex items-start gap-2 text-muted-foreground">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </CardContent>
+            <CardFooter className="relative z-10 mt-auto w-full">
+              <Button className="w-full bg-sky-600 text-white hover:bg-sky-600/90 dark:bg-sky-500" asChild>
+                <Link
+                  href="/account/subscription/payment?plan=premium"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <span>Get Premium</span>
+                  <span className="font-semibold">
+                    {formatCurrency(premiumPlan.priceAmount, premiumPlan.priceCurrency)}/{premiumPlan.interval}
                   </span>
                 </Link>
               </Button>

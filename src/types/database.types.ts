@@ -72,6 +72,8 @@ export type DbProfile = {
   /** JSON blob: date/time/currency/notifications — see `normalizeUserPreferences` */
   user_preferences?: Record<string, unknown> | null;
   is_subscriber?: boolean;
+  /** Stored product tier; effective access also depends on subscription window. */
+  subscription_tier?: string | null;
   subscription_ends_at?: string | null;
   is_admin?: boolean;
   created_at: string;
@@ -100,8 +102,8 @@ export type DbExpenseEntry = {
   updated_at: string;
 };
 
-/** Free-tier users can only have this many expenses; only these count toward summary and status. */
-export const FREE_TIER_EXPENSE_LIMIT = 5;
+/** Free accounts: max rows on to-buy and to-do (see `src/lib/subscription-tier.ts`). */
+export { FREE_TIER_MAX_LIST_ITEMS } from "@/lib/subscription-tier";
 
 /** Net worth item type. */
 export type NetWorthItemType = "asset" | "liability";

@@ -6,12 +6,12 @@ const faqs: { q: string; a: string }[] = [
     a: "A personal finance hub focused on bills and cashflow: track expenses by category, mark what you paid each month, use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
   },
   {
-    q: "Is there a free tier?",
-    a: "Yes. You can add a limited number of expenses and use the payment dashboard for free. Pro unlocks reminders, unlimited expenses, exports, and more.",
+    q: "What does the free plan include?",
+    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, due dates, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
   },
   {
     q: "Can my partner see my data?",
-    a: "You can invite someone by email and choose what they may view (your My Expenses and/or a to-buy list). They get read-only access with their own login.",
+    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your My Expenses and/or a to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your bill amounts.",
   },
   {
     q: "What currencies and formats are supported?",
@@ -19,7 +19,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "How do bill reminders work?",
-    a: "On Pro, you can attach due dates and reminder windows to expenses. Reminders are sent by email according to the options you select on each bill.",
+    a: "With Pro or Premium (and an active subscription), you can attach repeating due dates and reminder windows to expenses. Reminders are sent by email according to the options you pick for each bill. The free plan does not include due dates or reminder emails.",
   },
   {
     q: "Do I need to link a bank?",
@@ -32,7 +32,7 @@ export function FaqSection({ className }: { className?: string }) {
     <section id="faq" className={cn("border-t bg-muted/25 px-4 py-16 sm:px-6 lg:px-8", className)}>
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Questions &amp; answers</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Frequently Asked Questions</h2>
           <p className="mt-3 text-muted-foreground">Straight answers before you sign up.</p>
         </div>
         <div className="mt-10 space-y-3">

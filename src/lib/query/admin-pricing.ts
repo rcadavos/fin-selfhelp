@@ -1,13 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getSubscriptionPlanForAdmin } from "@/actions/subscription-plan";
+import { getSubscriptionPlansForAdmin } from "@/actions/subscription-plan";
 import { queryKeys } from "./keys";
 
 export const adminPricingQueryOptions = () =>
   queryOptions({
-    queryKey: [...queryKeys.adminUsers().slice(0, -1), "pricing"] as const,
+    queryKey: [...queryKeys.all, "admin", "pricing", "plans"] as const,
     queryFn: async () => {
-      const { plan, error } = await getSubscriptionPlanForAdmin();
+      const { plans, error } = await getSubscriptionPlansForAdmin();
       if (error) throw new Error(error);
-      return plan;
+      return plans;
     },
   });

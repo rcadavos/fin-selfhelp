@@ -9,18 +9,16 @@ import { FaqSection } from "@/components/landing/faq-section";
 import { ReviewsSection } from "@/components/landing/reviews-section";
 import { CtaBandSection } from "@/components/landing/cta-band-section";
 import { Footer } from "@/components/landing/footer";
-import { getSubscriptionPlan } from "@/actions/subscription-plan";
+import { getSubscriptionPlans } from "@/actions/subscription-plan";
 import { getApprovedReviews } from "@/actions/feedback";
-import { SUBSCRIPTION_PLAN_FALLBACK } from "@/lib/query/subscription-plan";
+import { SUBSCRIPTION_PLAN_FALLBACK, SUBSCRIPTION_PREMIUM_FALLBACK } from "@/lib/query/subscription-plan";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [planRow, reviewsResult] = await Promise.all([
-    getSubscriptionPlan(),
-    getApprovedReviews(),
-  ]);
-  const plan = planRow ?? SUBSCRIPTION_PLAN_FALLBACK;
+  const [plansRow, reviewsResult] = await Promise.all([getSubscriptionPlans(), getApprovedReviews()]);
+  const proPlan = plansRow.pro ?? SUBSCRIPTION_PLAN_FALLBACK;
+  const premiumPlan = plansRow.premium ?? SUBSCRIPTION_PREMIUM_FALLBACK;
   const reviews = reviewsResult.error ? [] : reviewsResult.reviews;
 
   return (
@@ -31,7 +29,7 @@ export default async function HomePage() {
       <HowItWorksSection />
       <HighlightsSection />
       <BuiltForSection />
-      <SubscribeSection plan={plan} />
+      <SubscribeSection proPlan={proPlan} premiumPlan={premiumPlan} />
       <FaqSection />
       <ReviewsSection reviews={reviews} />
       <CtaBandSection />

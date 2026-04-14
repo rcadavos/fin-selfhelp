@@ -3,14 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/use-user";
-import { getSubscriptionStatus, unsubscribe, type SubscriptionStatus } from "@/actions/budget";
-import { getMyPaymentHistory, type SubscriptionPaymentRow } from "@/actions/receipts";
+import { unsubscribe } from "@/actions/budget";
 import { formatCurrency, cn } from "@/lib/utils";
-import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
+import { subscriptionPlansQueryOptions } from "@/lib/query/subscription-plan";
+import {
+  subscriptionPaymentsQueryOptions,
+  subscriptionStatusQueryOptions,
+  invalidateSubscriptionAndExpenseQueries,
+} from "@/lib/query/subscription-user";
 import {
   ArrowRight,
   CalendarClock,
@@ -35,11 +39,17 @@ const PRO_FEATURES = [
 
 export default function SubscriptionPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loading: userLoading } = useUser();
-  const { data: plan } = useQuery(subscriptionPlanQueryOptions());
-  const [status, setStatus] = useState<SubscriptionStatus | null>(null);
-  const [payments, setPayments] = useState<SubscriptionPaymentRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: plans } = useQuery(subscriptionPlansQueryOptions());
+  const statusQuery = useQuery({
+    ...subscriptionStatusQueryOptions(),
+    enabled: !!user && !userLoading,
+  });
+  const paymentsQuery = useQuery({
+    ...subscriptionPaymentsQueryOptions(),
+    enabled: !!user && !userLoading,
+  });
   const [unsubmitting, setUnsubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,22 +57,8 @@ export default function SubscriptionPage() {
     if (!userLoading && !user) router.replace("/login");
   }, [user, userLoading, router]);
 
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    Promise.all([getSubscriptionStatus(), getMyPaymentHistory()]).then(([data, history]) => {
-      if (!cancelled) {
-        setStatus(data ?? null);
-        setPayments(history.payments ?? []);
-      }
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
   async function handleUnsubscribe() {
+    const status = statusQuery.data ?? null;
     const endsAt = status?.subscriptionEndsAt ? formatDate(status.subscriptionEndsAt) : "your period end";
     if (!confirm(`Unsubscribe? You'll keep full Pro access until ${endsAt}. You won't be charged again.`)) return;
     setUnsubmitting(true);
@@ -73,8 +69,7 @@ export default function SubscriptionPage() {
       setUnsubmitting(false);
       return;
     }
-    const next = await getSubscriptionStatus();
-    setStatus(next ?? null);
+    await invalidateSubscriptionAndExpenseQueries(queryClient);
     setUnsubmitting(false);
   }
 
@@ -86,6 +81,7 @@ export default function SubscriptionPage() {
     );
   }
 
+  const loading = statusQuery.isPending || paymentsQuery.isPending;
   if (loading) {
     return (
       <main className="app-main-centered">
@@ -94,16 +90,35 @@ export default function SubscriptionPage() {
     );
   }
 
+  const fetchError =
+    statusQuery.isError || paymentsQuery.isError
+      ? (() => {
+          const e = statusQuery.error ?? paymentsQuery.error;
+          return e instanceof Error ? e.message : "Could not load subscription.";
+        })()
+      : null;
+
+  const status = statusQuery.data ?? null;
+  const payments = paymentsQuery.data ?? [];
+
   const hasPro = status?.hasProAccess ?? false;
+  const hasPremium = status?.hasPremiumAccess ?? false;
   const isRecurring = status?.isRecurring ?? false;
   const endsAt = status?.subscriptionEndsAt ?? null;
+  const tierLabel = hasPremium ? "Premium" : hasPro ? "Pro" : "Free";
+  const activePlan = hasPremium ? plans?.premium : plans?.pro;
   const planPrice =
-    plan && isRecurring && hasPro
-      ? `${formatCurrency(plan.priceAmount, plan.priceCurrency)}/${plan.interval}`
+    activePlan && isRecurring && hasPro
+      ? `${formatCurrency(activePlan.priceAmount, activePlan.priceCurrency)}/${activePlan.interval}`
       : null;
 
   return (
     <main className="w-full min-w-0 space-y-8 py-2">
+      {fetchError && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {fetchError}
+        </p>
+      )}
       {/* Page title */}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -133,11 +148,11 @@ export default function SubscriptionPage() {
               {hasPro ? (
                 isRecurring ? (
                   <Badge variant="success" className="font-medium">
-                    Pro · active
+                    {hasPremium ? "Premium" : "Pro"} · active
                   </Badge>
                 ) : (
                   <Badge variant="warning" className="font-medium">
-                    Pro · ends {endsAt ? formatDate(endsAt) : "soon"}
+                    {tierLabel} · ends {endsAt ? formatDate(endsAt) : "soon"}
                   </Badge>
                 )
               ) : (
@@ -147,7 +162,7 @@ export default function SubscriptionPage() {
               )}
             </div>
             <h2 id="subscription-status-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
-              {hasPro ? "OmniTrak Pro" : "Upgrade to Pro"}
+              {hasPro ? (hasPremium ? "OmniTrak Premium" : "OmniTrak Pro") : "Upgrade your plan"}
             </h2>
             <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
               {hasPro
@@ -169,7 +184,7 @@ export default function SubscriptionPage() {
               <>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm text-muted-foreground">Access</span>
-                  <span className="text-right text-sm font-semibold">Pro</span>
+                  <span className="text-right text-sm font-semibold">{tierLabel}</span>
                 </div>
                 {endsAt && (
                   <div className="flex items-start justify-between gap-2 border-t border-border/60 pt-3">
@@ -190,12 +205,22 @@ export default function SubscriptionPage() {
                   <span className="text-sm text-muted-foreground">Current</span>
                   <span className="text-right text-sm font-semibold">Free</span>
                 </div>
-                {plan && (
+                {plans?.pro && (
                   <p className="border-t border-border/60 pt-3 text-sm text-muted-foreground">
                     Pro from{" "}
                     <span className="font-medium text-foreground">
-                      {formatCurrency(plan.priceAmount, plan.priceCurrency)}/{plan.interval}
+                      {formatCurrency(plans.pro.priceAmount, plans.pro.priceCurrency)}/{plans.pro.interval}
                     </span>
+                    {plans.premium && (
+                      <>
+                        {" "}
+                        · Premium from{" "}
+                        <span className="font-medium text-foreground">
+                          {formatCurrency(plans.premium.priceAmount, plans.premium.priceCurrency)}/
+                          {plans.premium.interval}
+                        </span>
+                      </>
+                    )}
                   </p>
                 )}
               </>
@@ -239,7 +264,7 @@ export default function SubscriptionPage() {
           ) : (
             <Button className="w-full gap-2 sm:w-auto" size="lg" asChild>
               <Link href="/account/subscription/payment">
-                Upgrade to {plan?.name ?? "Pro"}
+                View plans & upgrade
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>

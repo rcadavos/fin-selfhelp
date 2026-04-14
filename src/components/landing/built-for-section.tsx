@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const audiences = [
   {
     title: "Households & couples",
-    copy: "Share read-only views with a partner so you both see bills and lists — without juggling spreadsheets.",
+    copy: "On Pro or Premium, share read-only views with a partner so you both see bills and lists — without juggling spreadsheets.",
     icon: Home,
   },
   {

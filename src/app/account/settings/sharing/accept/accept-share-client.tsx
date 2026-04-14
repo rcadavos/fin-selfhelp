@@ -133,7 +133,9 @@ export function AcceptShareClient() {
       setMessage(
         res.error === "email_mismatch"
           ? "This invite was sent to a different email address. Sign in with the invited account."
-          : res.error.replace(/_/g, " ")
+          : res.error === "grantor_subscription_required"
+            ? "Your partner needs an active Pro or Premium subscription to finish this invite. Ask them to renew, then they can send a new invite if needed."
+            : res.error.replace(/_/g, " ")
       );
       return;
     }

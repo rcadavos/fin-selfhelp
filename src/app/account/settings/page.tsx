@@ -244,7 +244,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Heads-up about renewals, trial ending, or payment issues.
+                Heads-up about renewals, billing, or payment issues.
               </p>
             </div>
             <ToggleSwitch

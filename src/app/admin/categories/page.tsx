@@ -345,7 +345,7 @@ export default function AdminCategoriesPage() {
 
       <div className="mt-6">
         <Button variant="outline" asChild>
-          <Link href="/admin">Back to Users</Link>
+          <Link href="/admin">Back to admin</Link>
         </Button>
       </div>
     </main>
