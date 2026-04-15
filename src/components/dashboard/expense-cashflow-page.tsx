@@ -938,7 +938,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               {totalExpenses > 0 && (
                 <div className="relative mt-4 space-y-1">
                   <div className="flex justify-between text-[11px] font-medium opacity-80 sm:text-xs">
-                    <span>Paid vs total</span>
+                    <span>Paid vs Total</span>
                     <span className="tabular-nums">
                       {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
                     </span>
@@ -1004,7 +1004,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         {totalExpenses > 0 && (
           <div className="mt-6">
             <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
-              <span>Paid vs total</span>
+              <span>Paid vs Total</span>
               <span>
                 {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
               </span>
