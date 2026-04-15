@@ -9,6 +9,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ScrollToTopButton } from "@/components/app/scroll-to-top-button";
 import { CookieConsentDialog } from "@/components/app/cookie-consent-dialog";
+import { ServiceWorkerRegister } from "@/components/app/service-worker-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,6 +65,7 @@ export default async function RootLayout({
         />
         <Providers>
           <HydrationBoundary state={dehydrate(queryClient)}>
+            <ServiceWorkerRegister />
             <div className="app-root">
               {children}
               <ScrollToTopButton />

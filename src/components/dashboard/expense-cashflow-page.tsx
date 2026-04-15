@@ -136,6 +136,25 @@ function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
   return map;
 }
 
+function sortedCategoryGroupsFromEntries(
+  entryList: ExpenseEntryRow[],
+  orderedCategoryIds: string[]
+): [string, ExpenseEntryRow[]][] {
+  const g = groupEntriesByCategory(entryList);
+  const pairs = Array.from(g.entries());
+  const uncategorized = pairs.find(([id]) => id === "");
+  const rest = pairs.filter(([id]) => id !== "");
+  rest.sort((a, b) => {
+    const ai = orderedCategoryIds.indexOf(a[0]);
+    const bi = orderedCategoryIds.indexOf(b[0]);
+    if (ai >= 0 && bi >= 0) return ai - bi;
+    if (ai >= 0) return -1;
+    if (bi >= 0) return 1;
+    return a[0].localeCompare(b[0]);
+  });
+  return uncategorized ? [...rest, uncategorized] : rest;
+}
+
 function getCategoryLabel(categories: { id: string; label: string }[], id: string): string {
   if (!id) return "Uncategorized";
   return categories.find((c) => c.id === id)?.label ?? id;
@@ -249,6 +268,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
   const [expensesCategorized, setExpensesCategorized] = useState(false);
+  const [hidePaidExpenses, setHidePaidExpenses] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
   const prefsOptional = useUserPreferencesOptional();
 
@@ -393,24 +413,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const totalExpenses = entries.reduce((sum, e) => sum + e.amount, 0);
   const totalPaidThisMonth = entries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
-  const sortedCategoryGroups = useMemo(() => {
-    const g = groupEntriesByCategory(entries);
-    const pairs = Array.from(g.entries());
-    const uncategorized = pairs.find(([id]) => id === "");
-    const rest = pairs.filter(([id]) => id !== "");
-    rest.sort((a, b) => {
-      const ai = orderedCategoryIds.indexOf(a[0]);
-      const bi = orderedCategoryIds.indexOf(b[0]);
-      if (ai >= 0 && bi >= 0) return ai - bi;
-      if (ai >= 0) return -1;
-      if (bi >= 0) return 1;
-      return a[0].localeCompare(b[0]);
-    });
-    return uncategorized ? [...rest, uncategorized] : rest;
-  }, [entries, orderedCategoryIds]);
-  const flatEntriesOrdered = useMemo(
-    () => sortedCategoryGroups.flatMap(([, categoryEntries]) => categoryEntries),
-    [sortedCategoryGroups]
+  const listEntries = useMemo(() => {
+    if (!hidePaidExpenses) return entries;
+    return entries.filter((e) => !paidIds.has(e.id));
+  }, [entries, hidePaidExpenses, paidIds]);
+  const sortedCategoryGroupsList = useMemo(
+    () => sortedCategoryGroupsFromEntries(listEntries, orderedCategoryIds),
+    [listEntries, orderedCategoryIds]
+  );
+  const flatEntriesOrderedList = useMemo(
+    () => sortedCategoryGroupsList.flatMap(([, categoryEntries]) => categoryEntries),
+    [sortedCategoryGroupsList]
   );
   const editingEntry = useMemo(
     () => (editingId ? (entries.find((e) => e.id === editingId) ?? null) : null),
@@ -1128,11 +1141,29 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             </div>
             {entries.length > 0 ? (
               <p className="text-sm text-muted-foreground">
-                {entries.length} item{entries.length !== 1 ? "s" : ""}
+                {hidePaidExpenses
+                  ? `${listEntries.length} unpaid of ${entries.length} item${entries.length !== 1 ? "s" : ""}`
+                  : `${entries.length} item${entries.length !== 1 ? "s" : ""}`}
               </p>
             ) : null}
           </div>
-          <div className="shrink-0 pt-0.5">
+          <div className="flex shrink-0 flex-col items-stretch gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-end">
+            <div className="inline-flex min-h-9 items-center justify-end gap-2.5 sm:justify-center">
+              <Label
+                id="hide-paid-expenses-label"
+                htmlFor="hide-paid-expenses"
+                className="mb-0 cursor-pointer select-none text-sm font-medium leading-none text-muted-foreground"
+              >
+                Hide paid
+              </Label>
+              <ToggleSwitch
+                id="hide-paid-expenses"
+                aria-labelledby="expenses-section-heading hide-paid-expenses-label"
+                checked={hidePaidExpenses}
+                className="shrink-0"
+                onCheckedChange={setHidePaidExpenses}
+              />
+            </div>
             <Button
               type="button"
               className="shrink-0 gap-2 whitespace-nowrap"
@@ -1142,7 +1173,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               }}
             >
               <Plus className="h-4 w-4 shrink-0" aria-hidden />
-              Add expense
+              Add Expense
             </Button>
           </div>
         </div>
@@ -1156,9 +1187,19 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               </p>
             </CardContent>
           </Card>
+        ) : listEntries.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/30" aria-hidden />
+              <p className="mt-3 text-muted-foreground">
+                Every expense is marked paid for this month. Turn off{" "}
+                <span className="font-medium text-foreground">Hide paid</span> to see them all.
+              </p>
+            </CardContent>
+          </Card>
         ) : expensesCategorized ? (
           <div className="space-y-3">
-            {sortedCategoryGroups.map(([categoryId, categoryEntries]) => {
+            {sortedCategoryGroupsList.map(([categoryId, categoryEntries]) => {
                 const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
                 const countedInCategory = categoryEntries;
                 const catTotalCounted = countedInCategory.reduce((s, e) => s + e.amount, 0);
@@ -1226,7 +1267,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
           <Card className="overflow-hidden border-primary/15 bg-muted/20">
             <CardContent className="px-4 py-3 sm:px-4">
               <ul className="divide-y divide-border/50">
-                {flatEntriesOrdered.map((entry) => renderExpenseEntryRow(entry))}
+                {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
               </ul>
             </CardContent>
           </Card>

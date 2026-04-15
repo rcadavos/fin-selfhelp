@@ -111,12 +111,22 @@ export function buildDefaultMetadata(): Metadata {
   });
   return {
     ...base,
+    applicationName: SITE_NAME,
+    appleWebApp: {
+      capable: true,
+      title: SITE_NAME,
+      statusBarStyle: "default",
+    },
+    formatDetection: {
+      telephone: false,
+    },
     title: {
       default: DEFAULT_TITLE,
       template: `%s | ${SITE_NAME}`,
     },
     icons: {
-      icon: [{ url: "/favicon.png", type: "image/png" }],
+      icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+      apple: [{ url: "/favicon.png", sizes: "180x180", type: "image/png" }],
     },
   };
 }
