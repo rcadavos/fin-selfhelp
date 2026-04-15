@@ -14,6 +14,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { cn } from "@/lib/utils";
 import {
   User,
+  ChevronDown,
   Settings2,
   Menu,
   SlidersHorizontal,
@@ -213,8 +214,16 @@ export function AppHeader({ className }: { className?: string }) {
                   user={user}
                   align="end"
                   trigger={
-                    <Button variant="ghost" size="icon" className="size-10 shrink-0" aria-label="Account menu">
-                      <User className="h-5 w-5" aria-hidden />
+                    <Button
+                      variant="ghost"
+                      className="h-10 shrink-0 gap-1 rounded-md px-2 hover:bg-slate-200/90 focus-visible:bg-slate-200/90 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:hover:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90"
+                      aria-label="Account menu"
+                    >
+                      <User className="h-5 w-5 shrink-0" aria-hidden />
+                      <ChevronDown
+                        className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 ease-out group-data-[state=open]:-rotate-180"
+                        aria-hidden
+                      />
                     </Button>
                   }
                 />

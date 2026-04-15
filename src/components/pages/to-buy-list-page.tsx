@@ -37,9 +37,11 @@ function InlineItemName({
   onCommit,
 }: {
   item: ToBuyItem;
+  /** Pass `""` after clearing the field and pressing Enter to remove the row. */
   onCommit: (id: string, name: string) => void;
 }) {
   const [val, setVal] = useState(item.name);
+  const commitEmptyOnBlurRef = useRef(false);
   useEffect(() => {
     setVal(item.name);
   }, [item.id, item.name]);
@@ -51,14 +53,23 @@ function InlineItemName({
       onBlur={() => {
         const t = val.trim();
         if (!t) {
-          setVal(item.name);
+          if (commitEmptyOnBlurRef.current) {
+            commitEmptyOnBlurRef.current = false;
+            onCommit(item.id, "");
+          } else {
+            setVal(item.name);
+          }
           return;
         }
+        commitEmptyOnBlurRef.current = false;
         if (t !== item.name) onCommit(item.id, t);
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
+          if (!val.trim()) {
+            commitEmptyOnBlurRef.current = true;
+          }
           (e.target as HTMLInputElement).blur();
         }
       }}
@@ -168,7 +179,12 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   }
 
   function commitName(id: string, name: string) {
-    persist(items.map((it) => (it.id === id ? { ...it, name } : it)));
+    const t = name.trim();
+    if (!t) {
+      handleDelete(id);
+      return;
+    }
+    persist(items.map((it) => (it.id === id ? { ...it, name: t } : it)));
   }
 
   if (loading || !user || listQuery.isPending) {

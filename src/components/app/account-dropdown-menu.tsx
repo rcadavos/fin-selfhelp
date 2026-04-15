@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/actions/auth";
+import { cn } from "@/lib/utils";
 import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon } from "lucide-react";
 
 export function getAccountDisplayName(user: {
@@ -69,9 +70,16 @@ export function AccountDropdownMenu({
     setAvatarFailed(false);
   }, [user?.id, avatarUrl]);
 
+  const triggerNode =
+    isValidElement<{ className?: string }>(trigger) && typeof trigger.props === "object"
+      ? cloneElement(trigger, {
+          className: cn(trigger.props.className, "group"),
+        })
+      : trigger;
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{triggerNode}</DropdownMenuTrigger>
       <DropdownMenuContent side={side} align={align} className="w-64">
         <DropdownMenuLabel className="px-2 py-2.5 font-normal">
           <div className="flex items-center gap-3">
@@ -135,7 +143,7 @@ export function AccountDropdownMenu({
             e.preventDefault();
             signOut();
           }}
-          className="flex cursor-pointer items-center gap-2 text-destructive focus:text-destructive"
+          className="flex cursor-pointer items-center gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:hover:bg-destructive/15 dark:focus:bg-destructive/15 dark:focus-visible:bg-destructive/15 dark:data-[highlighted]:bg-destructive/15"
         >
           <LogOut className="h-4 w-4 shrink-0" aria-hidden />
           Logout
