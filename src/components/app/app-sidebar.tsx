@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Calculator,
@@ -22,9 +23,11 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import {
   AccountDropdownMenu,
+  getAccountAvatarUrl,
   getAccountDisplayName,
 } from "@/components/app/account-dropdown-menu";
 import { SiteLogo } from "@/components/app/site-logo";
+import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 
 function isSidebarNavActive(pathname: string | null | undefined, href: string): boolean {
   if (!pathname) return false;
@@ -47,6 +50,18 @@ export function AppSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { user } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
+  const { data: subscriptionStatus } = useQuery(subscriptionStatusQueryOptions());
+  const avatarUrl = user ? getAccountAvatarUrl(user) : null;
+  const subscriptionLabel = subscriptionStatus?.hasPremiumAccess
+    ? "Premium"
+    : subscriptionStatus?.hasProAccess
+      ? "Pro"
+      : "Free";
+  const subscriptionBadgeClass = subscriptionStatus?.hasPremiumAccess
+    ? "bg-blue-100 text-blue-700 ring-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-400/30"
+    : subscriptionStatus?.hasProAccess
+      ? "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30"
+      : "bg-muted text-muted-foreground ring-border";
 
   if (!user) return null;
 
@@ -144,10 +159,29 @@ export function AppSidebar({ className }: { className?: string }) {
               aria-label="Account menu"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                <User className="h-4 w-4" aria-hidden />
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="h-full w-full rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <User className="h-4 w-4" aria-hidden />
+                )}
               </span>
-              <span className="min-w-0 flex-1 truncate text-left text-sm font-medium">
-                {getAccountDisplayName(user)}
+              <span className="min-w-0 flex-1 text-left text-sm font-medium">
+                <span className="block truncate">{getAccountDisplayName(user)}</span>
+                <span
+                  className={cn(
+                    "mt-0.5 inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold leading-none ring-1",
+                    subscriptionBadgeClass
+                  )}
+                >
+                  {subscriptionLabel}
+                </span>
               </span>
               <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
             </Button>

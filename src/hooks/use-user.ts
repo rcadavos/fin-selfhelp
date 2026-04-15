@@ -11,6 +11,16 @@ export function useUser() {
 
   useEffect(() => {
     const supabase = createClient();
+    const hydrateLatestUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error && isStaleRefreshTokenError(error)) {
+        await supabase.auth.signOut({ scope: "local" });
+        setUser(null);
+        return;
+      }
+      if (error) return;
+      setUser(data.user ?? null);
+    };
 
     void supabase.auth
       .getSession()
@@ -26,14 +36,22 @@ export function useUser() {
           setLoading(false);
           return;
         }
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          await hydrateLatestUser();
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+      void hydrateLatestUser();
     });
 
     return () => subscription.unsubscribe();

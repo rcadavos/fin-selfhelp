@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -27,7 +27,7 @@ import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
 import type { ReminderDay } from "@/types/database.types";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
-import type { ExpenseEntryRow } from "@/actions/budget";
+import type { ExpenseData, ExpenseEntryRow } from "@/actions/budget";
 import {
   effectiveDueDateInPaidMonth,
   formatReminderDateList,
@@ -245,7 +245,6 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [togglingPaidId, setTogglingPaidId] = useState<string | null>(null);
   const [inlineNameEditId, setInlineNameEditId] = useState<string | null>(null);
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
@@ -272,17 +271,66 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     [prefsOptional?.preferences]
   );
 
-  async function togglePaid(entryId: string) {
-    const month = getCurrentPaidMonth();
-    setTogglingPaidId(entryId);
-    const res = await toggleExpensePayment(entryId, month);
-    setTogglingPaidId(null);
-    if (res.error) {
-      showSnackbar(res.error);
-      return;
-    }
-    refreshBudget();
-    invalidateExpenseQueries();
+  const togglePaidMutation = useMutation({
+    mutationFn: async (vars: { entryId: string; month: string }) => {
+      const res = await toggleExpensePayment(vars.entryId, vars.month);
+      if (res.error) throw new Error(res.error);
+      return res;
+    },
+    onMutate: async ({ entryId, month }) => {
+      const expenseKey = queryKeys.expenseData(month);
+      const historyKey = queryKeys.expensePaymentHistory(EXPENSE_PAYMENT_HISTORY_MONTHS);
+      await queryClient.cancelQueries({ queryKey: expenseKey });
+      await queryClient.cancelQueries({ queryKey: historyKey });
+
+      const previousExpense = queryClient.getQueryData<ExpenseData | null>(expenseKey);
+      const previousHistory = queryClient.getQueryData<PaymentMonthStats[]>(historyKey);
+
+      if (previousExpense) {
+        const wasPaid = previousExpense.paidEntryIds.includes(entryId);
+        queryClient.setQueryData<ExpenseData | null>(expenseKey, (old) => {
+          if (!old) return old;
+          const next = new Set(old.paidEntryIds);
+          if (wasPaid) next.delete(entryId);
+          else next.add(entryId);
+          return { ...old, paidEntryIds: [...next] };
+        });
+
+        if (previousHistory) {
+          queryClient.setQueryData<PaymentMonthStats[]>(historyKey, (old) => {
+            if (!old) return old;
+            return old.map((stat) => {
+              if (stat.month !== month) return stat;
+              const delta = wasPaid ? -1 : 1;
+              const nextCount = stat.paidCount + delta;
+              return {
+                ...stat,
+                paidCount: Math.min(stat.totalCount, Math.max(0, nextCount)),
+              };
+            });
+          });
+        }
+      }
+
+      return { previousExpense, previousHistory, expenseKey, historyKey };
+    },
+    onError: (err, _vars, ctx) => {
+      showSnackbar(err instanceof Error ? err.message : "Could not update paid status.");
+      if (ctx?.previousExpense !== undefined) {
+        queryClient.setQueryData(ctx.expenseKey, ctx.previousExpense);
+      }
+      if (ctx?.previousHistory !== undefined) {
+        queryClient.setQueryData(ctx.historyKey, ctx.previousHistory);
+      }
+    },
+    onSuccess: () => {
+      refreshBudget();
+      invalidateExpenseQueries();
+    },
+  });
+
+  function togglePaid(entryId: string) {
+    togglePaidMutation.mutate({ entryId, month: paidMonthQueryKey });
   }
 
   const commitInlineNameEdit = useCallback(
@@ -598,7 +646,11 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                       size="icon"
                       className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
                       aria-label="Expense actions"
-                      disabled={deletingId !== null || togglingPaidId === entry.id}
+                      disabled={
+                        deletingId !== null ||
+                        (togglePaidMutation.isPending &&
+                          togglePaidMutation.variables?.entryId === entry.id)
+                      }
                       onPointerDown={(e) => {
                         if (inlineNameEditId === entry.id) e.preventDefault();
                       }}
@@ -606,7 +658,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuContent align="start" className="min-w-0 w-40">
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onSelect={() => {
@@ -622,7 +674,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                         onSelect={() => {
                           void togglePaid(entry.id);
                         }}
-                        disabled={togglingPaidId === entry.id}
+                        disabled={
+                          togglePaidMutation.isPending &&
+                          togglePaidMutation.variables?.entryId === entry.id
+                        }
                       >
                         <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" aria-hidden />
                         Mark as Paid
@@ -633,7 +688,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                         onSelect={() => {
                           void togglePaid(entry.id);
                         }}
-                        disabled={togglingPaidId === entry.id}
+                        disabled={
+                          togglePaidMutation.isPending &&
+                          togglePaidMutation.variables?.entryId === entry.id
+                        }
                       >
                         <XCircle className="text-muted-foreground" aria-hidden />
                         Mark as Unpaid
