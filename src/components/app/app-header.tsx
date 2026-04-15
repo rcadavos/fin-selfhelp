@@ -29,13 +29,15 @@ import {
   UsersRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
+import { AccountDropdownMenu, getAccountAvatarUrl } from "@/components/app/account-dropdown-menu";
 import { SiteLogo } from "@/components/app/site-logo";
 
 export function AppHeader({ className }: { className?: string }) {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
+  const avatarUrl = user ? getAccountAvatarUrl(user) : null;
+  const showAuthenticatedHeader = Boolean(user) || loading;
 
   const isDashboardHome = pathname === "/dashboard";
   const isMyExpenses =
@@ -56,14 +58,14 @@ export function AppHeader({ className }: { className?: string }) {
     <header
       className={cn(
         "sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-        user && "md:hidden",
+        showAuthenticatedHeader && "md:hidden",
         className
       )}
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className={cn("flex items-center", user && "md:hidden")}
+          className={cn("flex items-center", showAuthenticatedHeader && "md:hidden")}
           title="mnitrak"
           aria-label="mnitrak home"
         >
@@ -71,18 +73,31 @@ export function AppHeader({ className }: { className?: string }) {
           <span className="sr-only">mnitrak</span>
         </Link>
         <nav className="ml-auto flex items-center gap-2 sm:gap-4">
-          {user ? (
+          {showAuthenticatedHeader ? (
             <>
               {/* Mobile only (below md): md+ uses sidebar + shell toolbar */}
               <div className="flex md:hidden items-center gap-2">
                 <ThemeToggle />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-10 shrink-0">
-                      <Menu className="h-5 w-5" aria-label="Open menu" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-[13.5rem] md:hidden">
+                {loading ? (
+                  <>
+                    <span
+                      className="inline-block size-10 shrink-0 rounded-md bg-muted/80"
+                      aria-hidden
+                    />
+                    <span
+                      className="inline-block h-10 w-[3.5rem] shrink-0 rounded-md bg-muted/80"
+                      aria-hidden
+                    />
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-10 shrink-0">
+                          <Menu className="h-5 w-5" aria-label="Open menu" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-[13.5rem] md:hidden">
                     <DropdownMenuItem asChild>
                       <Link
                         href="/dashboard"
@@ -171,18 +186,6 @@ export function AppHeader({ className }: { className?: string }) {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link
-                        href="/account/shared"
-                        className={cn(
-                          "flex cursor-pointer items-center gap-2",
-                          isShared && "bg-primary/10 font-semibold text-primary"
-                        )}
-                      >
-                        <UsersRound className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                        Shared with me
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
                         href="/account/settings"
                         className={cn(
                           "flex cursor-pointer items-center gap-2",
@@ -208,25 +211,42 @@ export function AppHeader({ className }: { className?: string }) {
                         </Link>
                       </DropdownMenuItem>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <AccountDropdownMenu
-                  user={user}
-                  align="end"
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      className="h-10 shrink-0 gap-1 rounded-md px-2 hover:bg-slate-200/90 focus-visible:bg-slate-200/90 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:hover:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90"
-                      aria-label="Account menu"
-                    >
-                      <User className="h-5 w-5 shrink-0" aria-hidden />
-                      <ChevronDown
-                        className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 ease-out group-data-[state=open]:-rotate-180"
-                        aria-hidden
-                      />
-                    </Button>
-                  }
-                />
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AccountDropdownMenu
+                      user={user!}
+                      align="end"
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          className="h-10 shrink-0 gap-1 rounded-md px-2 hover:bg-slate-200/90 focus-visible:bg-slate-200/90 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:hover:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90"
+                          aria-label="Account menu"
+                        >
+                          <span className="flex h-6 w-6 shrink-0 overflow-hidden rounded-full bg-primary/15 text-primary ring-1 ring-border/60">
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt=""
+                                width={24}
+                                height={24}
+                                className="h-full w-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center">
+                                <User className="h-4 w-4" aria-hidden />
+                              </span>
+                            )}
+                          </span>
+                          <ChevronDown
+                            className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 ease-out group-data-[state=open]:-rotate-180"
+                            aria-hidden
+                          />
+                        </Button>
+                      }
+                    />
+                  </>
+                )}
               </div>
             </>
           ) : (

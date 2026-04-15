@@ -45,6 +45,8 @@ export type ExpenseEntryRow = {
   id: string;
   category_id: string;
   amount: number;
+  billing_period: "monthly" | "yearly";
+  due_month?: number | null;
   note?: string | null;
   notes?: string | null;
   due_date?: string | null;
@@ -112,7 +114,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, note, notes, due_date, reminder_days_before")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -165,6 +167,8 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
+      billing_period: row.billing_period === "yearly" ? "yearly" : "monthly",
+      due_month: row.due_month != null ? Number(row.due_month) : undefined,
       note: row.note ?? undefined,
       notes: row.notes ?? undefined,
       due_date: row.due_date ?? undefined,
@@ -219,7 +223,7 @@ export async function loadSharedExpenseData(
   const [{ data: entries }, { data: paymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, note, notes, due_date, reminder_days_before")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before")
       .eq("profile_id", grantorProfile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -240,6 +244,8 @@ export async function loadSharedExpenseData(
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
+      billing_period: row.billing_period === "yearly" ? "yearly" : "monthly",
+      due_month: row.due_month != null ? Number(row.due_month) : undefined,
       note: row.note ?? undefined,
       notes: row.notes ?? undefined,
       due_date: hasProAccess ? (row.due_date ?? undefined) : undefined,
@@ -380,7 +386,8 @@ export async function addExpense(
   note?: string | null,
   notes?: string | null,
   dueDate?: string | null,
-  reminderDaysBefore?: ReminderDay[] | null
+  reminderDaysBefore?: ReminderDay[] | null,
+  billingPeriod: "monthly" | "yearly" = "monthly"
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -407,6 +414,9 @@ export async function addExpense(
   const dueNorm = dueRaw ? normalizeDueDateForStorage(dueRaw) : null;
   if (dueRaw && !dueNorm) return { error: "Invalid due date." };
   const reminders = reminderDaysBefore?.length ? reminderDaysBefore : null;
+  if (billingPeriod !== "monthly" && billingPeriod !== "yearly") {
+    return { error: "Invalid billing period." };
+  }
   if (!hasProAccess && (dueNorm || reminders)) {
     return { error: "Due dates and reminders are available on Pro or Premium." };
   }
@@ -416,6 +426,7 @@ export async function addExpense(
       profile_id: profile.id,
       category_id: categoryId,
       amount,
+      billing_period: billingPeriod,
       ...(note != null && { note: note.trim() || null }),
       ...(notes != null && { notes: notes.trim() || null }),
       ...(dueNorm && { due_date: dueNorm }),
@@ -437,7 +448,8 @@ export async function updateExpense(
   note?: string | null,
   notes?: string | null,
   dueDate?: string | null,
-  reminderDaysBefore?: ReminderDay[] | null
+  reminderDaysBefore?: ReminderDay[] | null,
+  billingPeriod?: "monthly" | "yearly"
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -463,6 +475,9 @@ export async function updateExpense(
     }
   }
   const reminders = reminderDaysBefore !== undefined ? (reminderDaysBefore?.length ? reminderDaysBefore : null) : undefined;
+  if (billingPeriod !== undefined && billingPeriod !== "monthly" && billingPeriod !== "yearly") {
+    return { error: "Invalid billing period." };
+  }
   if (!hasProAccess) {
     if (due !== undefined && due !== null) {
       return { error: "Due dates are available on Pro or Premium." };
@@ -478,6 +493,7 @@ export async function updateExpense(
       amount,
       ...(note !== undefined && { note: note || null }),
       ...(notes !== undefined && { notes: notes || null }),
+      ...(billingPeriod !== undefined && { billing_period: billingPeriod }),
       ...(due !== undefined && { due_date: due }),
       ...(reminders !== undefined && { reminder_days_before: reminders }),
     })

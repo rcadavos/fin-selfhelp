@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -79,7 +78,6 @@ import {
   LayoutDashboard,
   CalendarRange,
   MoreHorizontal,
-  Filter,
   Loader2,
   Pencil,
   XCircle,
@@ -182,6 +180,16 @@ function ProPremiumExpenseDivider() {
   );
 }
 
+function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 7h16" />
+      <path d="M7 12h10" />
+      <path d="M10 17h4" />
+    </svg>
+  );
+}
+
 type ExpensePayStatus = "paid" | "outstanding" | "unpaid";
 
 function startOfTodayLocal(): Date {
@@ -203,6 +211,7 @@ function getExpensePayStatus(
 }
 
 export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
+type ExpenseCadenceTab = "monthly" | "yearly";
 
 export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashflowPageVariant }) {
   const router = useRouter();
@@ -243,10 +252,26 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const isSubscriber = expenseDataQuery.data?.isSubscriber ?? false;
   const subscriptionExpired = expenseDataQuery.data?.subscriptionExpired ?? false;
   const paidMonthLabel = expenseDataQuery.data?.paidMonth ?? "";
+  const prefsOptional = useUserPreferencesOptional();
   const paidMonthYm = useMemo(
     () => (/^\d{4}-\d{2}$/.test(paidMonthLabel) ? paidMonthLabel : getCurrentPaidMonth()),
     [paidMonthLabel]
   );
+  const paidMonthDisplay = useMemo(() => {
+    const [yearRaw, monthRaw] = paidMonthYm.split("-");
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+      return paidMonthYm;
+    }
+    const monthDate = new Date(year, month - 1, 1);
+    const locale =
+      (prefsOptional?.preferences?.language ?? DEFAULT_USER_PREFERENCES.language) === "fil"
+        ? "fil-PH"
+        : "en-PH";
+    return monthDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
+  }, [paidMonthYm, prefsOptional?.preferences?.language]);
+  const paidYearDisplay = useMemo(() => paidMonthYm.slice(0, 4), [paidMonthYm]);
   const paidIds = useMemo(
     () => new Set(expenseDataQuery.data?.paidEntryIds ?? []),
     [expenseDataQuery.data]
@@ -274,12 +299,21 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
   const [expensesCategorized, setExpensesCategorized] = useState(false);
-  const [filterPaid, setFilterPaid] = useState(true);
-  const [filterUnpaid, setFilterUnpaid] = useState(true);
-  const [filterPastDue, setFilterPastDue] = useState(true);
+  const [expenseCadenceTab, setExpenseCadenceTab] = useState<ExpenseCadenceTab>("monthly");
+  const [filterPaid, setFilterPaid] = useState(false);
+  const [filterUnpaid, setFilterUnpaid] = useState(false);
+  const [filterPastDue, setFilterPastDue] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [draftFilterPaid, setDraftFilterPaid] = useState(false);
+  const [draftFilterUnpaid, setDraftFilterUnpaid] = useState(false);
+  const [draftFilterPastDue, setDraftFilterPastDue] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
-  const prefsOptional = useUserPreferencesOptional();
-
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+    setDraftFilterPaid(filterPaid);
+    setDraftFilterUnpaid(filterUnpaid);
+    setDraftFilterPastDue(filterPastDue);
+  }, [filterMenuOpen, filterPaid, filterUnpaid, filterPastDue]);
   useEffect(() => {
     const stored = readExpensesCategorizedPreference();
     if (stored !== null) setExpensesCategorized(stored);
@@ -419,17 +453,29 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     }
   }, [user, loading, router]);
 
-  const totalExpenses = entries.reduce((sum, e) => sum + e.amount, 0);
-  const totalPaidThisMonth = entries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
+  const tabAllEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      const cadence = entry.billing_period ?? "monthly";
+      return cadence === expenseCadenceTab;
+    });
+  }, [entries, expenseCadenceTab]);
+  const summaryEntries = useMemo(
+    () => (pageVariant === "expenses" ? tabAllEntries : entries),
+    [pageVariant, tabAllEntries, entries]
+  );
+  const totalExpenses = summaryEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidThisMonth = summaryEntries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
   const listEntries = useMemo(() => {
-    return entries.filter((e) => {
+    const noFilterSelected = !filterPaid && !filterUnpaid && !filterPastDue;
+    if (noFilterSelected) return tabAllEntries;
+    return tabAllEntries.filter((e) => {
       const status = getExpensePayStatus(e, paidIds, paidMonthYm);
       if (status === "paid") return filterPaid;
       if (status === "outstanding") return filterPastDue;
       return filterUnpaid;
     });
-  }, [entries, paidIds, paidMonthYm, filterPaid, filterUnpaid, filterPastDue]);
+  }, [tabAllEntries, paidIds, paidMonthYm, filterPaid, filterUnpaid, filterPastDue]);
   const sortedCategoryGroupsList = useMemo(
     () => sortedCategoryGroupsFromEntries(listEntries, orderedCategoryIds),
     [listEntries, orderedCategoryIds]
@@ -451,10 +497,12 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     [addReminderDays]
   );
 
-  const paidCount = entries.filter((e) => paidIds.has(e.id)).length;
+  const paidCount = summaryEntries.filter((e) => paidIds.has(e.id)).length;
   const paidPct = totalExpenses > 0 ? Math.min(100, Math.round((totalPaidThisMonth / totalExpenses) * 100)) : 0;
   const paidCountPct =
-    entries.length > 0 ? Math.round((paidCount / entries.length) * 100) : 0;
+    summaryEntries.length > 0 ? Math.round((paidCount / summaryEntries.length) * 100) : 0;
+  const activeFilterCount =
+    Number(filterPaid) + Number(filterUnpaid) + Number(filterPastDue);
 
   function resetAddExpenseForm() {
     setAddCategory("");
@@ -480,7 +528,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       addName.trim(),
       addNotes.trim() || undefined,
       dueDate,
-      reminderDays
+      reminderDays,
+      expenseCadenceTab
     );
     if (result.error) {
       showSnackbar(result.error);
@@ -728,6 +777,16 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                         Mark as Unpaid
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                      onSelect={() => {
+                        void handleDeleteExpense(entry.id);
+                      }}
+                      disabled={deletingId !== null}
+                    >
+                      <Trash2 className="text-destructive" aria-hidden />
+                      Remove
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -767,20 +826,44 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       >
         <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
           <DialogHeader>
-            <DialogTitle>Edit expense</DialogTitle>
+            <DialogTitle>
+              {editingEntry?.billing_period === "yearly" ? "Edit Yearly Expense" : "Edit Monthly Expense"}
+            </DialogTitle>
             {editingEntry ? (
               <DialogDescription>
                 {getCategoryLabel(categoriesList, editingEntry.category_id)}
                 {" · "}
                 {formatCurrency(editingEntry.amount)}
+                {" · "}
+                {paidIds.has(editingEntry.id)
+                  ? "Paid"
+                  : getExpensePayStatus(editingEntry, paidIds, paidMonthYm) === "outstanding"
+                    ? "Past Due"
+                    : "Unpaid"}
               </DialogDescription>
             ) : null}
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-expense-label">
-                Label <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="edit-expense-label">
+                  Label <span className="text-destructive">*</span>
+                </Label>
+                {editingEntry ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void togglePaid(editingEntry.id)}
+                    disabled={
+                      togglePaidMutation.isPending &&
+                      togglePaidMutation.variables?.entryId === editingEntry.id
+                    }
+                  >
+                    {paidIds.has(editingEntry.id) ? "Mark as Unpaid" : "Mark as Paid"}
+                  </Button>
+                ) : null}
+              </div>
               <Input
                 id="edit-expense-label"
                 value={editName}
@@ -918,26 +1001,44 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       {pageVariant === "expenses" && (
         <>
           <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard" className="gap-1.5">
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
+              <div className="inline-flex items-center gap-1 rounded-md border bg-background p-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={expenseCadenceTab === "monthly" ? "secondary" : "ghost"}
+                  className="h-8 px-3"
+                  onClick={() => setExpenseCadenceTab("monthly")}
+                >
+                  Monthly
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
+                  className="h-8 px-3"
+                  onClick={() => setExpenseCadenceTab("yearly")}
+                >
+                  Yearly
+                </Button>
+              </div>
+            </div>
           </div>
           {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 sm:h-36 sm:w-36" aria-hidden />
               <div className="absolute -bottom-5 -left-5 h-20 w-20 rounded-full bg-white/5 sm:h-24 sm:w-24" aria-hidden />
 
-              <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative flex flex-row items-start justify-between gap-3 sm:items-start">
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="flex items-center gap-1.5 text-xs font-medium opacity-90 sm:text-sm">
                     <CalendarRange className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                    This month ({paidMonthLabel})
+                    {expenseCadenceTab === "yearly"
+                      ? `This year (${paidYearDisplay})`
+                      : `This month (${paidMonthDisplay})`}
                   </p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs tabular-nums sm:text-sm">
+                  <div className="flex flex-col gap-1 text-xs tabular-nums sm:flex-row sm:flex-wrap sm:gap-x-3 sm:gap-y-1 sm:text-sm">
                     <span>
                       <span className="opacity-80">Total </span>
                       <span className="font-bold">{formatCurrency(totalExpenses)}</span>
@@ -954,7 +1055,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </div>
                 {totalExpenses > 0 && (
                   <div
-                    className="relative mx-auto h-20 w-20 shrink-0 rounded-full sm:mx-0"
+                    className="relative h-20 w-20 shrink-0 rounded-full"
                     style={{
                       background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
                     }}
@@ -962,7 +1063,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   >
                     <div className="absolute inset-2 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[9px] font-medium leading-tight text-primary-foreground">
                       <span className="opacity-80">Paid</span>
-                      <span className="text-sm font-bold tabular-nums">{paidPct}%</span>
+                      <span className="text-base font-bold tabular-nums sm:text-lg">{paidPct}%</span>
                     </div>
                   </div>
                 )}
@@ -996,17 +1097,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
         <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
 
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-3 sm:items-center">
+          <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-sm font-medium opacity-90">
               <CalendarRange className="h-4 w-4" />
-              This month ({paidMonthLabel})
+              This month ({paidMonthDisplay})
             </p>
             <p className="mt-1 text-sm opacity-80">Still to pay</p>
             <p className="text-4xl font-bold tracking-tight sm:text-5xl">
               {formatCurrency(unpaidThisMonth)}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Badge className="border-white/30 bg-white/20 text-white hover:bg-white/30">
                 {paidCount} of {entries.length} bills marked paid
               </Badge>
@@ -1019,7 +1120,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
           </div>
           {totalExpenses > 0 && (
             <div
-              className="relative mx-auto h-28 w-28 shrink-0 rounded-full sm:mx-0"
+              className="relative h-28 w-28 shrink-0 rounded-full"
               style={{
                 background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
               }}
@@ -1027,7 +1128,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             >
               <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[10px] font-medium leading-tight text-primary-foreground">
                 <span className="opacity-80">Paid</span>
-                <span className="text-lg font-bold">{paidPct}%</span>
+                <span className="text-xl font-bold sm:text-2xl">{paidPct}%</span>
               </div>
             </div>
           )}
@@ -1173,39 +1274,107 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             </div>
             {entries.length > 0 ? (
               <p className="text-sm text-muted-foreground">
-                {listEntries.length} of {entries.length} item{entries.length !== 1 ? "s" : ""}
+                {listEntries.length} item{listEntries.length !== 1 ? "s" : ""}
               </p>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-col items-stretch gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-end">
-            <DropdownMenu>
+          <div className="flex shrink-0 flex-row items-center justify-end gap-2 pt-0.5">
+            <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" aria-hidden />
-                  Filter
+                  <SortLinesIcon className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">Filter</span>
+                  {activeFilterCount > 0 ? (
+                    <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">
+                      {activeFilterCount}
+                    </Badge>
+                  ) : null}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuLabel>Show statuses</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  checked={filterPaid}
-                  onCheckedChange={(v) => setFilterPaid(v === true)}
+                <DropdownMenuItem
+                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setDraftFilterPaid((prev) => !prev);
+                  }}
                 >
+                  <span
+                    className={cn(
+                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
+                      draftFilterPaid && "bg-primary text-primary-foreground border-primary"
+                    )}
+                    aria-hidden
+                  >
+                    {draftFilterPaid ? <Check className="h-3 w-3" /> : null}
+                  </span>
                   Paid
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={filterUnpaid}
-                  onCheckedChange={(v) => setFilterUnpaid(v === true)}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setDraftFilterUnpaid((prev) => !prev);
+                  }}
                 >
+                  <span
+                    className={cn(
+                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
+                      draftFilterUnpaid && "bg-primary text-primary-foreground border-primary"
+                    )}
+                    aria-hidden
+                  >
+                    {draftFilterUnpaid ? <Check className="h-3 w-3" /> : null}
+                  </span>
                   Unpaid
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={filterPastDue}
-                  onCheckedChange={(v) => setFilterPastDue(v === true)}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setDraftFilterPastDue((prev) => !prev);
+                  }}
                 >
+                  <span
+                    className={cn(
+                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
+                      draftFilterPastDue && "bg-primary text-primary-foreground border-primary"
+                    )}
+                    aria-hidden
+                  >
+                    {draftFilterPastDue ? <Check className="h-3 w-3" /> : null}
+                  </span>
                   Past Due
-                </DropdownMenuCheckboxItem>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="flex items-center justify-end gap-2 p-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDraftFilterPaid(false);
+                      setDraftFilterUnpaid(false);
+                      setDraftFilterPastDue(false);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setFilterPaid(draftFilterPaid);
+                      setFilterUnpaid(draftFilterUnpaid);
+                      setFilterPastDue(draftFilterPastDue);
+                      setFilterMenuOpen(false);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button
@@ -1217,17 +1386,19 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               }}
             >
               <Plus className="h-4 w-4 shrink-0" aria-hidden />
-              Add Expense
+              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Add Expense</span>
             </Button>
           </div>
         </div>
-        {entries.length === 0 ? (
+        {tabAllEntries.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
               <CircleDollarSign className="mx-auto h-12 w-12 text-muted-foreground/30" />
               <p className="mt-3 text-muted-foreground">
-                No expenses yet. Use <span className="font-medium text-foreground">Add expense</span> to create your
-                first one.
+                {expenseCadenceTab === "yearly"
+                  ? "No yearly expenses yet. Use Add to create your first yearly expense."
+                  : "No expenses yet. Use Add expense to create your first one."}
               </p>
             </CardContent>
           </Card>
@@ -1320,7 +1491,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       <Dialog open={addExpenseModalOpen} onOpenChange={setAddExpenseModalOpen}>
         <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
           <DialogHeader>
-            <DialogTitle>Add expense</DialogTitle>
+            <DialogTitle>
+              {expenseCadenceTab === "yearly" ? "Add Yearly Expense" : "Add Monthly Expense"}
+            </DialogTitle>
             <DialogDescription>
               
             </DialogDescription>
@@ -1440,7 +1613,11 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   (parseInt(addAmount.replace(/\D/g, ""), 10) || 0) <= 0
                 }
               >
-                {addStatus === "saving" ? "Adding…" : "Add expense"}
+                {addStatus === "saving"
+                  ? "Adding…"
+                  : expenseCadenceTab === "yearly"
+                    ? "Add Yearly Expense"
+                    : "Add Monthly Expense"}
               </Button>
             </DialogFooter>
           </form>

@@ -64,7 +64,7 @@ export function HeroSection({ className }: HeroSectionProps) {
       <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
         <div className="max-w-xl text-center lg:text-left">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-            You can&apos;t grow what you don&apos;t track
+            What gets tracked gets improved
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Your one-stop personal tracker for everything

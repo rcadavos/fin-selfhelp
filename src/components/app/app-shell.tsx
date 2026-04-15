@@ -9,7 +9,8 @@ import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { user, loading } = useUser();
+  const showAuthenticatedShell = Boolean(user) || loading;
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col md:overflow-hidden">
@@ -18,10 +19,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex h-full min-h-0 min-w-0 w-full flex-1 flex-col md:min-h-0 md:overflow-hidden",
-          user && "md:pl-56"
+          showAuthenticatedShell && "md:pl-56"
         )}
       >
-        {user ? (
+        {showAuthenticatedShell ? (
           <header
             className="relative z-0 hidden h-14 shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block"
             aria-label="App toolbar"

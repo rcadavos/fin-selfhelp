@@ -31,21 +31,22 @@ function Shell({
 
 function HeroSkeleton() {
   return (
-    <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-muted/40 p-6 shadow-inner dark:from-primary/15 dark:via-primary/10 dark:to-muted/30">
-      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/20 dark:bg-white/10" aria-hidden />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-3">
-          <Skeleton className="h-4 w-48 bg-primary-foreground/20 sm:h-5 sm:w-56" />
-          <Skeleton className="h-3 w-24 bg-primary-foreground/15" />
+    <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
+      <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
+      <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
+      <div className="relative flex items-start justify-between gap-3 sm:items-center">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton className="h-4 w-44 bg-primary-foreground/25 sm:w-52" />
+          <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
           <Skeleton className="h-12 w-52 max-w-full bg-primary-foreground/25 sm:h-14" />
-          <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-6 w-36 rounded-full bg-primary-foreground/20" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Skeleton className="h-6 w-40 rounded-full bg-primary-foreground/20" />
             <Skeleton className="h-6 w-28 rounded-full bg-primary-foreground/20" />
           </div>
         </div>
-        <Skeleton className="mx-auto h-28 w-28 shrink-0 rounded-full bg-primary-foreground/25 sm:mx-0" />
+        <Skeleton className="h-28 w-28 shrink-0 rounded-full bg-primary-foreground/25" />
       </div>
-      <div className="relative mt-5 space-y-2">
+      <div className="mt-6 space-y-2">
         <div className="flex justify-between gap-4">
           <Skeleton className="h-3 w-28 bg-primary-foreground/15" />
           <Skeleton className="h-3 w-32 bg-primary-foreground/15" />
@@ -80,16 +81,16 @@ function MyExpensesHeroSkeleton() {
     <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 sm:h-36 sm:w-36" aria-hidden />
       <div className="absolute -bottom-5 -left-5 h-20 w-20 rounded-full bg-white/5 sm:h-24 sm:w-24" aria-hidden />
-      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex flex-row items-start justify-between gap-3 sm:items-start">
         <div className="min-w-0 flex-1 space-y-1.5">
           <Skeleton className="h-3.5 w-48 bg-primary-foreground/25 sm:h-4 sm:w-52" />
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-3 sm:gap-y-1">
             <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
             <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
             <Skeleton className="h-3.5 w-[5rem] bg-primary-foreground/20 sm:h-4" />
           </div>
         </div>
-        <Skeleton className="mx-auto h-20 w-20 shrink-0 rounded-full bg-primary-foreground/25 sm:mx-0" />
+        <Skeleton className="h-20 w-20 shrink-0 rounded-full bg-primary-foreground/25" />
       </div>
       <div className="relative mt-4 space-y-1">
         <div className="flex justify-between gap-4">
@@ -122,12 +123,18 @@ function MyExpensesCategoryRowSkeleton() {
 function MyExpensesCategorySectionSkeleton() {
   return (
     <div className="mb-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-row items-start justify-between gap-3 sm:gap-6">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Skeleton className="h-7 w-28" />
-          <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-16" />
         </div>
-        <Skeleton className="h-4 w-20" />
+        <div className="flex shrink-0 flex-row items-center justify-end gap-2 pt-0.5">
+          <Skeleton className="h-9 w-14 rounded-md sm:w-24" />
+          <Skeleton className="h-9 w-14 rounded-md sm:w-28" />
+        </div>
       </div>
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         <div className="p-4 pb-2">
@@ -224,8 +231,10 @@ function ExpensesBody() {
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8">
       <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
-        <Skeleton className="h-7 w-40" />
-        <Skeleton className="h-9 w-[7.25rem] rounded-md" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-10 w-40 rounded-md" />
+        </div>
       </div>
       <MyExpensesHeroSkeleton />
       <MyExpensesCategorySectionSkeleton />

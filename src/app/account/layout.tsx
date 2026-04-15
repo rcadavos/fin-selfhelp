@@ -5,7 +5,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   return (
     <div className="app-layout app-layout--shell">
       <AppShell>
-        <div className="container mx-auto w-full max-w-4xl px-4 pb-8 pt-4 md:pt-6">{children}</div>
+        <div className="container mx-auto w-full max-w-4xl px-4 pb-8 pt-4">{children}</div>
       </AppShell>
     </div>
   );

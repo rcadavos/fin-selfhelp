@@ -26,26 +26,30 @@ export function Header({ className }: HeaderProps) {
           <SiteLogo fetchPriority="high" />
           <span className="sr-only">OmniTrak</span>
         </Link>
-        <nav className="ml-auto flex min-h-9 min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
+        <nav className="ml-auto flex min-h-9 min-w-0 flex-nowrap items-center justify-end gap-2 sm:gap-3">
           <ThemeToggle />
           {loading ? (
-            <div className="flex items-center gap-2 sm:gap-3" aria-busy="true" aria-label="Loading account">
+            <div
+              className="flex shrink-0 items-center gap-2 sm:gap-3"
+              aria-busy="true"
+              aria-label="Loading account"
+            >
               <span className="inline-block h-9 w-[4.25rem] shrink-0 rounded-md bg-muted/80 sm:w-[4.5rem]" />
               <span className="inline-block h-9 w-[4.75rem] shrink-0 rounded-md bg-muted/80 sm:w-[5.25rem]" />
             </div>
           ) : user ? (
-            <Button size="sm" asChild className="min-w-[9.5rem] shrink-0">
+            <Button size="sm" asChild className="shrink-0">
               <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
           ) : (
-            <>
-              <Button size="sm" variant="ghost" asChild className="min-w-[4.25rem] shrink-0 px-3 sm:min-w-[4.5rem]">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <Button size="sm" variant="ghost" asChild className="shrink-0 px-3">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button size="sm" asChild className="min-w-[4.75rem] shrink-0 sm:min-w-[5.25rem]">
+              <Button size="sm" asChild className="shrink-0 px-3.5">
                 <Link href="/signup">Sign up</Link>
               </Button>
-            </>
+            </div>
           )}
         </nav>
       </div>
