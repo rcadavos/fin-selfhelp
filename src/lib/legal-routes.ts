@@ -1,4 +1,4 @@
-/** Canonical paths for legal documents (single `/legal/` prefix). */
+/** Canonical paths for legal documents (all under `/legal/`). */
 export const LEGAL_ROUTES = {
   hub: "/legal",
   terms: "/legal/terms",

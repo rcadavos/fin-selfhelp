@@ -4,10 +4,12 @@ import { cn } from "@/lib/utils";
 
 type SiteLogoProps = {
   className?: string;
+  /** Set `high` for above-the-fold logo (LCP / Lighthouse fetch priority). */
+  fetchPriority?: "high" | "low" | "auto";
 };
 
 /** Banner wordmark — `public/omnitrak-logo.png` (top headers). */
-export function SiteLogo({ className }: SiteLogoProps) {
+export function SiteLogo({ className, fetchPriority = "auto" }: SiteLogoProps) {
   const logoSrc = "/omnitrak-logo.png?v=20260414";
   return (
     <img
@@ -17,6 +19,7 @@ export function SiteLogo({ className }: SiteLogoProps) {
       width={200}
       height={40}
       decoding="async"
+      fetchPriority={fetchPriority}
     />
   );
 }

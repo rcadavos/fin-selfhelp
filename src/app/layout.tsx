@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { dehydrate } from "@tanstack/react-query";
-import { getQueryClient } from "@/lib/query/query-client";
-import { categoriesQueryOptions } from "@/lib/query/categories";
 import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { buildDefaultMetadata, getBaseUrl } from "@/lib/seo";
 import "./globals.css";
@@ -15,12 +12,14 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  adjustFontFallback: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = buildDefaultMetadata();
@@ -30,6 +29,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  /** Reduces odd layout jumps when the on-screen keyboard opens (Chrome/Android; safe elsewhere). */
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
@@ -41,8 +42,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const queryClient = getQueryClient();
-  await queryClient.prefetchQuery(categoriesQueryOptions());
   const baseUrl = getBaseUrl();
   const jsonLd = {
     "@context": "https://schema.org",
@@ -56,6 +55,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link
+          rel="preload"
+          href="/omnitrak-logo.png?v=20260414"
+          as="image"
+          type="image/png"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
@@ -64,7 +71,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <Providers>
-          <HydrationBoundary state={dehydrate(queryClient)}>
+          <HydrationBoundary>
             <ServiceWorkerRegister />
             <div className="app-root">
               {children}

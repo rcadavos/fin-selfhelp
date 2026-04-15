@@ -12,7 +12,7 @@ type HeaderProps = {
 };
 
 export function Header({ className }: HeaderProps) {
-  const { user } = useUser();
+  const { user, loading } = useUser();
 
   return (
     <header
@@ -22,22 +22,27 @@ export function Header({ className }: HeaderProps) {
       )}
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center" title="mnitrak" aria-label="mnitrak home">
-          <SiteLogo />
-          <span className="sr-only">mnitrak</span>
+        <Link href="/" className="flex items-center" title="OmniTrak" aria-label="OmniTrak home">
+          <SiteLogo fetchPriority="high" />
+          <span className="sr-only">OmniTrak</span>
         </Link>
-        <nav className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
+        <nav className="ml-auto flex min-h-9 min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-4">
           <ThemeToggle />
-          {user ? (
-            <Button size="sm" asChild>
+          {loading ? (
+            <div className="flex items-center gap-2 sm:gap-3" aria-busy="true" aria-label="Loading account">
+              <span className="inline-block h-9 w-[4.25rem] shrink-0 rounded-md bg-muted/80 sm:w-[4.5rem]" />
+              <span className="inline-block h-9 w-[4.75rem] shrink-0 rounded-md bg-muted/80 sm:w-[5.25rem]" />
+            </div>
+          ) : user ? (
+            <Button size="sm" asChild className="min-w-[9.5rem] shrink-0">
               <Link href="/dashboard">Go to Dashboard</Link>
             </Button>
           ) : (
             <>
-              <Button size="sm" variant="ghost" asChild>
+              <Button size="sm" variant="ghost" asChild className="min-w-[4.25rem] shrink-0 px-3 sm:min-w-[4.5rem]">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button size="sm" asChild>
+              <Button size="sm" asChild className="min-w-[4.75rem] shrink-0 sm:min-w-[5.25rem]">
                 <Link href="/signup">Sign up</Link>
               </Button>
             </>

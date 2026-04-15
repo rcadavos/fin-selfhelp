@@ -46,6 +46,7 @@ export type ExpenseEntryRow = {
   category_id: string;
   amount: number;
   note?: string | null;
+  notes?: string | null;
   due_date?: string | null;
   reminder_days_before?: number[] | null;
 };
@@ -111,7 +112,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, note, due_date, reminder_days_before")
+      .select("id, category_id, amount, note, notes, due_date, reminder_days_before")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -165,6 +166,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
       note: row.note ?? undefined,
+      notes: row.notes ?? undefined,
       due_date: row.due_date ?? undefined,
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
     })),
@@ -217,7 +219,7 @@ export async function loadSharedExpenseData(
   const [{ data: entries }, { data: paymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, note, due_date, reminder_days_before")
+      .select("id, category_id, amount, note, notes, due_date, reminder_days_before")
       .eq("profile_id", grantorProfile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -239,6 +241,7 @@ export async function loadSharedExpenseData(
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
       note: row.note ?? undefined,
+      notes: row.notes ?? undefined,
       due_date: hasProAccess ? (row.due_date ?? undefined) : undefined,
       reminder_days_before: hasProAccess
         ? normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined
@@ -375,6 +378,7 @@ export async function addExpense(
   categoryId: string,
   amount: number,
   note?: string | null,
+  notes?: string | null,
   dueDate?: string | null,
   reminderDaysBefore?: ReminderDay[] | null
 ): Promise<{ error?: string }> {
@@ -413,6 +417,7 @@ export async function addExpense(
       category_id: categoryId,
       amount,
       ...(note != null && { note: note.trim() || null }),
+      ...(notes != null && { notes: notes.trim() || null }),
       ...(dueNorm && { due_date: dueNorm }),
       ...(reminders && { reminder_days_before: reminders }),
     })
@@ -430,6 +435,7 @@ export async function updateExpense(
   categoryId: string,
   amount: number,
   note?: string | null,
+  notes?: string | null,
   dueDate?: string | null,
   reminderDaysBefore?: ReminderDay[] | null
 ): Promise<{ error?: string }> {
@@ -471,6 +477,7 @@ export async function updateExpense(
       category_id: categoryId,
       amount,
       ...(note !== undefined && { note: note || null }),
+      ...(notes !== undefined && { notes: notes || null }),
       ...(due !== undefined && { due_date: due }),
       ...(reminders !== undefined && { reminder_days_before: reminders }),
     })

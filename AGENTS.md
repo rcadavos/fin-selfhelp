@@ -31,7 +31,9 @@ On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using 
 
 ## Repo layout (high level)
 
-- `src/app/` — App Router routes, `layout.tsx`, `page.tsx`, route handlers, `loading.tsx` where present.
+- `src/app/` — App Router routes, `layout.tsx`, `page.tsx`, route handlers, `loading.tsx` where present. Legal/policy pages live in the **`(legal)`** route group: `src/app/(legal)/legal/…` (URLs: `/legal`, `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/no-sale`). The inner `legal` folder is the URL segment; the group is for layout/organization only. Use `LEGAL_ROUTES` in `@/lib/legal-routes` for links and metadata paths.
+- **Auth:** `login`, `signup`, `forgot-password`, `reset-password`, and `auth/callback` live under the **`(auth)`** route group (`src/app/(auth)/…`). Public URLs are unchanged (`/login`, `/signup`, `/auth/callback`, etc.).
+- **Main app shell:** `dashboard` (and nested routes like `dashboard/savings-calculator`, calculators, etc.) live under the **`(main)`** route group (`src/app/(main)/dashboard/…`). Public URLs stay `/dashboard`, `/dashboard/...` (groups do not appear in the path). Legacy `/savings-calculator` redirects to `/dashboard/savings-calculator`, which then redirects to `/dashboard/calculators/savings`.
 - `src/components/` — Feature UI (`dashboard/`, `landing/`, `app/`, `pages/`, etc.) and `components/ui/` (shared primitives).
 - `src/components/budget-tool-demo/` — Standalone multi-step cashflow demo (not mounted on a route); see folder `README.md` and `index.ts` exports.
 - `src/actions/` — **Server Actions** (`"use server"`), Supabase mutations, `revalidatePath` as needed.
@@ -47,6 +49,7 @@ On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using 
 3. **Imports:** Use `@/` path alias (e.g. `@/components/ui/button`).
 4. **Server vs client:** Mark client components with `"use client"`; keep server components default where possible.
 5. **Env:** `NEXT_PUBLIC_*` for browser; Supabase keys and secrets via `.env.local` (do not commit secrets). README documents `NEXT_PUBLIC_SITE_URL`, support email, etc.
+6. **Routes:** When changing where a page lives (new URL path), **move or add the App Router files** under `src/app/...` (`page.tsx`, `layout.tsx`, route groups as needed) and **update all internal links** (`Link`, `router.push`, `redirect`, `revalidatePath`, etc.). **Do not** implement the new location solely via **`next.config` `redirects`**—that hides the real route, keeps dead source paths, and makes grep and refactors harder. Reserve `redirects()` only for **legacy aliases** (old bookmarks, renamed paths you must keep working) alongside the canonical files at the new path.
 
 ## UI & styling
 
@@ -62,7 +65,7 @@ On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using 
 ## When changing UI
 
 - Dashboard / My Expenses: `src/components/dashboard/expense-cashflow-page.tsx` (variants `dashboard` | `expenses`).
-- Loading skeletons: `src/components/dashboard/dashboard-skeleton.tsx` + route `src/app/dashboard/**/loading.tsx` as applicable.
+- Loading skeletons: `src/components/dashboard/dashboard-skeleton.tsx` + route `src/app/(main)/dashboard/**/loading.tsx` as applicable.
 - To-Buy / To-Do: `src/components/pages/to-buy-list-page.tsx` + `src/lib/to-buy-storage.ts` and `src/actions/to-buy-db.ts` / `to-do-db.ts`.
 
 ## Verification

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getBaseUrl } from "@/lib/seo";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = getBaseUrl();
@@ -27,10 +28,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     { url: `${baseUrl}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/signup`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
-    { url: `${baseUrl}/legal`, lastModified: now, changeFrequency: "yearly", priority: 0.35 },
-    { url: `${baseUrl}/legal/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${baseUrl}/legal/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${baseUrl}/legal/cookies`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${baseUrl}/legal/no-sale`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}${LEGAL_ROUTES.hub}`, lastModified: now, changeFrequency: "yearly", priority: 0.35 },
+    { url: `${baseUrl}${LEGAL_ROUTES.terms}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}${LEGAL_ROUTES.privacy}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}${LEGAL_ROUTES.cookies}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}${LEGAL_ROUTES.noSale}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

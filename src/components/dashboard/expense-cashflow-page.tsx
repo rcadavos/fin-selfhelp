@@ -17,7 +17,10 @@ import {
 } from "@/components/ui/select";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -76,6 +79,7 @@ import {
   LayoutDashboard,
   CalendarRange,
   MoreHorizontal,
+  Filter,
   Loader2,
   Pencil,
   XCircle,
@@ -254,12 +258,14 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [addCategory, setAddCategory] = useState("");
   const [addAmount, setAddAmount] = useState("");
   const [addName, setAddName] = useState("");
+  const [addNotes, setAddNotes] = useState("");
   const [addDueDate, setAddDueDate] = useState("");
   const [addReminderDays, setAddReminderDays] = useState<ReminderDay[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCategory, setEditCategory] = useState<string>("");
   const [editAmount, setEditAmount] = useState("");
   const [editName, setEditName] = useState("");
+  const [editNotes, setEditNotes] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
@@ -268,7 +274,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
   const [expensesCategorized, setExpensesCategorized] = useState(false);
-  const [hidePaidExpenses, setHidePaidExpenses] = useState(false);
+  const [filterPaid, setFilterPaid] = useState(true);
+  const [filterUnpaid, setFilterUnpaid] = useState(true);
+  const [filterPastDue, setFilterPastDue] = useState(true);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
   const prefsOptional = useUserPreferencesOptional();
 
@@ -380,6 +388,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         entry.category_id,
         entry.amount,
         next || undefined,
+        undefined,
         entry.due_date ?? undefined,
         reminders
       );
@@ -414,9 +423,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const totalPaidThisMonth = entries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
   const listEntries = useMemo(() => {
-    if (!hidePaidExpenses) return entries;
-    return entries.filter((e) => !paidIds.has(e.id));
-  }, [entries, hidePaidExpenses, paidIds]);
+    return entries.filter((e) => {
+      const status = getExpensePayStatus(e, paidIds, paidMonthYm);
+      if (status === "paid") return filterPaid;
+      if (status === "outstanding") return filterPastDue;
+      return filterUnpaid;
+    });
+  }, [entries, paidIds, paidMonthYm, filterPaid, filterUnpaid, filterPastDue]);
   const sortedCategoryGroupsList = useMemo(
     () => sortedCategoryGroupsFromEntries(listEntries, orderedCategoryIds),
     [listEntries, orderedCategoryIds]
@@ -447,6 +460,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setAddCategory("");
     setAddAmount("");
     setAddName("");
+    setAddNotes("");
     setAddDueDate("");
     setAddReminderDays([]);
     setAddStatus("idle");
@@ -464,6 +478,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       addCategory || "",
       amount,
       addName.trim(),
+      addNotes.trim() || undefined,
       dueDate,
       reminderDays
     );
@@ -490,6 +505,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         ? entry.note
         : getCategoryLabel(categoriesList, entry.category_id)
     );
+    setEditNotes(entry.notes?.trim() ?? "");
     const effDue = entry.due_date
       ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
       : null;
@@ -503,6 +519,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setEditCategory("");
     setEditAmount("");
     setEditName("");
+    setEditNotes("");
     setEditDueDate("");
     setEditReminderDays([]);
     setEditStatus("idle");
@@ -530,6 +547,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       editCategory || "",
       amount,
       editName.trim(),
+      editNotes.trim() || undefined,
       editDueDate.trim() || undefined,
       isSubscriber && editDueDate.trim() ? (editReminderDays.length ? editReminderDays : null) : undefined
     );
@@ -731,6 +749,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 {hasReminders ? <span>{reminderLine}</span> : null}
               </p>
             )}
+            {entry.notes?.trim() ? (
+              <p className="text-xs text-muted-foreground">{entry.notes.trim()}</p>
+            ) : null}
           </div>
       </li>
     );
@@ -845,6 +866,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-expense-notes">Notes</Label>
+              <textarea
+                id="edit-expense-notes"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Optional notes"
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
             </div>
             <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
               <Button
@@ -1141,29 +1173,41 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             </div>
             {entries.length > 0 ? (
               <p className="text-sm text-muted-foreground">
-                {hidePaidExpenses
-                  ? `${listEntries.length} unpaid of ${entries.length} item${entries.length !== 1 ? "s" : ""}`
-                  : `${entries.length} item${entries.length !== 1 ? "s" : ""}`}
+                {listEntries.length} of {entries.length} item{entries.length !== 1 ? "s" : ""}
               </p>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-col items-stretch gap-2 pt-0.5 sm:flex-row sm:items-center sm:justify-end">
-            <div className="inline-flex min-h-9 items-center justify-end gap-2.5 sm:justify-center">
-              <Label
-                id="hide-paid-expenses-label"
-                htmlFor="hide-paid-expenses"
-                className="mb-0 cursor-pointer select-none text-sm font-medium leading-none text-muted-foreground"
-              >
-                Hide paid
-              </Label>
-              <ToggleSwitch
-                id="hide-paid-expenses"
-                aria-labelledby="expenses-section-heading hide-paid-expenses-label"
-                checked={hidePaidExpenses}
-                className="shrink-0"
-                onCheckedChange={setHidePaidExpenses}
-              />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" className="gap-2">
+                  <Filter className="h-4 w-4" aria-hidden />
+                  Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel>Show statuses</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={filterPaid}
+                  onCheckedChange={(v) => setFilterPaid(v === true)}
+                >
+                  Paid
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filterUnpaid}
+                  onCheckedChange={(v) => setFilterUnpaid(v === true)}
+                >
+                  Unpaid
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filterPastDue}
+                  onCheckedChange={(v) => setFilterPastDue(v === true)}
+                >
+                  Past Due
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               type="button"
               className="shrink-0 gap-2 whitespace-nowrap"
@@ -1192,8 +1236,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             <CardContent className="py-12 text-center">
               <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/30" aria-hidden />
               <p className="mt-3 text-muted-foreground">
-                Every expense is marked paid for this month. Turn off{" "}
-                <span className="font-medium text-foreground">Hide paid</span> to see them all.
+                No expenses match your selected filters right now.
               </p>
             </CardContent>
           </Card>
@@ -1372,6 +1415,17 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-expense-notes">Notes</Label>
+              <textarea
+                id="add-expense-notes"
+                value={addNotes}
+                onChange={(e) => setAddNotes(e.target.value)}
+                placeholder="Optional notes"
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
             </div>
             <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:justify-end sm:gap-2">
               <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => setAddExpenseModalOpen(false)}>

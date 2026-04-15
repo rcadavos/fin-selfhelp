@@ -74,12 +74,23 @@ export function HeroSection({ className }: HeroSectionProps) {
             like the apps you already trust, without the noise.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
-            <Button size="lg" asChild className="min-w-[200px] shadow-md">
+            <Button size="lg" asChild className="min-w-[15.5rem] whitespace-nowrap shadow-md sm:min-w-[16rem]">
               <Link href={!loading && user ? "/dashboard" : "/signup"}>
-                {!loading && user ? "Go to Dashboard" : "Get started free"}
+                {loading ? (
+                  <span className="inline-block min-w-[11ch] text-center opacity-60">Loading…</span>
+                ) : user ? (
+                  "Go to Dashboard"
+                ) : (
+                  "Get started free"
+                )}
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="min-w-[200px] bg-background/80 backdrop-blur">
+            <Button
+              size="lg"
+              variant="outline"
+              asChild
+              className="min-w-[15.5rem] whitespace-nowrap bg-background/80 backdrop-blur sm:min-w-[16rem]"
+            >
               <a href="#features">See features</a>
             </Button>
           </div>
