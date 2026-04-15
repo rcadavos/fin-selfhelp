@@ -4,7 +4,7 @@ Concise context for AI coding agents working in this repository.
 
 ## Product
 
-Personal finance web app: landing, auth (Supabase), dashboard (expenses, cashflow, calculators), account settings, subscriptions, shared views. Branding in the repo may appear as **OmniTrak**; deployment/docs may reference **fin-track.cloud**.
+Personal finance web app: landing, auth (Supabase), dashboard (expenses, cashflow, calculators), account settings, subscriptions, shared views. Branding in the repo appears as **OmniTrak**; production is intended to be hosted at **omnitrak.cloud** (set `NEXT_PUBLIC_SITE_URL` accordingly for canonical URLs, Open Graph, sitemap, and manifest).
 
 ## Stack
 

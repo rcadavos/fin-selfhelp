@@ -11,7 +11,7 @@ export function getBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://fin-track.cloud";
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://omnitrak.cloud";
   const url = raw.startsWith("http") ? raw : `https://${raw.replace(/^\/\//, "")}`;
   return url.replace(/^http:\/\//, "https://");
 }
