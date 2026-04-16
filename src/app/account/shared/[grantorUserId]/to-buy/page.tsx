@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { granteeSharedSetToBuyChecked, loadSharedToBuyForGrantor } from "@/actions/to-buy-db";
+import { ContentHeader } from "@/components/app/content-header";
 import { getCategoryLabel, type ToBuyItem } from "@/lib/to-buy-storage";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ShoppingCart, Check, Loader2, Package } from "lucide-react";
@@ -57,18 +58,20 @@ export default function SharedToBuyPage({ params }: { params: Promise<{ grantorU
 
   return (
     <div className="w-full py-2">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-semibold">Partner to-buy</h1>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="secondary">You can check items off</Badge>
-          <Button size="sm" variant="outline" asChild>
-            <Link href={`/account/shared/${grantorUserId}`}>Hub</Link>
-          </Button>
-        </div>
-      </div>
+      <ContentHeader
+        title="Partner To-Buy"
+        subtitle="You can check items off in your partner's list."
+        icon={ShoppingCart}
+        className="mb-4"
+        actions={
+          <div className="flex gap-2">
+            <Badge variant="secondary">You can check items off</Badge>
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/account/shared/${grantorUserId}`}>Hub</Link>
+            </Button>
+          </div>
+        }
+      />
 
       {actionError ? (
         <p className="mb-3 text-sm text-destructive" role="alert">

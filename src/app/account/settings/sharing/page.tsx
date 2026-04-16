@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/use-user";
+import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import {
   listOutgoingShares,
@@ -125,16 +126,12 @@ export default function SharingSettingsPage() {
 
   return (
     <div className="w-full py-2">
-      <div className="mb-6 flex items-center gap-2">
-        <UsersRound className="h-7 w-7 text-primary" aria-hidden />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Account sharing</h1>
-          <p className="text-sm text-muted-foreground">
-            Invite a spouse or partner to view selected parts of your account. They sign in with their own OmniTrak
-            account and use the invite link you send.
-          </p>
-        </div>
-      </div>
+      <ContentHeader
+        title="Account Sharing"
+        subtitle="Invite a spouse or partner to view selected parts of your account. They sign in with their own OmniTrak account and use the invite link you send."
+        icon={UsersRound}
+        className="mb-6"
+      />
 
       <Card className="mb-6 border-muted/80 bg-muted/20">
         <CardHeader className="pb-2">

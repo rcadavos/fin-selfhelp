@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
@@ -168,13 +169,13 @@ function getCategoryBg(categories: { id: string; bgClass: string }[], id: string
 
 function ProPremiumExpenseDivider() {
   return (
-    <div className="relative py-3" role="separator" aria-label="Pro and Premium only below">
+    <div className="relative py-1" role="separator" aria-label="Pro and Premium only below">
       <div
         className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-border"
         aria-hidden
       />
-      <p className="relative mx-auto w-fit max-w-[95%] bg-background px-2 text-center text-xs font-medium text-muted-foreground">
-        ——— Pro/Premium users only ———
+      <p className="relative mx-auto w-fit max-w-[95%] bg-background px-2 text-center text-xs font-medium text-muted-foreground -mb-2">
+        Pro/Premium users only
       </p>
     </div>
   );
@@ -211,7 +212,13 @@ function getExpensePayStatus(
 }
 
 export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
-type ExpenseCadenceTab = "monthly" | "yearly";
+type ExpenseCadenceTab = "monthly" | "quarterly" | "yearly";
+
+function cadenceLabel(cadence: ExpenseCadenceTab): string {
+  if (cadence === "yearly") return "Yearly";
+  if (cadence === "quarterly") return "Quarterly";
+  return "Monthly";
+}
 
 export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashflowPageVariant }) {
   const router = useRouter();
@@ -459,10 +466,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       return cadence === expenseCadenceTab;
     });
   }, [entries, expenseCadenceTab]);
-  const summaryEntries = useMemo(
-    () => (pageVariant === "expenses" ? tabAllEntries : entries),
-    [pageVariant, tabAllEntries, entries]
-  );
+  const summaryEntries = useMemo(() => tabAllEntries, [tabAllEntries]);
   const totalExpenses = summaryEntries.reduce((sum, e) => sum + e.amount, 0);
   const totalPaidThisMonth = summaryEntries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
@@ -501,6 +505,11 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const paidPct = totalExpenses > 0 ? Math.min(100, Math.round((totalPaidThisMonth / totalExpenses) * 100)) : 0;
   const paidCountPct =
     summaryEntries.length > 0 ? Math.round((paidCount / summaryEntries.length) * 100) : 0;
+  const quarterIndex = useMemo(() => {
+    const month = Number(paidMonthYm.slice(5, 7));
+    if (!Number.isFinite(month) || month < 1 || month > 12) return 1;
+    return Math.floor((month - 1) / 3) + 1;
+  }, [paidMonthYm]);
   const activeFilterCount =
     Number(filterPaid) + Number(filterUnpaid) + Number(filterPastDue);
 
@@ -827,7 +836,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
           <DialogHeader>
             <DialogTitle>
-              {editingEntry?.billing_period === "yearly" ? "Edit Yearly Expense" : "Edit Monthly Expense"}
+              {editingEntry ? `Edit ${cadenceLabel(editingEntry.billing_period)} Expense` : "Edit Expense"}
             </DialogTitle>
             {editingEntry ? (
               <DialogDescription>
@@ -901,7 +910,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-expense-amount">Amount</Label>
+                <Label htmlFor="edit-expense-amount">
+                  Amount <span className="text-destructive">*</span>
+                </Label>
                 <AmountInput
                   id="edit-expense-amount"
                   value={editAmount}
@@ -917,10 +928,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 <Input
                   id="edit-expense-due"
                   type="date"
-                  className="h-9"
+                  className={cn(
+                    "h-9",
+                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                  )}
                   title={
                     isSubscriber
-                      ? "Same calendar day each month"
+                      ? "Same calendar day for each billing cycle"
                       : "Pro or Premium — unlock due dates and reminders"
                   }
                   value={editDueDate}
@@ -937,7 +951,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   }
                   disabled={!isSubscriber}
                 >
-                  <SelectTrigger id="edit-expense-reminder" className="h-9 w-full">
+                  <SelectTrigger
+                    id="edit-expense-reminder"
+                    className={cn(
+                      "h-9 w-full",
+                      !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                    )}
+                  >
                     <SelectValue placeholder="Choose reminder times" />
                   </SelectTrigger>
                   <SelectContent className="z-[100]">
@@ -956,12 +976,12 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 id="edit-expense-notes"
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
-                placeholder="Optional notes"
+                placeholder="Add notes e.g. Bill Account Number"
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+            <DialogFooter className="flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -1000,9 +1020,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       </Dialog>
       {pageVariant === "expenses" && (
         <>
-          <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
+          <ContentHeader
+            title="My Expenses"
+            className="mb-3 mt-4"
+            actions={
               <div className="inline-flex items-center gap-1 rounded-md border bg-background p-1">
                 <Button
                   type="button"
@@ -1016,6 +1037,15 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 <Button
                   type="button"
                   size="sm"
+                  variant={expenseCadenceTab === "quarterly" ? "secondary" : "ghost"}
+                  className="h-8 px-3"
+                  onClick={() => setExpenseCadenceTab("quarterly")}
+                >
+                  Quarterly
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
                   className="h-8 px-3"
                   onClick={() => setExpenseCadenceTab("yearly")}
@@ -1023,8 +1053,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   Yearly
                 </Button>
               </div>
-            </div>
-          </div>
+            }
+          />
           {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 sm:h-36 sm:w-36" aria-hidden />
@@ -1097,22 +1127,70 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
         <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
 
-        <div className="flex items-start justify-between gap-3 sm:items-center">
-          <div className="min-w-0 flex-1">
+        <div className="flex items-start">
+          <div className={cn("min-w-0 flex-1", totalExpenses > 0 && "pr-32 sm:pr-36")}>
+            <div className="mb-2 inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                  expenseCadenceTab === "monthly"
+                    ? "bg-white/25 text-white hover:bg-white/30"
+                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                )}
+                onClick={() => setExpenseCadenceTab("monthly")}
+              >
+                Monthly
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                  expenseCadenceTab === "quarterly"
+                    ? "bg-white/25 text-white hover:bg-white/30"
+                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                )}
+                onClick={() => setExpenseCadenceTab("quarterly")}
+              >
+                Quarterly
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                  expenseCadenceTab === "yearly"
+                    ? "bg-white/25 text-white hover:bg-white/30"
+                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                )}
+                onClick={() => setExpenseCadenceTab("yearly")}
+              >
+                Yearly
+              </Button>
+            </div>
             <p className="flex items-center gap-2 text-sm font-medium opacity-90">
               <CalendarRange className="h-4 w-4" />
-              This month ({paidMonthDisplay})
+              {expenseCadenceTab === "yearly"
+                ? `This year (${paidYearDisplay})`
+                : expenseCadenceTab === "quarterly"
+                  ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
+                  : `This month (${paidMonthDisplay})`}
             </p>
             <p className="mt-1 text-sm opacity-80">Still to pay</p>
             <p className="text-4xl font-bold tracking-tight sm:text-5xl">
               {formatCurrency(unpaidThisMonth)}
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Badge className="border-white/30 bg-white/20 text-white hover:bg-white/30">
-                {paidCount} of {entries.length} bills marked paid
+              <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
+                {paidCount} of {summaryEntries.length} bills marked paid
               </Badge>
-              {entries.length > 0 && (
-                <Badge className="border-white/30 bg-white/20 text-white hover:bg-white/30">
+              {summaryEntries.length > 0 && (
+                <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
                   {paidCountPct}% complete
                 </Badge>
               )}
@@ -1120,7 +1198,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
           </div>
           {totalExpenses > 0 && (
             <div
-              className="relative h-28 w-28 shrink-0 rounded-full"
+              className="absolute right-6 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full"
               style={{
                 background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
               }}
@@ -1160,7 +1238,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             <LayoutDashboard className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Bills tracked</p>
-          <p className="text-lg font-bold">{entries.length}</p>
+          <p className="text-lg font-bold">{summaryEntries.length}</p>
         </div>
 
         <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -1398,6 +1476,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               <p className="mt-3 text-muted-foreground">
                 {expenseCadenceTab === "yearly"
                   ? "No yearly expenses yet. Use Add to create your first yearly expense."
+                  : expenseCadenceTab === "quarterly"
+                    ? "No quarterly expenses yet. Use Add to create your first quarterly expense."
                   : "No expenses yet. Use Add expense to create your first one."}
               </p>
             </CardContent>
@@ -1492,7 +1572,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
           <DialogHeader>
             <DialogTitle>
-              {expenseCadenceTab === "yearly" ? "Add Yearly Expense" : "Add Monthly Expense"}
+              {`Add ${cadenceLabel(expenseCadenceTab)} Expense`}
             </DialogTitle>
             <DialogDescription>
               
@@ -1540,7 +1620,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="add-expense-amount">Amount</Label>
+                <Label htmlFor="add-expense-amount">
+                  Amount <span className="text-destructive">*</span>
+                </Label>
                 <AmountInput
                   id="add-expense-amount"
                   value={addAmount}
@@ -1556,10 +1638,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 <Input
                   id="add-expense-due"
                   type="date"
-                  className="h-9"
+                  className={cn(
+                    "h-9",
+                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                  )}
                   title={
                     isSubscriber
-                      ? "Same calendar day each month"
+                      ? "Same calendar day for each billing cycle"
                       : "Pro or Premium — unlock due dates and reminders"
                   }
                   value={addDueDate}
@@ -1576,7 +1661,13 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   }
                   disabled={!isSubscriber}
                 >
-                  <SelectTrigger id="add-expense-reminder" className="h-9 w-full">
+                  <SelectTrigger
+                    id="add-expense-reminder"
+                    className={cn(
+                      "h-9 w-full",
+                      !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                    )}
+                  >
                     <SelectValue placeholder="Choose reminder times" />
                   </SelectTrigger>
                   <SelectContent className="z-[100]">
@@ -1595,12 +1686,12 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 id="add-expense-notes"
                 value={addNotes}
                 onChange={(e) => setAddNotes(e.target.value)}
-                placeholder="Optional notes"
+                placeholder="Add notes e.g. Bill Account Number"
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <DialogFooter className="flex-col gap-3 border-t pt-4 sm:flex-row sm:justify-end sm:gap-2">
+            <DialogFooter className="flex-col gap-3 pt-2 sm:flex-row sm:justify-end sm:gap-2">
               <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => setAddExpenseModalOpen(false)}>
                 Cancel
               </Button>
@@ -1615,9 +1706,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               >
                 {addStatus === "saving"
                   ? "Adding…"
-                  : expenseCadenceTab === "yearly"
-                    ? "Add Yearly Expense"
-                    : "Add Monthly Expense"}
+                  : `Add ${cadenceLabel(expenseCadenceTab)} Expense`}
               </Button>
             </DialogFooter>
           </form>

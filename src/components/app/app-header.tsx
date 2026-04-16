@@ -97,7 +97,7 @@ export function AppHeader({ className }: { className?: string }) {
                           <Menu className="h-5 w-5" aria-label="Open menu" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="min-w-[13.5rem] md:hidden">
+                      <DropdownMenuContent align="end" className="min-w-[16rem] md:hidden">
                     <DropdownMenuItem asChild>
                       <Link
                         href="/dashboard"

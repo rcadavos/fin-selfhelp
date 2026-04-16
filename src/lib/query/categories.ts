@@ -6,4 +6,5 @@ export const categoriesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.categories(),
     queryFn: getExpenseCategories,
+    staleTime: Infinity,
   });

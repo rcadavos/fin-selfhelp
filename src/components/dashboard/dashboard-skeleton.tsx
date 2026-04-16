@@ -34,17 +34,22 @@ function HeroSkeleton() {
     <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
       <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
       <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
-      <div className="relative flex items-start justify-between gap-3 sm:items-center">
-        <div className="min-w-0 flex-1 space-y-2.5">
+      <div className="relative flex items-start">
+        <div className="min-w-0 flex-1 space-y-2.5 pr-32 sm:pr-36">
+          <div className="inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
+            <Skeleton className="h-7 w-16 rounded-sm bg-primary-foreground/25" />
+            <Skeleton className="h-7 w-20 rounded-sm bg-primary-foreground/20" />
+            <Skeleton className="h-7 w-16 rounded-sm bg-primary-foreground/20" />
+          </div>
           <Skeleton className="h-4 w-44 bg-primary-foreground/25 sm:w-52" />
           <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
           <Skeleton className="h-12 w-52 max-w-full bg-primary-foreground/25 sm:h-14" />
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Skeleton className="h-6 w-40 rounded-full bg-primary-foreground/20" />
-            <Skeleton className="h-6 w-28 rounded-full bg-primary-foreground/20" />
+            <Skeleton className="h-6 w-24 rounded-full bg-primary-foreground/20" />
           </div>
         </div>
-        <Skeleton className="h-28 w-28 shrink-0 rounded-full bg-primary-foreground/25" />
+        <Skeleton className="absolute right-6 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-primary-foreground/25" />
       </div>
       <div className="mt-6 space-y-2">
         <div className="flex justify-between gap-4">

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ContentHeader } from "@/components/app/content-header";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
 import { Users, Tags, CreditCard, MessageSquareText, Lightbulb, Loader2 } from "lucide-react";
 
@@ -51,12 +52,11 @@ export default function AdminHomePage() {
 
   return (
     <main className="container mx-auto max-w-4xl space-y-8 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Overview and shortcuts. Use the sidebar to move between sections.
-        </p>
-      </div>
+      <ContentHeader
+        title="Admin"
+        subtitle="Overview and shortcuts. Use the sidebar to move between sections."
+        className="mb-0"
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { ContentHeader } from "@/components/app/content-header";
 import { useUser } from "@/hooks/use-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, CreditCard } from "lucide-react";
+import { TrendingUp, CreditCard, Calculator } from "lucide-react";
 
 export default function CalculatorsPage() {
   const router = useRouter();
@@ -17,10 +18,11 @@ export default function CalculatorsPage() {
 
   return (
     <div className="container mx-auto w-full min-w-0 max-w-4xl px-4 pb-8 pt-4">
-      <h1 className="mb-2 text-2xl font-semibold">Calculators</h1>
-      <p className="mb-8 text-muted-foreground">
-        Plan savings, debt payoff, and more. Pick a calculator below.
-      </p>
+      <ContentHeader
+        title="Calculators"
+        subtitle="Plan savings, debt payoff, and more. Pick a calculator below."
+        icon={Calculator}
+      />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Card

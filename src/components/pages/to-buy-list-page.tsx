@@ -20,6 +20,7 @@ import { replaceMyToDoOnServer } from "@/actions/to-do-db";
 import { queryKeys } from "@/lib/query/keys";
 import { toBuyItemsQueryOptions, toDoItemsQueryOptions } from "@/lib/query/to-buy-to-do-lists";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { ContentHeader } from "@/components/app/content-header";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { Trash2, Check, ShoppingCart, ClipboardList } from "lucide-react";
@@ -195,13 +196,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-8 md:px-6">
-      <header className="mb-8">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ListIcon className="h-7 w-7 shrink-0 text-primary" aria-hidden />
-          {cfg.title}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{cfg.subtitle}</p>
-      </header>
+      <ContentHeader title={cfg.title} subtitle={cfg.subtitle} icon={ListIcon} />
 
       <ul className="divide-y divide-border/70">
         {items.map((item) => (

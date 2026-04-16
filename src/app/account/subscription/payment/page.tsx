@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { formatCurrency, cn } from "@/lib/utils";
 import { subscriptionPlansQueryOptions } from "@/lib/query/subscription-plan";
 import { invalidateSubscriptionAndExpenseQueries } from "@/lib/query/subscription-user";
+import { ContentHeader } from "@/components/app/content-header";
 import { CreditCard, Smartphone, Loader2 } from "lucide-react";
 
 function formatPrice(amount: number, currency: string, interval: string): string {
@@ -187,13 +188,12 @@ function SubscriptionPaymentInner() {
   return (
     <main className="w-full min-w-0 py-2">
       <div className="mx-auto max-w-lg space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Complete payment</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose Pro or Premium, then pay. Pro unlocks due dates, reminders, and unlimited lists. Premium adds extra
-            modules (rent & payment trackers).
-          </p>
-        </div>
+        <ContentHeader
+          title="Complete Payment"
+          subtitle="Choose Pro or Premium, then pay. Pro unlocks due dates, reminders, and unlimited lists. Premium adds extra modules (rent and payment trackers)."
+          icon={CreditCard}
+          className="mb-0"
+        />
 
         <div className="grid grid-cols-2 gap-2">
           <Button

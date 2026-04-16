@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useUser } from "@/hooks/use-user";
+import { ContentHeader } from "@/components/app/content-header";
 import { useUserPreferences } from "@/contexts/user-preferences-context";
 import {
   DATE_FORMAT_OPTIONS,
@@ -48,13 +49,12 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full py-2">
-      <div className="mb-6 flex items-center gap-2">
-        <Settings className="h-7 w-7 text-primary" aria-hidden />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-          <p className="text-sm text-muted-foreground">Saved to your account and synced when you sign in.</p>
-        </div>
-      </div>
+      <ContentHeader
+        title="Settings"
+        subtitle="Saved to your account and synced when you sign in."
+        icon={Settings}
+        className="mb-6"
+      />
 
       <Card className="mb-6 border-primary/20">
         <CardHeader className="pb-2">

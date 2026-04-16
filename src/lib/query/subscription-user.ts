@@ -8,6 +8,7 @@ export function subscriptionStatusQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.subscriptionStatus(),
     queryFn: (): Promise<Awaited<ReturnType<typeof getSubscriptionStatus>>> => getSubscriptionStatus(),
+    staleTime: Infinity,
   });
 }
 
@@ -16,6 +17,7 @@ export function subscriptionCapabilitiesQueryOptions() {
     queryKey: queryKeys.subscriptionCapabilities(),
     queryFn: (): Promise<Awaited<ReturnType<typeof getSubscriptionCapabilities>>> =>
       getSubscriptionCapabilities(),
+    staleTime: Infinity,
   });
 }
 

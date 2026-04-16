@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
+import { ContentHeader } from "@/components/app/content-header";
 import { listAcceptedSharesWithGrantors, type AccountShareRow } from "@/actions/account-sharing";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
-import { ShoppingCart, Banknote } from "lucide-react";
+import { ShoppingCart, Banknote, UsersRound } from "lucide-react";
 
 type Row = NonNullable<Awaited<ReturnType<typeof listAcceptedSharesWithGrantors>>["rows"]>[number];
 
@@ -49,10 +50,12 @@ export default function SharedWithMePage() {
 
   return (
     <div className="w-full py-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Accounts shared with you</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Open a partner&apos;s hub below for My Expenses and/or To-buy, depending on what they shared with you.
-      </p>
+      <ContentHeader
+        title="Accounts Shared With You"
+        subtitle="Open a partner's hub below for My Expenses and/or To-buy, depending on what they shared with you."
+        icon={UsersRound}
+        className="mb-4"
+      />
       <div className="mt-4 rounded-lg border border-muted/80 bg-muted/20 p-4">
         <PartnerAccessInfo />
       </div>

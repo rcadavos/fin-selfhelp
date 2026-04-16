@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ContentHeader } from "@/components/app/content-header";
 import { loadSharedExpenseData, type ExpenseEntryRow } from "@/actions/budget";
 import { granteeSharedToggleExpensePayment } from "@/actions/expense-payments";
 import { categoriesQueryOptions } from "@/lib/query/categories";
@@ -127,20 +128,19 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8">
-      <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">My Expenses</h1>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/account/shared/${grantorUserId}`} className="gap-1.5">
-            <LayoutDashboard className="h-4 w-4" />
-            Hub
-          </Link>
-        </Button>
-      </div>
-
-      <p className="mb-4 text-sm text-muted-foreground">
-        Shared view · you can mark bills paid for <span className="font-medium text-foreground">{data.paidMonth}</span>.
-        Amounts and line items are read-only.
-      </p>
+      <ContentHeader
+        title="My Expenses"
+        subtitle={`Shared view — you can mark bills paid for ${data.paidMonth}. Amounts and line items are read-only.`}
+        className="mb-4 mt-4"
+        actions={
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/account/shared/${grantorUserId}`} className="gap-1.5">
+              <LayoutDashboard className="h-4 w-4" />
+              Hub
+            </Link>
+          </Button>
+        }
+      />
 
       {actionError ? (
         <p className="mb-3 text-sm text-destructive" role="alert">

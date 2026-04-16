@@ -80,10 +80,10 @@ export function AccountDropdownMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{triggerNode}</DropdownMenuTrigger>
-      <DropdownMenuContent side={side} align={align} className="w-64 overflow-hidden p-0">
-        <DropdownMenuLabel className="bg-gradient-to-br from-primary/90 to-primary/70 px-3 py-3 font-normal text-primary-foreground">
+      <DropdownMenuContent side={side} align={align} className="w-72 overflow-hidden p-0 sm:w-72">
+        <DropdownMenuLabel className="bg-gradient-to-br from-primary/90 to-primary/70 px-4 py-4 font-normal text-primary-foreground">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
+            <span className="flex h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
               {showAvatar ? (
                 <img
                   src={avatarUrl!}
@@ -101,28 +101,30 @@ export function AccountDropdownMenu({
               )}
             </span>
             <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="truncate text-sm font-medium leading-tight text-primary-foreground">{displayName}</p>
+              <p className="truncate text-base font-medium leading-tight text-primary-foreground">
+                {displayName}
+              </p>
               {showEmailSubline ? (
-                <p className="truncate text-xs leading-tight text-primary-foreground/80">{email}</p>
+                <p className="truncate text-sm leading-tight text-primary-foreground/80">{email}</p>
               ) : null}
             </div>
           </div>
         </DropdownMenuLabel>
         <div className="p-1">
-          <DropdownMenuItem asChild>
-            <Link href="/account/profile" className="flex cursor-pointer items-center gap-2">
+          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+            <Link href="/account/profile" className="flex cursor-pointer items-center gap-2.5">
               <UserIcon className="h-4 w-4 shrink-0" aria-hidden />
               Profile
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/account/security" className="flex cursor-pointer items-center gap-2">
+          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+            <Link href="/account/security" className="flex cursor-pointer items-center gap-2.5">
               <Shield className="h-4 w-4 shrink-0" aria-hidden />
               Security
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="flex cursor-pointer items-center gap-2"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 text-base [&_svg]:size-[18px]"
             onSelect={(e) => {
               e.preventDefault();
               router.push("/account/subscription");
@@ -131,14 +133,14 @@ export function AccountDropdownMenu({
             <CreditCard className="h-4 w-4 shrink-0" aria-hidden />
             Subscription
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/account/shared" className="flex cursor-pointer items-center gap-2">
+          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+            <Link href="/account/shared" className="flex cursor-pointer items-center gap-2.5">
               <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
               Shared with me
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/account/settings" className="flex cursor-pointer items-center gap-2">
+          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+            <Link href="/account/settings" className="flex cursor-pointer items-center gap-2.5">
               <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
               Settings
             </Link>
@@ -149,7 +151,7 @@ export function AccountDropdownMenu({
               e.preventDefault();
               signOut();
             }}
-            className="flex cursor-pointer items-center gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:hover:bg-destructive/15 dark:focus:bg-destructive/15 dark:focus-visible:bg-destructive/15 dark:data-[highlighted]:bg-destructive/15"
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 text-base text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:hover:bg-destructive/15 dark:focus:bg-destructive/15 dark:focus-visible:bg-destructive/15 dark:data-[highlighted]:bg-destructive/15 [&_svg]:size-[18px]"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
             Logout

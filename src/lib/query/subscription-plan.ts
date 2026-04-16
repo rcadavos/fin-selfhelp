@@ -32,6 +32,7 @@ export const subscriptionPlanQueryOptions = () =>
       const plan = await getSubscriptionPlan();
       return plan ?? SUBSCRIPTION_PLAN_FALLBACK;
     },
+    staleTime: Infinity,
   });
 
 export const subscriptionPlansQueryOptions = () =>
@@ -44,4 +45,5 @@ export const subscriptionPlansQueryOptions = () =>
         premium: premium ?? SUBSCRIPTION_PREMIUM_FALLBACK,
       };
     },
+    staleTime: Infinity,
   });

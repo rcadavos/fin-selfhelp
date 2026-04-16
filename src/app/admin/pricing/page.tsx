@@ -23,6 +23,7 @@ import {
 import { adminPricingQueryOptions } from "@/lib/query/admin-pricing";
 import { subscriptionPlansQueryOptions } from "@/lib/query/subscription-plan";
 import { updateSubscriptionPlanById, type SubscriptionPlanRow } from "@/actions/subscription-plan";
+import { ContentHeader } from "@/components/app/content-header";
 import { Loader2 } from "lucide-react";
 
 const CURRENCIES = ["USD", "PHP", "EUR", "GBP"];
@@ -181,12 +182,11 @@ export default function AdminPricingPage() {
 
   return (
     <main className="container mx-auto max-w-4xl space-y-8 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Subscription pricing</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Set prices for Pro and Premium. These appear on the payment page, subscription page, and landing.
-        </p>
-      </div>
+      <ContentHeader
+        title="Subscription Pricing"
+        subtitle="Set prices for Pro and Premium. These appear on the payment page, subscription page, and landing."
+        className="mb-0"
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         <PlanEditor
           planId="pro"

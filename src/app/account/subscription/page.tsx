@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ContentHeader } from "@/components/app/content-header";
 import { useUser } from "@/hooks/use-user";
 import { unsubscribe } from "@/actions/budget";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -119,18 +120,11 @@ export default function SubscriptionPage() {
           {fetchError}
         </p>
       )}
-      {/* Page title */}
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Sparkles className="h-5 w-5" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Subscription</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your plan, billing, and payment history in one place.
-          </p>
-        </div>
-      </div>
+      <ContentHeader
+        title="Subscription"
+        subtitle="Your plan, billing, and payment history in one place."
+        icon={Sparkles}
+      />
 
       {/* Status hero */}
       <section
