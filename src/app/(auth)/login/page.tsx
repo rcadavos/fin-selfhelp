@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { signIn, signInWithOtp } from "@/actions/auth";
+import { signInWithOtp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { ChevronLeft, LayoutDashboard } from "lucide-react";
@@ -16,6 +16,7 @@ import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -90,6 +91,7 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const nextPath = safeNextPath(searchParams.get("next"));
+  const supabase = createClient();
 
   useEffect(() => {
     if (!loading && user) {
@@ -111,11 +113,23 @@ function LoginContent() {
   }, [searchParams, showError]);
 
   async function handlePasswordSubmit(formData: FormData) {
-    const result = await signIn(formData);
-    if (result?.error) {
-      showError(result.error);
-      setPassword("");
+    const emailValue = String(formData.get("email") ?? "").trim();
+    const passwordValue = String(formData.get("password") ?? "");
+    if (!emailValue || !passwordValue) {
+      showError("Email and password are required.");
+      return;
     }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailValue,
+      password: passwordValue,
+    });
+    if (error) {
+      showError(error.message);
+      setPassword("");
+      return;
+    }
+    router.replace(nextPath || "/dashboard");
+    router.refresh();
   }
 
   async function handleOtpSubmit(formData: FormData) {

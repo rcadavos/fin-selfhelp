@@ -394,35 +394,57 @@ export function MyGoalsPage() {
   const handleMarkAchievedNow = useCallback(
     async (g: GoalEntryRow) => {
       const now = new Date();
+      const optimisticMonth = now.getMonth() + 1;
+      const optimisticYear = now.getFullYear();
+      const goalsKey = queryKeys.goals();
+      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
+      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
+        (old ?? []).map((row) =>
+          row.id === g.id
+            ? { ...row, date_achieved_month: optimisticMonth, date_achieved_year: optimisticYear }
+            : row
+        )
+      );
       const res = await updateGoal(g.id, {
         ...goalRowToInput(g),
-        date_achieved_month: now.getMonth() + 1,
-        date_achieved_year: now.getFullYear(),
+        date_achieved_month: optimisticMonth,
+        date_achieved_year: optimisticYear,
       });
       if (res.error) {
+        queryClient.setQueryData(goalsKey, prevGoals);
         showError(res.error);
         return;
       }
       invalidateGoals();
     },
-    [showError, invalidateGoals]
+    [showError, invalidateGoals, queryClient]
   );
 
   const handleUnmarkAchieved = useCallback(
     async (g: GoalEntryRow) => {
       if (!confirm("Undo marking this goal as achieved?")) return;
+      const goalsKey = queryKeys.goals();
+      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
+      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
+        (old ?? []).map((row) =>
+          row.id === g.id
+            ? { ...row, date_achieved_month: null, date_achieved_year: null }
+            : row
+        )
+      );
       const res = await updateGoal(g.id, {
         ...goalRowToInput(g),
         date_achieved_month: null,
         date_achieved_year: null,
       });
       if (res.error) {
+        queryClient.setQueryData(goalsKey, prevGoals);
         showError(res.error);
         return;
       }
       invalidateGoals();
     },
-    [showError, invalidateGoals]
+    [showError, invalidateGoals, queryClient]
   );
 
   const years = useMemo(() => yearOptions(), []);

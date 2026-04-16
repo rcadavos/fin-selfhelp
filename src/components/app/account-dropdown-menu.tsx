@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cloneElement, isValidElement, useEffect, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound } from "lucide-react";
 
@@ -61,6 +62,8 @@ export function AccountDropdownMenu({
   const displayName = getAccountDisplayName(user);
   const avatarUrl = getAccountAvatarUrl(user);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const isMountedRef = useRef(false);
   const showAvatar = Boolean(avatarUrl && !avatarFailed);
   const email = user?.email?.trim() ?? "";
   const showEmailSubline =
@@ -69,6 +72,30 @@ export function AccountDropdownMenu({
   useEffect(() => {
     setAvatarFailed(false);
   }, [user?.id, avatarUrl]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    const supabase = createClient();
+    const res = await signOut();
+    if (res?.error) {
+      console.error("Sign out failed:", res.error);
+      if (isMountedRef.current) setIsSigningOut(false);
+      return;
+    }
+    // Clear client-side auth immediately so UI does not keep showing logged-in CTAs.
+    await supabase.auth.signOut({ scope: "local" });
+    router.replace("/");
+    router.refresh();
+    if (isMountedRef.current) setIsSigningOut(false);
+  };
 
   const triggerNode =
     isValidElement<{ className?: string }>(trigger) && typeof trigger.props === "object"
@@ -80,10 +107,10 @@ export function AccountDropdownMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{triggerNode}</DropdownMenuTrigger>
-      <DropdownMenuContent side={side} align={align} className="w-72 overflow-hidden p-0 sm:w-72">
-        <DropdownMenuLabel className="bg-gradient-to-br from-primary/90 to-primary/70 px-4 py-4 font-normal text-primary-foreground">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
+      <DropdownMenuContent side={side} align={align} className="w-72 overflow-hidden p-0 md:w-60">
+        <DropdownMenuLabel className="bg-gradient-to-br from-primary/90 to-primary/70 px-3 py-3 font-normal text-primary-foreground">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
               {showAvatar ? (
                 <img
                   src={avatarUrl!}
@@ -101,30 +128,30 @@ export function AccountDropdownMenu({
               )}
             </span>
             <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="truncate text-base font-medium leading-tight text-primary-foreground">
+              <p className="truncate text-sm font-medium leading-tight text-primary-foreground">
                 {displayName}
               </p>
               {showEmailSubline ? (
-                <p className="truncate text-sm leading-tight text-primary-foreground/80">{email}</p>
+                <p className="truncate text-xs leading-tight text-primary-foreground/80">{email}</p>
               ) : null}
             </div>
           </div>
         </DropdownMenuLabel>
         <div className="p-1">
-          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
             <Link href="/account/profile" className="flex cursor-pointer items-center gap-2.5">
               <UserIcon className="h-4 w-4 shrink-0" aria-hidden />
               Profile
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
             <Link href="/account/security" className="flex cursor-pointer items-center gap-2.5">
               <Shield className="h-4 w-4 shrink-0" aria-hidden />
               Security
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 text-base [&_svg]:size-[18px]"
+            className="flex min-h-9 cursor-pointer items-center gap-2.5 px-2.5 text-sm [&_svg]:size-4"
             onSelect={(e) => {
               e.preventDefault();
               router.push("/account/subscription");
@@ -133,13 +160,13 @@ export function AccountDropdownMenu({
             <CreditCard className="h-4 w-4 shrink-0" aria-hidden />
             Subscription
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
             <Link href="/account/shared" className="flex cursor-pointer items-center gap-2.5">
               <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
               Shared with me
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="min-h-11 px-3 text-base [&_svg]:size-[18px]">
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
             <Link href="/account/settings" className="flex cursor-pointer items-center gap-2.5">
               <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
               Settings
@@ -149,12 +176,13 @@ export function AccountDropdownMenu({
           <DropdownMenuItem
             onSelect={(e: Event) => {
               e.preventDefault();
-              signOut();
+              void handleLogout();
             }}
-            className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 text-base text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:hover:bg-destructive/15 dark:focus:bg-destructive/15 dark:focus-visible:bg-destructive/15 dark:data-[highlighted]:bg-destructive/15 [&_svg]:size-[18px]"
+            disabled={isSigningOut}
+            className="flex min-h-9 cursor-pointer items-center gap-2.5 px-2.5 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive focus-visible:bg-destructive/10 focus-visible:text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive dark:hover:bg-destructive/15 dark:focus:bg-destructive/15 dark:focus-visible:bg-destructive/15 dark:data-[highlighted]:bg-destructive/15 [&_svg]:size-4"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-            Logout
+            {isSigningOut ? "Logging out…" : "Logout"}
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

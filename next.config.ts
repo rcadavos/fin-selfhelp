@@ -12,6 +12,7 @@ function getEnvOrigin(envUrl?: string) {
 
 const SUPABASE_ORIGIN = getEnvOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const SUPABASE_WSS_ORIGIN = SUPABASE_ORIGIN?.replace(/^https:/, "wss:");
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -41,7 +42,7 @@ const nextConfig: NextConfig = {
       "frame-ancestors 'none'",
       "form-action 'self'",
       "worker-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      IS_DEV ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       imgSrc,
       fontSrc,

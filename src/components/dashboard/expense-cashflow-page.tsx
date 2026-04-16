@@ -1129,58 +1129,60 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
 
         <div className="flex items-start">
           <div className={cn("min-w-0 flex-1", totalExpenses > 0 && "pr-32 sm:pr-36")}>
-            <div className="mb-2 inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                  expenseCadenceTab === "monthly"
-                    ? "bg-white/25 text-white hover:bg-white/30"
-                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                )}
-                onClick={() => setExpenseCadenceTab("monthly")}
-              >
-                Monthly
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                  expenseCadenceTab === "quarterly"
-                    ? "bg-white/25 text-white hover:bg-white/30"
-                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                )}
-                onClick={() => setExpenseCadenceTab("quarterly")}
-              >
-                Quarterly
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                  expenseCadenceTab === "yearly"
-                    ? "bg-white/25 text-white hover:bg-white/30"
-                    : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                )}
-                onClick={() => setExpenseCadenceTab("yearly")}
-              >
-                Yearly
-              </Button>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                    expenseCadenceTab === "monthly"
+                      ? "bg-white/25 text-white hover:bg-white/30"
+                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                  )}
+                  onClick={() => setExpenseCadenceTab("monthly")}
+                >
+                  Monthly
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                    expenseCadenceTab === "quarterly"
+                      ? "bg-white/25 text-white hover:bg-white/30"
+                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                  )}
+                  onClick={() => setExpenseCadenceTab("quarterly")}
+                >
+                  Quarterly
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                    expenseCadenceTab === "yearly"
+                      ? "bg-white/25 text-white hover:bg-white/30"
+                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                  )}
+                  onClick={() => setExpenseCadenceTab("yearly")}
+                >
+                  Yearly
+                </Button>
+              </div>
+              <p className="flex items-center gap-2 text-sm font-medium opacity-90">
+                <CalendarRange className="h-4 w-4" />
+                {expenseCadenceTab === "yearly"
+                  ? `This year (${paidYearDisplay})`
+                  : expenseCadenceTab === "quarterly"
+                    ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
+                    : `This month (${paidMonthDisplay})`}
+              </p>
             </div>
-            <p className="flex items-center gap-2 text-sm font-medium opacity-90">
-              <CalendarRange className="h-4 w-4" />
-              {expenseCadenceTab === "yearly"
-                ? `This year (${paidYearDisplay})`
-                : expenseCadenceTab === "quarterly"
-                  ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
-                  : `This month (${paidMonthDisplay})`}
-            </p>
             <p className="mt-1 text-sm opacity-80">Still to pay</p>
             <p className="text-4xl font-bold tracking-tight sm:text-5xl">
               {formatCurrency(unpaidThisMonth)}
@@ -1198,7 +1200,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
           </div>
           {totalExpenses > 0 && (
             <div
-              className="absolute right-6 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full"
+              className="absolute right-6 top-6 h-28 w-28 rounded-full"
               style={{
                 background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
               }}

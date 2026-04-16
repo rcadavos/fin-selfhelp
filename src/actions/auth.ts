@@ -45,7 +45,7 @@ export async function signIn(formData: FormData) {
     return { error: error.message };
   }
   const next = safeNextPath(formData.get("next") as string | null);
-  redirect(next);
+  return { error: null as string | null, next };
 }
 
 export async function signUp(formData: FormData) {
@@ -128,6 +128,9 @@ export async function requestPasswordReset(formData: FormData) {
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/");
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    return { error: error.message };
+  }
+  return { error: null as string | null };
 }
