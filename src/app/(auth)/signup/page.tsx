@@ -115,26 +115,12 @@ export default function SignUpPage() {
           "min-h-[min(100%,32rem)] md:min-h-0"
         )}
       >
-        <div className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl">
+        <div className="mx-auto w-full max-w-sm sm:max-w-md">
           <Card className="border-border/80 shadow-sm">
             <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
               <CardTitle className="text-xl md:text-lg">Sign up</CardTitle>
-              <CardDescription className="text-sm md:text-xs">
-                Google or email — you&apos;ll use the same account to log in later.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
-              <GoogleSignInButton next="/dashboard" />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or</span>
-                </div>
-              </div>
-
               <form action={handleSubmit} className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -175,6 +161,16 @@ export default function SignUpPage() {
                 </div>
                 <SubmitButton>Create account</SubmitButton>
               </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              <GoogleSignInButton next="/dashboard" />
 
               <p className="border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
                 Already have an account?{" "}

@@ -88,6 +88,7 @@ function LoginContent() {
   const { user, loading } = useUser();
   const { showError, showSuccess } = useSnackbar();
   const [otpPending, setOtpPending] = useState(false);
+  const [authTab, setAuthTab] = useState<"password" | "otp">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const nextPath = safeNextPath(searchParams.get("next"));
@@ -172,24 +173,31 @@ function LoginContent() {
           "min-h-[min(100%,32rem)] md:min-h-0"
         )}
       >
-        <div className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl">
+        <div className="mx-auto w-full max-w-sm sm:max-w-md">
           <Card className="border-border/80 shadow-sm">
             <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
               <CardTitle className="text-xl md:text-lg">Log in</CardTitle>
-              <CardDescription className="text-sm md:text-xs">
-                Google, password, or email link — same account.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
-              <GoogleSignInButton next={nextPath} />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or</span>
-                </div>
+              <div className="inline-flex w-full items-center gap-1 rounded-md border bg-muted/40 p-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={authTab === "password" ? "secondary" : "ghost"}
+                  className="h-8 flex-1 text-xs"
+                  onClick={() => setAuthTab("password")}
+                >
+                  Login
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={authTab === "otp" ? "secondary" : "ghost"}
+                  className="h-8 flex-1 text-xs"
+                  onClick={() => setAuthTab("otp")}
+                >
+                  One-time login link
+                </Button>
               </div>
 
               <div className="space-y-2">
@@ -207,31 +215,48 @@ function LoginContent() {
                 />
               </div>
 
-              <form id="login-password" action={handlePasswordSubmit} className="space-y-3">
-                <input type="hidden" name="next" value={nextPath} />
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Link
-                      href="/forgot-password"
-                      tabIndex={-1}
-                      className="text-xs text-muted-foreground hover:text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
+              {authTab === "password" ? (
+                <form id="login-password" action={handlePasswordSubmit} className="space-y-3">
+                  <input type="hidden" name="next" value={nextPath} />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Link
+                        href="/forgot-password"
+                        tabIndex={-1}
+                        className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
                   </div>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <SubmitButton>Log in</SubmitButton>
-              </form>
+                  <SubmitButton>Log in</SubmitButton>
+                </form>
+              ) : (
+                <form id="login-otp" action={handleOtpSubmit} className="space-y-3">
+                  <input type="hidden" name="next" value={nextPath} />
+                  <input type="hidden" name="email" value={email} />
+                  <p className="text-sm text-muted-foreground">
+                    We&apos;ll send a one-time sign-in link to the email above. No password needed.
+                  </p>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={otpPending || !email.trim()}
+                  >
+                    {otpPending ? "Sending…" : "Send one-time sign-in link"}
+                  </Button>
+                </form>
+              )}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -241,22 +266,7 @@ function LoginContent() {
                   <span className="bg-card px-2 text-muted-foreground">Or</span>
                 </div>
               </div>
-
-              <form id="login-otp" action={handleOtpSubmit} className="space-y-3">
-                <input type="hidden" name="next" value={nextPath} />
-                <input type="hidden" name="email" value={email} />
-                <p className="text-sm text-muted-foreground">
-                  We&apos;ll send a one-time sign-in link to the email above. No password needed.
-                </p>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  className="w-full"
-                  disabled={otpPending || !email.trim()}
-                >
-                  {otpPending ? "Sending…" : "Send one-time sign-in link"}
-                </Button>
-              </form>
+              <GoogleSignInButton next={nextPath} />
 
               <p className="border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
                 No account?{" "}
