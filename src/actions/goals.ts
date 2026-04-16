@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { goalInputSchema } from "@/lib/validation/forms";
 
 export type GoalType = "short_term" | "long_term" | "lifetime";
 
@@ -93,10 +92,28 @@ type GoalInput = {
   notes: string | null;
 };
 
+function validateInput(input: GoalInput): string | null {
+  if (!input.name.trim()) return "Goal name is required.";
+  if (!normalizeGoalType(input.goal_type)) return "Goal type is required.";
+  if (!Number.isFinite(input.date_set_month) || input.date_set_month < 1 || input.date_set_month > 12) {
+    return "Date set: choose a valid month.";
+  }
+  if (!Number.isFinite(input.date_set_year) || input.date_set_year < 1900 || input.date_set_year > 2100) {
+    return "Date set: choose a valid year.";
+  }
+  const m = input.date_achieved_month;
+  const y = input.date_achieved_year;
+  if ((m == null) !== (y == null)) return "Set both month and year for date achieved, or leave both empty.";
+  if (m != null && y != null) {
+    if (m < 1 || m > 12) return "Invalid month.";
+    if (y < 1900 || y > 2100) return "Invalid year.";
+  }
+  return null;
+}
+
 export async function createGoal(input: GoalInput): Promise<{ error?: string }> {
-  const parsed = goalInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid goal input." };
-  input = parsed.data;
+  const err = validateInput(input);
+  if (err) return { error: err };
 
   const supabase = await createClient();
   const {
@@ -132,9 +149,8 @@ export async function createGoal(input: GoalInput): Promise<{ error?: string }> 
 }
 
 export async function updateGoal(goalId: string, input: GoalInput): Promise<{ error?: string }> {
-  const parsed = goalInputSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid goal input." };
-  input = parsed.data;
+  const err = validateInput(input);
+  if (err) return { error: err };
 
   const supabase = await createClient();
   const {

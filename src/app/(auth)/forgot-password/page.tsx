@@ -9,7 +9,6 @@ import { requestPasswordReset } from "@/actions/auth";
 import { ChevronLeft } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { passwordResetRequestSchema } from "@/lib/validation/forms";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -24,11 +23,6 @@ export default function ForgotPasswordPage() {
   const { showError, showSuccess } = useSnackbar();
 
   async function handleSubmit(formData: FormData) {
-    const parsed = passwordResetRequestSchema.safeParse({ email: formData.get("email") });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid email.");
-      return;
-    }
     const result = await requestPasswordReset(formData);
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);

@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronLeft } from "lucide-react";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { resetPasswordSchema } from "@/lib/validation/forms";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -21,9 +20,12 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = resetPasswordSchema.safeParse({ password, confirm });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid password.");
+    if (password.length < 6) {
+      showError("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      showError("Passwords do not match.");
       return;
     }
     setLoading(true);

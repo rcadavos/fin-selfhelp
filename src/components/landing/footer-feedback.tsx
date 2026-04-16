@@ -19,7 +19,6 @@ import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { MessageSquare, Star, Send, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { feedbackReviewSchema, feedbackSuggestionSchema } from "@/lib/validation/forms";
 
 export function FooterFeedback({ className }: { className?: string }) {
   const { showError: showSnackbar, showSuccess } = useSnackbar();
@@ -48,7 +47,7 @@ export function FooterFeedback({ className }: { className?: string }) {
   const [editRating, setEditRating] = useState<number | null>(null);
 
   const updateMyReviewMutation = useMutation({
-    mutationFn: ({ authorName, content, rating }: { authorName: string | null; content: string; rating: number | null }) =>
+    mutationFn: ({ authorName, content, rating }: { authorName: string; content: string; rating: number | null }) =>
       myReview ? updateReview(myReview.id, { authorName, content, rating }) : Promise.resolve({ error: "No review" }),
     onSuccess: async (result) => {
       if (result?.error) return;
@@ -101,16 +100,12 @@ export function FooterFeedback({ className }: { className?: string }) {
 
   async function handleSuggestion(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = feedbackSuggestionSchema.safeParse({
-      email: suggestionEmail.trim() || null,
-      content: suggestionContent,
-    });
-    if (!parsed.success) {
-      showSnackbar(parsed.error.issues[0]?.message ?? "Invalid suggestion.");
-      return;
-    }
+    if (!suggestionContent.trim()) return;
     setSuggestionStatus("sending");
-    const result = await submitSuggestion(parsed.data);
+    const result = await submitSuggestion({
+      email: suggestionEmail.trim() || null,
+      content: suggestionContent.trim(),
+    });
     if (result.error) {
       showSnackbar(result.error);
       setSuggestionStatus("idle");
@@ -125,17 +120,13 @@ export function FooterFeedback({ className }: { className?: string }) {
 
   async function handleReview(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = feedbackReviewSchema.safeParse({
+    if (!reviewContent.trim()) return;
+    setReviewStatus("sending");
+    const result = await submitReview({
       authorName: reviewName.trim() || null,
-      content: reviewContent,
+      content: reviewContent.trim(),
       rating: reviewRating,
     });
-    if (!parsed.success) {
-      showSnackbar(parsed.error.issues[0]?.message ?? "Invalid review.");
-      return;
-    }
-    setReviewStatus("sending");
-    const result = await submitReview(parsed.data);
     if (result.error) {
       showSnackbar(result.error);
       setReviewStatus("idle");
@@ -313,22 +304,13 @@ export function FooterFeedback({ className }: { className?: string }) {
                         <Button
                           type="button"
                           disabled={updateMyReviewMutation.isPending || !editContent.trim() || editContent.trim().length < 2}
-                          onClick={() => {
-                            const parsed = feedbackReviewSchema.safeParse({
-                              authorName: editName.trim() || null,
-                              content: editContent,
-                              rating: editRating,
-                            });
-                            if (!parsed.success) {
-                              showSnackbar(parsed.error.issues[0]?.message ?? "Invalid review.");
-                              return;
-                            }
+                          onClick={() =>
                             updateMyReviewMutation.mutate({
-                              authorName: parsed.data.authorName ?? null,
-                              content: parsed.data.content,
-                              rating: parsed.data.rating ?? null,
-                            });
-                          }}
+                              authorName: editName.trim() || "",
+                              content: editContent.trim(),
+                              rating: editRating,
+                            })
+                          }
                         >
                           {updateMyReviewMutation.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

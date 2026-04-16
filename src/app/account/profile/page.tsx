@@ -12,7 +12,6 @@ import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ProfileAvatarUploader } from "@/components/account/profile-avatar-uploader";
 import { Loader2 } from "lucide-react";
-import { profileUpdateSchema } from "@/lib/validation/forms";
 
 function getNameFromMeta(meta: Record<string, unknown> | undefined): string {
   const name = meta?.full_name;
@@ -50,20 +49,12 @@ export default function ProfilePage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
-    const parsed = profileUpdateSchema.safeParse({
-      fullName,
-      phone,
-    });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid profile details.");
-      return;
-    }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
       data: {
-        full_name: parsed.data.fullName?.trim() || undefined,
-        phone: parsed.data.phone?.trim() || undefined,
+        full_name: fullName.trim() || undefined,
+        phone: phone.trim() || undefined,
       },
     });
     setSaving(false);
@@ -88,7 +79,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Update your profile information.
+            Photo, name, and phone. Your email is tied to sign-in and isn&apos;t editable here.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -147,5 +138,3 @@ export default function ProfilePage() {
     </main>
   );
 }
-
-

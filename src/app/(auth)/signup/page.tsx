@@ -15,7 +15,6 @@ import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
-import { signupSchema } from "@/lib/validation/forms";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -81,14 +80,6 @@ export default function SignUpPage() {
   }, [user, loading, router]);
 
   async function handleSubmit(formData: FormData) {
-    const parsed = signupSchema.safeParse({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid sign up details.");
-      return;
-    }
     const result = await signUp(formData);
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);

@@ -16,7 +16,6 @@ import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
-import { loginSchema, passwordResetRequestSchema } from "@/lib/validation/forms";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -112,14 +111,6 @@ function LoginContent() {
   }, [searchParams, showError]);
 
   async function handlePasswordSubmit(formData: FormData) {
-    const parsed = loginSchema.safeParse({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid credentials.");
-      return;
-    }
     const result = await signIn(formData);
     if (result?.error) {
       showError(result.error);
@@ -128,11 +119,6 @@ function LoginContent() {
   }
 
   async function handleOtpSubmit(formData: FormData) {
-    const parsed = passwordResetRequestSchema.safeParse({ email: formData.get("email") });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid email.");
-      return;
-    }
     setOtpPending(true);
     const result = await signInWithOtp(formData);
     setOtpPending(false);

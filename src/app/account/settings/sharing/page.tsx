@@ -25,7 +25,6 @@ import { getBaseUrl } from "@/lib/seo";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 import { UsersRound, Link2, Trash2, Ban, ExternalLink } from "lucide-react";
-import { sharingInviteSchema } from "@/lib/validation/forms";
 
 function permBadges(s: AccountShareRow) {
   const parts: string[] = [];
@@ -68,17 +67,13 @@ export default function SharingSettingsPage() {
 
   async function onInvite(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = sharingInviteSchema.safeParse({
-      inviteEmail: email,
+    if (!email.trim()) return;
+    setBusy(true);
+    const res = await createAccountShare({
+      inviteEmail: email.trim(),
       canViewExpenses: pe,
       canViewToBuy: ptb,
     });
-    if (!parsed.success) {
-      showError(parsed.error.issues[0]?.message ?? "Invalid invite details.");
-      return;
-    }
-    setBusy(true);
-    const res = await createAccountShare(parsed.data);
     setBusy(false);
     if (res.error) {
       showError(res.error);
@@ -327,5 +322,3 @@ export default function SharingSettingsPage() {
     </div>
   );
 }
-
-
