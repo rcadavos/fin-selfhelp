@@ -35,6 +35,8 @@ export function getAccountDisplayName(user: {
 export function getAccountAvatarUrl(user: { user_metadata?: Record<string, unknown> }): string | null {
   const meta = user?.user_metadata;
   if (!meta) return null;
+  const appAvatar = typeof meta.app_avatar_url === "string" ? meta.app_avatar_url.trim() : "";
+  if (appAvatar) return appAvatar;
   const raw =
     (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) ||
     (typeof meta.picture === "string" && meta.picture.trim()) ||

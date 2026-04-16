@@ -25,8 +25,13 @@ export function ProfileAvatarUploader({ user, showError, showSuccess }: ProfileA
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const avatarUrl = getAccountAvatarUrl(user);
-  const customAvatarRaw = (user.user_metadata as Record<string, unknown> | undefined)?.avatar_url;
-  const hasCustomAvatarUrl = typeof customAvatarRaw === "string" && customAvatarRaw.trim().length > 0;
+  const userMeta = user.user_metadata as Record<string, unknown> | undefined;
+  const customAvatarRaw = userMeta?.app_avatar_url;
+  const legacyCustomAvatarRaw = userMeta?.avatar_url;
+  const hasCustomAvatarUrl =
+    (typeof customAvatarRaw === "string" && customAvatarRaw.trim().length > 0) ||
+    (typeof legacyCustomAvatarRaw === "string" &&
+      legacyCustomAvatarRaw.includes("/storage/v1/object/public/avatars/"));
 
   useEffect(() => {
     setAvatarBroken(false);
@@ -56,7 +61,7 @@ export function ProfileAvatarUploader({ user, showError, showSuccess }: ProfileA
     } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
     const busted = `${publicUrl}?t=${Date.now()}`;
     const { error: authErr } = await supabase.auth.updateUser({
-      data: { avatar_url: busted },
+      data: { app_avatar_url: busted },
     });
     setAvatarBusy(false);
     if (authErr) {
@@ -72,7 +77,7 @@ export function ProfileAvatarUploader({ user, showError, showSuccess }: ProfileA
     const path = avatarObjectPath(user.id);
     await supabase.storage.from(AVATAR_BUCKET).remove([path]);
     const { error: authErr } = await supabase.auth.updateUser({
-      data: { avatar_url: "" },
+      data: { app_avatar_url: "" },
     });
     setAvatarBusy(false);
     if (authErr) {

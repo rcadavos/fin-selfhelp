@@ -113,7 +113,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
         saveLocal: saveToBuyItems,
         clearLocal: clearToBuyLocalStorage,
         title: "To-Buy List",
-        subtitle: "Check items off when you have them, then delete to clear the line.",
+        subtitle: "This can be shared with your partner to track items they need to buy. Just go to Shared with me and add them as a partner.",
         ListIcon: ShoppingCart,
       } as const;
     }
