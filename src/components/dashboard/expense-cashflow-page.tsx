@@ -1022,6 +1022,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <>
           <ContentHeader
             title="My Expenses"
+            subtitle="This can be shared with your partner to mark bills as paid. Just go to Shared with me and add them as a partner."
             className="mb-3 mt-4"
             actions={
               <div className="inline-flex items-center gap-1 rounded-md border bg-background p-1">

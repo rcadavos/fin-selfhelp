@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -26,9 +27,41 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const avatarSyncInFlightRef = useRef(false);
 
   useEffect(() => {
     const supabase = createClient();
+
+    const ensureAppAvatarFromProvider = async (nextUser: User | null) => {
+      if (!nextUser || avatarSyncInFlightRef.current) return;
+      const meta = (nextUser.user_metadata ?? {}) as Record<string, unknown>;
+      const appAvatar = typeof meta.app_avatar_url === "string" ? meta.app_avatar_url.trim() : "";
+      if (appAvatar) return;
+      const providerAvatar =
+        (typeof meta.avatar_url === "string" && meta.avatar_url.trim()) ||
+        (typeof meta.picture === "string" && meta.picture.trim()) ||
+        (typeof meta.image === "string" && meta.image.trim()) ||
+        "";
+      if (!providerAvatar) return;
+      avatarSyncInFlightRef.current = true;
+      const { error } = await supabase.auth.updateUser({
+        data: { app_avatar_url: providerAvatar },
+      });
+      avatarSyncInFlightRef.current = false;
+      if (!error) {
+        setUser((current) =>
+          current
+            ? {
+                ...current,
+                user_metadata: {
+                  ...(current.user_metadata ?? {}),
+                  app_avatar_url: providerAvatar,
+                },
+              }
+            : current
+        );
+      }
+    };
 
     const hydrateLatestUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -39,6 +72,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
       if (error) return;
       setUser(data.user ?? null);
+      await ensureAppAvatarFromProvider(data.user ?? null);
     };
 
     void supabase.auth
