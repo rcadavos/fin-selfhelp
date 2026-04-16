@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getMyReview, getReviewEligibility, type MyReviewRow, submitSuggestion, submitReview, updateReview } from "@/actions/feedback";
+import { getMyReview, getReviewEligibility, type MyReviewRow, submitSuggestion, submitReview, updateMyReview } from "@/actions/feedback";
 import { useUser } from "@/hooks/use-user";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -48,9 +48,12 @@ export function FooterFeedback({ className }: { className?: string }) {
 
   const updateMyReviewMutation = useMutation({
     mutationFn: ({ authorName, content, rating }: { authorName: string; content: string; rating: number | null }) =>
-      myReview ? updateReview(myReview.id, { authorName, content, rating }) : Promise.resolve({ error: "No review" }),
+      myReview ? updateMyReview(myReview.id, { authorName, content, rating }) : Promise.resolve({ error: "No review" }),
     onSuccess: async (result) => {
-      if (result?.error) return;
+      if (result?.error) {
+        showSnackbar(result.error);
+        return;
+      }
       setEditingMyReview(false);
       const res = await getMyReview();
       if (res.review) setMyReview(res.review);
@@ -149,7 +152,7 @@ export function FooterFeedback({ className }: { className?: string }) {
 
   return (
     <div className={cn("bg-muted/40 rounded-lg mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8", className)}>
-      <h3 className="text-lg font-semibold text-foreground mb-6">Suggestions & Reviews</h3>
+      <h3 className="mb-6 text-center text-lg font-semibold text-foreground">Suggestions & Reviews</h3>
       <div className="grid gap-8 sm:grid-cols-2">
         {/* Suggestion form */}
         <div className="rounded-lg border bg-background p-4">

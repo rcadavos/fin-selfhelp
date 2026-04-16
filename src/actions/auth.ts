@@ -49,6 +49,7 @@ export async function signIn(formData: FormData) {
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
+  const fullName = (formData.get("full_name") as string | null)?.trim() ?? "";
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
@@ -66,6 +67,9 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      data: {
+        full_name: fullName || undefined,
+      },
     },
   });
   if (error) {

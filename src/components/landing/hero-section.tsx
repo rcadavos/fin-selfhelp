@@ -71,7 +71,8 @@ export function HeroSection({ className }: HeroSectionProps) {
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
             Bills, to-buy lists, and tasks—mark what you&apos;ve paid each month and see your dashboard at a glance,
-            like the apps you already trust, without the noise.
+            like the apps you already trust, without the noise. Set and track personal goals too, with progress from
+            not yet achieved to achieved.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
             <Button size="lg" asChild className="min-w-[15.5rem] whitespace-nowrap shadow-md sm:min-w-[16rem]">

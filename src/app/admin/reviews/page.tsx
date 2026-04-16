@@ -23,6 +23,7 @@ import {
   getReviewsForAdmin,
   setReviewStatus,
   updateReview,
+  deleteReview,
   type ReviewForAdminRow,
 } from "@/actions/feedback";
 import { Loader2, Check, X, Star, Pencil, ChevronLeft } from "lucide-react";
@@ -85,6 +86,13 @@ export default function AdminReviewsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["omni-trak", "admin", "reviews"] });
       setEditingReviewId(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["omni-trak", "admin", "reviews"] });
     },
   });
 
@@ -153,14 +161,15 @@ export default function AdminReviewsPage() {
                     </div>
                   </div>
                   <p className="text-sm whitespace-pre-wrap">{r.content}</p>
-                  {r.status === "pending" && (
-                    <div className="flex gap-2 pt-1 flex-wrap">
+                  <div className="flex gap-2 pt-1 flex-wrap">
+                    {r.status === "pending" && (
+                      <>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => startEdit(r)}
                         disabled={
-                          approveMutation.isPending || rejectMutation.isPending
+                          approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending
                         }
                       >
                         <Pencil className="h-4 w-4 mr-1" />
@@ -170,7 +179,7 @@ export default function AdminReviewsPage() {
                         size="sm"
                         onClick={() => approveMutation.mutate(r.id)}
                         disabled={
-                          approveMutation.isPending || rejectMutation.isPending
+                          approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending
                         }
                       >
                         {approveMutation.isPending &&
@@ -188,7 +197,7 @@ export default function AdminReviewsPage() {
                         variant="destructive"
                         onClick={() => rejectMutation.mutate(r.id)}
                         disabled={
-                          approveMutation.isPending || rejectMutation.isPending
+                          approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending
                         }
                       >
                         {rejectMutation.isPending &&
@@ -201,8 +210,26 @@ export default function AdminReviewsPage() {
                           </>
                         )}
                       </Button>
-                    </div>
-                  )}
+                      </>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        if (!confirm("Remove this review permanently?")) return;
+                        deleteMutation.mutate(r.id);
+                      }}
+                      disabled={
+                        approveMutation.isPending || rejectMutation.isPending || deleteMutation.isPending
+                      }
+                    >
+                      {deleteMutation.isPending && deleteMutation.variables === r.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Remove"
+                      )}
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

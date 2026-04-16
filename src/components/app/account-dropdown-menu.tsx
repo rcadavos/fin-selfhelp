@@ -84,16 +84,19 @@ export function AccountDropdownMenu({
     if (isSigningOut) return;
     setIsSigningOut(true);
     const supabase = createClient();
-    const res = await signOut();
-    if (res?.error) {
-      console.error("Sign out failed:", res.error);
-      if (isMountedRef.current) setIsSigningOut(false);
-      return;
+    // Clear client state first so UI transitions immediately.
+    const { error: localError } = await supabase.auth.signOut({ scope: "local" });
+    if (localError) {
+      console.error("Local sign out failed:", localError.message);
     }
-    // Clear client-side auth immediately so UI does not keep showing logged-in CTAs.
-    await supabase.auth.signOut({ scope: "local" });
     router.replace("/");
     router.refresh();
+    // Best effort server cookie/session cleanup; don't block navigation on this.
+    void signOut().then((res) => {
+      if (res?.error) {
+        console.error("Server sign out failed:", res.error);
+      }
+    });
     if (isMountedRef.current) setIsSigningOut(false);
   };
 

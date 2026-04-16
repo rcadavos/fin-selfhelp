@@ -44,6 +44,9 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
                 Track bills, cashflow, and lists in one place. Start free and add more when you&apos;re ready.
               </p>
+              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Add goals to plan short-term, long-term, and lifetime targets from day one.
+              </p>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">
                   <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -119,9 +122,22 @@ export default function SignUpPage() {
           <Card className="border-border/80 shadow-sm">
             <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
               <CardTitle className="text-xl md:text-lg">Sign up</CardTitle>
+              <CardDescription className="text-sm md:text-xs">
+                Start with bills, lists, and goals in a single dashboard.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
               <form action={handleSubmit} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full name</Label>
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Optional"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input

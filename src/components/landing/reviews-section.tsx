@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ApprovedReviewRow } from "@/actions/feedback";
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatDate(iso: string): string {
@@ -15,6 +18,38 @@ export function ReviewsSection({
   reviews: ApprovedReviewRow[];
 }) {
   if (reviews.length === 0) return null;
+  const isCarousel = reviews.length >= 4;
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  function goPrev() {
+    setActiveIndex((prev) => (prev - 1 + reviews.length) % reviews.length);
+  }
+
+  function goNext() {
+    setActiveIndex((prev) => (prev + 1) % reviews.length);
+  }
+
+  function ReviewCard({ review }: { review: ApprovedReviewRow }) {
+    return (
+      <Card className="border-border/50 flex w-full max-w-md flex-col">
+        <CardContent className="flex flex-1 flex-col pt-6 text-center">
+          {review.rating != null && (
+            <div className="mb-2 flex justify-center gap-0.5 text-amber-500" aria-hidden>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} className={cn("h-4 w-4", n <= review.rating! && "fill-current")} />
+              ))}
+            </div>
+          )}
+          <Quote className="mb-2 h-8 w-8 self-center text-muted-foreground/50" aria-hidden />
+          <p className="text-sm text-foreground flex-1 whitespace-pre-wrap">{review.content}</p>
+          <div className="mt-4 flex items-center justify-center gap-3 border-t border-border/50 pt-3">
+            <span className="text-sm font-medium text-foreground">{review.author_name || "Anonymous"}</span>
+            <span className="text-xs text-muted-foreground">{formatDate(review.created_at)}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <section id="reviews" className={cn("px-4 py-16 sm:px-6 lg:px-8 border-t", className)}>
@@ -27,36 +62,38 @@ export function ReviewsSection({
             Reviews from paid users using OmniTrak.
           </p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((r) => (
-            <Card key={r.id} className="border-border/50 flex flex-col">
-              <CardContent className="pt-6 flex flex-col flex-1">
-                {r.rating != null && (
-                  <div className="flex gap-0.5 text-amber-500 mb-2" aria-hidden>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Star
-                        key={n}
-                        className={cn("h-4 w-4", n <= r.rating! && "fill-current")}
-                      />
-                    ))}
-                  </div>
-                )}
-                <Quote className="h-8 w-8 text-muted-foreground/50 mb-2" aria-hidden />
-                <p className="text-sm text-foreground flex-1 whitespace-pre-wrap">
-                  {r.content}
-                </p>
-                <div className="mt-4 pt-3 border-t border-border/50 flex justify-between items-center">
-                  <span className="text-sm font-medium text-foreground">
-                    {r.author_name || "Anonymous"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(r.created_at)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isCarousel ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <ReviewCard review={reviews[activeIndex]!} />
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted"
+                onClick={goPrev}
+                aria-label="Previous review"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-muted-foreground">
+                {activeIndex + 1} / {reviews.length}
+              </span>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted"
+                onClick={goNext}
+                aria-label="Next review"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-6">
+            {reviews.map((r) => (
+              <ReviewCard key={r.id} review={r} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

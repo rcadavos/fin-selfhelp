@@ -3,11 +3,15 @@ import { cn } from "@/lib/utils";
 const faqs: { q: string; a: string }[] = [
   {
     q: "What is OmniTrak?",
-    a: "A personal finance hub focused on bills and cashflow: track expenses by category, mark what you paid each month, use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
+    a: "A personal finance hub focused on bills and cashflow: track expenses by category, mark what you paid each month, manage My Goals (short-term, long-term, and lifetime), use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
   },
   {
     q: "What does the free plan include?",
-    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, due dates, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
+    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, My Goals tracking, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, due dates, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
+  },
+  {
+    q: "How does My Goals work?",
+    a: "My Goals lets you create short-term, long-term, and lifetime goals, filter by achieved or not yet achieved, and mark goals as achieved with progress reflected immediately in your list.",
   },
   {
     q: "Can my partner see my data?",

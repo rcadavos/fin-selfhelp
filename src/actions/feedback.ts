@@ -273,6 +273,44 @@ export async function updateReview(
   return {};
 }
 
+export async function updateMyReview(
+  reviewId: string,
+  params: { authorName?: string | null; content: string; rating?: number | null }
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+  const admin = createServiceRoleClient();
+
+  const { data: existing, error: fetchError } = await admin
+    .from("reviews")
+    .select("id, status, author_user_id")
+    .eq("id", reviewId)
+    .eq("author_user_id", user.id)
+    .single();
+  if (fetchError || !existing) return { error: "Review not found." };
+  if (existing.status !== "pending") return { error: "Only pending reviews can be edited." };
+
+  const content = params.content?.trim();
+  if (!content || content.length < 2) return { error: "Please enter your review (at least 2 characters)." };
+  const rating = params.rating != null ? Math.min(5, Math.max(1, Math.round(params.rating))) : null;
+
+  const { error } = await admin
+    .from("reviews")
+    .update({
+      author_name: params.authorName?.trim() || null,
+      content,
+      rating,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reviewId)
+    .eq("author_user_id", user.id);
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function setReviewStatus(
   reviewId: string,
   status: "approved" | "rejected"
@@ -292,6 +330,21 @@ export async function setReviewStatus(
       updated_at: new Date().toISOString(),
     })
     .eq("id", reviewId);
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function deleteReview(reviewId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+  const admin = createServiceRoleClient();
+  const { data: profile } = await admin.from("profiles").select("is_admin").eq("user_id", user.id).maybeSingle();
+  if (!profile?.is_admin) return { error: "Forbidden." };
+
+  const { error } = await admin.from("reviews").delete().eq("id", reviewId);
   if (error) return { error: error.message };
   return {};
 }

@@ -46,6 +46,9 @@ function LoginBrandPanel({ showFooter }: { showFooter?: boolean }) {
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
                 Bills, cashflow, and lists in one place. Sign in to pick up where you left off.
               </p>
+              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Continue your goals progress with short-term, long-term, and lifetime targets.
+              </p>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">
                   <LayoutDashboard className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -177,6 +180,9 @@ function LoginContent() {
           <Card className="border-border/80 shadow-sm">
             <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
               <CardTitle className="text-xl md:text-lg">Log in</CardTitle>
+              <CardDescription className="text-sm md:text-xs">
+                Manage bills, lists, and your goals progress in one place.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
               <div className="inline-flex w-full items-center gap-1 rounded-md border bg-muted/40 p-1">

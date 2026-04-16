@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart, ShoppingCart, Calculator, LayoutDashboard, ListChecks, ClipboardList } from "lucide-react";
+import { PieChart, ShoppingCart, Calculator, LayoutDashboard, ListChecks, ClipboardList, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type DecorVariant = "checklist" | "chart" | "tags" | "receipt" | "coins" | "curve";
+type DecorVariant = "checklist" | "chart" | "tags" | "receipt" | "coins" | "curve" | "goals";
 
 function FeatureCardDecor({ variant }: { variant: DecorVariant }) {
   const base = "relative h-[72px] w-full overflow-hidden rounded-xl border border-white/10";
@@ -67,6 +67,24 @@ function FeatureCardDecor({ variant }: { variant: DecorVariant }) {
           <div className="absolute right-2 top-2 h-8 w-14 rounded-md bg-white/10" />
         </div>
       );
+    case "goals":
+      return (
+        <div className={cn(base, "bg-gradient-to-br from-rose-600/90 to-orange-900")}>
+          <div className="absolute inset-0 flex items-center justify-center p-3">
+            <div className="w-full space-y-1.5">
+              <div className="h-2 w-full rounded-full bg-white/20">
+                <div className="h-2 w-2/3 rounded-full bg-white/60" />
+              </div>
+              <div className="h-2 w-full rounded-full bg-white/20">
+                <div className="h-2 w-1/2 rounded-full bg-white/45" />
+              </div>
+              <div className="h-2 w-full rounded-full bg-white/20">
+                <div className="h-2 w-5/6 rounded-full bg-white/70" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     case "curve":
     default:
       return (
@@ -127,6 +145,13 @@ const features: {
     decor: "coins",
   },
   {
+    title: "My Goals tracker",
+    description:
+      "Organize short-term, long-term, and lifetime goals, filter by achieved status, and track progress as you complete each one.",
+    icon: Target,
+    decor: "goals",
+  },
+  {
     title: "Savings & debt calculators",
     description:
       "Compound savings and debt payoff timelines with Philippine-focused defaults.",
@@ -144,7 +169,8 @@ export function FeaturesSection({ className }: { className?: string }) {
             Your money, one clear dashboard
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Bills, budgets, lists, and calculators — the essentials you expect from a modern finance app, tuned for everyday use.
+            Bills, budgets, lists, goals, and calculators — the essentials you expect from a modern finance app, tuned
+            for everyday use.
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

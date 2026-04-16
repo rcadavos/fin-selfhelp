@@ -50,6 +50,13 @@ On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using 
 4. **Server vs client:** Mark client components with `"use client"`; keep server components default where possible.
 5. **Env:** `NEXT_PUBLIC_*` for browser; Supabase keys and secrets via `.env.local` (do not commit secrets). README documents `NEXT_PUBLIC_SITE_URL`, support email, etc.
 6. **Routes:** When changing where a page lives (new URL path), **move or add the App Router files** under `src/app/...` (`page.tsx`, `layout.tsx`, route groups as needed) and **update all internal links** (`Link`, `router.push`, `redirect`, `revalidatePath`, etc.). **Do not** implement the new location solely via **`next.config` `redirects`**—that hides the real route, keeps dead source paths, and makes grep and refactors harder. Reserve `redirects()` only for **legacy aliases** (old bookmarks, renamed paths you must keep working) alongside the canonical files at the new path.
+7. **New feature rollout (app-wide):** When adding a new user-facing feature, update all relevant app-wide surfaces in the same change set. This includes:
+   - Landing copy/components that describe available features (`src/components/landing/*`).
+   - Landing FAQ content (`src/components/landing/faq-section.tsx`) when the feature affects capabilities, limits, or user workflows.
+   - Auth entry points (`src/app/(auth)/login/page.tsx`, `src/app/(auth)/signup/page.tsx`) so messaging reflects current capabilities.
+   - Navigation/discoverability (sidebar/header/search links) when applicable.
+   - Any docs/constants/help text that list product capabilities.
+   Do this as additive updates: keep existing feature descriptions intact and append/extend copy instead of overwriting unrelated messaging.
 
 ## UI & styling
 
