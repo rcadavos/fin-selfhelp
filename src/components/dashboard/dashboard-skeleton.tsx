@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export type DashboardSkeletonVariant =
   | "dashboard"
   | "expenses"
+  | "my-goals"
   | "calculators-index"
   | "calculator-detail"
   | "to-buy-list";
@@ -295,6 +296,39 @@ function CalculatorDetailBody() {
   );
 }
 
+function MyGoalsBody() {
+  return (
+    <div className="container mx-auto max-w-3xl px-4 pb-10 pt-4">
+      <div className="mb-8 flex items-start gap-3">
+        <Skeleton className="mt-0.5 h-7 w-7 shrink-0 rounded-md" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-full max-w-md" />
+        </div>
+        <Skeleton className="h-9 w-24 shrink-0 rounded-md" />
+      </div>
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-xl border bg-card p-4 shadow-sm">
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+              <div className="flex gap-1">
+                <Skeleton className="h-8 w-8 rounded-md" />
+                <Skeleton className="h-8 w-8 rounded-md" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-56" />
+            <Skeleton className="mt-2 h-3 w-44" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ToBuyListBody() {
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-8 md:px-6">
@@ -332,6 +366,8 @@ export function DashboardSkeleton({ variant, className }: DashboardSkeletonProps
       <DashboardHomeBody />
     ) : variant === "expenses" ? (
       <ExpensesBody />
+    ) : variant === "my-goals" ? (
+      <MyGoalsBody />
     ) : variant === "calculators-index" ? (
       <CalculatorsIndexBody />
     ) : variant === "calculator-detail" ? (

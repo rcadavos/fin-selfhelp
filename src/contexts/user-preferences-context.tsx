@@ -11,9 +11,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { fetchUserPreferencesFromDb, persistUserPreferences } from "@/actions/user-preferences";
+import { persistUserPreferences } from "@/actions/user-preferences";
+import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import {
   type UserPreferences,
   DEFAULT_USER_PREFERENCES,
@@ -46,6 +48,13 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [initialSyncDone, setInitialSyncDone] = useState(false);
   /** When true, incoming DB fetch must not overwrite local edits (e.g. user changed settings before fetch returned). */
   const ignoreFetchRef = useRef(false);
+  /** Skip one server persist right after applying prefs loaded from DB (avoids redundant POST on every page load). */
+  const skipNextPersistRef = useRef(false);
+
+  const prefsQuery = useQuery({
+    ...userPreferencesQueryOptions(user?.id),
+    enabled: Boolean(user?.id) && !loading,
+  });
 
   useLayoutEffect(() => {
     const loaded = loadUserPreferences();
@@ -68,23 +77,33 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setInitialSyncDone(false);
-    let cancelled = false;
-    void fetchUserPreferencesFromDb().then((prefs) => {
-      if (cancelled) return;
-      if (ignoreFetchRef.current) {
-        setInitialSyncDone(true);
-        return;
-      }
-      setPreferencesState(prefs);
-      saveUserPreferences(prefs);
-      setClientPreferenceCache(prefs);
+    if (prefsQuery.isPending) {
+      setInitialSyncDone(false);
+      return;
+    }
+
+    if (prefsQuery.isError) {
       setInitialSyncDone(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, loading]);
+      return;
+    }
+
+    const prefs = prefsQuery.data;
+    if (prefs === undefined) {
+      setInitialSyncDone(true);
+      return;
+    }
+
+    if (ignoreFetchRef.current) {
+      setInitialSyncDone(true);
+      return;
+    }
+
+    skipNextPersistRef.current = true;
+    setPreferencesState(prefs);
+    saveUserPreferences(prefs);
+    setClientPreferenceCache(prefs);
+    setInitialSyncDone(true);
+  }, [user?.id, loading, prefsQuery.isPending, prefsQuery.isError, prefsQuery.data]);
 
   useEffect(() => {
     saveUserPreferences(preferences);
@@ -93,6 +112,10 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading || !user || !initialSyncDone) return;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
     void persistUserPreferences(preferences).then((r) => {
       if (r.error) showError(r.error);
     });

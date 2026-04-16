@@ -1,22 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getIsAdmin } from "@/actions/admin";
+import { useQuery } from "@tanstack/react-query";
+import { userIsAdminQueryOptions } from "@/lib/query/user-admin";
 
+/** Shared React Query cache — safe to call from AppHeader and AppSidebar without duplicate fetches. */
 export function useIsAdmin(enabled: boolean = true) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-    getIsAdmin().then((ok) => {
-      setIsAdmin(ok);
-      setLoading(false);
-    });
-  }, [enabled]);
-
-  return { isAdmin, loading };
+  const q = useQuery({
+    ...userIsAdminQueryOptions(),
+    enabled,
+  });
+  return { isAdmin: q.data ?? false, loading: enabled && q.isPending };
 }

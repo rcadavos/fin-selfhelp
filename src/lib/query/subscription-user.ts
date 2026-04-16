@@ -9,6 +9,8 @@ export function subscriptionStatusQueryOptions() {
     queryKey: queryKeys.subscriptionStatus(),
     queryFn: (): Promise<Awaited<ReturnType<typeof getSubscriptionStatus>>> => getSubscriptionStatus(),
     staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

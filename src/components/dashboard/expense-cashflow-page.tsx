@@ -1327,12 +1327,6 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <div className="mb-4 flex flex-row items-start justify-between gap-3 sm:gap-6">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <h2
-                id="expenses-section-heading"
-                className="text-lg font-semibold leading-none tracking-tight"
-              >
-                Expenses
-              </h2>
               <div className="inline-flex min-h-5 items-center gap-2.5">
                 <Label
                   id="expenses-categorized-label"
@@ -1343,7 +1337,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                 </Label>
                 <ToggleSwitch
                   id="expenses-categorized"
-                  aria-labelledby="expenses-section-heading expenses-categorized-label"
+                  aria-labelledby="expenses-categorized-label"
                   checked={expensesCategorized}
                   className="shrink-0"
                   onCheckedChange={setExpensesCategorizedPersisted}
@@ -1436,6 +1430,10 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                       setDraftFilterPaid(false);
                       setDraftFilterUnpaid(false);
                       setDraftFilterPastDue(false);
+                      setFilterPaid(false);
+                      setFilterUnpaid(false);
+                      setFilterPastDue(false);
+                      setFilterMenuOpen(false);
                     }}
                   >
                     Reset

@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   ClipboardList,
   UsersRound,
+  Target,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountDropdownMenu, getAccountAvatarUrl } from "@/components/app/account-dropdown-menu";
@@ -42,6 +43,8 @@ export function AppHeader({ className }: { className?: string }) {
   const isDashboardHome = pathname === "/dashboard";
   const isMyExpenses =
     pathname === "/dashboard/my-expenses" || pathname?.startsWith("/dashboard/my-expenses/");
+  const isMyGoals =
+    pathname === "/dashboard/my-goals" || pathname?.startsWith("/dashboard/my-goals/");
   const isToBuy = pathname === "/dashboard/to-buy" || pathname?.startsWith("/dashboard/to-buy/");
   const isToDo = pathname === "/dashboard/to-do" || pathname?.startsWith("/dashboard/to-do/");
   const isCalculators = pathname?.startsWith("/dashboard/calculators");
@@ -124,14 +127,14 @@ export function AppHeader({ className }: { className?: string }) {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link
-                        href="/dashboard/calculators"
+                        href="/dashboard/my-goals"
                         className={cn(
                           "flex cursor-pointer items-center gap-2",
-                          isCalculators && "bg-primary/10 font-semibold text-primary"
+                          isMyGoals && "bg-primary/10 font-semibold text-primary"
                         )}
                       >
-                        <Calculator className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                        Calculators
+                        <Target className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        My Goals
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -182,6 +185,18 @@ export function AppHeader({ className }: { className?: string }) {
                         <Wallet className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                         Payment Tracker
                         <Gem className="ml-auto h-3.5 w-3.5 shrink-0 text-sky-500" aria-label="Premium" />
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/dashboard/calculators"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2",
+                          isCalculators && "bg-primary/10 font-semibold text-primary"
+                        )}
+                      >
+                        <Calculator className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        Calculators
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

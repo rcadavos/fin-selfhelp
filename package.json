@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack --port 3003",
     "build": "next build",
     "start": "next start --port 3003",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:celebration-png": "node scripts/svg-celebration-to-png.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -36,6 +37,7 @@
     "eslint": "^9.16.0",
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.4.49",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.16",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.7.2"

@@ -224,11 +224,11 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     aria-label="Delete item"
                     onClick={() => handleDelete(item.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" aria-hidden />
                   </Button>
                 ) : null}
               </div>

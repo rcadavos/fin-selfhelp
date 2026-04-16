@@ -15,6 +15,7 @@ import {
   Building2,
   Wallet,
   Gem,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -38,11 +39,12 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote, premium: false },
+  { href: "/dashboard/my-goals", label: "My Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
   { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
-  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/rent-tracker", label: "Rent Tracker", icon: Building2, premium: true },
   { href: "/dashboard/payment-tracker", label: "Payment Tracker", icon: Wallet, premium: true },
+  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
 ] as const;
 
@@ -50,7 +52,10 @@ export function AppSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { user } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
-  const { data: subscriptionStatus } = useQuery(subscriptionStatusQueryOptions());
+  const { data: subscriptionStatus } = useQuery({
+    ...subscriptionStatusQueryOptions(),
+    enabled: !!user,
+  });
   const avatarUrl = user ? getAccountAvatarUrl(user) : null;
   const subscriptionLabel = subscriptionStatus?.hasPremiumAccess
     ? "Premium"

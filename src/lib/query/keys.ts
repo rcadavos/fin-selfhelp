@@ -13,6 +13,13 @@ export const queryKeys = {
   toBuyItems: () => [...queryKeys.all, "to-buy", "items"] as const,
   /** Current user’s to-do list rows (see `toDoItemsQueryOptions`). */
   toDoItems: () => [...queryKeys.all, "to-do", "items"] as const,
+  /** Personal goals (see `goalsQueryOptions`). */
+  goals: () => [...queryKeys.all, "goals", "items"] as const,
+  /** `getIsAdmin()` — shared by header + sidebar (dedupe via one query). */
+  userIsAdmin: () => [...queryKeys.all, "user", "is-admin"] as const,
+  /** `fetchUserPreferencesFromDb()` — keyed by user id for account switches. */
+  userPreferences: (userId: string | undefined) =>
+    [...queryKeys.all, "user", "preferences", userId ?? "none"] as const,
   /** Current user’s subscription row shape from `getSubscriptionStatus` (see `subscriptionStatusQueryOptions`). */
   subscriptionStatus: () => [...queryKeys.all, "subscription", "status"] as const,
   /** Pro/Premium capability flags from `getSubscriptionCapabilities` (see `subscriptionCapabilitiesQueryOptions`). */
