@@ -134,3 +134,26 @@ export async function setUserSubscription(
     return { error: e instanceof Error ? e.message : "Failed to update subscription." };
   }
 }
+
+export async function confirmUserEmail(userId: string): Promise<{ error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "Not logged in." };
+
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin.from("profiles").select("is_admin").eq("user_id", user.id).maybeSingle();
+    if (!profile?.is_admin) return { error: "Forbidden." };
+
+    const { error } = await admin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+    if (error) return { error: error.message };
+
+    return {};
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to confirm user email." };
+  }
+}

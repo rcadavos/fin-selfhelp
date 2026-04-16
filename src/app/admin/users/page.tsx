@@ -37,8 +37,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { setUserSubscription, setUserAdmin, type AdminUserRow } from "@/actions/admin";
-import { Loader2, CreditCard, Shield, ShieldOff } from "lucide-react";
+import { confirmUserEmail, setUserSubscription, setUserAdmin, type AdminUserRow } from "@/actions/admin";
+import { Loader2, CreditCard, Shield, ShieldOff, MailCheck } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -102,6 +102,19 @@ export default function AdminUsersPage() {
       setPaidUser(null);
       setExpiresAt("");
       setPaidTier("pro");
+      setActionError(null);
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const confirmEmailMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const result = await confirmUserEmail(userId);
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryOptions().queryKey });
       setActionError(null);
     },
     onError: (err: Error) => setActionError(err.message),
@@ -199,6 +212,21 @@ export default function AdminUsersPage() {
                           <Button variant="outline" size="sm" onClick={() => openSetPaid(u)}>
                             <CreditCard className="mr-1 h-4 w-4" />
                             Paid
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => confirmEmailMutation.mutate({ userId: u.id })}
+                            disabled={confirmEmailMutation.isPending}
+                          >
+                            {confirmEmailMutation.isPending && confirmEmailMutation.variables?.userId === u.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <MailCheck className="mr-1 h-4 w-4" />
+                                Confirm email
+                              </>
+                            )}
                           </Button>
                         </div>
                       </TableCell>
