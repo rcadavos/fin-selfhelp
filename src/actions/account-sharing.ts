@@ -6,6 +6,7 @@ import {
   hasProLevelProductAccess,
   normalizeDbTier,
 } from "@/lib/subscription-tier";
+import { sharingInviteSchema } from "@/lib/validation/forms";
 
 export type AccountShareRow = {
   id: string;
@@ -174,11 +175,10 @@ export async function createAccountShare(input: {
   /** @deprecated Net worth sharing removed; always stored as false. */
   canViewNetWorth?: boolean;
 }): Promise<{ error?: string; share?: AccountShareRow }> {
-  const email = normalizeEmail(input.inviteEmail);
-  if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
-  if (!input.canViewExpenses && !input.canViewToBuy) {
-    return { error: "Select at least one area to share." };
-  }
+  const parsed = sharingInviteSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid invite input." };
+  const email = normalizeEmail(parsed.data.inviteEmail);
+  input = parsed.data;
 
   const supabase = await createClient();
   const {

@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
+import {
+  loginSchema,
+  passwordResetRequestSchema,
+  signupSchema,
+} from "@/lib/validation/forms";
 import { redirect } from "next/navigation";
 
 function normalizeSiteUrl(): string {
@@ -33,12 +38,12 @@ export async function signInWithGoogle(
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid credentials." };
+  const { email, password } = parsed.data;
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -50,16 +55,12 @@ export async function signIn(formData: FormData) {
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
-
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
-  }
+  const parsed = signupSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid sign up details." };
+  const { email, password } = parsed.data;
 
   const siteUrl = normalizeSiteUrl();
   if (!siteUrl) {
@@ -80,11 +81,11 @@ export async function signUp(formData: FormData) {
 
 export async function signInWithOtp(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-
-  if (!email?.trim()) {
-    return { error: "Email is required." };
-  }
+  const parsed = passwordResetRequestSchema.safeParse({
+    email: formData.get("email"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid email." };
+  const { email } = parsed.data;
 
   const siteUrl = normalizeSiteUrl();
   if (!siteUrl) {
@@ -93,7 +94,7 @@ export async function signInWithOtp(formData: FormData) {
   const nextPath = safeNextPath(formData.get("next") as string | null);
   const callbackUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
   const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim(),
+    email,
     options: {
       emailRedirectTo: callbackUrl,
     },
@@ -106,18 +107,18 @@ export async function signInWithOtp(formData: FormData) {
 
 export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-
-  if (!email?.trim()) {
-    return { error: "Email is required." };
-  }
+  const parsed = passwordResetRequestSchema.safeParse({
+    email: formData.get("email"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid email." };
+  const { email } = parsed.data;
 
   const siteUrl = normalizeSiteUrl();
   if (!siteUrl) {
     return { error: "Server misconfiguration: NEXT_PUBLIC_SITE_URL is not set." };
   }
   const redirectTo = `${siteUrl}/reset-password`;
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
   });
   if (error) {

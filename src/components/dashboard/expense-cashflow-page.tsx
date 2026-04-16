@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { expenseFormSchema } from "@/lib/validation/forms";
 import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
@@ -526,15 +527,22 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   async function handleAddExpense(e: React.FormEvent) {
     e.preventDefault();
     const amount = parseInt(addAmount.replace(/\D/g, ""), 10) || 0;
-    if (!addName.trim() || amount <= 0) return;
+    const parsed = expenseFormSchema.safeParse({
+      name: addName,
+      amount,
+    });
+    if (!parsed.success) {
+      showSnackbar(parsed.error.issues[0]?.message ?? "Invalid expense details.");
+      return;
+    }
     const dueDate = addDueDate.trim() || undefined;
     const reminderDays =
       isSubscriber && dueDate && addReminderDays.length ? addReminderDays : undefined;
     setAddStatus("saving");
     const result = await addExpense(
       addCategory || "",
-      amount,
-      addName.trim(),
+      parsed.data.amount,
+      parsed.data.name,
       addNotes.trim() || undefined,
       dueDate,
       reminderDays,
@@ -596,15 +604,22 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingId || !editName.trim() || !editAmount) return;
+    if (!editingId || !editAmount) return;
     const amount = parseInt(editAmount.replace(/\D/g, ""), 10) || 0;
-    if (amount <= 0) return;
+    const parsed = expenseFormSchema.safeParse({
+      name: editName,
+      amount,
+    });
+    if (!parsed.success) {
+      showSnackbar(parsed.error.issues[0]?.message ?? "Invalid expense details.");
+      return;
+    }
     setEditStatus("saving");
     const result = await updateExpense(
       editingId,
       editCategory || "",
-      amount,
-      editName.trim(),
+      parsed.data.amount,
+      parsed.data.name,
       editNotes.trim() || undefined,
       editDueDate.trim() || undefined,
       isSubscriber && editDueDate.trim() ? (editReminderDays.length ? editReminderDays : null) : undefined
@@ -1768,3 +1783,5 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     </div>
   );
 }
+
+

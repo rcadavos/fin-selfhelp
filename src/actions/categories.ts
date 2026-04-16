@@ -2,6 +2,7 @@
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { categoryCreateSchema } from "@/lib/validation/forms";
 
 export type ExpenseCategoryRow = {
   id: string;
@@ -78,15 +79,16 @@ export async function createExpenseCategory(params: {
       .eq("user_id", user.id)
       .maybeSingle();
     if (!profile?.is_admin) return { error: "Forbidden." };
-    const id = params.id.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!id) return { error: "ID is required." };
-    if (!params.label.trim()) return { error: "Label is required." };
+    const parsed = categoryCreateSchema.safeParse(params);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid category input." };
+    const clean = parsed.data;
+    const id = clean.id.toLowerCase().replace(/\s+/g, "_");
     const { error } = await supabase
       .from("expense_categories")
       .insert({
         id,
-        label: params.label.trim(),
-        bg_class: (params.bgClass ?? "").trim() || "bg-neutral-50 dark:bg-neutral-800/30",
+        label: clean.label,
+        bg_class: (clean.bgClass ?? "").trim() || "bg-neutral-50 dark:bg-neutral-800/30",
         sort_order: 999,
       });
     if (error) return { error: error.message };

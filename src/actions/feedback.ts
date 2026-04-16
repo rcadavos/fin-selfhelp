@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { feedbackReviewSchema, feedbackSuggestionSchema } from "@/lib/validation/forms";
 
 /** Returns true if current user is paid (is_subscriber), false if not on a paid plan, null if not logged in. */
 async function getCurrentUserIsPaidTier(): Promise<boolean | null> {
@@ -19,15 +20,16 @@ export async function submitSuggestion(params: {
   email?: string | null;
   content: string;
 }): Promise<{ error?: string }> {
-  const content = params.content?.trim();
-  if (!content || content.length < 2) return { error: "Please enter a suggestion (at least 2 characters)." };
+  const parsed = feedbackSuggestionSchema.safeParse(params);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid suggestion." };
+  const { content, email } = parsed.data;
   try {
     const isPaid = await getCurrentUserIsPaidTier();
     if (isPaid === null) return { error: "Sign in to submit a suggestion." };
     if (!isPaid) return { error: "Suggestions are for paid subscribers only." };
     const supabase = await createClient();
     const { error } = await supabase.from("suggestions").insert({
-      email: params.email?.trim() || null,
+      email: email ?? null,
       content,
     });
     if (error) return { error: error.message };
@@ -42,9 +44,9 @@ export async function submitReview(params: {
   content: string;
   rating?: number | null;
 }): Promise<{ error?: string }> {
-  const content = params.content?.trim();
-  if (!content || content.length < 2) return { error: "Please enter your review (at least 2 characters)." };
-  const rating = params.rating != null ? Math.min(5, Math.max(1, Math.round(params.rating))) : null;
+  const parsed = feedbackReviewSchema.safeParse(params);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid review." };
+  const { content, rating, authorName } = parsed.data;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -71,7 +73,7 @@ export async function submitReview(params: {
     }
 
     const { error } = await supabase.from("reviews").insert({
-      author_name: params.authorName?.trim() || null,
+      author_name: authorName ?? null,
       author_user_id: user?.id ?? null,
       content,
       rating,
@@ -257,13 +259,13 @@ export async function updateReview(
     .single();
   if (fetchError || !existing) return { error: "Review not found." };
   if (existing.status !== "pending") return { error: "Only pending reviews can be edited." };
-  const content = params.content?.trim();
-  if (!content || content.length < 2) return { error: "Please enter your review (at least 2 characters)." };
-  const rating = params.rating != null ? Math.min(5, Math.max(1, Math.round(params.rating))) : null;
+  const parsed = feedbackReviewSchema.safeParse(params);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid review." };
+  const { content, rating, authorName } = parsed.data;
   const { error } = await admin
     .from("reviews")
     .update({
-      author_name: params.authorName?.trim() || null,
+      author_name: authorName ?? null,
       content,
       rating,
       updated_at: new Date().toISOString(),

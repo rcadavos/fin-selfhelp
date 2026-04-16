@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { resetPasswordSchema } from "@/lib/validation/forms";
 
 export default function ProfileSecurityPage() {
   const router = useRouter();
@@ -25,16 +26,13 @@ export default function ProfileSecurityPage() {
     const form = e.currentTarget;
     const password = (form.elements.namedItem("password") as HTMLInputElement)?.value ?? "";
     const confirm = (form.elements.namedItem("confirm") as HTMLInputElement)?.value ?? "";
-    if (password.length < 6) {
-      showError("Password must be at least 6 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      showError("Passwords do not match.");
+    const parsed = resetPasswordSchema.safeParse({ password, confirm });
+    if (!parsed.success) {
+      showError(parsed.error.issues[0]?.message ?? "Invalid password.");
       return;
     }
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
     if (error) {
       showError(error.message);
       return;
@@ -96,3 +94,5 @@ export default function ProfileSecurityPage() {
     </main>
   );
 }
+
+

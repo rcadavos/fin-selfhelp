@@ -40,6 +40,7 @@ import {
   readGoalsCategorizedPreference,
   writeGoalsCategorizedPreference,
 } from "@/lib/goals-categorized-preference";
+import { goalInputSchema } from "@/lib/validation/forms";
 import { queryKeys } from "@/lib/query/keys";
 import {
   createGoal,
@@ -300,12 +301,13 @@ export function MyGoalsPage() {
         setInlineNameDraft("");
         return;
       }
-      if (!next) {
-        showError("Goal name is required.");
+      const parsed = goalInputSchema.safeParse({ ...goalRowToInput(g), name: next });
+      if (!parsed.success) {
+        showError(parsed.error.issues[0]?.message ?? "Invalid goal details.");
         setInlineNameDraft(g.name);
         return;
       }
-      const res = await updateGoal(goalId, { ...goalRowToInput(g), name: next });
+      const res = await updateGoal(goalId, parsed.data);
       if (res.error) {
         showError(res.error);
         return;
@@ -355,10 +357,15 @@ export function MyGoalsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const payload = formToPayload(form);
+    const parsed = goalInputSchema.safeParse(payload);
+    if (!parsed.success) {
+      showError(parsed.error.issues[0]?.message ?? "Invalid goal details.");
+      return;
+    }
     setSaving(true);
     try {
-      const payload = formToPayload(form);
-      const res = editingId ? await updateGoal(editingId, payload) : await createGoal(payload);
+      const res = editingId ? await updateGoal(editingId, parsed.data) : await createGoal(parsed.data);
       if (res.error) {
         showError(res.error);
         return;
@@ -394,35 +401,57 @@ export function MyGoalsPage() {
   const handleMarkAchievedNow = useCallback(
     async (g: GoalEntryRow) => {
       const now = new Date();
+      const optimisticMonth = now.getMonth() + 1;
+      const optimisticYear = now.getFullYear();
+      const goalsKey = queryKeys.goals();
+      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
+      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
+        (old ?? []).map((row) =>
+          row.id === g.id
+            ? { ...row, date_achieved_month: optimisticMonth, date_achieved_year: optimisticYear }
+            : row
+        )
+      );
       const res = await updateGoal(g.id, {
         ...goalRowToInput(g),
-        date_achieved_month: now.getMonth() + 1,
-        date_achieved_year: now.getFullYear(),
+        date_achieved_month: optimisticMonth,
+        date_achieved_year: optimisticYear,
       });
       if (res.error) {
+        queryClient.setQueryData(goalsKey, prevGoals);
         showError(res.error);
         return;
       }
       invalidateGoals();
     },
-    [showError, invalidateGoals]
+    [showError, invalidateGoals, queryClient]
   );
 
   const handleUnmarkAchieved = useCallback(
     async (g: GoalEntryRow) => {
       if (!confirm("Undo marking this goal as achieved?")) return;
+      const goalsKey = queryKeys.goals();
+      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
+      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
+        (old ?? []).map((row) =>
+          row.id === g.id
+            ? { ...row, date_achieved_month: null, date_achieved_year: null }
+            : row
+        )
+      );
       const res = await updateGoal(g.id, {
         ...goalRowToInput(g),
         date_achieved_month: null,
         date_achieved_year: null,
       });
       if (res.error) {
+        queryClient.setQueryData(goalsKey, prevGoals);
         showError(res.error);
         return;
       }
       invalidateGoals();
     },
-    [showError, invalidateGoals]
+    [showError, invalidateGoals, queryClient]
   );
 
   const years = useMemo(() => yearOptions(), []);
