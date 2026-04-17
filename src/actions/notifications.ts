@@ -71,6 +71,10 @@ function computeDueDateThisMonthFromStored(dueYmd: string, today: Date): Date | 
   return new Date(year, month1to12 - 1, safeDay);
 }
 
+function isReminderReleaseTimeReached(now: Date, releaseHour24 = 8): boolean {
+  return now.getHours() >= releaseHour24;
+}
+
 async function syncGeneratedProNotificationsForToday(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
@@ -91,6 +95,7 @@ async function syncGeneratedProNotificationsForToday(
   if (!hasProAccess) return;
 
   const today = new Date();
+  if (!isReminderReleaseTimeReached(today, 8)) return;
   const todayYmd = formatYmdLocal(today);
 
   const [{ data: expenses }, { data: toDoRows }] = await Promise.all([

@@ -39,3 +39,28 @@ For links to show the correct image and title when shared (e.g. on Messenger or 
    - Enable **Custom SMTP**, set your SMTP host (e.g. your provider for fin-track.cloud), and set the **Sender email** to `info@fin-track.cloud` (and use a matching SMTP user/password).
    - If you don’t use custom SMTP, Supabase uses its default sender; the “from” address is then configured in **Email Templates** only if your plan allows it.
 
+## Reminder emails (8:00 AM daily)
+
+Reminder emails are sent from the cron route at `GET /api/cron/reminder-emails`.
+
+- **Schedule:** `vercel.json` runs this route at `0 0 * * *` (00:00 UTC).  
+  For Asia/Manila this is 8:00 AM local time.
+- **Security:** the route requires `Authorization: Bearer <CRON_SECRET>`.
+- **Email provider:** uses SMTP (e.g., Hostinger SMTP).
+
+Set these env vars in deployment:
+
+```bash
+CRON_SECRET=your-long-random-secret
+REMINDER_FROM_EMAIL="OmniTrak <reminders@yourdomain.com>"
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-mailbox@yourdomain.com
+SMTP_PASS=your-mailbox-password
+```
+
+Notes:
+- Reminders are currently sent for **Pro/Premium-capable** users.
+- Sending is deduplicated by `reminder_email_logs` so each reminder key is emailed once.
+
