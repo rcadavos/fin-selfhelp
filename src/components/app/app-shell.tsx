@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { AppHeader } from "@/components/app/app-header";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { Input } from "@/components/ui/input";
+import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
@@ -48,8 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="pointer-events-none relative z-10 flex h-full items-center justify-end px-3 sm:px-4">
-              <div className="pointer-events-auto">
+              <div className="pointer-events-auto flex items-center gap-1">
                 <ThemeToggle />
+                <NotificationsMenu />
               </div>
             </div>
           </header>

@@ -5,7 +5,17 @@
 
 export const USER_PREFERENCES_STORAGE_KEY = "omnitrak-user-preferences-v1";
 
-export type DateFormatId = "mdy" | "dmy" | "ymd" | "d_MMM_y" | "MMMM_D_YYYY";
+export type DateFormatId =
+  | "mdy"
+  | "dmy"
+  | "ymd"
+  | "d_MMM_y"
+  | "MMMM_D_YYYY"
+  | "m-d-y"
+  | "d-m-y"
+  | "y-m-d"
+  | "MMM_d_y"
+  | "d_MMMM_y";
 export type TimeFormatId = "12h" | "24h";
 export type NumberGroupingId = "comma" | "dot";
 
@@ -31,7 +41,18 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   subscriptionAlertsEnabled: true,
 };
 
-const DATE_FORMAT_SET = new Set<string>(["mdy", "dmy", "ymd", "d_MMM_y", "MMMM_D_YYYY"]);
+const DATE_FORMAT_SET = new Set<string>([
+  "mdy",
+  "dmy",
+  "ymd",
+  "d_MMM_y",
+  "MMMM_D_YYYY",
+  "m-d-y",
+  "d-m-y",
+  "y-m-d",
+  "MMM_d_y",
+  "d_MMMM_y",
+]);
 const TIME_FORMAT_SET = new Set<string>(["12h", "24h"]);
 const NUMBER_GROUPING_SET = new Set<string>(["comma", "dot"]);
 const LANGUAGE_SET = new Set<string>(["en", "fil"]);
@@ -113,10 +134,20 @@ export function formatDateWithPreferences(
   switch (prefs.dateFormat) {
     case "dmy":
       return `${pad2(day)}/${pad2(m)}/${y}`;
+    case "m-d-y":
+      return `${pad2(m)}-${pad2(day)}-${y}`;
+    case "d-m-y":
+      return `${pad2(day)}-${pad2(m)}-${y}`;
     case "ymd":
       return `${y}-${pad2(m)}-${pad2(day)}`;
+    case "y-m-d":
+      return `${y}/${pad2(m)}/${pad2(day)}`;
     case "d_MMM_y":
       return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+    case "MMM_d_y":
+      return d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
+    case "d_MMMM_y":
+      return d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
     case "MMMM_D_YYYY":
       return d.toLocaleDateString(locale, { month: "long", day: "numeric", year: "numeric" });
     case "mdy":
@@ -177,7 +208,12 @@ export const DATE_FORMAT_OPTIONS: { value: DateFormatId; label: string }[] = [
   { value: "mdy", label: "MM/DD/YYYY (US-style)" },
   { value: "dmy", label: "DD/MM/YYYY" },
   { value: "ymd", label: "YYYY-MM-DD (ISO-style)" },
+  { value: "m-d-y", label: "MM-DD-YYYY" },
+  { value: "d-m-y", label: "DD-MM-YYYY" },
+  { value: "y-m-d", label: "YYYY/MM/DD" },
   { value: "d_MMM_y", label: "DD MMM YYYY (e.g. 11 Apr 2026)" },
+  { value: "MMM_d_y", label: "MMM DD, YYYY (e.g. Apr 11, 2026)" },
+  { value: "d_MMMM_y", label: "DD MMMM YYYY (e.g. 11 April 2026)" },
   { value: "MMMM_D_YYYY", label: "MMMM D, YYYY (e.g. April 12, 2026)" },
 ];
 

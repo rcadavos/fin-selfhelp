@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ContentHeaderProps = {
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   icon?: LucideIcon;
   actions?: ReactNode;
@@ -18,7 +18,7 @@ export function ContentHeader({ title, subtitle, icon: Icon, actions, className 
       <div className="min-w-0">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
           {Icon ? <Icon className="h-7 w-7 shrink-0 text-primary" aria-hidden /> : null}
-          <span className="min-w-0 truncate">{title}</span>
+          {typeof title === "string" ? <span className="min-w-0 truncate">{title}</span> : title}
         </h1>
         {subtitle ? (
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>

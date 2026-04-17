@@ -29,6 +29,7 @@ import {
   UsersRound,
   Target,
 } from "lucide-react";
+import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountDropdownMenu, getAccountAvatarUrl } from "@/components/app/account-dropdown-menu";
 import { SiteLogo } from "@/components/app/site-logo";
@@ -81,6 +82,7 @@ export function AppHeader({ className }: { className?: string }) {
               {/* Mobile only (below md): md+ uses sidebar + shell toolbar */}
               <div className="flex md:hidden items-center gap-2">
                 <ThemeToggle />
+                <NotificationsMenu />
                 {loading ? (
                   <>
                     <span

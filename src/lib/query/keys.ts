@@ -26,4 +26,6 @@ export const queryKeys = {
   subscriptionCapabilities: () => [...queryKeys.all, "subscription", "capabilities"] as const,
   /** Current user’s `subscription_payments` rows (see `subscriptionPaymentsQueryOptions`). */
   subscriptionPayments: () => [...queryKeys.all, "subscription", "payments"] as const,
+  /** In-app notifications (`user_notifications` via `loadMyNotifications`). */
+  notifications: () => [...queryKeys.all, "notifications"] as const,
 };

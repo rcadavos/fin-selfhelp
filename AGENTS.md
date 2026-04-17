@@ -57,6 +57,7 @@ On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using 
    - Navigation/discoverability (sidebar/header/search links) when applicable.
    - Any docs/constants/help text that list product capabilities.
    Do this as additive updates: keep existing feature descriptions intact and append/extend copy instead of overwriting unrelated messaging.
+8. **User format preferences (app-wide):** Always display dates, currency, and plain numbers using the signed-in user's settings from `user_preferences` (date format, currency, number grouping, language locale). Avoid hard-coded `toLocaleDateString`, raw `YYYY-MM-DD`, or ad-hoc currency/number formatting in UI copy and components. Reuse centralized helpers/context in `src/lib/user-preferences.ts` and `src/contexts/user-preferences-context.tsx` (`formatDateWithPreferences`, `formatCurrencyWithPreferences`, `formatNumberWithPreferences`, or the context wrappers) so formatting is consistent across dashboard, account, admin, shared views, notifications, and list pages.
 
 ## UI & styling
 

@@ -49,6 +49,7 @@ export type AdminUserRow = {
   id: string;
   email: string | null;
   created_at: string;
+  last_login_at: string | null;
   is_subscriber: boolean;
   subscription_ends_at: string | null;
   subscription_tier: string;
@@ -63,6 +64,7 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
     id: string;
     email: string | null;
     created_at: string;
+    last_login_at: string | null;
     is_subscriber: boolean;
     subscription_ends_at: string | null;
     subscription_tier: string | null;
@@ -71,6 +73,7 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
     id: row.id,
     email: row.email ?? null,
     created_at: row.created_at,
+    last_login_at: row.last_login_at ?? null,
     is_subscriber: Boolean(row.is_subscriber),
     subscription_ends_at: row.subscription_ends_at ?? null,
     subscription_tier: row.subscription_tier ?? "free",

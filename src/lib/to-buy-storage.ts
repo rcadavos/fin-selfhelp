@@ -5,6 +5,8 @@ export type ToBuyItem = {
   estimatedPrice: string;
   category: ToBuyCategory;
   checked: boolean;
+  /** Used by To-Do list mode; YYYY-MM-DD from `<input type="date">`. */
+  targetDate?: string | null;
   createdAt: string;
 };
 

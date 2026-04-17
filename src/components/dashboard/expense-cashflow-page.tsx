@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -59,6 +67,14 @@ import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import {
   DEFAULT_USER_PREFERENCES,
@@ -69,6 +85,10 @@ import {
   writeExpensesCategorizedPreference,
 } from "@/lib/expenses-categorized-preference";
 import {
+  parseExpenseCadenceTypeParam,
+  type ExpenseCadenceTypeParam,
+} from "@/lib/expense-cadence-type";
+import {
   Plus,
   Trash2,
   Check,
@@ -76,12 +96,15 @@ import {
   CheckCircle2,
   ArrowUpRight,
   CircleDollarSign,
+  Receipt,
+  Banknote,
   LayoutDashboard,
   CalendarRange,
   MoreHorizontal,
   Loader2,
   Pencil,
   XCircle,
+  Undo2,
 } from "lucide-react";
 
 const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
@@ -192,6 +215,13 @@ function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 type ExpensePayStatus = "paid" | "outstanding" | "unpaid";
+type DesktopExpenseRow = {
+  entry: ExpenseEntryRow;
+  displayName: string;
+  status: ExpensePayStatus;
+  dueText: string;
+  reminderText: string;
+};
 
 function startOfTodayLocal(): Date {
   const t = new Date();
@@ -212,7 +242,7 @@ function getExpensePayStatus(
 }
 
 export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
-type ExpenseCadenceTab = "monthly" | "quarterly" | "yearly";
+type ExpenseCadenceTab = ExpenseCadenceTypeParam;
 
 function cadenceLabel(cadence: ExpenseCadenceTab): string {
   if (cadence === "yearly") return "Yearly";
@@ -220,8 +250,17 @@ function cadenceLabel(cadence: ExpenseCadenceTab): string {
   return "Monthly";
 }
 
-export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashflowPageVariant }) {
+export function ExpenseCashflowPage({
+  pageVariant,
+  initialExpenseCadence,
+}: {
+  pageVariant: ExpenseCashflowPageVariant;
+  /** From `?type=` on `/dashboard/my-expenses` (server + deep links). */
+  initialExpenseCadence?: ExpenseCadenceTypeParam;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, loading } = useUser();
   const queryClient = useQueryClient();
   const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
@@ -300,13 +339,36 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [editNotes, setEditNotes] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
+  const [editPaidStatus, setEditPaidStatus] = useState<"paid" | "unpaid">("unpaid");
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [inlineNameEditId, setInlineNameEditId] = useState<string | null>(null);
   const [inlineNameDraft, setInlineNameDraft] = useState("");
   const skipInlineNameBlurCommitRef = useRef(false);
   const [expensesCategorized, setExpensesCategorized] = useState(false);
-  const [expenseCadenceTab, setExpenseCadenceTab] = useState<ExpenseCadenceTab>("monthly");
+  const [expenseCadenceTab, setExpenseCadenceTab] = useState<ExpenseCadenceTab>(
+    () => initialExpenseCadence ?? "monthly"
+  );
+
+  const applyExpenseCadenceTab = useCallback(
+    (tab: ExpenseCadenceTab) => {
+      setExpenseCadenceTab(tab);
+      if (pageVariant !== "expenses") return;
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("type", tab);
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pageVariant, pathname, router, searchParams]
+  );
+
+  const expensesTypeParam = searchParams.get("type");
+  useEffect(() => {
+    if (pageVariant !== "expenses") return;
+    const parsed = parseExpenseCadenceTypeParam(expensesTypeParam);
+    const next: ExpenseCadenceTab = parsed ?? "monthly";
+    setExpenseCadenceTab((prev) => (prev === next ? prev : next));
+  }, [pageVariant, expensesTypeParam]);
   const [filterPaid, setFilterPaid] = useState(false);
   const [filterUnpaid, setFilterUnpaid] = useState(false);
   const [filterPastDue, setFilterPastDue] = useState(false);
@@ -315,6 +377,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
   const [draftFilterUnpaid, setDraftFilterUnpaid] = useState(false);
   const [draftFilterPastDue, setDraftFilterPastDue] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
+  const [desktopTableSorting, setDesktopTableSorting] = useState<SortingState>([]);
   useEffect(() => {
     if (!filterMenuOpen) return;
     setDraftFilterPaid(filterPaid);
@@ -510,6 +573,26 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     if (!Number.isFinite(month) || month < 1 || month > 12) return 1;
     return Math.floor((month - 1) / 3) + 1;
   }, [paidMonthYm]);
+  const cadenceCounts = useMemo(() => {
+    const noFilterSelected = !filterPaid && !filterUnpaid && !filterPastDue;
+    const counts: Record<ExpenseCadenceTab, number> = {
+      monthly: 0,
+      quarterly: 0,
+      yearly: 0,
+    };
+    for (const entry of entries) {
+      const cadence = entry.billing_period ?? "monthly";
+      if (noFilterSelected) {
+        counts[cadence] += 1;
+        continue;
+      }
+      const status = getExpensePayStatus(entry, paidIds, paidMonthYm);
+      if (status === "paid" && filterPaid) counts[cadence] += 1;
+      else if (status === "outstanding" && filterPastDue) counts[cadence] += 1;
+      else if (status === "unpaid" && filterUnpaid) counts[cadence] += 1;
+    }
+    return counts;
+  }, [entries, filterPaid, filterUnpaid, filterPastDue, paidIds, paidMonthYm]);
   const activeFilterCount =
     Number(filterPaid) + Number(filterUnpaid) + Number(filterPastDue);
 
@@ -569,6 +652,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       : null;
     setEditDueDate(effDue ? formatYmdLocal(effDue) : "");
     setEditReminderDays((entry.reminder_days_before ?? []) as ReminderDay[]);
+    setEditPaidStatus(paidIds.has(entry.id) ? "paid" : "unpaid");
     setEditStatus("idle");
   }
 
@@ -580,6 +664,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
     setEditNotes("");
     setEditDueDate("");
     setEditReminderDays([]);
+    setEditPaidStatus("unpaid");
     setEditStatus("idle");
   }
 
@@ -613,6 +698,16 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       showSnackbar(result.error);
       setEditStatus("error");
     } else {
+      const shouldBePaid = editPaidStatus === "paid";
+      const currentlyPaid = paidIds.has(editingId);
+      if (shouldBePaid !== currentlyPaid) {
+        const toggleRes = await toggleExpensePayment(editingId, paidMonthQueryKey);
+        if (toggleRes.error) {
+          showSnackbar(toggleRes.error);
+          setEditStatus("error");
+          return;
+        }
+      }
       invalidateExpenseQueries();
       refreshBudget();
       cancelEdit();
@@ -630,18 +725,6 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
       refreshBudget();
     }
     setDeletingId(null);
-  }
-
-  if (loading || !user) {
-    return (
-      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
-    );
-  }
-
-  if (expenseDataQuery.isPending || expensePaymentHistoryQuery.isPending) {
-    return (
-      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
-    );
   }
 
   function renderExpenseEntryRow(entry: ExpenseEntryRow) {
@@ -727,77 +810,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                     Unpaid
                   </Badge>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                      aria-label="Expense actions"
-                      disabled={
-                        deletingId !== null ||
-                        (togglePaidMutation.isPending &&
-                          togglePaidMutation.variables?.entryId === entry.id)
-                      }
-                      onPointerDown={(e) => {
-                        if (inlineNameEditId === entry.id) e.preventDefault();
-                      }}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="min-w-0 w-40">
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onSelect={() => {
-                        startEdit(entry);
-                      }}
-                    >
-                      <Pencil className="text-muted-foreground" aria-hidden />
-                      Edit
-                    </DropdownMenuItem>
-                    {!paidIds.has(entry.id) ? (
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onSelect={() => {
-                          void togglePaid(entry.id);
-                        }}
-                        disabled={
-                          togglePaidMutation.isPending &&
-                          togglePaidMutation.variables?.entryId === entry.id
-                        }
-                      >
-                        <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" aria-hidden />
-                        Mark as Paid
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onSelect={() => {
-                          void togglePaid(entry.id);
-                        }}
-                        disabled={
-                          togglePaidMutation.isPending &&
-                          togglePaidMutation.variables?.entryId === entry.id
-                        }
-                      >
-                        <XCircle className="text-muted-foreground" aria-hidden />
-                        Mark as Unpaid
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="cursor-pointer text-destructive focus:text-destructive"
-                      onSelect={() => {
-                        void handleDeleteExpense(entry.id);
-                      }}
-                      disabled={deletingId !== null}
-                    >
-                      <Trash2 className="text-destructive" aria-hidden />
-                      Remove
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {renderExpenseActions(entry)}
               </div>
               <span
                 className={cn(
@@ -812,7 +825,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               <p className="text-xs text-muted-foreground">
                 {dueText ? <span>{dueText}</span> : null}
                 {dueText && hasReminders ? (
-                  <span className="text-muted-foreground/50"> · </span>
+                  <span className="text-muted-foreground/50"> • </span>
                 ) : null}
                 {hasReminders ? <span>{reminderLine}</span> : null}
               </p>
@@ -822,6 +835,322 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             ) : null}
           </div>
       </li>
+    );
+  }
+
+  function renderExpenseActions(entry: ExpenseEntryRow) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Expense actions"
+            disabled={
+              deletingId !== null ||
+              (togglePaidMutation.isPending &&
+                togglePaidMutation.variables?.entryId === entry.id)
+            }
+            onPointerDown={(e) => {
+              if (inlineNameEditId === entry.id) e.preventDefault();
+            }}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-0 w-40">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => {
+              startEdit(entry);
+            }}
+          >
+            <Pencil className="text-muted-foreground" aria-hidden />
+            Edit
+          </DropdownMenuItem>
+          {!paidIds.has(entry.id) ? (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => {
+                void togglePaid(entry.id);
+              }}
+              disabled={
+                togglePaidMutation.isPending &&
+                togglePaidMutation.variables?.entryId === entry.id
+              }
+            >
+              <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" aria-hidden />
+              Mark as Paid
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => {
+                void togglePaid(entry.id);
+              }}
+              disabled={
+                togglePaidMutation.isPending &&
+                togglePaidMutation.variables?.entryId === entry.id
+              }
+            >
+              <XCircle className="text-muted-foreground" aria-hidden />
+              Mark as Unpaid
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            className="cursor-pointer text-destructive focus:text-destructive"
+            onSelect={() => {
+              void handleDeleteExpense(entry.id);
+            }}
+            disabled={deletingId !== null}
+          >
+            <Trash2 className="text-destructive" aria-hidden />
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  const desktopTableRows = useMemo<DesktopExpenseRow[]>(
+    () =>
+      flatEntriesOrderedList.map((entry) => {
+        const dueEffective = entry.due_date
+          ? effectiveDueDateInPaidMonth(entry.due_date, paidMonthYm)
+          : null;
+        const dueText =
+          dueEffective && !Number.isNaN(dueEffective.getTime())
+            ? formatPrefDate(dueEffective)
+            : "";
+        const hasReminders = (entry.reminder_days_before?.length ?? 0) > 0;
+        const reminderText = hasReminders
+          ? formatReminderDateList(
+              entry.due_date ?? undefined,
+              entry.reminder_days_before ?? undefined,
+              formatPrefDate,
+              paidMonthYm
+            )
+          : "";
+        return {
+          entry,
+          displayName: entry.note?.trim() || getCategoryLabel(categoriesList, entry.category_id),
+          status: getExpensePayStatus(entry, paidIds, paidMonthYm),
+          dueText,
+          reminderText,
+        };
+      }),
+    [flatEntriesOrderedList, paidMonthYm, formatPrefDate, categoriesList, paidIds]
+  );
+
+  const desktopColumns = useMemo<ColumnDef<DesktopExpenseRow>[]>(
+    () => [
+      {
+        id: "name",
+        accessorFn: (row) => row.displayName.toLowerCase(),
+        header: "Name",
+        cell: ({ row }) => {
+          const entry = row.original.entry;
+          const isEditingName = inlineNameEditId === entry.id;
+          return isEditingName ? (
+            <Input
+              value={inlineNameDraft}
+              onChange={(e) => setInlineNameDraft(e.target.value)}
+              className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
+              placeholder="Label"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void commitInlineNameEdit(entry.id);
+                }
+                if (e.key === "Escape") {
+                  skipInlineNameBlurCommitRef.current = true;
+                  setInlineNameEditId(null);
+                  setInlineNameDraft(entry.note ?? "");
+                }
+              }}
+              onBlur={() => {
+                if (skipInlineNameBlurCommitRef.current) {
+                  skipInlineNameBlurCommitRef.current = false;
+                  return;
+                }
+                void commitInlineNameEdit(entry.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              aria-label="Expense name"
+            />
+          ) : (
+            <button
+              type="button"
+              className={cn(
+                "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
+                paidIds.has(entry.id) &&
+                  "text-muted-foreground line-through decoration-muted-foreground"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                void beginInlineNameEdit(entry);
+              }}
+            >
+              {row.original.displayName}
+            </button>
+          );
+        },
+      },
+      {
+        id: "amount",
+        accessorFn: (row) => row.entry.amount,
+        header: "Amount",
+        cell: ({ row }) => (
+          <span className="tabular-nums">{formatCurrency(row.original.entry.amount)}</span>
+        ),
+      },
+      {
+        id: "status",
+        accessorFn: (row) => row.status,
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return status === "paid" ? (
+            <Badge
+              variant="outline"
+              className="border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
+            >
+              Paid
+            </Badge>
+          ) : status === "outstanding" ? (
+            <Badge
+              variant="outline"
+              className="border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
+            >
+              Outstanding
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs font-medium text-muted-foreground">
+              Unpaid
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "due",
+        accessorFn: (row) => row.dueText,
+        header: "Due",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">{row.original.dueText || "—"}</span>
+        ),
+      },
+      {
+        id: "reminder",
+        accessorFn: (row) => row.reminderText,
+        header: "Reminder",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">{row.original.reminderText || "—"}</span>
+        ),
+      },
+      {
+        id: "actions",
+        enableSorting: false,
+        header: () => <span className="block text-center">Actions</span>,
+        cell: ({ row }) => <div className="flex justify-end">{renderExpenseActionsInline(row.original.entry)}</div>,
+      },
+    ],
+    [formatCurrency]
+  );
+
+  function renderExpenseActionsInline(entry: ExpenseEntryRow) {
+    const markingThisEntry =
+      togglePaidMutation.isPending && togglePaidMutation.variables?.entryId === entry.id;
+    const deletingThisEntry = deletingId === entry.id;
+    const busy = deletingId !== null || markingThisEntry;
+    const isPaid = paidIds.has(entry.id);
+
+    return (
+      <div
+        className="inline-flex items-center gap-1 whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => startEdit(entry)}
+          aria-label="Edit expense"
+          title="Edit"
+          disabled={busy}
+        >
+          <Pencil className="h-4 w-4" aria-hidden />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8",
+            isPaid
+              ? "text-muted-foreground hover:text-foreground"
+              : "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+          )}
+          onClick={() => {
+            void togglePaid(entry.id);
+          }}
+          aria-label={isPaid ? "Mark as unpaid" : "Mark as paid"}
+          title={isPaid ? "Mark as unpaid" : "Mark as paid"}
+          disabled={markingThisEntry || deletingId !== null}
+        >
+          {markingThisEntry ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : isPaid ? (
+            <Undo2 className="h-4 w-4" aria-hidden />
+          ) : (
+            <Receipt className="h-4 w-4" aria-hidden />
+          )}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => {
+            void handleDeleteExpense(entry.id);
+          }}
+          aria-label="Remove expense"
+          title="Remove"
+          disabled={deletingId !== null}
+        >
+          {deletingThisEntry ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <Trash2 className="h-4 w-4" aria-hidden />
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  const desktopTable = useReactTable({
+    data: desktopTableRows,
+    columns: desktopColumns,
+    state: { sorting: desktopTableSorting },
+    onSortingChange: setDesktopTableSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  if (loading || !user) {
+    return (
+      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
+    );
+  }
+
+  if (expenseDataQuery.isPending || expensePaymentHistoryQuery.isPending) {
+    return (
+      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
     );
   }
 
@@ -853,35 +1182,52 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
             ) : null}
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="edit-expense-label">
                   Label <span className="text-destructive">*</span>
                 </Label>
-                {editingEntry ? (
+                <Input
+                  id="edit-expense-label"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Netflix, HOA dues"
+                  className="h-9"
+                  required
+                  aria-required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-1">
+                <Label>Status</Label>
+                <div
+                  className="inline-flex h-9 w-full items-center gap-0 overflow-hidden rounded-md border bg-background p-0"
+                  role="tablist"
+                  aria-label="Expense payment status"
+                >
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
-                    onClick={() => void togglePaid(editingEntry.id)}
-                    disabled={
-                      togglePaidMutation.isPending &&
-                      togglePaidMutation.variables?.entryId === editingEntry.id
-                    }
+                    variant={editPaidStatus === "paid" ? "secondary" : "ghost"}
+                    className="h-full flex-1 rounded-none px-2 text-xs shadow-none"
+                    role="tab"
+                    aria-selected={editPaidStatus === "paid"}
+                    onClick={() => setEditPaidStatus("paid")}
                   >
-                    {paidIds.has(editingEntry.id) ? "Mark as Unpaid" : "Mark as Paid"}
+                    Paid
                   </Button>
-                ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={editPaidStatus === "unpaid" ? "secondary" : "ghost"}
+                    className="h-full flex-1 rounded-none px-2 text-xs shadow-none"
+                    role="tab"
+                    aria-selected={editPaidStatus === "unpaid"}
+                    onClick={() => setEditPaidStatus("unpaid")}
+                  >
+                    Unpaid
+                  </Button>
+                </div>
               </div>
-              <Input
-                id="edit-expense-label"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g. Netflix, HOA dues"
-                className="h-9"
-                required
-                aria-required
-              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -1022,39 +1368,9 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <>
           <ContentHeader
             title="My Expenses"
-            subtitle="This can be shared with your partner to mark bills as paid. Just go to Shared with me and add them as a partner."
+            subtitle="This can be shared with your partner to mark bills as paid. Just go to Shared with me and give them access."
+            icon={Banknote}
             className="mb-3 mt-4"
-            actions={
-              <div className="inline-flex items-center gap-1 rounded-md border bg-background p-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "monthly" ? "secondary" : "ghost"}
-                  className="h-8 px-3"
-                  onClick={() => setExpenseCadenceTab("monthly")}
-                >
-                  Monthly
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "quarterly" ? "secondary" : "ghost"}
-                  className="h-8 px-3"
-                  onClick={() => setExpenseCadenceTab("quarterly")}
-                >
-                  Quarterly
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
-                  className="h-8 px-3"
-                  onClick={() => setExpenseCadenceTab("yearly")}
-                >
-                  Yearly
-                </Button>
-              </div>
-            }
           />
           {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
@@ -1327,9 +1643,77 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
         <>
       {/* ════════════════════ EXPENSES ════════════════════ */}
       <div className="mb-6">
-        <div className="mb-4 flex flex-row items-start justify-between gap-3 sm:gap-6">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={expenseCadenceTab === "monthly" ? "secondary" : "ghost"}
+                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                  onClick={() => applyExpenseCadenceTab("monthly")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <span>Monthly</span>
+                    <Badge
+                      variant={expenseCadenceTab === "monthly" ? "default" : "secondary"}
+                      className={cn(
+                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                        expenseCadenceTab === "monthly"
+                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
+                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                      )}
+                    >
+                      {cadenceCounts.monthly}
+                    </Badge>
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={expenseCadenceTab === "quarterly" ? "secondary" : "ghost"}
+                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                  onClick={() => applyExpenseCadenceTab("quarterly")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <span>Quarterly</span>
+                    <Badge
+                      variant={expenseCadenceTab === "quarterly" ? "default" : "secondary"}
+                      className={cn(
+                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                        expenseCadenceTab === "quarterly"
+                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
+                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                      )}
+                    >
+                      {cadenceCounts.quarterly}
+                    </Badge>
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
+                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                  onClick={() => applyExpenseCadenceTab("yearly")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <span>Yearly</span>
+                    <Badge
+                      variant={expenseCadenceTab === "yearly" ? "default" : "secondary"}
+                      className={cn(
+                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                        expenseCadenceTab === "yearly"
+                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
+                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                      )}
+                    >
+                      {cadenceCounts.yearly}
+                    </Badge>
+                  </span>
+                </Button>
+              </div>
               <div className="inline-flex min-h-5 items-center gap-2.5">
                 <Label
                   id="expenses-categorized-label"
@@ -1346,14 +1730,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   onCheckedChange={setExpensesCategorizedPersisted}
                 />
               </div>
-            </div>
-            {entries.length > 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {listEntries.length} item{listEntries.length !== 1 ? "s" : ""}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 flex-row items-center justify-end gap-2 pt-0.5">
+              <div className="ml-auto inline-flex items-center gap-2">
             <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="outline" className="gap-2">
@@ -1424,11 +1801,12 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   Past Due
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <div className="flex items-center justify-end gap-2 p-1">
+                <div className="flex w-full items-center gap-2 p-1">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="w-1/2"
                     onClick={() => {
                       setDraftFilterPaid(false);
                       setDraftFilterUnpaid(false);
@@ -1444,6 +1822,7 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
                   <Button
                     type="button"
                     size="sm"
+                    className="w-1/2"
                     onClick={() => {
                       setFilterPaid(draftFilterPaid);
                       setFilterUnpaid(draftFilterUnpaid);
@@ -1468,6 +1847,8 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               <span className="sm:hidden">Add</span>
               <span className="hidden sm:inline">Add Expense</span>
             </Button>
+              </div>
+            </div>
           </div>
         </div>
         {tabAllEntries.length === 0 ? (
@@ -1559,13 +1940,64 @@ export function ExpenseCashflowPage({ pageVariant }: { pageVariant: ExpenseCashf
               })}
           </div>
         ) : (
-          <Card className="overflow-hidden border-primary/15 bg-muted/20">
-            <CardContent className="px-4 py-3 sm:px-4">
-              <ul className="divide-y divide-border/50">
-                {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
-              </ul>
-            </CardContent>
-          </Card>
+          <>
+            <Card className="overflow-hidden border-primary/15 bg-muted/20 md:hidden">
+              <CardContent className="px-4 py-3 sm:px-4">
+                <ul className="divide-y divide-border/50">
+                  {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
+                </ul>
+              </CardContent>
+            </Card>
+            <Card className="hidden overflow-hidden border-primary/15 bg-muted/20 md:block">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    {desktopTable.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          const sorted = header.column.getIsSorted();
+                          const sortable = header.column.getCanSort();
+                          return (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder ? null : sortable ? (
+                                <button
+                                  type="button"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                  className="inline-flex items-center gap-1 text-left"
+                                >
+                                  {flexRender(header.column.columnDef.header, header.getContext())}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
+                                  </span>
+                                </button>
+                              ) : (
+                                flexRender(header.column.columnDef.header, header.getContext())
+                              )}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {desktopTable.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer"
+                        onDoubleClick={() => startEdit(row.original.entry)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
 

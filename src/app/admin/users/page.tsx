@@ -38,11 +38,16 @@ import {
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
 import { confirmUserEmail, setUserSubscription, setUserAdmin, type AdminUserRow } from "@/actions/admin";
-import { Loader2, CreditCard, Shield, ShieldOff, MailCheck } from "lucide-react";
+import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
 }
 
 function subscriptionStatus(row: AdminUserRow): {
@@ -107,6 +112,19 @@ export default function AdminUsersPage() {
     onError: (err: Error) => setActionError(err.message),
   });
 
+  const setFreeMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const result = await setUserSubscription(userId, "free");
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryOptions().queryKey });
+      setActionError(null);
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
   const confirmEmailMutation = useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const result = await confirmUserEmail(userId);
@@ -164,6 +182,7 @@ export default function AdminUsersPage() {
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
+                  <TableHead className="text-right">Last login</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
                   <TableHead className="text-right w-[220px]">Actions</TableHead>
@@ -178,6 +197,9 @@ export default function AdminUsersPage() {
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.created_at)}
                       </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatDate(u.last_login_at)}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={status.variant}>{status.label}</Badge>
@@ -188,43 +210,61 @@ export default function AdminUsersPage() {
                         {u.subscription_ends_at ? formatDate(u.subscription_ends_at) : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex flex-wrap justify-end gap-1">
+                        <div className="flex flex-nowrap justify-end gap-1 whitespace-nowrap">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setAdminMutation.mutate({ userId: u.id, isAdmin: !u.is_admin })}
                             disabled={setAdminMutation.isPending}
+                            aria-label={u.is_admin ? "Remove admin" : "Make admin"}
                           >
                             {setAdminMutation.isPending && setAdminMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : u.is_admin ? (
                               <>
-                                <ShieldOff className="mr-1 h-4 w-4" />
-                                Remove admin
+                                <ShieldOff className="h-4 w-4" />
                               </>
                             ) : (
                               <>
-                                <Shield className="mr-1 h-4 w-4" />
-                                Make admin
+                                <Shield className="h-4 w-4" />
                               </>
                             )}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => openSetPaid(u)}>
-                            <CreditCard className="mr-1 h-4 w-4" />
-                            Paid
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openSetPaid(u)}
+                            aria-label="Set paid plan"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setFreeMutation.mutate({ userId: u.id })}
+                            disabled={setFreeMutation.isPending}
+                            aria-label="Make free"
+                          >
+                            {setFreeMutation.isPending && setFreeMutation.variables?.userId === u.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <UserRoundX className="h-4 w-4" />
+                              </>
+                            )}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => confirmEmailMutation.mutate({ userId: u.id })}
                             disabled={confirmEmailMutation.isPending}
+                            aria-label="Confirm email"
                           >
                             {confirmEmailMutation.isPending && confirmEmailMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <>
-                                <MailCheck className="mr-1 h-4 w-4" />
-                                Confirm email
+                                <MailCheck className="h-4 w-4" />
                               </>
                             )}
                           </Button>

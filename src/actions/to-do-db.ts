@@ -28,6 +28,7 @@ type ToDoDbRow = {
   estimated_price: string;
   category: string;
   checked: boolean;
+  target_date: string | null;
   created_at: string;
 };
 
@@ -39,6 +40,7 @@ function rowToItem(row: ToDoDbRow): ToBuyItem {
     estimatedPrice: row.estimated_price ?? "",
     category: normalizeCategory(row.category),
     checked: row.checked,
+    targetDate: row.target_date,
     createdAt: row.created_at,
   };
 }
@@ -60,7 +62,7 @@ export async function loadMyToDoFromServer(): Promise<{ error?: string; items?: 
 
   const { data, error } = await supabase
     .from("to_do_items")
-    .select("id, name, quantity, estimated_price, category, checked, created_at")
+    .select("id, name, quantity, estimated_price, category, checked, target_date, created_at")
     .eq("profile_id", profileId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -104,6 +106,7 @@ export async function replaceMyToDoOnServer(items: ToBuyItem[]): Promise<{ error
     estimated_price: it.estimatedPrice ?? "",
     category: normalizeCategory(it.category),
     checked: it.checked,
+    target_date: it.targetDate && it.targetDate.trim() ? it.targetDate : null,
     created_at: it.createdAt || new Date().toISOString(),
     sort_order: i,
   }));
