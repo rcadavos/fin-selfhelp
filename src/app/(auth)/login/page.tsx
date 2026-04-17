@@ -12,7 +12,6 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { ChevronLeft, LayoutDashboard } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -89,11 +88,11 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useUser();
-  const { showError, showSuccess } = useSnackbar();
   const [otpPending, setOtpPending] = useState(false);
   const [authTab, setAuthTab] = useState<"password" | "otp">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const nextPath = safeNextPath(searchParams.get("next"));
   const supabase = createClient();
 
@@ -106,21 +105,24 @@ function LoginContent() {
 
   useEffect(() => {
     if (searchParams.get("reset") === "success") {
-      showSuccess("Password updated. You can log in now.");
+      setFormMessage({ type: "success", text: "Password updated. You can log in now." });
     }
-  }, [searchParams, showSuccess]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (searchParams.get("error") === "auth") {
-      showError("Could not complete sign-in. Try again or use another method.");
+      setFormMessage({
+        type: "error",
+        text: "Could not complete sign-in. Try again or use another method.",
+      });
     }
-  }, [searchParams, showError]);
+  }, [searchParams]);
 
   async function handlePasswordSubmit(formData: FormData) {
     const emailValue = String(formData.get("email") ?? "").trim();
     const passwordValue = String(formData.get("password") ?? "");
     if (!emailValue || !passwordValue) {
-      showError("Email and password are required.");
+      setFormMessage({ type: "error", text: "Email and password are required." });
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({
@@ -128,20 +130,22 @@ function LoginContent() {
       password: passwordValue,
     });
     if (error) {
-      showError(error.message);
+      setFormMessage({ type: "error", text: error.message });
       setPassword("");
       return;
     }
+    setFormMessage(null);
     router.replace(nextPath || "/dashboard");
     router.refresh();
   }
 
   async function handleOtpSubmit(formData: FormData) {
     setOtpPending(true);
+    setFormMessage(null);
     const result = await signInWithOtp(formData);
     setOtpPending(false);
-    if (result?.error) showError(result.error);
-    if (result?.message) showSuccess(result.message);
+    if (result?.error) setFormMessage({ type: "error", text: result.error });
+    if (result?.message) setFormMessage({ type: "success", text: result.message });
   }
 
   if (loading || user) {
@@ -220,6 +224,19 @@ function LoginContent() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+              {formMessage ? (
+                <div
+                  role={formMessage.type === "error" ? "alert" : "status"}
+                  className={cn(
+                    "rounded-md border px-3 py-2 text-sm",
+                    formMessage.type === "error"
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  )}
+                >
+                  {formMessage.text}
+                </div>
+              ) : null}
 
               {authTab === "password" ? (
                 <form id="login-password" action={handlePasswordSubmit} className="space-y-3">

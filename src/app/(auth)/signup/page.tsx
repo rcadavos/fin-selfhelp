@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,6 @@ import { signUp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { BadgeCheck, ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -75,7 +74,7 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
 export default function SignUpPage() {
   const router = useRouter();
   const { user, loading } = useUser();
-  const { showError, showSuccess } = useSnackbar();
+  const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -83,9 +82,10 @@ export default function SignUpPage() {
   }, [user, loading, router]);
 
   async function handleSubmit(formData: FormData) {
+    setFormMessage(null);
     const result = await signUp(formData);
-    if (result?.error) showError(result.error);
-    if (result?.message) showSuccess(result.message);
+    if (result?.error) setFormMessage({ type: "error", text: result.error });
+    if (result?.message) setFormMessage({ type: "success", text: result.message });
   }
 
   if (loading || user) {
@@ -128,6 +128,19 @@ export default function SignUpPage() {
             </CardHeader>
             <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
               <form action={handleSubmit} className="space-y-3">
+                {formMessage ? (
+                  <div
+                    role={formMessage.type === "error" ? "alert" : "status"}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm",
+                      formMessage.type === "error"
+                        ? "border-destructive/40 bg-destructive/10 text-destructive"
+                        : "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    )}
+                  >
+                    {formMessage.text}
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full name</Label>
                   <Input

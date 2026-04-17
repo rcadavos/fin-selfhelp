@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 export function PartnerAccessInfo({ className }: { className?: string }) {
   return (
     <div className={cn("space-y-3 text-sm text-muted-foreground", className)}>
-      <p className="font-medium text-foreground">What shared access means</p>
       <p className="text-xs text-muted-foreground">
         Sending invites and changing what you share requires an active Pro or Premium subscription on your account.
       </p>
