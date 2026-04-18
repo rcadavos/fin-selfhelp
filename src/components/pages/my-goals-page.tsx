@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { StatusFilterDropdown } from "@/components/ui/status-filter-dropdown";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -50,10 +51,8 @@ import {
 } from "@/actions/goals";
 import { cn } from "@/lib/utils";
 import {
-  Check,
   Loader2,
   CircleOff,
-  ListFilter,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -86,9 +85,9 @@ const MONTH_OPTIONS = [
 
 const ACHIEVED_NONE = "__none__";
 
-/** Right-side goal art (celebration or target): same layout as CSS background layers. */
+/** Right-side goal art (celebration or target): same layout as CSS background layers. Narrower strip on small screens so title row keeps more width (padding below stays in sync). */
 const GOAL_CARD_ART_STRIP =
-  "pointer-events-none absolute inset-y-0 right-0 z-0 w-[min(46%,14rem)] min-w-[7.5rem] max-w-[15rem] bg-contain bg-right-bottom bg-no-repeat sm:w-[min(44%,16rem)] sm:max-w-[17rem]";
+  "pointer-events-none absolute inset-y-0 right-0 z-0 w-[min(34%,9rem)] min-w-[5.5rem] max-w-[15rem] bg-contain bg-right-bottom bg-no-repeat sm:w-[min(44%,16rem)] sm:min-w-[7.5rem] sm:max-w-[17rem]";
 
 function yearOptions(): number[] {
   const y = new Date().getFullYear();
@@ -305,16 +304,31 @@ export function MyGoalsPage() {
         setInlineNameDraft(g.name);
         return;
       }
+
+      const goalsKey = queryKeys.goals();
+      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
+      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
+        (old ?? []).map((row) => (row.id === goalId ? { ...row, name: next } : row))
+      );
+      setInlineNameEditId(null);
+      setInlineNameDraft("");
+
       const res = await updateGoal(goalId, { ...goalRowToInput(g), name: next });
       if (res.error) {
+        queryClient.setQueryData(goalsKey, prevGoals);
         showError(res.error);
         return;
       }
       invalidateGoals();
-      setInlineNameEditId(null);
-      setInlineNameDraft("");
     },
-    [inlineNameEditId, inlineNameDraft, goalsQuery.data, showError, invalidateGoals]
+    [
+      inlineNameEditId,
+      inlineNameDraft,
+      goalsQuery.data,
+      showError,
+      invalidateGoals,
+      queryClient,
+    ]
   );
 
   const beginInlineNameEdit = useCallback(
@@ -482,51 +496,53 @@ export function MyGoalsPage() {
             aria-hidden
           />
           <div
-            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col gap-1.5 py-3 pl-3 pr-[min(46%,14rem)] sm:gap-2 sm:py-3.5 sm:pl-4 sm:pr-[min(44%,16rem)]"
+            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col gap-1 py-3 pl-3 pr-[min(34%,9rem)] sm:gap-2 sm:py-3.5 sm:pl-4 sm:pr-[min(44%,16rem)]"
           >
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              {inlineNameEditId === g.id ? (
-                <Input
-                  value={inlineNameDraft}
-                  onChange={(e) => setInlineNameDraft(e.target.value)}
-                  className="h-8 max-w-[min(100%,20rem)] text-lg font-semibold"
-                  placeholder="Goal name"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
+            <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+              <div className="flex min-h-0 min-w-0 max-w-[75%] flex-1 items-center gap-1 overflow-hidden">
+                {inlineNameEditId === g.id ? (
+                  <Input
+                    value={inlineNameDraft}
+                    onChange={(e) => setInlineNameDraft(e.target.value)}
+                    className="h-8 min-w-0 flex-1 text-lg font-semibold sm:max-w-[min(100%,20rem)]"
+                    placeholder="Goal name"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitInlineNameEdit(g.id);
+                      }
+                      if (e.key === "Escape") {
+                        skipInlineNameBlurCommitRef.current = true;
+                        setInlineNameEditId(null);
+                        setInlineNameDraft("");
+                      }
+                    }}
+                    onBlur={() => {
+                      if (skipInlineNameBlurCommitRef.current) {
+                        skipInlineNameBlurCommitRef.current = false;
+                        return;
+                      }
                       void commitInlineNameEdit(g.id);
-                    }
-                    if (e.key === "Escape") {
-                      skipInlineNameBlurCommitRef.current = true;
-                      setInlineNameEditId(null);
-                      setInlineNameDraft("");
-                    }
-                  }}
-                  onBlur={() => {
-                    if (skipInlineNameBlurCommitRef.current) {
-                      skipInlineNameBlurCommitRef.current = false;
-                      return;
-                    }
-                    void commitInlineNameEdit(g.id);
-                  }}
-                  aria-label="Goal name"
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="min-w-0 truncate text-left text-lg font-semibold leading-tight tracking-tight underline-offset-2 hover:underline"
-                  onClick={() => void beginInlineNameEdit(g)}
+                    }}
+                    aria-label="Goal name"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 truncate text-left text-lg font-semibold leading-tight tracking-tight underline-offset-2 hover:underline"
+                    onClick={() => void beginInlineNameEdit(g)}
+                  >
+                    {g.name}
+                  </button>
+                )}
+                <Badge
+                  variant="outline"
+                  className={cn("shrink-0 font-medium", goalTypeBadgeClass(g.goal_type))}
                 >
-                  {g.name}
-                </button>
-              )}
-              <Badge
-                variant="outline"
-                className={cn("shrink-0 font-medium", goalTypeBadgeClass(g.goal_type))}
-              >
-                {typeLabel}
-              </Badge>
+                  {typeLabel}
+                </Badge>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -593,14 +609,16 @@ export function MyGoalsPage() {
               </DropdownMenu>
             </div>
             <p className="text-sm text-muted-foreground">
-              <span className="text-muted-foreground">Date set: </span>
+              <span className="text-muted-foreground sm:hidden">Set: </span>
+              <span className="hidden text-muted-foreground sm:inline">Date set: </span>
               {formatMonthYearShort(g.date_set_month, g.date_set_year)}
               {achieved && achievedShort ? (
                 <>
                   <span aria-hidden className="px-1.5">
                     •
                   </span>
-                  <span className="text-muted-foreground">Date achieved: </span>
+                  <span className="text-muted-foreground sm:hidden">Achieved: </span>
+                  <span className="hidden text-muted-foreground sm:inline">Date achieved: </span>
                   {achievedShort}
                 </>
               ) : null}
@@ -665,89 +683,36 @@ export function MyGoalsPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-row items-center justify-end gap-2 pt-0.5">
-                  <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="gap-2">
-                        <ListFilter className="h-4 w-4" aria-hidden />
-                        <span className="hidden sm:inline">Filter</span>
-                        {activeFilterCount > 0 ? (
-                          <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">
-                            {activeFilterCount}
-                          </Badge>
-                        ) : null}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuLabel>Status</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setDraftFilterAchieved((prev) => !prev);
-                        }}
-                      >
-                        <span
-                          className={cn(
-                            "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                            draftFilterAchieved &&
-                              "border-primary bg-primary text-primary-foreground"
-                          )}
-                          aria-hidden
-                        >
-                          {draftFilterAchieved ? <Check className="h-3 w-3" /> : null}
-                        </span>
-                        Achieved
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setDraftFilterNotYet((prev) => !prev);
-                        }}
-                      >
-                        <span
-                          className={cn(
-                            "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                            draftFilterNotYet &&
-                              "border-primary bg-primary text-primary-foreground"
-                          )}
-                          aria-hidden
-                        >
-                          {draftFilterNotYet ? <Check className="h-3 w-3" /> : null}
-                        </span>
-                        Not Yet Achieved
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <div className="flex items-center justify-end gap-2 p-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setDraftFilterAchieved(false);
-                            setDraftFilterNotYet(false);
-                            setFilterAchieved(false);
-                            setFilterNotYet(false);
-                            setFilterMenuOpen(false);
-                          }}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            setFilterAchieved(draftFilterAchieved);
-                            setFilterNotYet(draftFilterNotYet);
-                            setFilterMenuOpen(false);
-                          }}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <StatusFilterDropdown
+                    open={filterMenuOpen}
+                    onOpenChange={setFilterMenuOpen}
+                    menuLabel="Status"
+                    activeFilterCount={activeFilterCount}
+                    options={[
+                      {
+                        label: "Achieved",
+                        checked: draftFilterAchieved,
+                        onToggle: () => setDraftFilterAchieved((prev) => !prev),
+                      },
+                      {
+                        label: "Not Yet Achieved",
+                        checked: draftFilterNotYet,
+                        onToggle: () => setDraftFilterNotYet((prev) => !prev),
+                      },
+                    ]}
+                    onReset={() => {
+                      setDraftFilterAchieved(false);
+                      setDraftFilterNotYet(false);
+                      setFilterAchieved(false);
+                      setFilterNotYet(false);
+                      setFilterMenuOpen(false);
+                    }}
+                    onApply={() => {
+                      setFilterAchieved(draftFilterAchieved);
+                      setFilterNotYet(draftFilterNotYet);
+                      setFilterMenuOpen(false);
+                    }}
+                  />
                   <Button type="button" className="shrink-0 gap-2 whitespace-nowrap" onClick={openAdd}>
                     <Plus className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="sm:hidden">Add</span>
@@ -800,10 +765,13 @@ export function MyGoalsPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
+        <DialogContent
+          className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
+          showClose
+        >
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Goal" : "Add Goal"}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="hidden sm:block">
               Name what you’re aiming for, when you started, and optionally when you completed it—short-term,
               long-term, or lifetime.
             </DialogDescription>

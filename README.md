@@ -45,6 +45,7 @@ Reminder emails are sent from the cron route at `GET /api/cron/reminder-emails`.
 
 - **Schedule:** `vercel.json` runs this route at `0 0 * * *` (00:00 UTC).  
   For Asia/Manila this is 8:00 AM local time.
+- **Release gate:** the route only sends once the clock in **Asia/Manila** is ≥ 08:00, so the midnight-UTC cron run matches local morning (not UTC `getHours()`, which previously skipped every run).
 - **Security:** the route requires `Authorization: Bearer <CRON_SECRET>`.
 - **Email provider:** uses SMTP (e.g., Hostinger SMTP).
 

@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -303,7 +304,12 @@ export default function AdminUsersPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="expires-at">Expires at</Label>
-              <Input id="expires-at" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+              <DatePicker
+                id="expires-at"
+                value={expiresAt}
+                onChange={setExpiresAt}
+                placeholder="Expiration date"
+              />
             </div>
             {actionError && <p className="text-sm text-destructive">{actionError}</p>}
           </div>

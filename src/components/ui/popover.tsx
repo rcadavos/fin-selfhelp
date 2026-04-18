@@ -1,93 +1,33 @@
 "use client";
 
 import * as React from "react";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
+
 import { cn } from "@/lib/utils";
 
-type PopoverProps = {
-  trigger: React.ReactNode;
-  content: React.ReactNode;
-  /** Optional class for the content panel (default: black bg, white text) */
-  contentClassName?: string;
-  /** Optional alignment: start, center, end */
-  align?: "start" | "center" | "end";
-  sideOffset?: number;
-  className?: string;
-};
+const Popover = PopoverPrimitive.Root;
 
-const HIDE_DELAY_MS = 120;
+const PopoverTrigger = PopoverPrimitive.Trigger;
 
-/**
- * Hover popover: shows content on hover. Content panel uses black bg and white text by default.
- * Floats above layout (no shift). Uses a short delay before hiding so the cursor can move to the content.
- */
-export function Popover({
-  trigger,
-  content,
-  contentClassName,
-  align = "end",
-  sideOffset = 4,
-  className,
-}: PopoverProps) {
-  const [open, setOpen] = React.useState(false);
-  const hideTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+const PopoverAnchor = PopoverPrimitive.Anchor;
 
-  const clearHideTimeout = () => {
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-  };
-
-  const scheduleHide = () => {
-    clearHideTimeout();
-    hideTimeoutRef.current = setTimeout(() => setOpen(false), HIDE_DELAY_MS);
-  };
-
-  const handleTriggerEnter = () => {
-    clearHideTimeout();
-    setOpen(true);
-  };
-
-  const handleTriggerLeave = () => scheduleHide();
-
-  const handleContentEnter = () => {
-    clearHideTimeout();
-    setOpen(true);
-  };
-
-  const handleContentLeave = () => scheduleHide();
-
-  React.useEffect(() => () => clearHideTimeout(), []);
-
-  const alignClass =
-    align === "start"
-      ? "left-0"
-      : align === "end"
-        ? "right-0"
-        : "left-1/2 -translate-x-1/2";
-
-  return (
-    <div
-      className={cn("relative inline-flex", className)}
-      onMouseEnter={handleTriggerEnter}
-      onMouseLeave={handleTriggerLeave}
-    >
-      {trigger}
-      {open && (
-        <div
-          className={cn(
-            "absolute top-full z-50 w-64 max-w-[calc(100vw-2rem)] rounded-md px-3 py-2.5 text-sm shadow-lg",
-            "bg-black text-white",
-            alignClass,
-            contentClassName
-          )}
-          style={{ marginTop: sideOffset }}
-          onMouseEnter={handleContentEnter}
-          onMouseLeave={handleContentLeave}
-        >
-          {content}
-        </div>
+const PopoverContent = React.forwardRef<
+  React.ElementRef<typeof PopoverPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+>(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+  <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Content
+      ref={ref}
+      align={align}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className
       )}
-    </div>
-  );
-}
+      {...props}
+    />
+  </PopoverPrimitive.Portal>
+));
+PopoverContent.displayName = PopoverPrimitive.Content.displayName;
+
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor };

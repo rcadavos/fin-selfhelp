@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import type { AppNotification } from "@/types/notifications";
+import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 
 type DbRow = {
   id: string;
@@ -71,10 +72,6 @@ function computeDueDateThisMonthFromStored(dueYmd: string, today: Date): Date | 
   return new Date(year, month1to12 - 1, safeDay);
 }
 
-function isReminderReleaseTimeReached(now: Date, releaseHour24 = 8): boolean {
-  return now.getHours() >= releaseHour24;
-}
-
 async function syncGeneratedProNotificationsForToday(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
@@ -95,7 +92,7 @@ async function syncGeneratedProNotificationsForToday(
   if (!hasProAccess) return;
 
   const today = new Date();
-  if (!isReminderReleaseTimeReached(today, 8)) return;
+  if (!isReminderReleaseHour(today, 8)) return;
   const todayYmd = formatYmdLocal(today);
 
   const [{ data: expenses }, { data: toDoRows }] = await Promise.all([

@@ -26,7 +26,11 @@ import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import { DEFAULT_USER_PREFERENCES, formatDateWithPreferences } from "@/lib/user-preferences";
-import { Popover } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { HoverPopover } from "@/components/ui/hover-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { parseYmdToLocalDate } from "@/components/ui/date-picker";
+import { formatYmdLocal } from "@/lib/expense-due-date";
 import { Trash2, Check, ShoppingCart, ClipboardList, CalendarDays } from "lucide-react";
 
 export type ToBuyListMode = "buy" | "do";
@@ -99,7 +103,9 @@ function TargetDatePickerIcon({
   formattedValue: string;
   canEdit: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const ymd = value?.trim() ?? "";
+  const selected = ymd ? parseYmdToLocalDate(ymd) : undefined;
 
   const trigger = (
     <Button
@@ -107,6 +113,7 @@ function TargetDatePickerIcon({
       variant="ghost"
       size="icon"
       className="h-8 w-8"
+      disabled={!canEdit}
       aria-label={
         canEdit
           ? value
@@ -114,15 +121,6 @@ function TargetDatePickerIcon({
             : "Set target date"
           : "Target date is available for Pro and Premium only"
       }
-      onClick={() => {
-        if (!canEdit) return;
-        const input = inputRef.current;
-        if (!input) return;
-        const enhancedInput = input as HTMLInputElement & { showPicker?: () => void };
-        // `showPicker` is supported in Chromium-based browsers; fallback to click.
-        if (typeof enhancedInput.showPicker === "function") enhancedInput.showPicker();
-        else input.click();
-      }}
     >
       <CalendarDays
         className={cn(
@@ -142,23 +140,28 @@ function TargetDatePickerIcon({
     <div className="relative flex h-8 shrink-0 items-center gap-1.5">
       {value ? <span className="text-xs tabular-nums text-muted-foreground">{formattedValue}</span> : null}
       {canEdit ? (
-        trigger
+        <Popover modal={false} open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent className="z-[100] w-auto border-0 bg-transparent p-0 shadow-none" align="end">
+            <Calendar
+              mode="single"
+              selected={selected}
+              defaultMonth={selected ?? new Date()}
+              onSelect={(d) => {
+                if (!d) return;
+                onChange(formatYmdLocal(d));
+                setOpen(false);
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       ) : (
-        <Popover
+        <HoverPopover
           align="end"
           trigger={trigger}
           content={<span className="text-xs">Target date is for Pro and Premium only.</span>}
         />
       )}
-      <Input
-        ref={inputRef}
-        type="date"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label="Target date"
-        className="pointer-events-none absolute inset-0 h-8 w-8 opacity-0 focus-visible:outline-none focus-visible:ring-0"
-        tabIndex={-1}
-      />
     </div>
   );
 }

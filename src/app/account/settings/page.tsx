@@ -186,7 +186,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Notifications & reminders</CardTitle>
+          <CardTitle className="text-lg">Notifications & Reminders</CardTitle>
           <CardDescription>
             Control in-app email-related preferences. Actual emails still depend on your subscription and due dates.
           </CardDescription>

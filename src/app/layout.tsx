@@ -7,6 +7,7 @@ import { Providers } from "./providers";
 import { ScrollToTopButton } from "@/components/app/scroll-to-top-button";
 import { CookieConsentDialog } from "@/components/app/cookie-consent-dialog";
 import { ServiceWorkerRegister } from "@/components/app/service-worker-register";
+import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,7 +55,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geistSans.variable)}>
       <head>
         <link
           rel="preload"

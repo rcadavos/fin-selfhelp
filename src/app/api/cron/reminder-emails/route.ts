@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
+import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 
 type ProfileRow = {
   id: string;
@@ -56,10 +57,6 @@ function computeDueDateThisMonthFromStored(dueYmd: string, today: Date): Date | 
   const month1to12 = today.getMonth() + 1;
   const safeDay = Math.min(dueDay, monthLastDay(year, month1to12));
   return new Date(year, month1to12 - 1, safeDay);
-}
-
-function isReleaseTimeReached(now: Date, releaseHour24 = 8): boolean {
-  return now.getHours() >= releaseHour24;
 }
 
 async function sendReminderEmail(params: {
@@ -136,8 +133,11 @@ export async function GET(request: Request) {
     }
 
     const now = new Date();
-    if (!isReleaseTimeReached(now, 8)) {
-      return NextResponse.json({ ok: true, skipped: "Before 08:00 local server time." }, { status: 200 });
+    if (!isReminderReleaseHour(now, 8)) {
+      return NextResponse.json(
+        { ok: true, skipped: "Before 08:00 Asia/Manila (reminder release window)." },
+        { status: 200 }
+      );
     }
     const todayYmd = formatYmdLocal(now);
 

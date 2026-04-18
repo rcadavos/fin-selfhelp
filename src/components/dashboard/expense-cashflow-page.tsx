@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { StatusFilterDropdown } from "@/components/ui/status-filter-dropdown";
 import { addExpense, updateExpense, deleteExpense } from "@/actions/budget";
 import { toggleExpensePayment, type PaymentMonthStats } from "@/actions/expense-payments";
 import { useUser } from "@/hooks/use-user";
@@ -67,6 +68,7 @@ import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { DatePicker, parseYmdToLocalDate } from "@/components/ui/date-picker";
 import {
   Table,
   TableBody,
@@ -1162,7 +1164,10 @@ export function ExpenseCashflowPage({
           if (!open) cancelEdit();
         }}
       >
-        <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
+        <DialogContent
+          className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
+          showClose
+        >
           <DialogHeader>
             <DialogTitle>
               {editingEntry ? `Edit ${cadenceLabel(editingEntry.billing_period)} Expense` : "Edit Expense"}
@@ -1271,21 +1276,24 @@ export function ExpenseCashflowPage({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="edit-expense-due">Due date</Label>
-                <Input
+                <DatePicker
                   id="edit-expense-due"
-                  type="date"
-                  className={cn(
-                    "h-9",
-                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                  )}
+                  value={editDueDate}
+                  onChange={setEditDueDate}
+                  disabled={!isSubscriber}
+                  placeholder="Due date"
                   title={
                     isSubscriber
                       ? "Same calendar day for each billing cycle"
                       : "Pro or Premium — unlock due dates and reminders"
                   }
-                  value={editDueDate}
-                  onChange={(e) => setEditDueDate(e.target.value)}
-                  disabled={!isSubscriber}
+                  formatDisplay={(ymd) => {
+                    const d = parseYmdToLocalDate(ymd);
+                    return d ? formatPrefDate(d) : "";
+                  }}
+                  className={cn(
+                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                  )}
                 />
               </div>
               <div className="space-y-2">
@@ -1731,110 +1739,45 @@ export function ExpenseCashflowPage({
                 />
               </div>
               <div className="ml-auto inline-flex items-center gap-2">
-            <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" className="gap-2">
-                  <SortLinesIcon className="h-4 w-4" aria-hidden />
-                  <span className="hidden sm:inline">Filter</span>
-                  {activeFilterCount > 0 ? (
-                    <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">
-                      {activeFilterCount}
-                    </Badge>
-                  ) : null}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuLabel>Show statuses</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setDraftFilterPaid((prev) => !prev);
-                  }}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                      draftFilterPaid && "bg-primary text-primary-foreground border-primary"
-                    )}
-                    aria-hidden
-                  >
-                    {draftFilterPaid ? <Check className="h-3 w-3" /> : null}
-                  </span>
-                  Paid
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setDraftFilterUnpaid((prev) => !prev);
-                  }}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                      draftFilterUnpaid && "bg-primary text-primary-foreground border-primary"
-                    )}
-                    aria-hidden
-                  >
-                    {draftFilterUnpaid ? <Check className="h-3 w-3" /> : null}
-                  </span>
-                  Unpaid
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="group cursor-pointer hover:bg-transparent focus:bg-transparent focus-visible:bg-transparent data-[highlighted]:bg-transparent"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setDraftFilterPastDue((prev) => !prev);
-                  }}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                      draftFilterPastDue && "bg-primary text-primary-foreground border-primary"
-                    )}
-                    aria-hidden
-                  >
-                    {draftFilterPastDue ? <Check className="h-3 w-3" /> : null}
-                  </span>
-                  Past Due
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="flex w-full items-center gap-2 p-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-1/2"
-                    onClick={() => {
-                      setDraftFilterPaid(false);
-                      setDraftFilterUnpaid(false);
-                      setDraftFilterPastDue(false);
-                      setFilterPaid(false);
-                      setFilterUnpaid(false);
-                      setFilterPastDue(false);
-                      setFilterMenuOpen(false);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-1/2"
-                    onClick={() => {
-                      setFilterPaid(draftFilterPaid);
-                      setFilterUnpaid(draftFilterUnpaid);
-                      setFilterPastDue(draftFilterPastDue);
-                      setFilterMenuOpen(false);
-                    }}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <StatusFilterDropdown
+              open={filterMenuOpen}
+              onOpenChange={setFilterMenuOpen}
+              menuLabel="Show statuses"
+              activeFilterCount={activeFilterCount}
+              triggerIcon={<SortLinesIcon className="h-4 w-4" aria-hidden />}
+              options={[
+                {
+                  label: "Paid",
+                  checked: draftFilterPaid,
+                  onToggle: () => setDraftFilterPaid((prev) => !prev),
+                },
+                {
+                  label: "Unpaid",
+                  checked: draftFilterUnpaid,
+                  onToggle: () => setDraftFilterUnpaid((prev) => !prev),
+                },
+                {
+                  label: "Past Due",
+                  checked: draftFilterPastDue,
+                  onToggle: () => setDraftFilterPastDue((prev) => !prev),
+                },
+              ]}
+              onReset={() => {
+                setDraftFilterPaid(false);
+                setDraftFilterUnpaid(false);
+                setDraftFilterPastDue(false);
+                setFilterPaid(false);
+                setFilterUnpaid(false);
+                setFilterPastDue(false);
+                setFilterMenuOpen(false);
+              }}
+              onApply={() => {
+                setFilterPaid(draftFilterPaid);
+                setFilterUnpaid(draftFilterUnpaid);
+                setFilterPastDue(draftFilterPastDue);
+                setFilterMenuOpen(false);
+              }}
+            />
             <Button
               type="button"
               className="shrink-0 gap-2 whitespace-nowrap"
@@ -2002,7 +1945,10 @@ export function ExpenseCashflowPage({
       </div>
 
       <Dialog open={addExpenseModalOpen} onOpenChange={setAddExpenseModalOpen}>
-        <DialogContent className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-md overflow-y-auto" showClose>
+        <DialogContent
+          className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
+          showClose
+        >
           <DialogHeader>
             <DialogTitle>
               {`Add ${cadenceLabel(expenseCadenceTab)} Expense`}
@@ -2026,33 +1972,33 @@ export function ExpenseCashflowPage({
                 aria-required
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="add-expense-category">Category</Label>
-                <Select
-                  value={
-                    !addCategory
-                      ? CATEGORY_SELECT_NONE
-                      : categoriesList.some((c) => c.id === addCategory)
-                        ? addCategory
-                        : CATEGORY_SELECT_NONE
-                  }
-                  onValueChange={(v) => setAddCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
-                >
-                  <SelectTrigger id="add-expense-category" className="h-9 w-full">
-                    <SelectValue placeholder="Optional" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
-                    {categoriesList.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
+            <div className="space-y-2">
+              <Label htmlFor="add-expense-category">Category</Label>
+              <Select
+                value={
+                  !addCategory
+                    ? CATEGORY_SELECT_NONE
+                    : categoriesList.some((c) => c.id === addCategory)
+                      ? addCategory
+                      : CATEGORY_SELECT_NONE
+                }
+                onValueChange={(v) => setAddCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
+              >
+                <SelectTrigger id="add-expense-category" className="h-9 w-full">
+                  <SelectValue placeholder="Optional" />
+                </SelectTrigger>
+                <SelectContent className="z-[100]">
+                  <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
+                  {categoriesList.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="add-expense-amount">
                   Amount <span className="text-destructive">*</span>
                 </Label>
@@ -2060,58 +2006,60 @@ export function ExpenseCashflowPage({
                   id="add-expense-amount"
                   value={addAmount}
                   onChange={setAddAmount}
-                  className="h-9 w-full"
+                  className="h-9 w-full min-w-0"
                 />
               </div>
-            </div>
-            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="add-expense-due">Due date</Label>
-                <Input
+                <DatePicker
                   id="add-expense-due"
-                  type="date"
-                  className={cn(
-                    "h-9",
-                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                  )}
+                  value={addDueDate}
+                  onChange={setAddDueDate}
+                  disabled={!isSubscriber}
+                  placeholder="Due date"
                   title={
                     isSubscriber
                       ? "Same calendar day for each billing cycle"
                       : "Pro or Premium — unlock due dates and reminders"
                   }
-                  value={addDueDate}
-                  onChange={(e) => setAddDueDate(e.target.value)}
-                  disabled={!isSubscriber}
+                  formatDisplay={(ymd) => {
+                    const d = parseYmdToLocalDate(ymd);
+                    return d ? formatPrefDate(d) : "";
+                  }}
+                  className={cn(
+                    "min-w-0",
+                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-expense-reminder">Reminder</Label>
-                <Select
-                  value={addReminderSelectValue}
-                  onValueChange={(v) =>
-                    setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
-                  }
-                  disabled={!isSubscriber}
+            </div>
+            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
+            <div className="space-y-2">
+              <Label htmlFor="add-expense-reminder">Reminder</Label>
+              <Select
+                value={addReminderSelectValue}
+                onValueChange={(v) =>
+                  setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
+                }
+                disabled={!isSubscriber}
+              >
+                <SelectTrigger
+                  id="add-expense-reminder"
+                  className={cn(
+                    "h-9 w-full",
+                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                  )}
                 >
-                  <SelectTrigger
-                    id="add-expense-reminder"
-                    className={cn(
-                      "h-9 w-full",
-                      !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                    )}
-                  >
-                    <SelectValue placeholder="Choose reminder times" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SelectValue placeholder="Choose reminder times" />
+                </SelectTrigger>
+                <SelectContent className="z-[100]">
+                  {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-expense-notes">Notes</Label>

@@ -1,35 +1,31 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 import {
+  DEFAULT_USER_PREFERENCES,
   formatCurrencyWithPreferences,
-  formatNumberWithPreferences,
-  getClientPreferenceCache,
-} from "@/lib/user-preferences";
+} from "@/lib/user-preferences"
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number, currency?: string): string {
-  const prefs = getClientPreferenceCache();
+/** Whole-number currency using default app prefs unless `currencyOverride` (ISO 4217) is passed. */
+export function formatCurrency(amount: number, currencyOverride?: string): string {
   return formatCurrencyWithPreferences(amount, {
-    ...prefs,
-    currency: currency ?? prefs.currency,
-  });
+    currency: currencyOverride ?? DEFAULT_USER_PREFERENCES.currency,
+    numberGrouping: DEFAULT_USER_PREFERENCES.numberGrouping,
+    language: DEFAULT_USER_PREFERENCES.language,
+  })
 }
 
-/** Format number with thousand separators for amount inputs (e.g. 50000 -> "50,000"). */
-export function formatAmountWithCommas(value: string | number): string {
-  const str = typeof value === "number" ? String(value) : value;
-  const digits = str.replace(/\D/g, "");
-  if (digits === "") return "";
-  const num = Number(digits);
-  if (Number.isNaN(num)) return "";
-  const prefs = getClientPreferenceCache();
-  return formatNumberWithPreferences(num, prefs);
+/** Digit-only storage string → thousands separators for amount fields. */
+export function formatAmountWithCommas(rawDigits: string): string {
+  const digits = rawDigits.replace(/\D/g, "")
+  if (!digits) return ""
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
 }
 
-/** Parse input value (with commas) to raw digits string for storage. */
-export function parseAmountInput(value: string): string {
-  return value.replace(/\D/g, "");
+/** Strip non-digits from an amount field value. */
+export function parseAmountInput(input: string): string {
+  return input.replace(/\D/g, "")
 }
