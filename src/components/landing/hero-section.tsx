@@ -67,7 +67,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             What gets tracked gets improved
           </p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Your one-stop personal tracker for everything
+            Your all-in-one personal tracker for everything
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
             Bills, to-buy lists, and tasks—mark what you&apos;ve paid each month and see your dashboard at a glance,

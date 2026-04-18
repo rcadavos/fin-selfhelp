@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { getBaseUrl } from "@/lib/seo";
 
 export const alt =
-  "OmniTrak — Your one-stop personal tracker for everything";
+  "OmniTrak — Your all-in-one personal tracker for everything";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -58,7 +58,7 @@ export default async function OpenGraphImage() {
             style={{ objectFit: "contain", marginBottom: 28 }}
           />
           <div style={{ fontSize: 28, opacity: 0.95, maxWidth: 720, marginBottom: 32 }}>
-            Your one-stop personal tracker for everything
+            Your all-in-one personal tracker for everything
           </div>
           <div
             style={{

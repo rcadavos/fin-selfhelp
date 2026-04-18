@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "OmniTrak",
     short_name: "OmniTrak",
     description:
-      "Your one-stop personal tracker for bills, cashflow, lists, calculators, and more.",
+      "Your all-in-one personal tracker for bills, cashflow, lists, calculators, and more.",
     start_url: "/",
     scope: "/",
     display: "standalone",

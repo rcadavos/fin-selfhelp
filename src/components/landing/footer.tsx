@@ -42,7 +42,7 @@ export function Footer({ className }: { className?: string }) {
             <div>
               <p className="text-lg font-semibold tracking-tight text-foreground">OmniTrak</p>
               <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Your one-stop personal tracker for bills, cashflow, lists, and more.
+                Your all-in-one personal tracker for bills, cashflow, lists, and more.
               </p>
             </div>
             <p className="text-xs text-muted-foreground">
