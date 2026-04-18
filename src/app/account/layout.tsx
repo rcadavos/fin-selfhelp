@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
-  noIndex: true,
+  noIndex: false,
 });
 
 /** Same content width as dashboard (`max-w-4xl` + horizontal padding). */

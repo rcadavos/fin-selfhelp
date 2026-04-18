@@ -6,7 +6,7 @@ import { buildPageMetadata } from "@/lib/seo";
 export const metadata = buildPageMetadata({
   path: "/dashboard",
   title: "Dashboard",
-  noIndex: true,
+  noIndex: false,
 });
 
 export default function DashboardPage() {

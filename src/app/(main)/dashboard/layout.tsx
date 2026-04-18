@@ -6,7 +6,7 @@ import { categoriesQueryOptions } from "@/lib/query/categories";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
-  noIndex: true,
+  noIndex: false,
 });
 
 export default async function DashboardLayout({

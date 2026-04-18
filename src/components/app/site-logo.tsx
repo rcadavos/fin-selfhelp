@@ -13,7 +13,7 @@ export function SiteLogo({ className, fetchPriority = "auto" }: SiteLogoProps) {
   return (
     <Image
       src={logoSrc}
-      alt=""
+      alt="OmniTrak logo"
       className={cn("h-9 w-auto max-h-9 object-contain object-left", className)}
       width={200}
       height={40}
