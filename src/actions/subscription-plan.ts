@@ -55,12 +55,28 @@ export async function getSubscriptionPlans(): Promise<{
   pro: SubscriptionPlanRow | null;
   premium: SubscriptionPlanRow | null;
 }> {
-  const supabase = await createClient();
-  const [pro, premium] = await Promise.all([
-    fetchPlanById(supabase, "pro").then((p) => p ?? fetchPlanById(supabase, "default")),
-    fetchPlanById(supabase, "premium"),
-  ]);
-  return { pro, premium };
+  try {
+    const supabase = createServiceRoleClient();
+    const { data, error } = await supabase
+      .from("subscription_plan")
+      .select("id, name, price_amount, price_currency, interval, original_price_amount")
+      .in("id", ["pro", "premium", "default"]);
+
+    if (error || !data) {
+      return { pro: null, premium: null };
+    }
+
+    const plans = data as PlanDbRow[];
+    const proRaw = plans.find((p) => p.id === "pro") || plans.find((p) => p.id === "default");
+    const premiumRaw = plans.find((p) => p.id === "premium");
+
+    return {
+      pro: proRaw ? mapPlanRow(proRaw) : null,
+      premium: premiumRaw ? mapPlanRow(premiumRaw) : null,
+    };
+  } catch {
+    return { pro: null, premium: null };
+  }
 }
 
 /** Admin: load Pro + Premium pricing rows. */

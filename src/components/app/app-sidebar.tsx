@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -165,7 +166,7 @@ export function AppSidebar({ className }: { className?: string }) {
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                 {avatarUrl ? (
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt=""
                     width={32}

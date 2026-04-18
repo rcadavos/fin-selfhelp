@@ -56,14 +56,8 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geistSans.variable)}>
-      <head>
-        <link
-          rel="preload"
-          href="/omnitrak-logo.png?v=20260414"
-          as="image"
-          type="image/png"
-        />
-      </head>
+      <head />
+
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >

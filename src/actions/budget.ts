@@ -79,6 +79,19 @@ export type ExpenseData = {
   grantorUserId?: string;
 };
 
+export type DashboardSummary = {
+  netTakeHome: number;
+  totalMonthlyExpenses: number;
+  totalMonthlyPaid: number;
+  paidCount: number;
+  totalCount: number;
+  isSubscriber: boolean;
+  subscriptionTier: SubscriptionTierId;
+  subscriptionExpired: boolean;
+  paidMonth: string;
+};
+
+
 export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -183,6 +196,88 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
     paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
   };
 }
+
+/** 
+ * Optimized dashboard query that returns totals and counts 
+ * without fetching every individual expense row.
+ */
+export async function loadExpenseSummary(paidMonth?: string): Promise<DashboardSummary | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, net_take_home, is_subscriber, subscription_ends_at, subscription_tier")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return null;
+
+  const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
+
+  const [
+    { data: incomeRows },
+    { count: totalCount },
+    { data: expenseAggregates },
+    { count: paidCount },
+    { data: paidAggregates },
+  ] = await Promise.all([
+    supabase
+      .from("income_entries")
+      .select("amount")
+      .eq("profile_id", profile.id),
+    supabase
+      .from("expense_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", profile.id)
+      .eq("billing_period", "monthly"),
+    supabase
+      .from("expense_entries")
+      .select("amount")
+      .eq("profile_id", profile.id)
+      .eq("billing_period", "monthly"),
+    supabase
+      .from("expense_payments")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", profile.id)
+      .eq("paid_month", month),
+    supabase
+      .from("expense_payments")
+      .select("expense_entries!inner(amount)")
+      .eq("profile_id", profile.id)
+      .eq("paid_month", month)
+      .eq("expense_entries.billing_period", "monthly"),
+  ]);
+
+  const totalIncome = (incomeRows ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
+  const netTakeHome = totalIncome > 0 ? totalIncome : Number(profile.net_take_home);
+  
+  const totalMonthlyExpenses = (expenseAggregates ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
+  const totalMonthlyPaid = (paidAggregates ?? []).reduce((sum, r) => {
+    const entry = r.expense_entries as unknown as { amount: number } | null;
+    return sum + Number(entry?.amount ?? 0);
+  }, 0);
+
+  const now = new Date();
+  const endsAt = profile.subscription_ends_at ? new Date(profile.subscription_ends_at) : null;
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const endsIso = profile.subscription_ends_at as string | null;
+  const isSub = Boolean(profile.is_subscriber);
+  const hasProAccess = hasProLevelProductAccess(tier, endsIso, isSub);
+  
+  return {
+    netTakeHome,
+    totalMonthlyExpenses,
+    totalMonthlyPaid,
+    paidCount: paidCount ?? 0,
+    totalCount: totalCount ?? 0,
+    isSubscriber: hasProAccess,
+    subscriptionTier: tier,
+    subscriptionExpired: endsAt != null && endsAt <= now,
+    paidMonth: month,
+  };
+}
+
 
 /** Load another user's expense dashboard when they have shared access with you (read-only). */
 export async function loadSharedExpenseData(

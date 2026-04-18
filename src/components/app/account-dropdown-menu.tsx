@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -117,7 +118,7 @@ export function AccountDropdownMenu({
           <div className="flex items-center gap-2.5">
             <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
               {showAvatar ? (
-                <img
+                <Image
                   src={avatarUrl!}
                   alt=""
                   width={40}

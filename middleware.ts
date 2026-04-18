@@ -1,7 +1,13 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  // Optimization: Skip session check/refresh for the root path (landing page)
+  // which is mostly public and static. The client-side useUser hook handles
+  // the UI state once the page loads.
+  if (request.nextUrl.pathname === "/") {
+    return NextResponse.next();
+  }
   return await updateSession(request);
 }
 
