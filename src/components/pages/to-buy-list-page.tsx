@@ -217,17 +217,29 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   }, [mode]);
 
   const persist = useCallback(
-    (next: ToBuyItem[]) => {
+    async (next: ToBuyItem[]) => {
       const ordered = orderItemsLikeNotes(next);
+
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
+      const previousItems = queryClient.getQueryData(listQueryKey);
       queryClient.setQueryData(listQueryKey, ordered);
+
       if (user) {
-        void cfg.replace(ordered).then(({ error }) => {
-          if (error) cfg.saveLocal(ordered);
-          else {
+        try {
+          const { error } = await cfg.replace(ordered);
+          if (error) {
+            // Rollback on error if needed, but here we just try to save local fallback
+            cfg.saveLocal(ordered);
+            // Optionally: queryClient.setQueryData(listQueryKey, previousItems);
+          } else {
             cfg.clearLocal();
-            void queryClient.invalidateQueries({ queryKey: listQueryKey });
+            // Don't invalidate immediately to avoid jitter; let the optimistic state live
+            // void queryClient.invalidateQueries({ queryKey: listQueryKey });
           }
-        });
+        } catch (err) {
+          cfg.saveLocal(ordered);
+        }
       } else {
         cfg.saveLocal(ordered);
       }
@@ -318,7 +330,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
                   item={item}
                   onCommit={commitName}
                 />
-                {mode === "do" ? (
+                {mode === "do" && (!item.checked || item.targetDate) ? (
                   <TargetDatePickerIcon
                     value={item.targetDate}
                     onChange={(next) => commitTargetDate(item.id, next)}

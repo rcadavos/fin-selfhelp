@@ -87,7 +87,7 @@ const ACHIEVED_NONE = "__none__";
 
 /** Right-side goal art (celebration or target): same layout as CSS background layers. Narrower strip on small screens so title row keeps more width (padding below stays in sync). */
 const GOAL_CARD_ART_STRIP =
-  "pointer-events-none absolute inset-y-0 right-0 z-0 w-[min(34%,9rem)] min-w-[5.5rem] max-w-[15rem] bg-contain bg-right-bottom bg-no-repeat sm:w-[min(44%,16rem)] sm:min-w-[7.5rem] sm:max-w-[17rem]";
+  "pointer-events-none absolute inset-y-0 right-0 z-0 w-[min(22%,6.5rem)] min-w-[5rem] max-w-[15rem] bg-contain bg-right-bottom bg-no-repeat sm:w-[min(35%,16rem)] sm:min-w-[7.5rem] sm:max-w-[17rem]";
 
 function yearOptions(): number[] {
   const y = new Date().getFullYear();
@@ -238,10 +238,10 @@ export function MyGoalsPage() {
     const filtered = noFilter
       ? goals
       : goals.filter((g) => {
-          const a = isGoalAchieved(g);
-          if (a) return filterAchieved;
-          return filterNotYet;
-        });
+        const a = isGoalAchieved(g);
+        if (a) return filterAchieved;
+        return filterNotYet;
+      });
     const typeOrder: GoalType[] = ["short_term", "long_term", "lifetime"];
     const achievementRank = (g: GoalEntryRow) =>
       g.date_achieved_year != null && g.date_achieved_month != null
@@ -483,7 +483,7 @@ export function MyGoalsPage() {
           className={cn(
             "relative flex min-h-0 items-stretch overflow-hidden transition-shadow",
             achieved &&
-              "border-emerald-400/50 bg-gradient-to-br from-emerald-400/15 via-background to-background shadow-md shadow-emerald-500/10 dark:border-emerald-400/70 dark:bg-gradient-to-br dark:from-emerald-500/45 dark:via-emerald-900/75 dark:to-emerald-950/55 dark:shadow-xl dark:shadow-emerald-500/40 dark:ring-2 dark:ring-emerald-400/45"
+            "border-emerald-400/50 bg-gradient-to-br from-emerald-400/15 via-background to-background shadow-md shadow-emerald-500/10 dark:border-emerald-400/70 dark:bg-gradient-to-br dark:from-emerald-500/45 dark:via-emerald-900/75 dark:to-emerald-950/55 dark:shadow-xl dark:shadow-emerald-500/40 dark:ring-2 dark:ring-emerald-400/45"
           )}
         >
           <div
@@ -496,15 +496,15 @@ export function MyGoalsPage() {
             aria-hidden
           />
           <div
-            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col gap-1 py-3 pl-3 pr-[min(34%,9rem)] sm:gap-2 sm:py-3.5 sm:pl-4 sm:pr-[min(44%,16rem)]"
+            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col gap-1 py-3 pl-3 pr-[min(22%,6.5rem)] sm:gap-2 sm:py-3.5 sm:pl-4 sm:pr-[min(35%,16rem)]"
           >
-            <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-              <div className="flex min-h-0 min-w-0 max-w-[75%] flex-1 items-center gap-1 overflow-hidden">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+              <div className="flex min-h-0 min-w-0 items-center gap-2 overflow-hidden">
                 {inlineNameEditId === g.id ? (
                   <Input
                     value={inlineNameDraft}
                     onChange={(e) => setInlineNameDraft(e.target.value)}
-                    className="h-8 min-w-0 flex-1 text-lg font-semibold sm:max-w-[min(100%,20rem)]"
+                    className="h-8 min-w-0 text-lg font-semibold sm:max-w-[min(100%,20rem)]"
                     placeholder="Goal name"
                     autoFocus
                     onKeyDown={(e) => {
@@ -530,7 +530,7 @@ export function MyGoalsPage() {
                 ) : (
                   <button
                     type="button"
-                    className="min-w-0 flex-1 truncate text-left text-lg font-semibold leading-tight tracking-tight underline-offset-2 hover:underline"
+                    className="min-w-0 truncate text-left text-lg font-semibold leading-tight tracking-tight underline-offset-2 hover:underline"
                     onClick={() => void beginInlineNameEdit(g)}
                   >
                     {g.name}
