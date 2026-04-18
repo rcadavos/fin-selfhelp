@@ -14,6 +14,9 @@ const Footer = dynamic(() => import("@/components/landing/footer").then(m => m.F
 import { getSubscriptionPlans } from "@/actions/subscription-plan";
 import { getApprovedReviews } from "@/actions/feedback";
 import { SUBSCRIPTION_PLAN_FALLBACK, SUBSCRIPTION_PREMIUM_FALLBACK } from "@/lib/query/subscription-plan";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({ path: "/" });
 
 export const revalidate = 3600; // Revalidate every hour
 

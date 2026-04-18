@@ -93,7 +93,7 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
     authors: [{ name: SITE_NAME, url: baseUrl }],
     creator: SITE_NAME,
     metadataBase: new URL(baseUrl),
-    alternates: { canonical: url },
+    ...(meta.path !== undefined && { alternates: { canonical: url } }),
     openGraph,
     twitter,
     robots: meta.noIndex
@@ -107,7 +107,6 @@ export function buildDefaultMetadata(): Metadata {
   const base = buildPageMetadata({
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
-    path: "/",
   });
   return {
     ...base,

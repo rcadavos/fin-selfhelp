@@ -3,6 +3,11 @@ import { AppShell } from "@/components/app/app-shell";
 import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { getQueryClient } from "@/lib/query/query-client";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  noIndex: true,
+});
 
 export default async function DashboardLayout({
   children,
