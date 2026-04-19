@@ -1669,8 +1669,8 @@ export function ExpenseCashflowPage({
                       className={cn(
                         "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                         expenseCadenceTab === "monthly"
-                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
-                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
                       )}
                     >
                       {cadenceCounts.monthly}
@@ -1691,8 +1691,8 @@ export function ExpenseCashflowPage({
                       className={cn(
                         "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                         expenseCadenceTab === "quarterly"
-                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
-                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
                       )}
                     >
                       {cadenceCounts.quarterly}
@@ -1713,8 +1713,8 @@ export function ExpenseCashflowPage({
                       className={cn(
                         "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                         expenseCadenceTab === "yearly"
-                          ? "bg-white text-foreground border-border group-hover:bg-white group-hover:text-foreground"
-                          : "group-hover:bg-white group-hover:text-foreground group-hover:border-border"
+                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
                       )}
                     >
                       {cadenceCounts.yearly}

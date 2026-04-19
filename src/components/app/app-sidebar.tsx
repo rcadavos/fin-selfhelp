@@ -41,8 +41,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/my-goals", label: "My Goals", icon: Target, premium: false },
+  { href: "/dashboard/premium", label: "Premium Features", icon: Gem, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
-  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
+  { href: "/dashboard/to-do", label: "To-Do List", icon: ClipboardList, premium: false },
   { href: "/dashboard/rent-tracker", label: "Rent Tracker", icon: Building2, premium: true },
   { href: "/dashboard/payment-tracker", label: "Payment Tracker", icon: Wallet, premium: true },
   { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
@@ -74,11 +75,8 @@ export function AppSidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        /* Fixed left: does not shrink the main column in flex; main uses md:pl-56 for offset */
-        "fixed left-0 top-0 z-40 hidden w-56 flex-col overflow-hidden border-r border-border/80 bg-muted/30 shadow-sm backdrop-blur-sm",
-        "md:flex",
-        "h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]",
-        "max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]",
+        "flex w-64 flex-col overflow-hidden border-r border-border/80 bg-muted/30 shadow-sm backdrop-blur-sm",
+        "fixed left-0 top-0 z-40 h-screen hidden md:flex",
         className
       )}
     >

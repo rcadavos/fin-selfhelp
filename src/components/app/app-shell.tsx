@@ -8,6 +8,7 @@ import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
+import { BottomNavbar } from "@/components/app/bottom-navbar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -59,10 +60,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <AppHeader />
         <div
           data-app-scroll="true"
-          className="min-h-0 flex-1 md:h-full md:min-h-0 md:overflow-y-auto md:overscroll-y-contain"
+          className="min-h-0 flex-1 pb-16 md:h-full md:min-h-0 md:pb-0 md:overflow-y-auto md:overscroll-y-contain"
         >
           {children}
         </div>
+        <BottomNavbar />
       </div>
     </div>
   );
