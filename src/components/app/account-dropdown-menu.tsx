@@ -18,7 +18,7 @@ import {
 import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound } from "lucide-react";
+import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound, Lock } from "lucide-react";
 
 export function getAccountDisplayName(user: {
   email?: string | null;
@@ -106,8 +106,8 @@ export function AccountDropdownMenu({
   const triggerNode =
     isValidElement<{ className?: string }>(trigger) && typeof trigger.props === "object"
       ? cloneElement(trigger, {
-          className: cn(trigger.props.className, "group"),
-        })
+        className: cn(trigger.props.className, "group"),
+      })
       : trigger;
 
   return (
@@ -156,6 +156,12 @@ export function AccountDropdownMenu({
               Security
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
+            <Link href="/legal" className="flex cursor-pointer items-center gap-2.5">
+              <Lock className="h-4 w-4 shrink-0" aria-hidden />
+              Privacy
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="flex min-h-9 cursor-pointer items-center gap-2.5 px-2.5 text-sm [&_svg]:size-4"
             onSelect={(e) => {
@@ -165,18 +171,6 @@ export function AccountDropdownMenu({
           >
             <CreditCard className="h-4 w-4 shrink-0" aria-hidden />
             Subscription
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
-            <Link href="/account/shared" className="flex cursor-pointer items-center gap-2.5">
-              <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
-              Shared with me
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
-            <Link href="/account/settings" className="flex cursor-pointer items-center gap-2.5">
-              <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-              Settings
-            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

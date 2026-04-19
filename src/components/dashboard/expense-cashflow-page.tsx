@@ -148,6 +148,12 @@ const EDIT_REMINDER_SELECT_ITEMS: { value: string; label: string }[] = [
   { value: "3,1,0", label: "All reminders" },
 ];
 
+const REMINDER_CHANNEL_ITEMS = [
+  { value: "email", label: "Remind by Email" },
+  { value: "in-app", label: "In-App Notification" },
+  { value: "both", label: "Both Email & In-App" },
+];
+
 function reminderSelectValueFromDays(days: ReminderDay[]): string {
   if (days.length === 0) return EDIT_REMINDER_NONE;
   const k = reminderKeyFromDays(days);
@@ -341,6 +347,8 @@ export function ExpenseCashflowPage({
   const [editNotes, setEditNotes] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editReminderDays, setEditReminderDays] = useState<ReminderDay[]>([]);
+  const [addReminderChannel, setAddReminderChannel] = useState<"email" | "in-app" | "both">("both");
+  const [editReminderChannel, setEditReminderChannel] = useState<"email" | "in-app" | "both">("both");
   const [editPaidStatus, setEditPaidStatus] = useState<"paid" | "unpaid">("unpaid");
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -496,7 +504,9 @@ export function ExpenseCashflowPage({
         next || undefined,
         undefined,
         entry.due_date ?? undefined,
-        reminders
+        reminders,
+        undefined,
+        (entry.reminder_channel as "email" | "in-app" | "both") ?? undefined
       );
       if (result.error) showSnackbar(result.error);
       else {
@@ -605,6 +615,7 @@ export function ExpenseCashflowPage({
     setAddNotes("");
     setAddDueDate("");
     setAddReminderDays([]);
+    setAddReminderChannel("both");
     setAddStatus("idle");
   }
 
@@ -623,7 +634,8 @@ export function ExpenseCashflowPage({
       addNotes.trim() || undefined,
       dueDate,
       reminderDays,
-      expenseCadenceTab
+      expenseCadenceTab,
+      addReminderChannel
     );
     if (result.error) {
       showSnackbar(result.error);
@@ -654,6 +666,7 @@ export function ExpenseCashflowPage({
       : null;
     setEditDueDate(effDue ? formatYmdLocal(effDue) : "");
     setEditReminderDays((entry.reminder_days_before ?? []) as ReminderDay[]);
+    setEditReminderChannel((entry.reminder_channel as "email" | "in-app" | "both") ?? "both");
     setEditPaidStatus(paidIds.has(entry.id) ? "paid" : "unpaid");
     setEditStatus("idle");
   }
@@ -694,7 +707,9 @@ export function ExpenseCashflowPage({
       editName.trim(),
       editNotes.trim() || undefined,
       editDueDate.trim() || undefined,
-      isSubscriber && editDueDate.trim() ? (editReminderDays.length ? editReminderDays : null) : undefined
+      isSubscriber && editDueDate.trim() ? (editReminderDays.length ? editReminderDays : null) : undefined,
+      undefined,
+      editReminderChannel
     );
     if (result.error) {
       showSnackbar(result.error);
@@ -1273,30 +1288,31 @@ export function ExpenseCashflowPage({
               </div>
             </div>
             {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={cn(
+              "grid gap-4 sm:grid-cols-2 rounded-lg p-2 transition-all",
+              isSubscriber && (editReminderDays.length > 0 || editDueDate) && "ring-2 ring-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/10"
+            )}>
               <div className="space-y-2">
                 <Label htmlFor="edit-expense-due">Due date</Label>
                 <DatePicker
                   id="edit-expense-due"
                   value={editDueDate}
                   onChange={setEditDueDate}
-                  disabled={!isSubscriber}
                   placeholder="Due date"
                   title={
                     isSubscriber
                       ? "Same calendar day for each billing cycle"
-                      : "Pro or Premium — unlock due dates and reminders"
+                      : "Due dates are now available for everyone!"
                   }
                   formatDisplay={(ymd) => {
                     const d = parseYmdToLocalDate(ymd);
                     return d ? formatPrefDate(d) : "";
                   }}
-                  className={cn(
-                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                  )}
                 />
               </div>
+
               <div className="space-y-2">
+                {!isSubscriber && <ProPremiumExpenseDivider />}
                 <Label htmlFor="edit-expense-reminder">Reminder</Label>
                 <Select
                   value={editReminderSelectValue}
@@ -1323,6 +1339,28 @@ export function ExpenseCashflowPage({
                   </SelectContent>
                 </Select>
               </div>
+
+
+              {isSubscriber && editReminderDays.length > 0 && (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="edit-expense-reminder-channel">Remind by</Label>
+                  <Select
+                    value={editReminderChannel}
+                    onValueChange={(v: any) => setEditReminderChannel(v)}
+                  >
+                    <SelectTrigger id="edit-expense-reminder-channel" className="h-9 w-full">
+                      <SelectValue placeholder="How to notify" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {REMINDER_CHANNEL_ITEMS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-expense-notes">Notes</Label>
@@ -1997,69 +2035,91 @@ export function ExpenseCashflowPage({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="min-w-0 space-y-2">
-                <Label htmlFor="add-expense-amount">
-                  Amount <span className="text-destructive">*</span>
-                </Label>
-                <AmountInput
-                  id="add-expense-amount"
-                  value={addAmount}
-                  onChange={setAddAmount}
-                  className="h-9 w-full min-w-0"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-expense-amount">
+                Amount <span className="text-destructive">*</span>
+              </Label>
+              <AmountInput
+                id="add-expense-amount"
+                value={addAmount}
+                onChange={setAddAmount}
+                className="h-9 w-full"
+              />
+            </div>
+
+            <div className={cn(
+              "grid grid-cols-2 gap-3 sm:gap-4 rounded-lg p-2 transition-all",
+              isSubscriber && (addReminderDays.length > 0 || addDueDate) && "ring-2 ring-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/10"
+            )}>
               <div className="min-w-0 space-y-2">
                 <Label htmlFor="add-expense-due">Due date</Label>
                 <DatePicker
                   id="add-expense-due"
                   value={addDueDate}
                   onChange={setAddDueDate}
-                  disabled={!isSubscriber}
                   placeholder="Due date"
                   title={
                     isSubscriber
                       ? "Same calendar day for each billing cycle"
-                      : "Pro or Premium — unlock due dates and reminders"
+                      : "Due dates are now available for everyone!"
                   }
                   formatDisplay={(ymd) => {
                     const d = parseYmdToLocalDate(ymd);
                     return d ? formatPrefDate(d) : "";
                   }}
-                  className={cn(
-                    "min-w-0",
-                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                  )}
+                  className="min-w-0"
                 />
               </div>
-            </div>
-            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
-            <div className="space-y-2">
-              <Label htmlFor="add-expense-reminder">Reminder</Label>
-              <Select
-                value={addReminderSelectValue}
-                onValueChange={(v) =>
-                  setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
-                }
-                disabled={!isSubscriber}
-              >
-                <SelectTrigger
-                  id="add-expense-reminder"
-                  className={cn(
-                    "h-9 w-full",
-                    !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                  )}
+
+              <div className="min-w-0 space-y-2">
+                {!isSubscriber && <ProPremiumExpenseDivider />}
+                <Label htmlFor="add-expense-reminder">Reminder</Label>
+                <Select
+                  value={addReminderSelectValue}
+                  onValueChange={(v) =>
+                    setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
+                  }
+                  disabled={!isSubscriber}
                 >
-                  <SelectValue placeholder="Choose reminder times" />
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    id="add-expense-reminder"
+                    className={cn(
+                      "h-9 w-full",
+                      !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                    )}
+                  >
+                    <SelectValue placeholder="Choose reminder times" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isSubscriber && addReminderDays.length > 0 && (
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="add-expense-reminder-channel">Remind by</Label>
+                  <Select
+                    value={addReminderChannel}
+                    onValueChange={(v: any) => setAddReminderChannel(v)}
+                  >
+                    <SelectTrigger id="add-expense-reminder-channel" className="h-9 w-full">
+                      <SelectValue placeholder="How to notify" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {REMINDER_CHANNEL_ITEMS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-expense-notes">Notes</Label>

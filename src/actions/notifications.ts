@@ -20,6 +20,7 @@ type ExpenseReminderRow = {
   notes: string | null;
   due_date: string | null;
   reminder_days_before: number[] | null;
+  reminder_channel: string | null;
 };
 
 type ToDoTargetRow = {
@@ -98,7 +99,7 @@ async function syncGeneratedProNotificationsForToday(
   const [{ data: expenses }, { data: toDoRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("id, note, notes, due_date, reminder_days_before")
+      .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
       .eq("profile_id", profile.id),
     supabase
       .from("to_do_items")
@@ -117,6 +118,9 @@ async function syncGeneratedProNotificationsForToday(
     }
     const candidates = getCandidateDueDates(entry.due_date, today);
     const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+    const channel = entry.reminder_channel || "both";
+
+    if (channel !== "in-app" && channel !== "both") continue;
 
     for (const dueThisMonth of candidates) {
       for (const reminderDay of entry.reminder_days_before) {

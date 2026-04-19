@@ -19,6 +19,7 @@ type ExpenseReminderRow = {
   notes: string | null;
   due_date: string | null;
   reminder_days_before: number[] | null;
+  reminder_channel: string | null;
 };
 
 type ToDoTargetRow = {
@@ -170,7 +171,7 @@ export async function GET(request: Request) {
       const [{ data: expenses }, { data: toDoRows }, authUserResult] = await Promise.all([
         supabase
           .from("expense_entries")
-          .select("id, note, notes, due_date, reminder_days_before")
+          .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
           .eq("profile_id", profile.id),
         supabase
           .from("to_do_items")
@@ -193,30 +194,35 @@ export async function GET(request: Request) {
         }
         
         const candidates = getCandidateDueDates(entry.due_date, now);
-        const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+            const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+            const channel = entry.reminder_channel || "both";
 
-        for (const dueThisMonth of candidates) {
-          for (const reminderDay of entry.reminder_days_before) {
-            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
-            const reminderDate = addDays(dueThisMonth, -reminderDay);
-            if (formatYmdLocal(reminderDate) !== todayYmd) continue;
-            
-            const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
-            const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
-            const body = reminderDay === 0
-              ? "This expense is due today."
-              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+            for (const dueThisMonth of candidates) {
+              for (const reminderDay of entry.reminder_days_before) {
+                if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+                const reminderDate = addDays(dueThisMonth, -reminderDay);
+                if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+                
+                const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+                const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
+                const body = reminderDay === 0
+                  ? "This expense is due today."
+                  : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
 
-            pending.push({ dedupeKey, title, body });
-            notificationsToInsert.push({
-              user_id: profile.user_id,
-              kind: "expense_reminder",
-              dedupe_key: dedupeKey,
-              title,
-              body,
-            });
-          }
-        }
+                if (channel === "email" || channel === "both") {
+                  pending.push({ dedupeKey, title, body });
+                }
+                if (channel === "in-app" || channel === "both") {
+                  notificationsToInsert.push({
+                    user_id: profile.user_id,
+                    kind: "expense_reminder",
+                    dedupe_key: dedupeKey,
+                    title,
+                    body,
+                  });
+                }
+              }
+            }
       }
 
       for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
