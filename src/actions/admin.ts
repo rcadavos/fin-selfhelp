@@ -48,7 +48,9 @@ export async function getAdminGuard(): Promise<{ allowed: boolean; redirectTo: s
 export type AdminUserRow = {
   id: string;
   email: string | null;
+  full_name: string | null;
   created_at: string;
+  email_confirmed_at: string | null;
   last_login_at: string | null;
   is_subscriber: boolean;
   subscription_ends_at: string | null;
@@ -63,7 +65,9 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
   const users = (data ?? []).map((row: {
     id: string;
     email: string | null;
+    full_name: string | null;
     created_at: string;
+    email_confirmed_at: string | null;
     last_login_at: string | null;
     is_subscriber: boolean;
     subscription_ends_at: string | null;
@@ -72,7 +76,9 @@ export async function getUsersForAdmin(): Promise<{ users: AdminUserRow[]; error
   }) => ({
     id: row.id,
     email: row.email ?? null,
+    full_name: row.full_name ?? null,
     created_at: row.created_at,
+    email_confirmed_at: row.email_confirmed_at ?? null,
     last_login_at: row.last_login_at ?? null,
     is_subscriber: Boolean(row.is_subscriber),
     subscription_ends_at: row.subscription_ends_at ?? null,

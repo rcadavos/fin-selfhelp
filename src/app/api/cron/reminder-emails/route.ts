@@ -165,6 +165,8 @@ export async function GET(request: Request) {
 
       processedUsers += 1;
 
+      const { getCandidateDueDates } = await import("@/lib/expense-due-date");
+
       const [{ data: expenses }, { data: toDoRows }, authUserResult] = await Promise.all([
         supabase
           .from("expense_entries")
@@ -183,71 +185,97 @@ export async function GET(request: Request) {
       if (!toEmail) continue;
 
       const pending: PendingReminder[] = [];
+      const notificationsToInsert: any[] = [];
+
       for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
         if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
           continue;
         }
-        const dueThisMonth = computeDueDateThisMonthFromStored(entry.due_date, now);
-        if (!dueThisMonth) continue;
+        
+        const candidates = getCandidateDueDates(entry.due_date, now);
         const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
-        for (const reminderDay of entry.reminder_days_before) {
-          if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
-          const reminderDate = addDays(dueThisMonth, -reminderDay);
-          if (formatYmdLocal(reminderDate) !== todayYmd) continue;
-          pending.push({
-            dedupeKey: `expense:${entry.id}:${todayYmd}:d-${reminderDay}`,
-            title: reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`,
-            body:
-              reminderDay === 0
-                ? "This expense is due today."
-                : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
-          });
+
+        for (const dueThisMonth of candidates) {
+          for (const reminderDay of entry.reminder_days_before) {
+            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+            const reminderDate = addDays(dueThisMonth, -reminderDay);
+            if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+            
+            const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+            const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
+            const body = reminderDay === 0
+              ? "This expense is due today."
+              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+
+            pending.push({ dedupeKey, title, body });
+            notificationsToInsert.push({
+              user_id: profile.user_id,
+              kind: "expense_reminder",
+              dedupe_key: dedupeKey,
+              title,
+              body,
+            });
+          }
         }
       }
 
       for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
-        pending.push({
-          dedupeKey: `todo:${item.id}:${todayYmd}`,
-          title: `To-do target today: ${item.name}`,
-          body: "This task reaches its target date today.",
+        const dedupeKey = `todo:${item.id}:${todayYmd}`;
+        const title = `To-do target today: ${item.name}`;
+        const body = "This task reaches its target date today.";
+        
+        pending.push({ dedupeKey, title, body });
+        notificationsToInsert.push({
+          user_id: profile.user_id,
+          kind: "todo_target_date",
+          dedupe_key: dedupeKey,
+          title,
+          body,
         });
       }
 
       if (pending.length === 0) continue;
 
-      const { data: insertedLogs, error: logsError } = await supabase
-        .from("reminder_email_logs")
-        .upsert(
-          pending.map((item) => ({
-            user_id: profile.user_id,
-            dedupe_key: item.dedupeKey,
-          })),
-          { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }
-        )
-        .select("dedupe_key");
+      // Deduplicate and insert logs + notifications
+      const [{ data: insertedLogs, error: logsError }] = await Promise.all([
+        supabase
+          .from("reminder_email_logs")
+          .upsert(
+            pending.map((item) => ({
+              user_id: profile.user_id,
+              dedupe_key: item.dedupeKey,
+            })),
+            { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }
+          )
+          .select("dedupe_key"),
+        supabase
+          .from("user_notifications")
+          .upsert(notificationsToInsert, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }),
+      ]);
 
       if (logsError) {
-        errors.push(`log upsert failed for user ${profile.user_id}: ${logsError.message}`);
+        errors.push(`log/notification upsert failed for user ${profile.user_id}: ${logsError.message}`);
         continue;
       }
 
       const insertedKeys = new Set((insertedLogs ?? []).map((r) => String(r.dedupe_key)));
       const newlyPending = pending.filter((item) => insertedKeys.has(item.dedupeKey));
-      if (newlyPending.length === 0) continue;
+      
+      if (newlyPending.length > 0) {
+        const from = process.env.REMINDER_FROM_EMAIL?.trim() || "OmniTrak <reminders@omnitrak.cloud>";
+        const sendResult = await sendReminderEmail({
+          to: toEmail,
+          from,
+          items: newlyPending,
+          todayYmd,
+        });
 
-      const from = process.env.REMINDER_FROM_EMAIL?.trim() || "OmniTrak <reminders@omnitrak.cloud>";
-      const sendResult = await sendReminderEmail({
-        to: toEmail,
-        from,
-        items: newlyPending,
-        todayYmd,
-      });
-
-      if (!sendResult.ok) {
-        errors.push(`email send failed for user ${profile.user_id}: ${sendResult.error}`);
-        continue;
+        if (!sendResult.ok) {
+          errors.push(`email send failed for user ${profile.user_id}: ${sendResult.error}`);
+          continue;
+        }
+        sentEmails += 1;
       }
-      sentEmails += 1;
     }
 
     return NextResponse.json(

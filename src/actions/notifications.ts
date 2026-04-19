@@ -109,28 +109,31 @@ async function syncGeneratedProNotificationsForToday(
   ]);
 
   const rowsToInsert: NewNotificationRow[] = [];
+  const { getCandidateDueDates } = await import("@/lib/expense-due-date");
 
   for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
     if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
       continue;
     }
-    const dueThisMonth = computeDueDateThisMonthFromStored(entry.due_date, today);
-    if (!dueThisMonth) continue;
+    const candidates = getCandidateDueDates(entry.due_date, today);
     const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
-    for (const reminderDay of entry.reminder_days_before) {
-      if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
-      const reminderDate = addDays(dueThisMonth, -reminderDay);
-      if (formatYmdLocal(reminderDate) !== todayYmd) continue;
-      rowsToInsert.push({
-        user_id: userId,
-        kind: "expense_reminder",
-        dedupe_key: `expense:${entry.id}:${todayYmd}:d-${reminderDay}`,
-        title: reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`,
-        body:
-          reminderDay === 0
-            ? "This expense is due today."
-            : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
-      });
+
+    for (const dueThisMonth of candidates) {
+      for (const reminderDay of entry.reminder_days_before) {
+        if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+        const reminderDate = addDays(dueThisMonth, -reminderDay);
+        if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+        rowsToInsert.push({
+          user_id: userId,
+          kind: "expense_reminder",
+          dedupe_key: `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`,
+          title: reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`,
+          body:
+            reminderDay === 0
+              ? "This expense is due today."
+              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
+        });
+      }
     }
   }
 

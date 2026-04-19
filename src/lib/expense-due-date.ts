@@ -65,6 +65,32 @@ export function normalizeDueDateForStorage(pickerYmd: string): string | null {
   return `1970-01-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * Returns candidate "actual" due dates for a repeating monthly expense with day `dueDay`.
+ * Checks the current month, the month before, and the month after to ensure reminders
+ * that cross month boundaries are caught (e.g., a 3-day reminder for the 1st of next month).
+ */
+export function getCandidateDueDates(dueYmd: string, referenceDate: Date): Date[] {
+  const day = getDueDayOfMonthFromYmd(dueYmd);
+  if (!day) return [];
+
+  const candidates: Date[] = [];
+  const ref = new Date(referenceDate);
+  const year = ref.getFullYear();
+  const month = ref.getMonth(); // 0-indexed
+
+  // Check last month, this month, and next month
+  for (let i = -1; i <= 1; i++) {
+    const d = new Date(year, month + i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1; // 1-indexed for lastDayOfMonth
+    const safeDay = Math.min(day, lastDayOfMonth(y, m));
+    candidates.push(new Date(y, m - 1, safeDay));
+  }
+
+  return candidates;
+}
+
 export function formatReminderDateList(
   dueYmd: string | undefined,
   days: number[] | undefined,

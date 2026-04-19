@@ -182,7 +182,9 @@ export default function AdminUsersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
+                  <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
+                  <TableHead className="text-right">Confirmed</TableHead>
                   <TableHead className="text-right">Last login</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
@@ -195,8 +197,12 @@ export default function AdminUsersPage() {
                   return (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.email ?? "—"}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.full_name ?? "—"}</TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.created_at)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatDate(u.email_confirmed_at)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.last_login_at)}
