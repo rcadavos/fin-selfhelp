@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import nodemailer from "nodemailer";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import type { AppNotification } from "@/types/notifications";
@@ -73,16 +74,17 @@ function computeDueDateThisMonthFromStored(dueYmd: string, today: Date): Date | 
   return new Date(year, month1to12 - 1, safeDay);
 }
 
-async function syncGeneratedProNotificationsForToday(
+export async function syncGeneratedProNotificationsForToday(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-): Promise<void> {
+  userId: string,
+  options?: { skipReleaseHourCheck?: boolean; includeDebug?: boolean }
+): Promise<{ notificationsInserted: number; errors: string[]; skipped: boolean; debug?: Record<string, any> }> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, is_subscriber, subscription_ends_at, subscription_tier")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!profile?.id) return;
+  if (!profile?.id) return { notificationsInserted: 0, errors: [], skipped: false };
 
   const tier = normalizeDbTier(profile.subscription_tier as string | null);
   const hasProAccess = hasProLevelProductAccess(
@@ -90,10 +92,12 @@ async function syncGeneratedProNotificationsForToday(
     (profile.subscription_ends_at as string | null) ?? null,
     Boolean(profile.is_subscriber)
   );
-  if (!hasProAccess) return;
+  if (!hasProAccess) return { notificationsInserted: 0, errors: [], skipped: false };
 
   const today = new Date();
-  if (!isReminderReleaseHour(today, 8)) return;
+  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
+    return { notificationsInserted: 0, errors: [], skipped: true };
+  }
   const todayYmd = formatYmdLocal(today);
 
   const [{ data: expenses }, { data: toDoRows }] = await Promise.all([
@@ -134,7 +138,7 @@ async function syncGeneratedProNotificationsForToday(
           title: reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`,
           body:
             reminderDay === 0
-              ? "This expense is due today."
+              ? "This expense is due today. Please review and settle it."
               : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
         });
       }
@@ -151,11 +155,350 @@ async function syncGeneratedProNotificationsForToday(
     });
   }
 
-  if (rowsToInsert.length === 0) return;
+  if (rowsToInsert.length === 0) {
+    return {
+      notificationsInserted: 0,
+      errors: [],
+      skipped: false,
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            notificationsGenerated: 0,
+          }
+        : undefined,
+    };
+  }
 
-  await supabase
-    .from("user_notifications")
-    .upsert(rowsToInsert, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+  const serviceSupabase = createServiceRoleClient();
+  const { error: insertError } = await serviceSupabase.rpc('insert_user_notifications_bulk', { notifications: rowsToInsert });
+
+  if (insertError) {
+    return {
+      notificationsInserted: 0,
+      errors: [insertError.message],
+      skipped: false,
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            notificationsGenerated: rowsToInsert.length,
+            insertError: insertError.message,
+          }
+        : undefined,
+    };
+  }
+
+  return {
+    notificationsInserted: rowsToInsert.length,
+    errors: [],
+    skipped: false,
+    debug: options?.includeDebug
+      ? {
+          todayYmd,
+          expensesCount: (expenses ?? []).length,
+          toDoCount: (toDoRows ?? []).length,
+          notificationsGenerated: rowsToInsert.length,
+          notificationTitles: rowsToInsert.map((n) => n.title),
+        }
+      : undefined,
+  };
+}
+
+type PendingReminder = {
+  dedupeKey: string;
+  title: string;
+  body: string;
+};
+
+type EmailResult = {
+  emailsSent: number;
+  pendingCount: number;
+  skipped: boolean;
+  errors: string[];
+  debug?: Record<string, any>;
+};
+
+async function sendReminderEmail(params: {
+  to: string;
+  from: string;
+  items: PendingReminder[];
+  todayYmd: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const smtpHost = process.env.SMTP_HOST?.trim();
+  const smtpPortRaw = process.env.SMTP_PORT?.trim();
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim();
+  if (!smtpHost || !smtpPortRaw || !smtpUser || !smtpPass) {
+    return {
+      ok: false,
+      error: "SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS must all be set",
+    };
+  }
+  const smtpPort = Number(smtpPortRaw);
+  if (!Number.isFinite(smtpPort) || smtpPort <= 0) {
+    return { ok: false, error: "SMTP_PORT must be a valid positive number" };
+  }
+  const smtpSecure = String(process.env.SMTP_SECURE ?? "").toLowerCase() === "true";
+
+  const subject = `OmniTrak reminders for ${params.todayYmd}`;
+  const textLines = [
+    "You have reminders today:",
+    "",
+    ...params.items.map((item) => `- ${item.title}: ${item.body}`),
+  ];
+
+  const html = [
+    "<p>You have reminders today:</p>",
+    "<ul>",
+    ...params.items.map(
+      (item) =>
+        `<li><strong>${item.title.replace(/</g, "&lt;")}</strong>: ${item.body.replace(/</g, "&lt;")}</li>`
+    ),
+    "</ul>",
+  ].join("");
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+
+  try {
+    await transporter.sendMail({
+      from: params.from,
+      to: params.to,
+      subject,
+      text: textLines.join("\n"),
+      html,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, error: `SMTP send failed: ${message}` };
+  }
+
+  return { ok: true };
+}
+
+export async function sendGeneratedProReminderEmailsForToday(
+  userId: string,
+  options?: { skipReleaseHourCheck?: boolean; includeDebug?: boolean }
+): Promise<EmailResult> {
+  const supabase = createServiceRoleClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!profile?.id) {
+    return { emailsSent: 0, pendingCount: 0, skipped: false, errors: [] };
+  }
+
+  const tier = normalizeDbTier(profile.subscription_tier as string | null);
+  const hasProAccess = hasProLevelProductAccess(
+    tier,
+    (profile.subscription_ends_at as string | null) ?? null,
+    Boolean(profile.is_subscriber)
+  );
+  if (!hasProAccess) {
+    return { emailsSent: 0, pendingCount: 0, skipped: false, errors: [] };
+  }
+
+  const today = new Date();
+  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
+    return { emailsSent: 0, pendingCount: 0, skipped: true, errors: [] };
+  }
+
+  const todayYmd = formatYmdLocal(today);
+  const { getCandidateDueDates } = await import("@/lib/expense-due-date");
+
+  const [{ data: expenses }, { data: toDoRows }, authUserResult] = await Promise.all([
+    supabase
+      .from("expense_entries")
+      .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
+      .eq("profile_id", profile.id),
+    supabase
+      .from("to_do_items")
+      .select("id, name, target_date")
+      .eq("profile_id", profile.id)
+      .eq("checked", false)
+      .eq("target_date", todayYmd),
+    supabase.auth.admin.getUserById(userId),
+  ]);
+
+  const toEmail = authUserResult.data.user?.email?.trim();
+  if (!toEmail) {
+    return {
+      emailsSent: 0,
+      pendingCount: 0,
+      skipped: false,
+      errors: ["No email address available for user."],
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+          }
+        : undefined,
+    };
+  }
+
+  const pending: PendingReminder[] = [];
+
+  for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
+    if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
+      continue;
+    }
+
+    const candidates = getCandidateDueDates(entry.due_date, today);
+    const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+    const channel = entry.reminder_channel || "both";
+
+    if (channel !== "email" && channel !== "both") continue;
+
+    for (const dueThisMonth of candidates) {
+      for (const reminderDay of entry.reminder_days_before) {
+        if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+        const reminderDate = addDays(dueThisMonth, -reminderDay);
+        if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+
+        const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+        const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
+        const body =
+          reminderDay === 0
+            ? "This expense is due today. Please review and settle it."
+            : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+
+        pending.push({ dedupeKey, title, body });
+      }
+    }
+  }
+
+  for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
+    const dedupeKey = `todo:${item.id}:${todayYmd}`;
+    pending.push({
+      dedupeKey,
+      title: `To-do target today: ${item.name}`,
+      body: "This task reaches its target date today.",
+    });
+  }
+
+  if (pending.length === 0) {
+    return {
+      emailsSent: 0,
+      pendingCount: 0,
+      skipped: false,
+      errors: [],
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            pendingCount: 0,
+          }
+        : undefined,
+    };
+  }
+
+  const { data: insertedLogs, error: logsError } = await supabase
+    .from("reminder_email_logs")
+    .upsert(
+      pending.map((item) => ({
+        user_id: userId,
+        dedupe_key: item.dedupeKey,
+      })),
+      { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }
+    )
+    .select("dedupe_key");
+
+  if (logsError) {
+    return {
+      emailsSent: 0,
+      pendingCount: pending.length,
+      skipped: false,
+      errors: [logsError.message],
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            pendingCount: pending.length,
+          }
+        : undefined,
+    };
+  }
+
+  const insertedKeys = new Set((insertedLogs ?? []).map((r) => String(r.dedupe_key)));
+  const newlyPending = pending.filter((item) => insertedKeys.has(item.dedupeKey));
+
+  if (newlyPending.length === 0) {
+    return {
+      emailsSent: 0,
+      pendingCount: pending.length,
+      skipped: false,
+      errors: [],
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            pendingCount: pending.length,
+            emailed: false,
+          }
+        : undefined,
+    };
+  }
+
+  const from = process.env.REMINDER_FROM_EMAIL?.trim() || "OmniTrak <reminders@omnitrak.cloud>";
+  const sendResult = await sendReminderEmail({
+    to: toEmail,
+    from,
+    items: newlyPending,
+    todayYmd,
+  });
+
+  if (!sendResult.ok) {
+    return {
+      emailsSent: 0,
+      pendingCount: pending.length,
+      skipped: false,
+      errors: [sendResult.error ?? "Failed to send reminder email."],
+      debug: options?.includeDebug
+        ? {
+            todayYmd,
+            expensesCount: (expenses ?? []).length,
+            toDoCount: (toDoRows ?? []).length,
+            pendingCount: pending.length,
+            emailed: false,
+          }
+        : undefined,
+    };
+  }
+
+  return {
+    emailsSent: 1,
+    pendingCount: pending.length,
+    skipped: false,
+    errors: [],
+    debug: options?.includeDebug
+      ? {
+          todayYmd,
+          expensesCount: (expenses ?? []).length,
+          toDoCount: (toDoRows ?? []).length,
+          pendingCount: pending.length,
+          emailed: true,
+          email: toEmail,
+          emailTitles: newlyPending.map((item) => item.title),
+        }
+      : undefined,
+  };
 }
 
 export async function loadMyNotifications(): Promise<{ items: AppNotification[]; error?: string }> {
@@ -170,6 +513,7 @@ export async function loadMyNotifications(): Promise<{ items: AppNotification[];
   const { data, error } = await supabase
     .from("user_notifications")
     .select("id, title, body, read_at, created_at")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
 

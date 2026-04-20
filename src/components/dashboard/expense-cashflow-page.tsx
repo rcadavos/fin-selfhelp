@@ -107,7 +107,9 @@ import {
   Pencil,
   XCircle,
   Undo2,
+  Coins as GoldCoin,
 } from "lucide-react";
+import { HoverPopover } from "@/components/ui/hover-popover";
 
 const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
 
@@ -198,19 +200,6 @@ function getCategoryBg(categories: { id: string; bgClass: string }[], id: string
   return categories.find((c) => c.id === id)?.bgClass ?? "";
 }
 
-function ProPremiumExpenseDivider() {
-  return (
-    <div className="relative py-1" role="separator" aria-label="Pro and Premium only below">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-border"
-        aria-hidden
-      />
-      <p className="relative mx-auto w-fit max-w-[95%] bg-background px-2 text-center text-xs font-medium text-muted-foreground -mb-2">
-        Pro/Premium users only
-      </p>
-    </div>
-  );
-}
 
 function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -762,95 +751,95 @@ export function ExpenseCashflowPage({
         key={entry.id}
         className="py-2.5 first:pt-0 last:pb-0 transition-[filter,opacity]"
       >
-          <div className="flex flex-col gap-1 py-1">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                {inlineNameEditId === entry.id ? (
-                  <Input
-                    value={inlineNameDraft}
-                    onChange={(e) => setInlineNameDraft(e.target.value)}
-                    className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
-                    placeholder="Label"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void commitInlineNameEdit(entry.id);
-                      }
-                      if (e.key === "Escape") {
-                        skipInlineNameBlurCommitRef.current = true;
-                        setInlineNameEditId(null);
-                        setInlineNameDraft(entry.note ?? "");
-                      }
-                    }}
-                    onBlur={() => {
-                      if (skipInlineNameBlurCommitRef.current) {
-                        skipInlineNameBlurCommitRef.current = false;
-                        return;
-                      }
+        <div className="flex flex-col gap-1 py-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {inlineNameEditId === entry.id ? (
+                <Input
+                  value={inlineNameDraft}
+                  onChange={(e) => setInlineNameDraft(e.target.value)}
+                  className="h-8 max-w-[min(100%,20rem)] text-sm font-medium"
+                  placeholder="Label"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
                       void commitInlineNameEdit(entry.id);
-                    }}
-                    aria-label="Expense name"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className={cn(
-                      "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
-                      paidIds.has(entry.id) &&
-                        "text-muted-foreground line-through decoration-muted-foreground"
-                    )}
-                    onClick={() => void beginInlineNameEdit(entry)}
-                  >
-                    {displayName}
-                  </button>
-                )}
-                {payStatus === "paid" ? (
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
-                  >
-                    Paid
-                  </Badge>
-                ) : payStatus === "outstanding" ? (
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
-                  >
-                    Outstanding
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 text-xs font-medium text-muted-foreground"
-                  >
-                    Unpaid
-                  </Badge>
-                )}
-                {renderExpenseActions(entry)}
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 text-sm font-bold tabular-nums",
-                  paidIds.has(entry.id) && "text-muted-foreground line-through"
-                )}
-              >
-                {formatCurrency(entry.amount)}
-              </span>
+                    }
+                    if (e.key === "Escape") {
+                      skipInlineNameBlurCommitRef.current = true;
+                      setInlineNameEditId(null);
+                      setInlineNameDraft(entry.note ?? "");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (skipInlineNameBlurCommitRef.current) {
+                      skipInlineNameBlurCommitRef.current = false;
+                      return;
+                    }
+                    void commitInlineNameEdit(entry.id);
+                  }}
+                  aria-label="Expense name"
+                />
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
+                    paidIds.has(entry.id) &&
+                    "text-muted-foreground line-through decoration-muted-foreground"
+                  )}
+                  onClick={() => void beginInlineNameEdit(entry)}
+                >
+                  {displayName}
+                </button>
+              )}
+              {payStatus === "paid" ? (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-emerald-500/50 bg-emerald-500/10 text-xs font-medium text-emerald-800 dark:text-emerald-200"
+                >
+                  Paid
+                </Badge>
+              ) : payStatus === "outstanding" ? (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-amber-500/50 bg-amber-500/15 text-xs font-medium text-amber-950 dark:text-amber-100"
+                >
+                  Outstanding
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-xs font-medium text-muted-foreground"
+                >
+                  Unpaid
+                </Badge>
+              )}
+              {renderExpenseActions(entry)}
             </div>
-            {(dueText || hasReminders) && (
-              <p className="text-xs text-muted-foreground">
-                {dueText ? <span>{dueText}</span> : null}
-                {dueText && hasReminders ? (
-                  <span className="text-muted-foreground/50"> • </span>
-                ) : null}
-                {hasReminders ? <span>{reminderLine}</span> : null}
-              </p>
-            )}
-            {entry.notes?.trim() ? (
-              <p className="text-xs text-muted-foreground">{entry.notes.trim()}</p>
-            ) : null}
+            <span
+              className={cn(
+                "shrink-0 text-sm font-bold tabular-nums",
+                paidIds.has(entry.id) && "text-muted-foreground line-through"
+              )}
+            >
+              {formatCurrency(entry.amount)}
+            </span>
           </div>
+          {(dueText || hasReminders) && (
+            <p className="text-xs text-muted-foreground">
+              {dueText ? <span>{dueText}</span> : null}
+              {dueText && hasReminders ? (
+                <span className="text-muted-foreground/50"> • </span>
+              ) : null}
+              {hasReminders ? <span>{reminderLine}</span> : null}
+            </p>
+          )}
+          {entry.notes?.trim() ? (
+            <p className="text-xs text-muted-foreground">{entry.notes.trim()}</p>
+          ) : null}
+        </div>
       </li>
     );
   }
@@ -944,11 +933,11 @@ export function ExpenseCashflowPage({
         const hasReminders = (entry.reminder_days_before?.length ?? 0) > 0;
         const reminderText = hasReminders
           ? formatReminderDateList(
-              entry.due_date ?? undefined,
-              entry.reminder_days_before ?? undefined,
-              formatPrefDate,
-              paidMonthYm
-            )
+            entry.due_date ?? undefined,
+            entry.reminder_days_before ?? undefined,
+            formatPrefDate,
+            paidMonthYm
+          )
           : "";
         return {
           entry,
@@ -1005,7 +994,7 @@ export function ExpenseCashflowPage({
               className={cn(
                 "min-w-0 truncate text-left text-sm font-medium text-foreground underline-offset-2 hover:underline",
                 paidIds.has(entry.id) &&
-                  "text-muted-foreground line-through decoration-muted-foreground"
+                "text-muted-foreground line-through decoration-muted-foreground"
               )}
               onClick={(e) => {
                 e.stopPropagation();
@@ -1287,12 +1276,8 @@ export function ExpenseCashflowPage({
                 />
               </div>
             </div>
-            {!isSubscriber ? <ProPremiumExpenseDivider /> : null}
-            <div className={cn(
-              "grid gap-4 sm:grid-cols-2 rounded-lg p-2 transition-all",
-              isSubscriber && (editReminderDays.length > 0 || editDueDate) && "ring-2 ring-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/10"
-            )}>
-              <div className="space-y-2">
+            <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+              <div className="min-w-0 space-y-2">
                 <Label htmlFor="edit-expense-due">Due date</Label>
                 <DatePicker
                   id="edit-expense-due"
@@ -1311,9 +1296,17 @@ export function ExpenseCashflowPage({
                 />
               </div>
 
-              <div className="space-y-2">
-                {!isSubscriber && <ProPremiumExpenseDivider />}
-                <Label htmlFor="edit-expense-reminder">Reminder</Label>
+              <div className="min-w-0 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="edit-expense-reminder">Reminder</Label>
+                  {!isSubscriber && (
+                    <HoverPopover
+                      trigger={<GoldCoin className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />}
+                      content="Reminders are available for Pro and Premium users."
+                      sideOffset={8}
+                    />
+                  )}
+                </div>
                 <Select
                   value={editReminderSelectValue}
                   onValueChange={(v) =>
@@ -1339,29 +1332,28 @@ export function ExpenseCashflowPage({
                   </SelectContent>
                 </Select>
               </div>
-
-
-              {isSubscriber && editReminderDays.length > 0 && (
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="edit-expense-reminder-channel">Remind by</Label>
-                  <Select
-                    value={editReminderChannel}
-                    onValueChange={(v: any) => setEditReminderChannel(v)}
-                  >
-                    <SelectTrigger id="edit-expense-reminder-channel" className="h-9 w-full">
-                      <SelectValue placeholder="How to notify" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      {REMINDER_CHANNEL_ITEMS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
+
+            {isSubscriber && editReminderDays.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-expense-reminder-channel">Remind by</Label>
+                <Select
+                  value={editReminderChannel}
+                  onValueChange={(v: any) => setEditReminderChannel(v)}
+                >
+                  <SelectTrigger id="edit-expense-reminder-channel" className="h-9 w-full">
+                    <SelectValue placeholder="How to notify" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    {REMINDER_CHANNEL_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="edit-expense-notes">Notes</Label>
               <textarea
@@ -1373,38 +1365,40 @@ export function ExpenseCashflowPage({
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <DialogFooter className="flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Remove expense"
-                title="Remove expense"
-                onClick={() => editingId && handleDeleteExpense(editingId)}
-                disabled={editStatus === "saving" || deletingId !== null}
-              >
-                {deletingId === editingId ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                )}
-              </Button>
-              <div className="flex w-full gap-2 sm:w-auto sm:justify-end">
-                <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={cancelEdit}>
-                  Cancel
-                </Button>
+            <DialogFooter className="flex-col gap-3 pt-2">
+              <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
                 <Button
-                  type="submit"
-                  className="flex-1 sm:flex-none"
-                  disabled={
-                    editStatus === "saving" ||
-                    !editName.trim() ||
-                    (parseInt(editAmount.replace(/\D/g, ""), 10) || 0) <= 0
-                  }
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Remove expense"
+                  title="Remove expense"
+                  onClick={() => editingId && handleDeleteExpense(editingId)}
+                  disabled={editStatus === "saving" || deletingId !== null}
                 >
-                  {editStatus === "saving" ? "Saving…" : "Save changes"}
+                  {deletingId === editingId ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  )}
                 </Button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={cancelEdit}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="w-full sm:w-auto"
+                    disabled={
+                      editStatus === "saving" ||
+                      !editName.trim() ||
+                      (parseInt(editAmount.replace(/\D/g, ""), 10) || 0) <= 0
+                    }
+                  >
+                    {editStatus === "saving" ? "Saving" : "Save"}
+                  </Button>
+                </div>
               </div>
             </DialogFooter>
           </form>
@@ -1485,674 +1479,683 @@ export function ExpenseCashflowPage({
 
       {pageVariant === "dashboard" && (
         <>
-      {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
-      <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
-        <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
-        <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
+          {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
+          <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
+            <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
+            <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
 
-        <div className="flex items-start">
-          <div className={cn("min-w-0 flex-1", totalExpenses > 0 && "pr-32 sm:pr-36")}>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                    expenseCadenceTab === "monthly"
-                      ? "bg-white/25 text-white hover:bg-white/30"
-                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+            <div className="flex items-start">
+              <div className={cn("min-w-0 flex-1", totalExpenses > 0 && "pr-32 sm:pr-36")}>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                        expenseCadenceTab === "monthly"
+                          ? "bg-white/25 text-white hover:bg-white/30"
+                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                      )}
+                      onClick={() => setExpenseCadenceTab("monthly")}
+                    >
+                      Monthly
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                        expenseCadenceTab === "quarterly"
+                          ? "bg-white/25 text-white hover:bg-white/30"
+                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                      )}
+                      onClick={() => setExpenseCadenceTab("quarterly")}
+                    >
+                      Quarterly
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
+                        expenseCadenceTab === "yearly"
+                          ? "bg-white/25 text-white hover:bg-white/30"
+                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                      )}
+                      onClick={() => setExpenseCadenceTab("yearly")}
+                    >
+                      Yearly
+                    </Button>
+                  </div>
+                  <p className="flex items-center gap-2 text-sm font-medium opacity-90">
+                    <CalendarRange className="h-4 w-4" />
+                    {expenseCadenceTab === "yearly"
+                      ? `This year (${paidYearDisplay})`
+                      : expenseCadenceTab === "quarterly"
+                        ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
+                        : `This month (${paidMonthDisplay})`}
+                  </p>
+                </div>
+                <p className="mt-1 text-sm opacity-80">Still to pay</p>
+                <p className="text-4xl font-bold tracking-tight sm:text-5xl">
+                  {formatCurrency(unpaidThisMonth)}
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
+                    {paidCount} of {summaryEntries.length} bills marked paid
+                  </Badge>
+                  {summaryEntries.length > 0 && (
+                    <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
+                      {paidCountPct}% complete
+                    </Badge>
                   )}
-                  onClick={() => setExpenseCadenceTab("monthly")}
-                >
-                  Monthly
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                    expenseCadenceTab === "quarterly"
-                      ? "bg-white/25 text-white hover:bg-white/30"
-                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                  )}
-                  onClick={() => setExpenseCadenceTab("quarterly")}
-                >
-                  Quarterly
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                    expenseCadenceTab === "yearly"
-                      ? "bg-white/25 text-white hover:bg-white/30"
-                      : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                  )}
-                  onClick={() => setExpenseCadenceTab("yearly")}
-                >
-                  Yearly
-                </Button>
+                </div>
               </div>
-              <p className="flex items-center gap-2 text-sm font-medium opacity-90">
-                <CalendarRange className="h-4 w-4" />
-                {expenseCadenceTab === "yearly"
-                  ? `This year (${paidYearDisplay})`
-                  : expenseCadenceTab === "quarterly"
-                    ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
-                    : `This month (${paidMonthDisplay})`}
-              </p>
-            </div>
-            <p className="mt-1 text-sm opacity-80">Still to pay</p>
-            <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-              {formatCurrency(unpaidThisMonth)}
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
-                {paidCount} of {summaryEntries.length} bills marked paid
-              </Badge>
-              {summaryEntries.length > 0 && (
-                <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
-                  {paidCountPct}% complete
-                </Badge>
+              {totalExpenses > 0 && (
+                <div
+                  className="absolute right-6 top-6 h-28 w-28 rounded-full"
+                  style={{
+                    background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
+                  }}
+                  aria-hidden
+                >
+                  <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[10px] font-medium leading-tight text-primary-foreground">
+                    <span className="opacity-80">Paid</span>
+                    <span className="text-xl font-bold sm:text-2xl">{paidPct}%</span>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-          {totalExpenses > 0 && (
-            <div
-              className="absolute right-6 top-6 h-28 w-28 rounded-full"
-              style={{
-                background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
-              }}
-              aria-hidden
-            >
-              <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[10px] font-medium leading-tight text-primary-foreground">
-                <span className="opacity-80">Paid</span>
-                <span className="text-xl font-bold sm:text-2xl">{paidPct}%</span>
+
+            {totalExpenses > 0 && (
+              <div className="mt-6">
+                <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
+                  <span>Paid vs Total</span>
+                  <span>
+                    {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
+                  </span>
+                </div>
+                <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="bg-emerald-300 transition-all duration-500"
+                    style={{ width: `${paidPct}%` }}
+                  />
+                  <div className="flex-1 bg-white/10" />
+                </div>
               </div>
+            )}
+          </div>
+
+          {/* ════════════════════ STAT CARDS ════════════════════ */}
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
+                <LayoutDashboard className="h-4 w-4" />
+              </div>
+              <p className="text-xs text-muted-foreground">Bills tracked</p>
+              <p className="text-lg font-bold">{summaryEntries.length}</p>
             </div>
+
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
+                <ArrowUpRight className="h-4 w-4" />
+              </div>
+              <p className="text-xs text-muted-foreground">Total out</p>
+              <p className="text-lg font-bold">{formatCurrency(totalExpenses)}</p>
+            </div>
+
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <p className="text-xs text-muted-foreground">Paid this month</p>
+              <p className="text-lg font-bold">{formatCurrency(totalPaidThisMonth)}</p>
+              {totalExpenses > 0 && (
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                <CircleDollarSign className="h-4 w-4" />
+              </div>
+              <p className="text-xs text-muted-foreground">Unpaid</p>
+              <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(unpaidThisMonth)}</p>
+            </div>
+          </div>
+
+          {/* ════════════════════ PAYMENT HISTORY (6 MO) ════════════════════ */}
+          {paymentHistory.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Payment completion by month</CardTitle>
+                <CardDescription>Share of bills marked paid each month</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex h-32 items-end justify-between gap-1 sm:gap-2">
+                  {paymentHistory.map((row) => {
+                    const pct =
+                      row.totalCount > 0 ? Math.round((row.paidCount / row.totalCount) * 100) : 0;
+                    const barPx = Math.max(6, Math.round((pct / 100) * 96));
+                    return (
+                      <div key={row.month} className="flex flex-1 flex-col items-center gap-1">
+                        <div className="flex h-24 w-full max-w-[3rem] items-end justify-center">
+                          <div
+                            className="w-full max-w-10 rounded-t-md bg-primary/80 transition-all"
+                            style={{ height: `${barPx}px` }}
+                            title={`${row.month}: ${row.paidCount}/${row.totalCount}`}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {row.month.slice(5)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </div>
 
-        {totalExpenses > 0 && (
-          <div className="mt-6">
-            <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
-              <span>Paid vs Total</span>
-              <span>
-                {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
-              </span>
-            </div>
-            <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
-              <div
-                className="bg-emerald-300 transition-all duration-500"
-                style={{ width: `${paidPct}%` }}
-              />
-              <div className="flex-1 bg-white/10" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════════ STAT CARDS ════════════════════ */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
-            <LayoutDashboard className="h-4 w-4" />
-          </div>
-          <p className="text-xs text-muted-foreground">Bills tracked</p>
-          <p className="text-lg font-bold">{summaryEntries.length}</p>
-        </div>
-
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
-            <ArrowUpRight className="h-4 w-4" />
-          </div>
-          <p className="text-xs text-muted-foreground">Total out</p>
-          <p className="text-lg font-bold">{formatCurrency(totalExpenses)}</p>
-        </div>
-
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
-            <CheckCircle2 className="h-4 w-4" />
-          </div>
-          <p className="text-xs text-muted-foreground">Paid this month</p>
-          <p className="text-lg font-bold">{formatCurrency(totalPaidThisMonth)}</p>
-          {totalExpenses > 0 && (
-            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-            <CircleDollarSign className="h-4 w-4" />
-          </div>
-          <p className="text-xs text-muted-foreground">Unpaid</p>
-          <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(unpaidThisMonth)}</p>
-        </div>
-      </div>
-
-      {/* ════════════════════ PAYMENT HISTORY (6 MO) ════════════════════ */}
-      {paymentHistory.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Payment completion by month</CardTitle>
-            <CardDescription>Share of bills marked paid each month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-32 items-end justify-between gap-1 sm:gap-2">
-              {paymentHistory.map((row) => {
-                const pct =
-                  row.totalCount > 0 ? Math.round((row.paidCount / row.totalCount) * 100) : 0;
-                const barPx = Math.max(6, Math.round((pct / 100) * 96));
-                return (
-                  <div key={row.month} className="flex flex-1 flex-col items-center gap-1">
-                    <div className="flex h-24 w-full max-w-[3rem] items-end justify-center">
-                      <div
-                        className="w-full max-w-10 rounded-t-md bg-primary/80 transition-all"
-                        style={{ height: `${barPx}px` }}
-                        title={`${row.month}: ${row.paidCount}/${row.totalCount}`}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {row.month.slice(5)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="mb-6 border-primary/25 bg-muted/20">
-        <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="font-medium">Bills & expenses</p>
-            <p className="text-sm text-muted-foreground">
-              Add, edit, and mark bills paid in My Expenses.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/dashboard/my-expenses">Open My Expenses</Link>
-          </Button>
-        </CardContent>
-      </Card>
+          <Card className="mb-6 border-primary/25 bg-muted/20">
+            <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">Bills & expenses</p>
+                <p className="text-sm text-muted-foreground">
+                  Add, edit, and mark bills paid in My Expenses.
+                </p>
+              </div>
+              <Button asChild>
+                <Link href="/dashboard/my-expenses">Open My Expenses</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </>
       )}
 
       {pageVariant === "expenses" && (
         <>
-      {/* ════════════════════ EXPENSES ════════════════════ */}
-      <div className="mb-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "monthly" ? "secondary" : "ghost"}
-                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
-                  onClick={() => applyExpenseCadenceTab("monthly")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <span>Monthly</span>
-                    <Badge
-                      variant={expenseCadenceTab === "monthly" ? "default" : "secondary"}
-                      className={cn(
-                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
-                        expenseCadenceTab === "monthly"
-                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
-                      )}
+          {/* ════════════════════ EXPENSES ════════════════════ */}
+          <div className="mb-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expenseCadenceTab === "monthly" ? "secondary" : "ghost"}
+                      className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                      onClick={() => applyExpenseCadenceTab("monthly")}
                     >
-                      {cadenceCounts.monthly}
-                    </Badge>
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "quarterly" ? "secondary" : "ghost"}
-                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
-                  onClick={() => applyExpenseCadenceTab("quarterly")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <span>Quarterly</span>
-                    <Badge
-                      variant={expenseCadenceTab === "quarterly" ? "default" : "secondary"}
-                      className={cn(
-                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
-                        expenseCadenceTab === "quarterly"
-                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
-                      )}
-                    >
-                      {cadenceCounts.quarterly}
-                    </Badge>
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
-                  className="group h-9 flex-1 px-3 text-sm sm:flex-none"
-                  onClick={() => applyExpenseCadenceTab("yearly")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    <span>Yearly</span>
-                    <Badge
-                      variant={expenseCadenceTab === "yearly" ? "default" : "secondary"}
-                      className={cn(
-                        "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
-                        expenseCadenceTab === "yearly"
-                          ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                          : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
-                      )}
-                    >
-                      {cadenceCounts.yearly}
-                    </Badge>
-                  </span>
-                </Button>
-              </div>
-              <div className="inline-flex min-h-5 items-center gap-2.5">
-                <Label
-                  id="expenses-categorized-label"
-                  htmlFor="expenses-categorized"
-                  className="mb-0 cursor-pointer select-none text-sm font-medium leading-none text-muted-foreground"
-                >
-                  Categorized
-                </Label>
-                <ToggleSwitch
-                  id="expenses-categorized"
-                  aria-labelledby="expenses-categorized-label"
-                  checked={expensesCategorized}
-                  className="shrink-0"
-                  onCheckedChange={setExpensesCategorizedPersisted}
-                />
-              </div>
-              <div className="ml-auto inline-flex items-center gap-2">
-            <StatusFilterDropdown
-              open={filterMenuOpen}
-              onOpenChange={setFilterMenuOpen}
-              menuLabel="Show statuses"
-              activeFilterCount={activeFilterCount}
-              triggerIcon={<SortLinesIcon className="h-4 w-4" aria-hidden />}
-              options={[
-                {
-                  label: "Paid",
-                  checked: draftFilterPaid,
-                  onToggle: () => setDraftFilterPaid((prev) => !prev),
-                },
-                {
-                  label: "Unpaid",
-                  checked: draftFilterUnpaid,
-                  onToggle: () => setDraftFilterUnpaid((prev) => !prev),
-                },
-                {
-                  label: "Past Due",
-                  checked: draftFilterPastDue,
-                  onToggle: () => setDraftFilterPastDue((prev) => !prev),
-                },
-              ]}
-              onReset={() => {
-                setDraftFilterPaid(false);
-                setDraftFilterUnpaid(false);
-                setDraftFilterPastDue(false);
-                setFilterPaid(false);
-                setFilterUnpaid(false);
-                setFilterPastDue(false);
-                setFilterMenuOpen(false);
-              }}
-              onApply={() => {
-                setFilterPaid(draftFilterPaid);
-                setFilterUnpaid(draftFilterUnpaid);
-                setFilterPastDue(draftFilterPastDue);
-                setFilterMenuOpen(false);
-              }}
-            />
-            <Button
-              type="button"
-              className="shrink-0 gap-2 whitespace-nowrap"
-              onClick={() => {
-                resetAddExpenseForm();
-                setAddExpenseModalOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="sm:hidden">Add</span>
-              <span className="hidden sm:inline">Add Expense</span>
-            </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        {tabAllEntries.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <CircleDollarSign className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-3 text-muted-foreground">
-                {expenseCadenceTab === "yearly"
-                  ? "No yearly expenses yet. Use Add to create your first yearly expense."
-                  : expenseCadenceTab === "quarterly"
-                    ? "No quarterly expenses yet. Use Add to create your first quarterly expense."
-                  : "No expenses yet. Use Add expense to create your first one."}
-              </p>
-            </CardContent>
-          </Card>
-        ) : listEntries.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/30" aria-hidden />
-              <p className="mt-3 text-muted-foreground">
-                No expenses match your selected filters right now.
-              </p>
-            </CardContent>
-          </Card>
-        ) : expensesCategorized ? (
-          <div className="space-y-3">
-            {sortedCategoryGroupsList.map(([categoryId, categoryEntries]) => {
-                const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
-                const countedInCategory = categoryEntries;
-                const catTotalCounted = countedInCategory.reduce((s, e) => s + e.amount, 0);
-                const catPaidCounted = countedInCategory.reduce(
-                  (s, e) => s + (paidIds.has(e.id) ? e.amount : 0),
-                  0
-                );
-                const catPaidPct =
-                  catTotalCounted > 0
-                    ? Math.min(100, Math.round((catPaidCounted / catTotalCounted) * 100))
-                    : 0;
-                const allItemsPaidInCategory =
-                  categoryEntries.length > 0 && categoryEntries.every((e) => paidIds.has(e.id));
-                return (
-                  <Card
-                    key={categoryId === "" ? "uncategorized" : categoryId}
-                    className={cn(
-                      "overflow-hidden",
-                      categoryId
-                        ? getCategoryBg(categoriesList, categoryId)
-                        : "border-dashed border-muted-foreground/25 bg-muted/25"
-                    )}
-                  >
-                    <CardHeader className="pb-2">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base">{getCategoryLabel(categoriesList, categoryId)}</CardTitle>
-                          <span className="text-xs text-muted-foreground">{categoryEntries.length} item{categoryEntries.length !== 1 ? "s" : ""}</span>
-                        </div>
-                        <span
+                      <span className="inline-flex items-center gap-1">
+                        <span>Monthly</span>
+                        <Badge
+                          variant={expenseCadenceTab === "monthly" ? "default" : "secondary"}
                           className={cn(
-                            "text-lg font-bold tabular-nums",
-                            allItemsPaidInCategory &&
-                              "text-muted-foreground line-through decoration-muted-foreground"
+                            "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                            expenseCadenceTab === "monthly"
+                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
                           )}
                         >
-                          {formatCurrency(total)}
-                        </span>
-                      </div>
-                      {catTotalCounted > 0 && (
-                        <div className="mt-1.5 flex items-center gap-2" title="Share of this category marked paid for the current month">
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
-                            <div
-                              className={cn(
-                                "h-full rounded-full bg-emerald-500 transition-all duration-500",
-                                catPaidPct === 0 && "opacity-40"
-                              )}
-                              style={{ width: `${catPaidPct}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{catPaidPct}%</span>
-                        </div>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="divide-y divide-border/50">
-                        {categoryEntries.map((entry) => renderExpenseEntryRow(entry))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-          </div>
-        ) : (
-          <>
-            <Card className="overflow-hidden border-primary/15 bg-muted/20 md:hidden">
-              <CardContent className="px-4 py-3 sm:px-4">
-                <ul className="divide-y divide-border/50">
-                  {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="hidden overflow-hidden border-primary/15 bg-muted/20 md:block">
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    {desktopTable.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => {
-                          const sorted = header.column.getIsSorted();
-                          const sortable = header.column.getCanSort();
-                          return (
-                            <TableHead key={header.id}>
-                              {header.isPlaceholder ? null : sortable ? (
-                                <button
-                                  type="button"
-                                  onClick={header.column.getToggleSortingHandler()}
-                                  className="inline-flex items-center gap-1 text-left"
-                                >
-                                  {flexRender(header.column.columnDef.header, header.getContext())}
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
-                                  </span>
-                                </button>
-                              ) : (
-                                flexRender(header.column.columnDef.header, header.getContext())
-                              )}
-                            </TableHead>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {desktopTable.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        className="cursor-pointer"
-                        onDoubleClick={() => startEdit(row.original.entry)}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      <Dialog open={addExpenseModalOpen} onOpenChange={setAddExpenseModalOpen}>
-        <DialogContent
-          className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
-          showClose
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {`Add ${cadenceLabel(expenseCadenceTab)} Expense`}
-            </DialogTitle>
-            <DialogDescription>
-              
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddExpense} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="add-expense-label">
-                Label <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="add-expense-label"
-                value={addName}
-                onChange={(e) => setAddName(e.target.value)}
-                placeholder="e.g. Netflix, HOA dues"
-                className="h-9"
-                required
-                aria-required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-expense-category">Category</Label>
-              <Select
-                value={
-                  !addCategory
-                    ? CATEGORY_SELECT_NONE
-                    : categoriesList.some((c) => c.id === addCategory)
-                      ? addCategory
-                      : CATEGORY_SELECT_NONE
-                }
-                onValueChange={(v) => setAddCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
-              >
-                <SelectTrigger id="add-expense-category" className="h-9 w-full">
-                  <SelectValue placeholder="Optional" />
-                </SelectTrigger>
-                <SelectContent className="z-[100]">
-                  <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
-                  {categoriesList.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-expense-amount">
-                Amount <span className="text-destructive">*</span>
-              </Label>
-              <AmountInput
-                id="add-expense-amount"
-                value={addAmount}
-                onChange={setAddAmount}
-                className="h-9 w-full"
-              />
-            </div>
-
-            <div className={cn(
-              "grid grid-cols-2 gap-3 sm:gap-4 rounded-lg p-2 transition-all",
-              isSubscriber && (addReminderDays.length > 0 || addDueDate) && "ring-2 ring-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/10"
-            )}>
-              <div className="min-w-0 space-y-2">
-                <Label htmlFor="add-expense-due">Due date</Label>
-                <DatePicker
-                  id="add-expense-due"
-                  value={addDueDate}
-                  onChange={setAddDueDate}
-                  placeholder="Due date"
-                  title={
-                    isSubscriber
-                      ? "Same calendar day for each billing cycle"
-                      : "Due dates are now available for everyone!"
-                  }
-                  formatDisplay={(ymd) => {
-                    const d = parseYmdToLocalDate(ymd);
-                    return d ? formatPrefDate(d) : "";
-                  }}
-                  className="min-w-0"
-                />
-              </div>
-
-              <div className="min-w-0 space-y-2">
-                {!isSubscriber && <ProPremiumExpenseDivider />}
-                <Label htmlFor="add-expense-reminder">Reminder</Label>
-                <Select
-                  value={addReminderSelectValue}
-                  onValueChange={(v) =>
-                    setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
-                  }
-                  disabled={!isSubscriber}
-                >
-                  <SelectTrigger
-                    id="add-expense-reminder"
-                    className={cn(
-                      "h-9 w-full",
-                      !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
-                    )}
-                  >
-                    <SelectValue placeholder="Choose reminder times" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isSubscriber && addReminderDays.length > 0 && (
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="add-expense-reminder-channel">Remind by</Label>
-                  <Select
-                    value={addReminderChannel}
-                    onValueChange={(v: any) => setAddReminderChannel(v)}
-                  >
-                    <SelectTrigger id="add-expense-reminder-channel" className="h-9 w-full">
-                      <SelectValue placeholder="How to notify" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      {REMINDER_CHANNEL_ITEMS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                          {cadenceCounts.monthly}
+                        </Badge>
+                      </span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expenseCadenceTab === "quarterly" ? "secondary" : "ghost"}
+                      className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                      onClick={() => applyExpenseCadenceTab("quarterly")}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <span>Quarterly</span>
+                        <Badge
+                          variant={expenseCadenceTab === "quarterly" ? "default" : "secondary"}
+                          className={cn(
+                            "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                            expenseCadenceTab === "quarterly"
+                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
+                          )}
+                        >
+                          {cadenceCounts.quarterly}
+                        </Badge>
+                      </span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expenseCadenceTab === "yearly" ? "secondary" : "ghost"}
+                      className="group h-9 flex-1 px-3 text-sm sm:flex-none"
+                      onClick={() => applyExpenseCadenceTab("yearly")}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <span>Yearly</span>
+                        <Badge
+                          variant={expenseCadenceTab === "yearly" ? "default" : "secondary"}
+                          className={cn(
+                            "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                            expenseCadenceTab === "yearly"
+                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
+                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
+                          )}
+                        >
+                          {cadenceCounts.yearly}
+                        </Badge>
+                      </span>
+                    </Button>
+                  </div>
+                  <div className="inline-flex min-h-5 items-center gap-2.5">
+                    <Label
+                      id="expenses-categorized-label"
+                      htmlFor="expenses-categorized"
+                      className="mb-0 cursor-pointer select-none text-sm font-medium leading-none text-muted-foreground"
+                    >
+                      Categorized
+                    </Label>
+                    <ToggleSwitch
+                      id="expenses-categorized"
+                      aria-labelledby="expenses-categorized-label"
+                      checked={expensesCategorized}
+                      className="shrink-0"
+                      onCheckedChange={setExpensesCategorizedPersisted}
+                    />
+                  </div>
+                  <div className="ml-auto inline-flex items-center gap-2">
+                    <StatusFilterDropdown
+                      open={filterMenuOpen}
+                      onOpenChange={setFilterMenuOpen}
+                      menuLabel="Show statuses"
+                      activeFilterCount={activeFilterCount}
+                      triggerIcon={<SortLinesIcon className="h-4 w-4" aria-hidden />}
+                      options={[
+                        {
+                          label: "Paid",
+                          checked: draftFilterPaid,
+                          onToggle: () => setDraftFilterPaid((prev) => !prev),
+                        },
+                        {
+                          label: "Unpaid",
+                          checked: draftFilterUnpaid,
+                          onToggle: () => setDraftFilterUnpaid((prev) => !prev),
+                        },
+                        {
+                          label: "Past Due",
+                          checked: draftFilterPastDue,
+                          onToggle: () => setDraftFilterPastDue((prev) => !prev),
+                        },
+                      ]}
+                      onReset={() => {
+                        setDraftFilterPaid(false);
+                        setDraftFilterUnpaid(false);
+                        setDraftFilterPastDue(false);
+                        setFilterPaid(false);
+                        setFilterUnpaid(false);
+                        setFilterPastDue(false);
+                        setFilterMenuOpen(false);
+                      }}
+                      onApply={() => {
+                        setFilterPaid(draftFilterPaid);
+                        setFilterUnpaid(draftFilterUnpaid);
+                        setFilterPastDue(draftFilterPastDue);
+                        setFilterMenuOpen(false);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      className="shrink-0 gap-2 whitespace-nowrap"
+                      onClick={() => {
+                        resetAddExpenseForm();
+                        setAddExpenseModalOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="sm:hidden">Add</span>
+                      <span className="hidden sm:inline">Add Expense</span>
+                    </Button>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-expense-notes">Notes</Label>
-              <textarea
-                id="add-expense-notes"
-                value={addNotes}
-                onChange={(e) => setAddNotes(e.target.value)}
-                placeholder="Add notes e.g. Bill Account Number"
-                rows={3}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-            <DialogFooter className="flex-col gap-3 pt-2 sm:flex-row sm:justify-end sm:gap-2">
-              <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={() => setAddExpenseModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 sm:flex-none"
-                disabled={
-                  addStatus === "saving" ||
-                  !addName.trim() ||
-                  (parseInt(addAmount.replace(/\D/g, ""), 10) || 0) <= 0
-                }
-              >
-                {addStatus === "saving"
-                  ? "Adding…"
-                  : `Add ${cadenceLabel(expenseCadenceTab)} Expense`}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            {tabAllEntries.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <CircleDollarSign className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                  <p className="mt-3 text-muted-foreground">
+                    {expenseCadenceTab === "yearly"
+                      ? "No yearly expenses yet. Use Add to create your first yearly expense."
+                      : expenseCadenceTab === "quarterly"
+                        ? "No quarterly expenses yet. Use Add to create your first quarterly expense."
+                        : "No expenses yet. Use Add expense to create your first one."}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : listEntries.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground/30" aria-hidden />
+                  <p className="mt-3 text-muted-foreground">
+                    No expenses match your selected filters right now.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : expensesCategorized ? (
+              <div className="space-y-3">
+                {sortedCategoryGroupsList.map(([categoryId, categoryEntries]) => {
+                  const total = categoryEntries.reduce((s, e) => s + e.amount, 0);
+                  const countedInCategory = categoryEntries;
+                  const catTotalCounted = countedInCategory.reduce((s, e) => s + e.amount, 0);
+                  const catPaidCounted = countedInCategory.reduce(
+                    (s, e) => s + (paidIds.has(e.id) ? e.amount : 0),
+                    0
+                  );
+                  const catPaidPct =
+                    catTotalCounted > 0
+                      ? Math.min(100, Math.round((catPaidCounted / catTotalCounted) * 100))
+                      : 0;
+                  const allItemsPaidInCategory =
+                    categoryEntries.length > 0 && categoryEntries.every((e) => paidIds.has(e.id));
+                  return (
+                    <Card
+                      key={categoryId === "" ? "uncategorized" : categoryId}
+                      className={cn(
+                        "overflow-hidden",
+                        categoryId
+                          ? getCategoryBg(categoriesList, categoryId)
+                          : "border-dashed border-muted-foreground/25 bg-muted/25"
+                      )}
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-base">{getCategoryLabel(categoriesList, categoryId)}</CardTitle>
+                            <span className="text-xs text-muted-foreground">{categoryEntries.length} item{categoryEntries.length !== 1 ? "s" : ""}</span>
+                          </div>
+                          <span
+                            className={cn(
+                              "text-lg font-bold tabular-nums",
+                              allItemsPaidInCategory &&
+                              "text-muted-foreground line-through decoration-muted-foreground"
+                            )}
+                          >
+                            {formatCurrency(total)}
+                          </span>
+                        </div>
+                        {catTotalCounted > 0 && (
+                          <div className="mt-1.5 flex items-center gap-2" title="Share of this category marked paid for the current month">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full bg-emerald-500 transition-all duration-500",
+                                  catPaidPct === 0 && "opacity-40"
+                                )}
+                                style={{ width: `${catPaidPct}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{catPaidPct}%</span>
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="divide-y divide-border/50">
+                          {categoryEntries.map((entry) => renderExpenseEntryRow(entry))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
+                <Card className="overflow-hidden border-primary/15 bg-muted/20 md:hidden">
+                  <CardContent className="px-4 py-3 sm:px-4">
+                    <ul className="divide-y divide-border/50">
+                      {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
+                    </ul>
+                  </CardContent>
+                </Card>
+                <Card className="hidden overflow-hidden border-primary/15 bg-muted/20 md:block">
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        {desktopTable.getHeaderGroups().map((headerGroup) => (
+                          <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => {
+                              const sorted = header.column.getIsSorted();
+                              const sortable = header.column.getCanSort();
+                              return (
+                                <TableHead key={header.id}>
+                                  {header.isPlaceholder ? null : sortable ? (
+                                    <button
+                                      type="button"
+                                      onClick={header.column.getToggleSortingHandler()}
+                                      className="inline-flex items-center gap-1 text-left"
+                                    >
+                                      {flexRender(header.column.columnDef.header, header.getContext())}
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "↕"}
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    flexRender(header.column.columnDef.header, header.getContext())
+                                  )}
+                                </TableHead>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {desktopTable.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            className="cursor-pointer"
+                            onDoubleClick={() => startEdit(row.original.entry)}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          <Dialog open={addExpenseModalOpen} onOpenChange={setAddExpenseModalOpen}>
+            <DialogContent
+              className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
+              showClose
+            >
+              <DialogHeader>
+                <DialogTitle>
+                  {`Add ${cadenceLabel(expenseCadenceTab)} Expense`}
+                </DialogTitle>
+                <DialogDescription>
+
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddExpense} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="add-expense-label">
+                    Label <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="add-expense-label"
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    placeholder="e.g. Netflix, HOA dues"
+                    className="h-9"
+                    required
+                    aria-required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="add-expense-category">Category</Label>
+                    <Select
+                      value={
+                        !addCategory
+                          ? CATEGORY_SELECT_NONE
+                          : categoriesList.some((c) => c.id === addCategory)
+                            ? addCategory
+                            : CATEGORY_SELECT_NONE
+                      }
+                      onValueChange={(v) => setAddCategory(v === CATEGORY_SELECT_NONE ? "" : v)}
+                    >
+                      <SelectTrigger id="add-expense-category" className="h-9 w-full">
+                        <SelectValue placeholder="Optional" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[100]">
+                        <SelectItem value={CATEGORY_SELECT_NONE}>No category</SelectItem>
+                        {categoriesList.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="add-expense-amount">
+                      Amount <span className="text-destructive">*</span>
+                    </Label>
+                    <AmountInput
+                      id="add-expense-amount"
+                      value={addAmount}
+                      onChange={setAddAmount}
+                      className="h-9 w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 transition-all">
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="add-expense-due">Due date</Label>
+                    <DatePicker
+                      id="add-expense-due"
+                      value={addDueDate}
+                      onChange={setAddDueDate}
+                      placeholder="Due date"
+                      title={
+                        isSubscriber
+                          ? "Same calendar day for each billing cycle"
+                          : "Due dates are now available for everyone!"
+                      }
+                      formatDisplay={(ymd) => {
+                        const d = parseYmdToLocalDate(ymd);
+                        return d ? formatPrefDate(d) : "";
+                      }}
+                      className="min-w-0"
+                    />
+                  </div>
+
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="add-expense-reminder">Reminder</Label>
+                      {!isSubscriber && (
+                        <HoverPopover
+                          trigger={<GoldCoin className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />}
+                          content="Reminders are available for Pro and Premium users."
+                          sideOffset={8}
+                        />
+                      )}
+                    </div>
+                    <Select
+                      value={addReminderSelectValue}
+                      onValueChange={(v) =>
+                        setAddReminderDays(v === EDIT_REMINDER_NONE ? [] : daysFromReminderKey(v))
+                      }
+                      disabled={!isSubscriber}
+                    >
+                      <SelectTrigger
+                        id="add-expense-reminder"
+                        className={cn(
+                          "h-9 w-full",
+                          !isSubscriber && "border-muted bg-muted text-muted-foreground disabled:opacity-100"
+                        )}
+                      >
+                        <SelectValue placeholder="Choose reminder times" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[100]">
+                        {EDIT_REMINDER_SELECT_ITEMS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isSubscriber && addReminderDays.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="add-expense-reminder-channel">Remind by</Label>
+                    <Select
+                      value={addReminderChannel}
+                      onValueChange={(v: any) => setAddReminderChannel(v)}
+                    >
+                      <SelectTrigger id="add-expense-reminder-channel" className="h-9 w-full">
+                        <SelectValue placeholder="How to notify" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[100]">
+                        {REMINDER_CHANNEL_ITEMS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="add-expense-notes">Notes</Label>
+                  <textarea
+                    id="add-expense-notes"
+                    value={addNotes}
+                    onChange={(e) => setAddNotes(e.target.value)}
+                    placeholder="Add notes e.g. Bill Account Number"
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+                <DialogFooter className="flex-col gap-2 pt-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setAddExpenseModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="w-full sm:w-auto"
+                      disabled={
+                        addStatus === "saving" ||
+                        !addName.trim() ||
+                        (parseInt(addAmount.replace(/\D/g, ""), 10) || 0) <= 0
+                      }
+                    >
+                      {addStatus === "saving"
+                        ? "Adding"
+                        : "Add"}
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </>
       )}
 

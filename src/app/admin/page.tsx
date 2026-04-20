@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { Users, Tags, CreditCard, MessageSquareText, Lightbulb, Loader2 } from "lucide-react";
+import { Users, Tags, CreditCard, MessageSquareText, Lightbulb, Loader2, Bell } from "lucide-react";
 
 const sections = [
   {
@@ -44,6 +44,12 @@ const sections = [
     title: "Suggestions",
     description: "Product feedback from subscribers.",
     icon: Lightbulb,
+  },
+  {
+    href: "/admin/logs",
+    title: "Reminder Logs",
+    description: "Reminder emails and in-app notification debug view.",
+    icon: Bell,
   },
 ] as const;
 

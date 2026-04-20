@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
+import { useIsAdmin } from "@/hooks/use-admin";
 import { useNotifications } from "@/hooks/use-notifications";
+import { queryKeys } from "@/lib/query/keys";
 import {
   DEFAULT_USER_PREFERENCES,
   formatDateWithPreferences,
@@ -29,6 +32,12 @@ export default function NotificationsPage() {
     isMarkingAllRead,
     isMarkingRead,
   } = useNotifications();
+  const queryClient = useQueryClient();
+  const { isAdmin } = useIsAdmin(!loading);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testMessage, setTestMessage] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [testDebug, setTestDebug] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -57,6 +66,53 @@ export default function NotificationsPage() {
     }
     return Array.from(byDay.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [items]);
+
+  const runReminderTest = async () => {
+    setTestError(null);
+    setTestMessage(null);
+    setTestDebug(null);
+    setIsTesting(true);
+
+    try {
+      const response = await fetch("/api/notifications/test-expense-trigger", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setTestError(data?.error ?? "Could not trigger reminder test.");
+      } else if (data.errors?.length) {
+        setTestError(data.errors.join("; "));
+      } else if (data.skipped) {
+        setTestMessage("Reminder sync skipped because it is outside the regular release window.");
+      } else {
+        const inserted = Number(data.notificationsInserted ?? 0);
+        const emailSent = Number(data.emailResult?.emailsSent ?? 0);
+        const emailStatus = data.emailResult?.errors?.length
+          ? ` Email failed: ${data.emailResult.errors.join("; ")}`
+          : emailSent
+          ? " Email reminder sent."
+          : " No email reminder was sent."
+
+        setTestMessage(
+          `${inserted > 0
+            ? `${inserted} in-app reminder notification${inserted === 1 ? "" : "s"} generated.`
+            : "No in-app reminder notifications were generated for today."}${emailStatus}`
+        );
+        if (data.debug) {
+          setTestDebug(data.debug);
+        }
+        if (data.emailResult?.debug) {
+          setTestDebug((prev) => ({ ...(prev ?? {}), emailDebug: data.emailResult?.debug }));
+        }
+        await queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
+      }
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : "Failed to run the reminder test.");
+    } finally {
+      setIsTesting(false);
+    }
+  };
 
   const dayLabel = (dayKey: string) => {
     const d = new Date(`${dayKey}T00:00:00`);
@@ -89,16 +145,31 @@ export default function NotificationsPage() {
         icon={Bell}
         className="mb-6"
         actions={
-          <Button
-            type="button"
-            size="sm"
-            className="gap-2"
-            onClick={markAllRead}
-            disabled={isMarkingAllRead || unreadCount === 0}
-          >
-            {isMarkingAllRead ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            {isMarkingAllRead ? "Saving…" : "Mark all as read"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="gap-2"
+              onClick={markAllRead}
+              disabled={isMarkingAllRead || unreadCount === 0}
+            >
+              {isMarkingAllRead ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {isMarkingAllRead ? "Saving…" : "Mark all as read"}
+            </Button>
+            {isAdmin ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="gap-2"
+                onClick={runReminderTest}
+                disabled={isTesting}
+              >
+                {isTesting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                {isTesting ? "Testing…" : "Test expense reminders"}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -109,6 +180,38 @@ export default function NotificationsPage() {
               ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}.`
               : "You're all caught up."}
           </CardDescription>
+          {(testMessage || testError || testDebug) && (
+            <div className="mt-3 space-y-2">
+              {testMessage ? (
+                <p className="rounded-lg border border-emerald-300/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {testMessage}
+                </p>
+              ) : null}
+              {testError ? (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {testError}
+                </p>
+              ) : null}
+              {testDebug ? (
+                <div className="rounded-lg border border-blue-300/30 bg-blue-50 px-3 py-2 space-y-1 text-xs text-blue-700">
+                  <p className="font-mono">Today: {testDebug.todayYmd}</p>
+                  <p>Expenses found: {testDebug.expensesCount}</p>
+                  <p>To-do items: {testDebug.toDoCount}</p>
+                  <p>Notifications generated: {testDebug.notificationsGenerated}</p>
+                  {testDebug.notificationTitles?.length ? (
+                    <div>
+                      <p className="font-semibold mt-1">Generated notifications:</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {testDebug.notificationTitles.map((title: string, i: number) => (
+                          <li key={i}>{title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-2 px-0">
           {isLoading ? (

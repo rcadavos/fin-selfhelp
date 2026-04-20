@@ -300,12 +300,13 @@ export function FooterFeedback({ className }: { className?: string }) {
                           />
                         </div>
                       </div>
-                      <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setEditingMyReview(false)}>
+                      <DialogFooter className="flex-row gap-2 pt-2">
+                        <Button type="button" variant="outline" className="w-1/2" onClick={() => setEditingMyReview(false)}>
                           Cancel
                         </Button>
                         <Button
                           type="button"
+                          className="w-1/2"
                           disabled={updateMyReviewMutation.isPending || !editContent.trim() || editContent.trim().length < 2}
                           onClick={() =>
                             updateMyReviewMutation.mutate({
@@ -315,11 +316,7 @@ export function FooterFeedback({ className }: { className?: string }) {
                             })
                           }
                         >
-                          {updateMyReviewMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "Save"
-                          )}
+                          {updateMyReviewMutation.isPending ? "Saving" : "Save"}
                         </Button>
                       </DialogFooter>
                     </DialogContent>

@@ -29,6 +29,12 @@ npx tsc --noEmit # Typecheck (no script; run explicitly before claiming “passe
 
 On **Windows PowerShell**, chain commands with `;` instead of `&&` unless using a shell that supports `&&`.
 
+## Config & environment
+
+- `next.config.ts` manages the app’s `redirects()` (legacy alias `/savings-calculator`), CSP/security headers, image remote patterns, and Supabase origin logic.
+- `vercel.json` includes the scheduled cron route for reminder emails.
+- Key env vars include `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPPORT_EMAIL`, `CRON_SECRET`, and SMTP settings for reminder email delivery.
+
 ## Repo layout (high level)
 
 - `src/app/` — App Router routes, `layout.tsx`, `page.tsx`, route handlers, `loading.tsx` where present. Legal/policy pages live in the **`(legal)`** route group: `src/app/(legal)/legal/…` (URLs: `/legal`, `/legal/terms`, `/legal/privacy`, `/legal/cookies`, `/legal/no-sale`). The inner `legal` folder is the URL segment; the group is for layout/organization only. Use `LEGAL_ROUTES` in `@/lib/legal-routes` for links and metadata paths.

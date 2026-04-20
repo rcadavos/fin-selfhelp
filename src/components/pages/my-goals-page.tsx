@@ -899,13 +899,21 @@ export function MyGoalsPage() {
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
-            <DialogFooter className="gap-2 pt-2 sm:justify-end">
-              {editingId ? (
+            <DialogFooter className="flex-col gap-3 pt-2">
+              <div className="flex w-full gap-2">
+                <Button type="button" variant="outline" className="w-1/2" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-1/2" disabled={saving}>
+                  {saving ? "Saving" : editingId ? "Save" : "Add"}
+                </Button>
+              </div>
+              {editingId && (
                 <Button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="mr-auto border-destructive/40 text-destructive hover:bg-destructive/10"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-destructive hover:bg-destructive/10 mt-1"
                   disabled={saving || deletingId !== null}
                   aria-label="Delete goal"
                   onClick={() => {
@@ -915,27 +923,13 @@ export function MyGoalsPage() {
                   }}
                 >
                   {deletingId === editingId ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                   ) : (
-                    <Trash2 className="h-4 w-4" aria-hidden />
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden />
                   )}
+                  Remove
                 </Button>
-              ) : null}
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving…
-                  </>
-                ) : editingId ? (
-                  "Save"
-                ) : (
-                  "Add Goal"
-                )}
-              </Button>
+              )}
             </DialogFooter>
           </form>
         </DialogContent>

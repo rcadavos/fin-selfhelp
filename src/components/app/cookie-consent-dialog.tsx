@@ -63,17 +63,17 @@ export function CookieConsentDialog() {
             .
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+        <DialogFooter className="flex w-full flex-row gap-2 pt-2">
           <Button
             type="button"
             variant="outline"
-            className="w-full sm:flex-1"
+            className="w-1/2"
             onClick={() => choose("essential")}
           >
-            Essential only
+            Essential
           </Button>
-          <Button type="button" className="w-full sm:flex-1" onClick={() => choose("all")}>
-            Accept all
+          <Button type="button" className="w-1/2" onClick={() => choose("all")}>
+            Accept
           </Button>
         </DialogFooter>
       </DialogContent>
