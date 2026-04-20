@@ -108,6 +108,7 @@ import {
   XCircle,
   Undo2,
   Coins as GoldCoin,
+  Gem,
 } from "lucide-react";
 import { HoverPopover } from "@/components/ui/hover-popover";
 
@@ -1297,16 +1298,18 @@ export function ExpenseCashflowPage({
               </div>
 
               <div className="min-w-0 space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="edit-expense-reminder">Reminder</Label>
-                  {!isSubscriber && (
-                    <HoverPopover
-                      trigger={<GoldCoin className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />}
-                      content="Reminders are available for Pro and Premium users."
-                      sideOffset={8}
-                    />
-                  )}
-                </div>
+                <HoverPopover
+                  trigger={
+                    <div className="flex items-center gap-1.5 cursor-help">
+                      <Label htmlFor="edit-expense-reminder" className="cursor-help">Reminder</Label>
+                      {!isSubscriber && (
+                        <Gem className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
+                      )}
+                    </div>
+                  }
+                  content={!isSubscriber ? "Reminders are available for Pro and Premium users." : undefined}
+                  sideOffset={8}
+                />
                 <Select
                   value={editReminderSelectValue}
                   onValueChange={(v) =>
@@ -2065,16 +2068,18 @@ export function ExpenseCashflowPage({
                   </div>
 
                   <div className="min-w-0 space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <Label htmlFor="add-expense-reminder">Reminder</Label>
-                      {!isSubscriber && (
-                        <HoverPopover
-                          trigger={<GoldCoin className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />}
-                          content="Reminders are available for Pro and Premium users."
-                          sideOffset={8}
-                        />
-                      )}
-                    </div>
+                    <HoverPopover
+                      trigger={
+                        <div className="flex items-center gap-1.5 cursor-help">
+                          <Label htmlFor="add-expense-reminder" className="cursor-help">Reminder</Label>
+                          {!isSubscriber && (
+                            <Gem className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" />
+                          )}
+                        </div>
+                      }
+                      content={!isSubscriber ? "Reminders are available for Pro and Premium users." : undefined}
+                      sideOffset={8}
+                    />
                     <Select
                       value={addReminderSelectValue}
                       onValueChange={(v) =>

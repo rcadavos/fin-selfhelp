@@ -41,7 +41,6 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/my-expenses", label: "My Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/my-goals", label: "My Goals", icon: Target, premium: false },
-  { href: "/dashboard/premium", label: "Premium Features", icon: Gem, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
   { href: "/dashboard/to-do", label: "To-Do List", icon: ClipboardList, premium: false },
   { href: "/dashboard/rent-tracker", label: "Rent Tracker", icon: Building2, premium: true },
