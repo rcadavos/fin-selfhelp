@@ -21,12 +21,13 @@ export function Header({ className }: HeaderProps) {
         className
       )}
     >
-      <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center" title="OmniTrak" aria-label="OmniTrak home">
-          <SiteLogo fetchPriority="high" />
-          <span className="sr-only">OmniTrak</span>
-        </Link>
-        <nav className="ml-auto flex min-h-9 min-w-0 flex-nowrap items-center justify-end gap-2 sm:gap-3">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex h-14 items-center justify-between">
+          <Link href="/" className="flex items-center" title="OmniTrak" aria-label="OmniTrak home">
+            <SiteLogo fetchPriority="high" />
+            <span className="sr-only">OmniTrak</span>
+          </Link>
+          <nav className="ml-auto flex min-h-9 min-w-0 flex-nowrap items-center justify-end gap-2 sm:gap-3">
           <ThemeToggle />
           {loading ? (
             <div
@@ -52,6 +53,7 @@ export function Header({ className }: HeaderProps) {
             </div>
           )}
         </nav>
+        </div>
       </div>
     </header>
   );
