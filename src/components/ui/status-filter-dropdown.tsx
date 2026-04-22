@@ -72,7 +72,7 @@ export function StatusFilterDropdown({
             <span
               className={cn(
                 "inline-flex h-4 w-4 items-center justify-center rounded-sm border border-input transition-shadow group-hover:ring-2 group-hover:ring-ring group-hover:ring-offset-1 group-data-[highlighted]:ring-2 group-data-[highlighted]:ring-ring group-data-[highlighted]:ring-offset-1",
-                opt.checked && "border-primary bg-primary text-primary-foreground"
+                opt.checked && "border-emerald-600 bg-emerald-500 text-white"
               )}
               aria-hidden
             >

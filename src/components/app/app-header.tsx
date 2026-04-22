@@ -1,64 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/use-user";
-import { useIsAdmin } from "@/hooks/use-admin";
 import { cn } from "@/lib/utils";
 import {
   User,
-  ChevronDown,
-  Settings2,
   Menu,
-  SlidersHorizontal,
-  Building2,
-  Wallet,
-  Gem,
-  LayoutDashboard,
-  Banknote,
-  Calculator,
-  ShoppingCart,
-  ClipboardList,
-  UsersRound,
-  Target,
 } from "lucide-react";
 import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AccountDropdownMenu, getAccountAvatarUrl } from "@/components/app/account-dropdown-menu";
+import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
 import { SiteLogo } from "@/components/app/site-logo";
-import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AppSidebar } from "@/components/app/app-sidebar";
 
 export function AppHeader({ className }: { className?: string }) {
-  const pathname = usePathname();
   const { user, loading } = useUser();
-  const { isAdmin } = useIsAdmin(!!user);
-  const avatarUrl = user ? getAccountAvatarUrl(user) : null;
   const showAuthenticatedHeader = Boolean(user) || loading;
 
-  const isDashboardHome = pathname === "/dashboard";
-  const isMyExpenses =
-    pathname === "/dashboard/my-expenses" || pathname?.startsWith("/dashboard/my-expenses/");
-  const isMyGoals =
-    pathname === "/dashboard/my-goals" || pathname?.startsWith("/dashboard/my-goals/");
-  const isToBuy = pathname === "/dashboard/to-buy" || pathname?.startsWith("/dashboard/to-buy/");
-  const isToDo = pathname === "/dashboard/to-do" || pathname?.startsWith("/dashboard/to-do/");
-  const isCalculators = pathname?.startsWith("/dashboard/calculators");
-  const isRentTracker =
-    pathname === "/dashboard/rent-tracker" || pathname?.startsWith("/dashboard/rent-tracker/");
-  const isPaymentTracker =
-    pathname === "/dashboard/payment-tracker" || pathname?.startsWith("/dashboard/payment-tracker/");
-  const isSettings = pathname?.startsWith("/account/settings");
-  const isShared =
-    pathname === "/account/shared" || Boolean(pathname?.startsWith("/account/shared/"));
-  const isAdminPage = pathname?.startsWith("/admin");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
     <header
@@ -70,16 +32,19 @@ export function AppHeader({ className }: { className?: string }) {
     >
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6">
         {/* Left: Burger Menu (Mobile Only) */}
-        <div className="flex flex-1 items-center md:hidden">
+        <div className="flex flex-1 items-center justify-start md:hidden">
           {showAuthenticatedHeader && (
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-12">
-                  <Menu className="h-6 w-6" aria-label="Open menu" />
+                <Button variant="ghost" size="icon" className="size-6">
+                  <Menu className="h-10 w-10" aria-label="Open menu" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64 border-none">
-                <AppSidebar className="flex h-full !static w-full border-r-0" />
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                </SheetHeader>
+                <AppSidebar className="flex h-full !static w-full border-r-0" onNavigate={() => setIsSheetOpen(false)} />
               </SheetContent>
             </Sheet>
           )}

@@ -109,7 +109,7 @@ import {
   Undo2,
   Coins as GoldCoin,
   Gem,
-  Download,
+  Share,
 } from "lucide-react";
 import { HoverPopover } from "@/components/ui/hover-popover";
 
@@ -177,7 +177,8 @@ function groupEntriesByCategory(entries: ExpenseEntryRow[]) {
 
 function sortedCategoryGroupsFromEntries(
   entryList: ExpenseEntryRow[],
-  orderedCategoryIds: string[]
+  orderedCategoryIds: string[],
+  getStatus?: (entry: ExpenseEntryRow) => ExpensePayStatus
 ): [string, ExpenseEntryRow[]][] {
   const g = groupEntriesByCategory(entryList);
   const pairs = Array.from(g.entries());
@@ -191,7 +192,14 @@ function sortedCategoryGroupsFromEntries(
     if (bi >= 0) return 1;
     return a[0].localeCompare(b[0]);
   });
-  return uncategorized ? [...rest, uncategorized] : rest;
+  const groups = uncategorized ? [...rest, uncategorized] : rest;
+  if (!getStatus) return groups;
+  return groups.map(([id, groupEntries]) => [
+    id,
+    [...groupEntries].sort(
+      (a, b) => STATUS_SORT_ORDER.indexOf(getStatus(a)) - STATUS_SORT_ORDER.indexOf(getStatus(b))
+    ),
+  ]);
 }
 
 function getCategoryLabel(categories: { id: string; label: string }[], id: string): string {
@@ -232,28 +240,31 @@ function exportToCSV(rows: DesktopExpenseRow[], categories: { id: string; label:
 }
 
 function exportToExcel(rows: DesktopExpenseRow[], categories: { id: string; label: string }[]): void {
-  // Create a simple XLSX-compatible TSV that Excel can open
   const headers = ["Name", "Category", "Amount", "Status", "Due Date", "Reminders"];
-  const tsvContent = [
-    headers.join("\t"),
-    ...rows.map((row) => {
-      const category = getCategoryLabel(categories, row.entry.category_id);
-      return [
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const headerRow = headers.map((h) => `<th>${esc(h)}</th>`).join("");
+  const dataRows = rows
+    .map((row) => {
+      const cells = [
         row.displayName,
-        category,
+        getCategoryLabel(categories, row.entry.category_id),
         row.entry.amount.toString(),
         row.status,
         row.dueText || "",
         row.reminderText,
-      ].join("\t");
-    }),
-  ].join("\n");
+      ]
+        .map((v) => `<td>${esc(v)}</td>`)
+        .join("");
+      return `<tr>${cells}</tr>`;
+    })
+    .join("");
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr>${headerRow}</tr>${dataRows}</table></body></html>`;
 
-  const blob = new Blob([tsvContent], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;" });
+  const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", `expenses-${new Date().toISOString().split("T")[0]}.xlsx`);
+  link.setAttribute("download", `expenses-${new Date().toISOString().split("T")[0]}.xls`);
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
@@ -604,12 +615,21 @@ export function ExpenseCashflowPage({
     });
   }, [tabAllEntries, paidIds, paidMonthYm, filterPaid, filterUnpaid, filterPastDue]);
   const sortedCategoryGroupsList = useMemo(
-    () => sortedCategoryGroupsFromEntries(listEntries, orderedCategoryIds),
-    [listEntries, orderedCategoryIds]
+    () => sortedCategoryGroupsFromEntries(listEntries, orderedCategoryIds, (e) => getExpensePayStatus(e, paidIds, paidMonthYm)),
+    [listEntries, orderedCategoryIds, paidIds, paidMonthYm]
   );
   const flatEntriesOrderedList = useMemo(
     () => sortedCategoryGroupsList.flatMap(([, categoryEntries]) => categoryEntries),
     [sortedCategoryGroupsList]
+  );
+  const flatEntriesMobileSorted = useMemo(
+    () =>
+      [...flatEntriesOrderedList].sort(
+        (a, b) =>
+          STATUS_SORT_ORDER.indexOf(getExpensePayStatus(a, paidIds, paidMonthYm)) -
+          STATUS_SORT_ORDER.indexOf(getExpensePayStatus(b, paidIds, paidMonthYm))
+      ),
+    [flatEntriesOrderedList, paidIds, paidMonthYm]
   );
   const editingEntry = useMemo(
     () => (editingId ? (entries.find((e) => e.id === editingId) ?? null) : null),
@@ -1281,7 +1301,10 @@ export function ExpenseCashflowPage({
                     type="button"
                     size="sm"
                     variant={editPaidStatus === "paid" ? "secondary" : "ghost"}
-                    className="h-full flex-1 rounded-none px-2 text-xs shadow-none"
+                    className={cn(
+                      "h-full flex-1 rounded-none rounded-l-md px-2 text-xs shadow-none",
+                      editPaidStatus === "paid" && "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
+                    )}
                     role="tab"
                     aria-selected={editPaidStatus === "paid"}
                     onClick={() => setEditPaidStatus("paid")}
@@ -1450,13 +1473,13 @@ export function ExpenseCashflowPage({
                   )}
                 </Button>
                 <div className="flex-1" />
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={cancelEdit}>
+                <div className="flex flex-1 flex-row gap-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="w-full sm:w-auto"
+                    className="flex-1"
                     disabled={
                       editStatus === "saving" ||
                       !editName.trim() ||
@@ -1482,9 +1505,8 @@ export function ExpenseCashflowPage({
               entries.length > 0 ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Export
+                    <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Share className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -2008,7 +2030,7 @@ export function ExpenseCashflowPage({
                 <Card className="overflow-hidden border-primary/15 bg-muted/20 md:hidden">
                   <CardContent className="px-4 py-3 sm:px-4">
                     <ul className="divide-y divide-border/50">
-                      {flatEntriesOrderedList.map((entry) => renderExpenseEntryRow(entry))}
+                      {flatEntriesMobileSorted.map((entry) => renderExpenseEntryRow(entry))}
                     </ul>
                   </CardContent>
                 </Card>
@@ -2225,13 +2247,13 @@ export function ExpenseCashflowPage({
                   />
                 </div>
                 <DialogFooter className="flex-col gap-2 pt-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setAddExpenseModalOpen(false)}>
+                  <div className="flex flex-row gap-2">
+                    <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddExpenseModalOpen(false)}>
                       Cancel
                     </Button>
                     <Button
                       type="submit"
-                      className="w-full sm:w-auto"
+                      className="w-1/2"
                       disabled={
                         addStatus === "saving" ||
                         !addName.trim() ||

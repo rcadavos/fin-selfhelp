@@ -19,7 +19,7 @@ const bottomNavItems = [
   },
   {
     href: "/dashboard/my-goals",
-    label: "Goal",
+    label: "Goals",
     icon: Target,
   },
   {
@@ -29,12 +29,12 @@ const bottomNavItems = [
   },
   {
     href: "/dashboard/to-buy",
-    label: "To buy",
+    label: "To Buy",
     icon: ShoppingCart,
   },
   {
     href: "/dashboard/to-do",
-    label: "To do",
+    label: "To Do",
     icon: ClipboardList,
   },
 ];

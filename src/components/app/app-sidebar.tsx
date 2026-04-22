@@ -49,7 +49,7 @@ const navItems = [
   { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
 ] as const;
 
-export function AppSidebar({ className }: { className?: string }) {
+export function AppSidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user } = useUser();
   const { isAdmin } = useIsAdmin(!!user);
@@ -100,6 +100,7 @@ export function AppSidebar({ className }: { className?: string }) {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 active
@@ -119,6 +120,7 @@ export function AppSidebar({ className }: { className?: string }) {
           <Link
             href="/admin"
             prefetch={false}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               pathname?.startsWith("/admin")
@@ -134,6 +136,7 @@ export function AppSidebar({ className }: { className?: string }) {
       <div className="shrink-0 px-3 py-2">
         <Link
           href="/account/shared"
+          onClick={onNavigate}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
             isSidebarNavActive(pathname, "/account/shared")
@@ -147,6 +150,7 @@ export function AppSidebar({ className }: { className?: string }) {
       </div>
       <div
         className={cn(
+          "w-full shrink-0 border-t bg-muted/95 p-3 backdrop-blur",
           "w-full shrink-0 border-t bg-muted/95 p-3 backdrop-blur",
           "supports-[backdrop-filter]:bg-muted/80"
         )}
