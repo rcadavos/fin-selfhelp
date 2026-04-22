@@ -58,15 +58,16 @@ export function HeroSection({ className }: HeroSectionProps) {
         className
       )}
     >
-      <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-teal-500/15 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-teal-500/20 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden />
 
       <div className="relative mx-auto flex max-w-6xl flex-col items-center">
         <div className="max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
             What gets tracked gets improved
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          </span>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Your all-in-one personal tracker for everything
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
@@ -94,6 +95,11 @@ export function HeroSection({ className }: HeroSectionProps) {
             >
               <a href="#features">See features</a>
             </Button>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Free to start</span>
+            <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />No bank linking</span>
+            <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />Works on any device</span>
           </div>
         </div>
       </div>

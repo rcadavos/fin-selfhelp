@@ -39,13 +39,16 @@ export function HowItWorksSection({ className }: { className?: string }) {
             Three steps to a clearer view of your finances.
           </p>
         </div>
-        <ul className="mt-12 space-y-10">
-          {steps.map((item) => (
-            <li key={item.step} className="flex gap-6">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+        <ul className="mt-12 space-y-0">
+          {steps.map((item, idx) => (
+            <li key={item.step} className="relative flex gap-6 pb-10 last:pb-0">
+              {idx < steps.length - 1 && (
+                <div className="absolute left-5 top-10 h-full w-px bg-gradient-to-b from-primary/40 to-transparent" aria-hidden />
+              )}
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-md shadow-emerald-500/25">
                 {item.step}
               </span>
-              <div>
+              <div className="pt-1">
                 <h3 className="font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-1 text-muted-foreground">{item.description}</p>
               </div>

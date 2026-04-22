@@ -1,13 +1,81 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ApprovedReviewRow } from "@/actions/feedback";
-import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "long" });
+}
+
+function ReviewCard({ review }: { review: ApprovedReviewRow }) {
+  return (
+    <Card className="mb-4 break-inside-avoid border-border/50 bg-card shadow-sm">
+      <CardContent className="p-5">
+        {review.rating != null && (
+          <div className="mb-3 flex gap-0.5 text-amber-500" aria-hidden>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star key={n} className={cn("h-3.5 w-3.5", n <= review.rating! && "fill-current")} />
+            ))}
+          </div>
+        )}
+        <p className="text-sm leading-relaxed text-foreground">{review.content}</p>
+        <div className="mt-4 flex items-center gap-3 border-t border-border/50 pt-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            {(review.author_name || "A")[0]!.toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">{review.author_name || "Anonymous"}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(review.created_at)}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MarqueeColumn({
+  reviews,
+  direction = "up",
+  speed = 40,
+}: {
+  reviews: ApprovedReviewRow[];
+  direction?: "up" | "down";
+  speed?: number;
+}) {
+  const doubled = [...reviews, ...reviews];
+  const duration = `${speed}s`;
+
+  return (
+    <div className="overflow-hidden">
+      <style>{`
+        @keyframes marquee-up {
+          0%   { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes marquee-down {
+          0%   { transform: translateY(-50%); }
+          100% { transform: translateY(0); }
+        }
+        .marquee-up   { animation: marquee-up   linear infinite; }
+        .marquee-down { animation: marquee-down linear infinite; }
+        .marquee-col:hover .marquee-up,
+        .marquee-col:hover .marquee-down { animation-play-state: paused; }
+      `}</style>
+      <div className={cn("marquee-col", direction === "up" ? "marquee-up" : "marquee-down")} style={{ animationDuration: duration }}>
+        {doubled.map((r, i) => (
+          <ReviewCard key={`${r.id}-${i}`} review={r} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function splitIntoColumns(reviews: ApprovedReviewRow[], n: number): ApprovedReviewRow[][] {
+  const cols: ApprovedReviewRow[][] = Array.from({ length: n }, () => []);
+  reviews.forEach((r, i) => cols[i % n]!.push(r));
+  return cols;
 }
 
 export function ReviewsSection({
@@ -18,82 +86,55 @@ export function ReviewsSection({
   reviews: ApprovedReviewRow[];
 }) {
   if (reviews.length === 0) return null;
-  const isCarousel = reviews.length >= 4;
-  const [activeIndex, setActiveIndex] = useState(0);
 
-  function goPrev() {
-    setActiveIndex((prev) => (prev - 1 + reviews.length) % reviews.length);
-  }
+  const useWall = reviews.length >= 3;
 
-  function goNext() {
-    setActiveIndex((prev) => (prev + 1) % reviews.length);
-  }
-
-  function ReviewCard({ review }: { review: ApprovedReviewRow }) {
+  if (!useWall) {
     return (
-      <Card className="border-border/50 flex w-full max-w-md flex-col">
-        <CardContent className="flex flex-1 flex-col pt-6 text-center">
-          {review.rating != null && (
-            <div className="mb-2 flex justify-center gap-0.5 text-amber-500" aria-hidden>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Star key={n} className={cn("h-4 w-4", n <= review.rating! && "fill-current")} />
-              ))}
-            </div>
-          )}
-          <Quote className="mb-2 h-8 w-8 self-center text-muted-foreground/50" aria-hidden />
-          <p className="text-sm text-foreground flex-1 whitespace-pre-wrap">{review.content}</p>
-          <div className="mt-4 flex items-center justify-center gap-3 border-t border-border/50 pt-3">
-            <span className="text-sm font-medium text-foreground">{review.author_name || "Anonymous"}</span>
-            <span className="text-xs text-muted-foreground">{formatDate(review.created_at)}</span>
+      <section id="reviews" className={cn("border-t px-4 py-16 sm:px-6 lg:px-8", className)}>
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What users say</h2>
+            <p className="mt-2 text-muted-foreground">From paid OmniTrak users.</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap justify-center gap-6">
+            {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+          </div>
+        </div>
+      </section>
     );
   }
 
+  const cols = splitIntoColumns(reviews, 3);
+  const speeds = [45, 35, 50];
+  const directions: ("up" | "down")[] = ["up", "down", "up"];
+
   return (
-    <section id="reviews" className={cn("px-4 py-16 sm:px-6 lg:px-8 border-t", className)}>
-      <div className="mx-auto max-w-5xl">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Reviews
-          </h2>
-          <p className="mt-2 text-md text-muted-foreground">
-            Reviews from paid users using OmniTrak.
-          </p>
+    <section id="reviews" className={cn("border-t px-4 py-16 sm:px-6 lg:px-8", className)}>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What users say</h2>
+          <p className="mt-2 text-muted-foreground">From paid OmniTrak users.</p>
         </div>
-        {isCarousel ? (
-          <div className="mx-auto max-w-md space-y-4">
-            <ReviewCard review={reviews[activeIndex]!} />
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted"
-                onClick={goPrev}
-                aria-label="Previous review"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-muted-foreground">
-                {activeIndex + 1} / {reviews.length}
-              </span>
-              <button
-                type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted"
-                onClick={goNext}
-                aria-label="Next review"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-6">
-            {reviews.map((r) => (
-              <ReviewCard key={r.id} review={r} />
+        <div
+          className="relative h-[520px] overflow-hidden"
+          style={{
+            maskImage: "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
+          }}
+        >
+          <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {cols.map((col, i) => (
+              <div key={i} className={cn(i === 2 && "hidden lg:block", i === 1 && "hidden sm:block")}>
+                <MarqueeColumn
+                  reviews={col.length >= 2 ? col : [...col, ...col, ...col]}
+                  direction={directions[i]}
+                  speed={speeds[i]}
+                />
+              </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
