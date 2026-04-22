@@ -121,7 +121,7 @@ export async function syncGeneratedProNotificationsForToday(
       continue;
     }
     const candidates = getCandidateDueDates(entry.due_date, today);
-    const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+    const expenseLabel = (entry.note ?? entry.notes ?? "Expense").trim() || "Expense";
     const channel = entry.reminder_channel || "both";
 
     if (channel !== "in-app" && channel !== "both") continue;
