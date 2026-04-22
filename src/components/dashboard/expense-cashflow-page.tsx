@@ -109,10 +109,12 @@ import {
   Undo2,
   Coins as GoldCoin,
   Gem,
+  Download,
 } from "lucide-react";
 import { HoverPopover } from "@/components/ui/hover-popover";
 
 const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
+const STATUS_SORT_ORDER: ExpensePayStatus[] = ["unpaid", "outstanding", "paid"];
 
 function reminderKeyFromDays(days: ReminderDay[]): string {
   const normalized = [
@@ -201,6 +203,62 @@ function getCategoryBg(categories: { id: string; bgClass: string }[], id: string
   return categories.find((c) => c.id === id)?.bgClass ?? "";
 }
 
+function exportToCSV(rows: DesktopExpenseRow[], categories: { id: string; label: string }[]): void {
+  const headers = ["Name", "Category", "Amount", "Status", "Due Date", "Reminders"];
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => {
+      const category = getCategoryLabel(categories, row.entry.category_id);
+      return [
+        `"${row.displayName.replace(/"/g, '""')}"`,
+        `"${category.replace(/"/g, '""')}"`,
+        row.entry.amount.toString(),
+        row.status,
+        row.dueText || "",
+        `"${row.reminderText.replace(/"/g, '""')}"`,
+      ].join(",");
+    }),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `expenses-${new Date().toISOString().split("T")[0]}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportToExcel(rows: DesktopExpenseRow[], categories: { id: string; label: string }[]): void {
+  // Create a simple XLSX-compatible TSV that Excel can open
+  const headers = ["Name", "Category", "Amount", "Status", "Due Date", "Reminders"];
+  const tsvContent = [
+    headers.join("\t"),
+    ...rows.map((row) => {
+      const category = getCategoryLabel(categories, row.entry.category_id);
+      return [
+        row.displayName,
+        category,
+        row.entry.amount.toString(),
+        row.status,
+        row.dueText || "",
+        row.reminderText,
+      ].join("\t");
+    }),
+  ].join("\n");
+
+  const blob = new Blob([tsvContent], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `expenses-${new Date().toISOString().split("T")[0]}.xlsx`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -377,7 +435,7 @@ export function ExpenseCashflowPage({
   const [draftFilterUnpaid, setDraftFilterUnpaid] = useState(false);
   const [draftFilterPastDue, setDraftFilterPastDue] = useState(false);
   const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
-  const [desktopTableSorting, setDesktopTableSorting] = useState<SortingState>([]);
+  const [desktopTableSorting, setDesktopTableSorting] = useState<SortingState>([{ id: "status", desc: false }]);
   useEffect(() => {
     if (!filterMenuOpen) return;
     setDraftFilterPaid(filterPaid);
@@ -1019,6 +1077,11 @@ export function ExpenseCashflowPage({
         id: "status",
         accessorFn: (row) => row.status,
         header: "Status",
+        sortingFn: (rowA, rowB) => {
+          const statusA = rowA.original.status;
+          const statusB = rowB.original.status;
+          return STATUS_SORT_ORDER.indexOf(statusA) - STATUS_SORT_ORDER.indexOf(statusB);
+        },
         cell: ({ row }) => {
           const status = row.original.status;
           return status === "paid" ? (
@@ -1369,12 +1432,12 @@ export function ExpenseCashflowPage({
               />
             </div>
             <DialogFooter className="flex-col gap-3 pt-2">
-              <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+              <div className="flex w-full items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
                   aria-label="Remove expense"
                   title="Remove expense"
                   onClick={() => editingId && handleDeleteExpense(editingId)}
@@ -1386,6 +1449,7 @@ export function ExpenseCashflowPage({
                     <Trash2 className="h-4 w-4" aria-hidden />
                   )}
                 </Button>
+                <div className="flex-1" />
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={cancelEdit}>
                     Cancel
@@ -1414,6 +1478,28 @@ export function ExpenseCashflowPage({
             subtitle="This can be shared with your partner to mark bills as paid. Just go to Shared with me and give them access."
             icon={Banknote}
             className="mb-3 mt-4"
+            actions={
+              entries.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Export as</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => exportToCSV(desktopTableRows, categoriesFromDb)}>
+                      CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportToExcel(desktopTableRows, categoriesFromDb)}>
+                      Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null
+            }
           />
           {entries.length > 0 && (
             <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-4 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
@@ -1704,8 +1790,8 @@ export function ExpenseCashflowPage({
                           className={cn(
                             "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                             expenseCadenceTab === "monthly"
-                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
+                              ? "bg-background text-foreground border-border group-hover:bg-background group-hover:text-foreground"
+                              : "group-hover:bg-background group-hover:text-foreground group-hover:border-border"
                           )}
                         >
                           {cadenceCounts.monthly}
@@ -1726,8 +1812,8 @@ export function ExpenseCashflowPage({
                           className={cn(
                             "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                             expenseCadenceTab === "quarterly"
-                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
+                              ? "bg-background text-foreground border-border group-hover:bg-background group-hover:text-foreground"
+                              : "group-hover:bg-background group-hover:text-foreground group-hover:border-border"
                           )}
                         >
                           {cadenceCounts.quarterly}
@@ -1748,8 +1834,8 @@ export function ExpenseCashflowPage({
                           className={cn(
                             "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
                             expenseCadenceTab === "yearly"
-                              ? "bg-foreground text-background border-border group-hover:bg-foreground group-hover:text-background"
-                              : "group-hover:bg-foreground group-hover:text-background group-hover:border-border"
+                              ? "bg-background text-foreground border-border group-hover:bg-background group-hover:text-foreground"
+                              : "group-hover:bg-background group-hover:text-foreground group-hover:border-border"
                           )}
                         >
                           {cadenceCounts.yearly}

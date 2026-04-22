@@ -211,7 +211,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       saveLocal: saveToDoItems,
       clearLocal: clearToDoLocalStorage,
       title: "To-Do List",
-      subtitle: "Check tasks off when they are done, then delete to remove them.",
+      subtitle: "Check tasks off when they are done, then delete to remove them. You can also add its target date to keep track of when you want to get them done.",
       ListIcon: ClipboardList,
     } as const;
   }, [mode]);
