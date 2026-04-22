@@ -74,8 +74,8 @@ export function AppHeader({ className }: { className?: string }) {
           {showAuthenticatedHeader && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-10">
-                  <Menu className="h-5 w-5" aria-label="Open menu" />
+                <Button variant="ghost" size="icon" className="size-12">
+                  <Menu className="h-6 w-6" aria-label="Open menu" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64 border-none">
