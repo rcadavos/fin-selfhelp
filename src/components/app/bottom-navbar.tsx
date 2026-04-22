@@ -44,7 +44,7 @@ export function BottomNavbar() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden pt-4"
+      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0.5rem)" }}
     >
       {bottomNavItems.map(({ href, label, icon: Icon }) => {
