@@ -61,8 +61,8 @@ export function HeroSection({ className }: HeroSectionProps) {
       <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-teal-500/15 blur-3xl" aria-hidden />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-        <div className="max-w-xl text-center lg:text-left">
+      <div className="relative mx-auto flex max-w-6xl flex-col items-center">
+        <div className="max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
             What gets tracked gets improved
           </p>
@@ -74,7 +74,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             like the apps you already trust, without the noise. Set and track personal goals too, with progress from
             not yet achieved to achieved.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button size="lg" asChild className="min-w-[15.5rem] whitespace-nowrap shadow-md sm:min-w-[16rem]">
               <Link href={!loading && user ? "/dashboard" : "/signup"}>
                 {loading ? (
@@ -96,7 +96,6 @@ export function HeroSection({ className }: HeroSectionProps) {
             </Button>
           </div>
         </div>
-        <HeroCreditCard />
       </div>
     </section>
   );

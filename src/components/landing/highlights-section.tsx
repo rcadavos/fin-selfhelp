@@ -14,7 +14,7 @@ const highlights = [
   },
   {
     title: "Tools beyond bills",
-    description: "To-buy and to-do lists, plus savings and debt calculators when you want the bigger picture.",
+    description: "To-buy and to-do lists, goals tracker, plus savings and debt calculators when you want the bigger picture.",
     icon: PiggyBank,
   },
 ];

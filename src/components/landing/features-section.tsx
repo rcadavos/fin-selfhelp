@@ -180,10 +180,7 @@ export function FeaturesSection({ className }: { className?: string }) {
               className="overflow-hidden border-border/60 bg-gradient-to-b from-card to-muted/20 shadow-sm transition-shadow hover:shadow-md"
             >
               <CardContent className="p-0">
-                <div className="p-4 pb-0">
-                  <FeatureCardDecor variant={feature.decor} />
-                </div>
-                <div className="p-5 pt-4">
+                <div className="p-5">
                   <feature.icon className="h-8 w-8 text-primary" />
                   <h3 className="mt-3 font-semibold text-foreground">{feature.title}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
