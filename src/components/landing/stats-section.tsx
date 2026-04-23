@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, ReceiptText, Target, Users } from "lucide-react";
+import { Activity, CheckCircle2, ReceiptText, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -48,9 +48,18 @@ function AnimatedNumber({ target, isVisible }: { target: number; isVisible: bool
   return <>{display.toLocaleString()}</>;
 }
 
-const STAT_CARDS = [
+const STAT_CARDS: {
+  key: string;
+  label: string;
+  description: string;
+  icon: typeof Users;
+  iconBg: string;
+  iconColor: string;
+  numColor: string;
+  staticDisplay?: string;
+}[] = [
   {
-    key: "users" as const,
+    key: "users",
     label: "Members",
     description: "People already tracking their finances",
     icon: Users,
@@ -59,17 +68,17 @@ const STAT_CARDS = [
     numColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    key: "billsTracked" as const,
-    label: "Bills tracked",
-    description: "Expenses logged across all accounts",
+    key: "billsTracked",
+    label: "Expenses logged",
+    description: "Expense and bill entries tracked across all members",
     icon: ReceiptText,
     iconBg: "bg-blue-500/10",
     iconColor: "text-blue-600 dark:text-blue-400",
     numColor: "text-blue-600 dark:text-blue-400",
   },
   {
-    key: "paymentsMade" as const,
-    label: "Payments recorded",
+    key: "paymentsMade",
+    label: "Bills paid",
     description: "Bills marked as paid by our members",
     icon: CheckCircle2,
     iconBg: "bg-violet-500/10",
@@ -77,15 +86,16 @@ const STAT_CARDS = [
     numColor: "text-violet-600 dark:text-violet-400",
   },
   {
-    key: "goalsSet" as const,
-    label: "Goals created",
-    description: "Financial goals set and tracked",
-    icon: Target,
+    key: "uptime",
+    label: "Uptime",
+    description: "Platform availability over the last 90 days",
+    icon: Activity,
     iconBg: "bg-amber-500/10",
     iconColor: "text-amber-600 dark:text-amber-400",
     numColor: "text-amber-600 dark:text-amber-400",
+    staticDisplay: "99.9%",
   },
-] as const;
+];
 
 export function StatsSection({ className }: { className?: string }) {
   const [stats, setStats] = useState<PlatformStats>(EMPTY_STATS);
@@ -187,7 +197,7 @@ export function StatsSection({ className }: { className?: string }) {
 
         {/* Stat cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_CARDS.map(({ key, label, description, icon: Icon, iconBg, iconColor, numColor }) => (
+          {STAT_CARDS.map(({ key, label, description, icon: Icon, iconBg, iconColor, numColor, staticDisplay }) => (
             <div
               key={key}
               className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md"
@@ -204,10 +214,16 @@ export function StatsSection({ className }: { className?: string }) {
                 <Icon className={cn("h-5 w-5", iconColor)} aria-hidden />
               </div>
 
-              <p className={cn("text-4xl font-bold tabular-nums tracking-tight", numColor)}>
-                <AnimatedNumber target={stats[key]} isVisible={isVisible} />
-                <span className="ml-0.5 text-2xl opacity-60">+</span>
-              </p>
+              {staticDisplay ? (
+                <p className={cn("text-4xl font-bold tabular-nums tracking-tight", numColor)}>
+                  {staticDisplay}
+                </p>
+              ) : (
+                <p className={cn("text-4xl font-bold tabular-nums tracking-tight", numColor)}>
+                  <AnimatedNumber target={stats[key as keyof PlatformStats] ?? 0} isVisible={isVisible} />
+                  <span className="ml-0.5 text-2xl opacity-60">+</span>
+                </p>
+              )}
 
               <p className="mt-2 text-sm font-semibold text-foreground">{label}</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>

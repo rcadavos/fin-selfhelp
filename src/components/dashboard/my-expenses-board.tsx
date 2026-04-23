@@ -30,8 +30,12 @@ import {
 } from "recharts";
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Circle,
+  Download,
   GripVertical,
+  LayoutGrid,
   Plus,
   Trash2,
   X,
@@ -55,7 +59,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
 import { type ReminderDay, REMINDER_OPTIONS } from "@/types/database.types";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
@@ -139,6 +152,69 @@ function getEntryName(entry: ExpenseEntryRow, categories: CatList): string {
   );
 }
 
+// ─── Export helpers ───────────────────────────────────────────────────────────
+
+function exportBoardToCSV(
+  expenses: ExpenseEntryRow[],
+  bills: ExpenseEntryRow[],
+  categories: CatList,
+  paidIds: Set<string>,
+  paidMonth: string
+): void {
+  const headers = ["Name", "Type", "Category", "Amount", "Billing Period", "Status", "Due Date", "Date"];
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const rows = [...expenses, ...bills].map((e) => {
+    const name = e.note?.trim() || e.notes?.trim() || getCategoryLabel(e.category_id, categories);
+    const type = e.due_date ? "Bill" : "Expense";
+    const status = e.due_date
+      ? paidIds.has(e.id) ? "Paid" : getBillStatus(e, false, paidMonth) === "outstanding" ? "Outstanding" : "Unpaid"
+      : "";
+    const dueDate = e.due_date ? effectiveDueDateInPaidMonth(e.due_date, paidMonth)?.toLocaleDateString("en-PH") ?? "" : "";
+    const date = e.created_at ? e.created_at.slice(0, 10) : "";
+    return [esc(name), type, esc(getCategoryLabel(e.category_id, categories)), e.amount, e.billing_period, status, dueDate, date].join(",");
+  });
+  const csv = [headers.join(","), ...rows].join("\n");
+  const link = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })),
+    download: `my-expenses-${new Date().toISOString().slice(0, 10)}.csv`,
+    style: "display:none",
+  });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportBoardToExcel(
+  expenses: ExpenseEntryRow[],
+  bills: ExpenseEntryRow[],
+  categories: CatList,
+  paidIds: Set<string>,
+  paidMonth: string
+): void {
+  const headers = ["Name", "Type", "Category", "Amount", "Billing Period", "Status", "Due Date", "Date"];
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const headerRow = headers.map((h) => `<th>${esc(h)}</th>`).join("");
+  const dataRows = [...expenses, ...bills].map((e) => {
+    const name = e.note?.trim() || e.notes?.trim() || getCategoryLabel(e.category_id, categories);
+    const type = e.due_date ? "Bill" : "Expense";
+    const status = e.due_date
+      ? paidIds.has(e.id) ? "Paid" : getBillStatus(e, false, paidMonth) === "outstanding" ? "Outstanding" : "Unpaid"
+      : "";
+    const dueDate = e.due_date ? effectiveDueDateInPaidMonth(e.due_date, paidMonth)?.toLocaleDateString("en-PH") ?? "" : "";
+    const date = e.created_at ? e.created_at.slice(0, 10) : "";
+    return `<tr>${[name, type, getCategoryLabel(e.category_id, categories), e.amount, e.billing_period, status, dueDate, date].map((v) => `<td>${esc(String(v))}</td>`).join("")}</tr>`;
+  }).join("");
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr>${headerRow}</tr>${dataRows}</table></body></html>`;
+  const link = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" })),
+    download: `my-expenses-${new Date().toISOString().slice(0, 10)}.xls`,
+    style: "display:none",
+  });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 function formatDueDate(dateStr: string, paidMonthYm: string): string {
   const d = effectiveDueDateInPaidMonth(dateStr, paidMonthYm);
   if (!d) return "";
@@ -205,6 +281,7 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
       <ResponsiveContainer width="100%" height={200}>
         <PieChart style={{ outline: "none" }}>
           <Pie
+            style={{ outline: "none" }}
             data={data}
             dataKey="value"
             nameKey="name"
@@ -217,7 +294,7 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             label={PiePercentLabel}
           >
             {data.map((d, i) => (
-              <Cell key={i} fill={d.color} />
+              <Cell key={i} fill={d.color} style={{ outline: "none" }} />
             ))}
           </Pie>
           <Tooltip
@@ -262,6 +339,7 @@ function BillsPieChart({
       <ResponsiveContainer width="100%" height={200}>
         <PieChart style={{ outline: "none" }}>
           <Pie
+            style={{ outline: "none" }}
             data={data}
             dataKey="value"
             nameKey="name"
@@ -274,7 +352,7 @@ function BillsPieChart({
             label={PiePercentLabel}
           >
             {data.map((d, i) => (
-              <Cell key={i} fill={d.color} />
+              <Cell key={i} fill={d.color} style={{ outline: "none" }} />
             ))}
           </Pie>
           <Tooltip
@@ -523,6 +601,7 @@ export function MyExpensesBoard() {
   const [expCategory, setExpCategory] = useState("");
   const [expDate, setExpDate] = useState(todayYmd);
   const [expSaving, setExpSaving] = useState(false);
+  const [showSummaryMobile, setShowSummaryMobile] = useState(false);
   const expNameRef = useRef<HTMLInputElement>(null);
 
   // ── Bill filter + add state ──
@@ -789,17 +868,70 @@ export function MyExpensesBoard() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">My Expenses</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track one-off expenses and manage recurring bills side by side.
-        </p>
+      <div className="mb-2 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Expenses & Bills</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Track one-off expenses and manage recurring bills side by side.
+          </p>
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" aria-label="View Categories" asChild>
+            <Link href="/dashboard/my-expenses/categories">
+              <LayoutGrid className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">View Categories</span>
+            </Link>
+          </Button>
+          {allEntries.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="Export expenses">
+                  <Download className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Export as</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => exportBoardToCSV(expenses, billsRaw, categories, paidIds, paidMonth)}>
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportBoardToExcel(expenses, billsRaw, categories, paidIds, paidMonth)}>
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Month summary */}
-      <div className="mb-6">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{monthDisplay}</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-4">
+        <div className="mb-2 flex items-center justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-semibold sm:hidden"
+            onClick={() => setShowSummaryMobile(!showSummaryMobile)}
+          >
+            {showSummaryMobile ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                Hide summary
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                View summary
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className={cn(
+          "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 transition-all duration-300",
+          !showSummaryMobile && "hidden sm:grid"
+        )}>
           <div className="rounded-xl border bg-card px-4 py-3">
             <p className="text-xs text-muted-foreground">Expenses - Today</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totalToday)}</p>
@@ -822,7 +954,7 @@ export function MyExpensesBoard() {
             </p>
             <p className="text-[11px] text-muted-foreground">{billsRaw.length - paidBillsCount} unpaid</p>
           </div>
-          <div className="rounded-xl border bg-card px-4 py-3">
+          <div className="col-span-2 rounded-xl border bg-card px-4 py-3 sm:col-span-1">
             <p className="text-xs text-muted-foreground">Total - This Month</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalExpenses + totalBills)}</p>
             <p className="text-[11px] text-muted-foreground">Expenses + Bills</p>
@@ -982,27 +1114,30 @@ export function MyExpensesBoard() {
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">Bills</h2>
             <Badge variant="secondary" className="tabular-nums">
-              {billsRaw.length}
+              {orderedBills.filter((b) => (b.billing_period ?? "monthly") === billPeriodFilter).length}
             </Badge>
           </div>
 
           {/* Pie chart */}
-          {billsRaw.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-0 pt-4">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Paid vs unpaid
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-1 pb-3">
-                <BillsPieChart bills={billsRaw} paidIds={paidIds} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex h-52 items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-              Add a bill to see the chart
-            </div>
-          )}
+          {(() => {
+            const filteredBills = orderedBills.filter((b) => (b.billing_period ?? "monthly") === billPeriodFilter);
+            return filteredBills.length > 0 ? (
+              <Card>
+                <CardHeader className="pb-0 pt-4">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Paid vs unpaid ({billPeriodFilter === "monthly" ? "Monthly" : billPeriodFilter === "quarterly" ? "Quarterly" : "Yearly"})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-1 pb-3">
+                  <BillsPieChart bills={filteredBills} paidIds={paidIds} />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="flex h-52 items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
+                Add a {billPeriodFilter} bill to see the chart
+              </div>
+            );
+          })()}
 
           {/* Period filter tabs + Add Bill */}
           <div className="flex items-center justify-between gap-3">

@@ -12,17 +12,17 @@ const features: {
   iconColor: string;
 }[] = [
   {
-    title: "Track every bill",
+    title: "Log expenses daily",
     description:
-      "List recurring and one-off expenses by category so nothing slips through the cracks before payday.",
+      "Record any expense with a chosen date, category, and note. The date picker lets you label each entry for any day — past or present — so your spending history stays accurate.",
     icon: ListChecks,
     iconBg: "bg-emerald-500/10",
     iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    title: "Payment dashboard",
+    title: "Bills & payment tracking",
     description:
-      "Mark bills as paid each month and see paid vs unpaid at a glance — your own lightweight money app.",
+      "Add monthly, quarterly, or yearly recurring bills with due dates. Mark them paid as you go — status badges show Paid, Outstanding, or Unpaid at a glance, with a monthly summary of what's left.",
     icon: LayoutDashboard,
     iconBg: "bg-sky-500/10",
     iconColor: "text-sky-600 dark:text-sky-400",
@@ -52,7 +52,7 @@ const features: {
     iconColor: "text-teal-600 dark:text-teal-400",
   },
   {
-    title: "My Goals tracker",
+    title: "Goal tracker",
     description:
       "Organize short-term, long-term, and lifetime goals, filter by achieved status, and track progress as you complete each one.",
     icon: Target,
@@ -76,8 +76,8 @@ export function FeaturesSection({ className }: { className?: string }) {
         <div className="text-center">
           <AnimatedTextLoop />
           <p className="mt-4 text-lg text-muted-foreground">
-            Bills, budgets, lists, goals, and calculators — the essentials you expect from a modern finance app, tuned
-            for everyday use.
+            Daily expenses, recurring bills, lists, goals, and calculators — the essentials you expect from a modern
+            finance app, tuned for everyday Filipino household use.
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

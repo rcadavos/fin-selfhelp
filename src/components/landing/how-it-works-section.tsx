@@ -3,21 +3,21 @@ import { cn } from "@/lib/utils";
 const steps = [
   {
     step: 1,
-    title: "Add your bills",
+    title: "Log expenses & bills",
     description:
-      "Enter what you owe by category — rent, utilities, loans, savings, and more. Set due dates when you want reminders.",
+      "Record daily expenses with a date, category, and note. Add recurring bills — monthly, quarterly, or yearly — and set due dates so nothing catches you off guard.",
   },
   {
     step: 2,
-    title: "Track payments monthly",
+    title: "Get reminded, then mark paid",
     description:
-      "Each month, mark bills as paid so your dashboard always reflects what is done and what is still outstanding.",
+      "Receive reminders before bills are due. When you've settled one, tap to mark it paid — status badges update instantly to show Paid, Outstanding, or Unpaid.",
   },
   {
     step: 3,
-    title: "See your dashboard",
+    title: "Review your monthly summary",
     description:
-      "View totals, paid vs unpaid, and trends over recent months so you can plan with confidence.",
+      "Your dashboard shows total expenses, total bills, what's still owed, and payment history across recent months — so you always know exactly where you stand.",
   },
 ];
 

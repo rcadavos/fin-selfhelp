@@ -12,29 +12,27 @@ export default async function CategoriesPage() {
   const categories = dbCategories.length > 0
     ? dbCategories
     : EXPENSE_CATEGORIES.map((fallback) => ({
-        id: fallback.id,
-        label: fallback.label,
-        bgClass: fallback.bgClass,
-        sortOrder: 0,
-        description: fallback.description ?? null,
-        lists: fallback.lists ?? [],
-      }));
+      id: fallback.id,
+      label: fallback.label,
+      bgClass: fallback.bgClass,
+      sortOrder: 0,
+      description: fallback.description ?? null,
+      lists: fallback.lists ?? [],
+    }));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Back link */}
-      <div className="mb-6">
-        <Link
-          href="/dashboard/my-expenses"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to My Expenses
-        </Link>
-      </div>
+      <Link
+        href="/dashboard/my-expenses"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back to My Expenses
+      </Link>
 
       {/* Page header */}
-      <div className="mb-8">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Expense Categories</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {categories.length} categories available to organise your expenses and bills.
@@ -80,7 +78,7 @@ function CategoryCard({
     >
       {/* Header: number + category name */}
       <div className="mb-3 flex items-start gap-3">
-        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-background/60 text-xs font-bold text-foreground shadow-sm dark:bg-background/30">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-background shadow-sm">
           {index + 1}
         </span>
         <h2 className="text-base font-semibold leading-snug text-foreground">{label}</h2>
