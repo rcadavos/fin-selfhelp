@@ -38,8 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { confirmUserEmail, setUserSubscription, setUserAdmin, type AdminUserRow } from "@/actions/admin";
-import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX } from "lucide-react";
+import { confirmUserEmail, setUserSubscription, setUserAdmin, deleteUser, type AdminUserRow } from "@/actions/admin";
+import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX, Trash2 } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -76,6 +76,7 @@ export default function AdminUsersPage() {
   const [paidTier, setPaidTier] = useState<"pro" | "premium">("pro");
   const [expiresAt, setExpiresAt] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
 
   const setAdminMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
@@ -137,6 +138,23 @@ export default function AdminUsersPage() {
       setActionError(null);
     },
     onError: (err: Error) => setActionError(err.message),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const result = await deleteUser(userId);
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryOptions().queryKey });
+      setDeleteTarget(null);
+      setActionError(null);
+    },
+    onError: (err: Error) => {
+      setActionError(err.message);
+      setDeleteTarget(null);
+    },
   });
 
   function openSetPaid(row: AdminUserRow) {
@@ -221,59 +239,66 @@ export default function AdminUsersPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            title={u.is_admin ? "Remove admin" : "Make admin"}
+                            aria-label={u.is_admin ? "Remove admin" : "Make admin"}
                             onClick={() => setAdminMutation.mutate({ userId: u.id, isAdmin: !u.is_admin })}
                             disabled={setAdminMutation.isPending}
-                            aria-label={u.is_admin ? "Remove admin" : "Make admin"}
                           >
                             {setAdminMutation.isPending && setAdminMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : u.is_admin ? (
-                              <>
-                                <ShieldOff className="h-4 w-4" />
-                              </>
+                              <ShieldOff className="h-4 w-4" />
                             ) : (
-                              <>
-                                <Shield className="h-4 w-4" />
-                              </>
+                              <Shield className="h-4 w-4" />
                             )}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openSetPaid(u)}
+                            title="Set paid plan"
                             aria-label="Set paid plan"
+                            onClick={() => openSetPaid(u)}
                           >
                             <CreditCard className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
+                            title="Revert to free plan"
+                            aria-label="Revert to free plan"
                             onClick={() => setFreeMutation.mutate({ userId: u.id })}
                             disabled={setFreeMutation.isPending}
-                            aria-label="Make free"
                           >
                             {setFreeMutation.isPending && setFreeMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <>
-                                <UserRoundX className="h-4 w-4" />
-                              </>
+                              <UserRoundX className="h-4 w-4" />
                             )}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
+                            title="Confirm email"
+                            aria-label="Confirm email"
                             onClick={() => confirmEmailMutation.mutate({ userId: u.id })}
                             disabled={confirmEmailMutation.isPending}
-                            aria-label="Confirm email"
                           >
                             {confirmEmailMutation.isPending && confirmEmailMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <>
-                                <MailCheck className="h-4 w-4" />
-                              </>
+                              <MailCheck className="h-4 w-4" />
                             )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Delete user"
+                            aria-label="Delete user"
+                            onClick={() => setDeleteTarget(u)}
+                            disabled={deleteUserMutation.isPending}
+                            className="text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -285,6 +310,39 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Delete confirmation ── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete user</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete{" "}
+              <span className="font-medium text-foreground">{deleteTarget?.email ?? "this user"}</span>?
+              All their data will be removed. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteUserMutation.isPending}
+              onClick={() => deleteTarget && deleteUserMutation.mutate({ userId: deleteTarget.id })}
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!paidUser} onOpenChange={(open) => !open && setPaidUser(null)}>
         <DialogContent>

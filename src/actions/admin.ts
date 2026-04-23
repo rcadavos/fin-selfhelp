@@ -166,3 +166,28 @@ export async function confirmUserEmail(userId: string): Promise<{ error?: string
     return { error: e instanceof Error ? e.message : "Failed to confirm user email." };
   }
 }
+
+/** Admin: permanently delete a user and all their data. Cannot delete yourself. */
+export async function deleteUser(userId: string): Promise<{ error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Not logged in." };
+    if (user.id === userId) return { error: "You cannot delete your own account." };
+
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!profile?.is_admin) return { error: "Forbidden." };
+
+    const { error } = await admin.auth.admin.deleteUser(userId);
+    if (error) return { error: error.message };
+
+    return {};
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to delete user." };
+  }
+}

@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/landing/hero-section";
 
 const FeaturesSection = dynamic(() => import("@/components/landing/features-section").then(m => m.FeaturesSection));
 const HowItWorksSection = dynamic(() => import("@/components/landing/how-it-works-section").then(m => m.HowItWorksSection));
+const StatsSection = dynamic(() => import("@/components/landing/stats-section").then(m => m.StatsSection));
 const HighlightsSection = dynamic(() => import("@/components/landing/highlights-section").then(m => m.HighlightsSection));
 const BuiltForSection = dynamic(() => import("@/components/landing/built-for-section").then(m => m.BuiltForSection));
 const SubscribeSection = dynamic(() => import("@/components/landing/subscribe-section").then(m => m.SubscribeSection));
@@ -32,6 +33,7 @@ export default async function HomePage() {
       <HeroSection />
       <FeaturesSection />
       <HowItWorksSection />
+      <StatsSection />
       <HighlightsSection />
       <BuiltForSection />
       <SubscribeSection proPlan={proPlan} premiumPlan={premiumPlan} />

@@ -55,6 +55,17 @@ import { queryKeys } from "@/lib/query/keys";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
+import { getAccountDisplayName } from "@/components/app/account-dropdown-menu";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -1590,6 +1601,13 @@ export function ExpenseCashflowPage({
 
       {pageVariant === "dashboard" && (
         <>
+          {/* ════════════════════ WELCOME ════════════════════ */}
+          {user && (
+            <p className="mt-4 mb-2 text-lg font-semibold text-foreground">
+              Welcome back, {getAccountDisplayName(user).split(" ")[0]} 👋
+            </p>
+          )}
+
           {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
           <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
             <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
@@ -1703,23 +1721,23 @@ export function ExpenseCashflowPage({
 
           {/* ════════════════════ STAT CARDS ════════════════════ */}
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
               <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
                 <LayoutDashboard className="h-4 w-4" />
               </div>
               <p className="text-xs text-muted-foreground">Bills tracked</p>
               <p className="text-lg font-bold">{summaryEntries.length}</p>
-            </div>
+            </Link>
 
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
               <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
                 <ArrowUpRight className="h-4 w-4" />
               </div>
               <p className="text-xs text-muted-foreground">Total out</p>
               <p className="text-lg font-bold">{formatCurrency(totalExpenses)}</p>
-            </div>
+            </Link>
 
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
               <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
@@ -1730,15 +1748,15 @@ export function ExpenseCashflowPage({
                   <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />
                 </div>
               )}
-            </div>
+            </Link>
 
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
               <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                 <CircleDollarSign className="h-4 w-4" />
               </div>
               <p className="text-xs text-muted-foreground">Unpaid</p>
               <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(unpaidThisMonth)}</p>
-            </div>
+            </Link>
           </div>
 
           {/* ════════════════════ PAYMENT HISTORY (6 MO) ════════════════════ */}
@@ -1746,29 +1764,54 @@ export function ExpenseCashflowPage({
             <Card className="mb-6">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Payment completion by month</CardTitle>
-                <CardDescription>Share of bills marked paid each month</CardDescription>
+                <CardDescription>Bills paid vs total each month</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex h-32 items-end justify-between gap-1 sm:gap-2">
-                  {paymentHistory.map((row) => {
-                    const pct =
-                      row.totalCount > 0 ? Math.round((row.paidCount / row.totalCount) * 100) : 0;
-                    const barPx = Math.max(6, Math.round((pct / 100) * 96));
-                    return (
-                      <div key={row.month} className="flex flex-1 flex-col items-center gap-1">
-                        <div className="flex h-24 w-full max-w-[3rem] items-end justify-center">
-                          <div
-                            className="w-full max-w-10 rounded-t-md bg-primary/80 transition-all"
-                            style={{ height: `${barPx}px` }}
-                            title={`${row.month}: ${row.paidCount}/${row.totalCount}`}
-                          />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground tabular-nums">
-                          {row.month.slice(5)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart
+                    data={paymentHistory.map((row) => ({
+                      month: row.month.slice(5),
+                      Paid: row.paidCount,
+                      Unpaid: row.totalCount - row.paidCount,
+                      pct: row.totalCount > 0 ? Math.round((row.paidCount / row.totalCount) * 100) : 0,
+                    }))}
+                    margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
+                    barCategoryGap="30%"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted))", radius: 4 }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const paid = payload.find((p) => p.dataKey === "Paid")?.value ?? 0;
+                        const unpaid = payload.find((p) => p.dataKey === "Unpaid")?.value ?? 0;
+                        const total = Number(paid) + Number(unpaid);
+                        const pct = total > 0 ? Math.round((Number(paid) / total) * 100) : 0;
+                        return (
+                          <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
+                            <p className="mb-1 font-semibold">{label}</p>
+                            <p className="text-emerald-600 dark:text-emerald-400">{paid} paid</p>
+                            <p className="text-muted-foreground">{unpaid} unpaid</p>
+                            <p className="mt-1 font-medium">{pct}% complete</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="Paid" stackId="a" radius={[0, 0, 0, 0]} fill="hsl(var(--primary))" opacity={0.9} />
+                    <Bar dataKey="Unpaid" stackId="a" radius={[4, 4, 0, 0]} fill="hsl(var(--muted))" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary/90" />
+                    Paid
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted" />
+                    Unpaid
+                  </span>
                 </div>
               </CardContent>
             </Card>

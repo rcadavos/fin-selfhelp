@@ -52,6 +52,8 @@ export type ExpenseEntryRow = {
   due_date?: string | null;
   reminder_days_before?: number[] | null;
   reminder_channel?: "email" | "in-app" | "both";
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type IncomeEntryRow = {
@@ -128,7 +130,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -191,6 +193,8 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       due_date: row.due_date ?? undefined,
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      created_at: row.created_at ?? undefined,
+      updated_at: row.updated_at ?? undefined,
     })),
     paidMonth: month,
     paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
@@ -323,7 +327,7 @@ export async function loadSharedExpenseData(
   const [{ data: entries }, { data: paymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, created_at, updated_at")
       .eq("profile_id", grantorProfile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -358,6 +362,8 @@ export async function loadSharedExpenseData(
         ? normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined
         : undefined,
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      created_at: row.created_at ?? undefined,
+      updated_at: row.updated_at ?? undefined,
     })),
     paidMonth: month,
     paidEntryIds: (paymentRows ?? []).map((r) => String(r.expense_entry_id)),
@@ -494,7 +500,8 @@ export async function addExpense(
   dueDate?: string | null,
   reminderDaysBefore?: ReminderDay[] | null,
   billingPeriod: "monthly" | "quarterly" | "yearly" = "monthly",
-  reminderChannel: "email" | "in-app" | "both" = "both"
+  reminderChannel: "email" | "in-app" | "both" = "both",
+  expenseDate?: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -539,6 +546,7 @@ export async function addExpense(
       ...(dueNorm && { due_date: dueNorm }),
       ...(reminders && { reminder_days_before: reminders }),
       reminder_channel: reminderChannel,
+      ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
     })
     .select("id")
     .single();
@@ -558,7 +566,8 @@ export async function updateExpense(
   dueDate?: string | null,
   reminderDaysBefore?: ReminderDay[] | null,
   billingPeriod?: "monthly" | "quarterly" | "yearly",
-  reminderChannel?: "email" | "in-app" | "both"
+  reminderChannel?: "email" | "in-app" | "both",
+  expenseDate?: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -608,6 +617,7 @@ export async function updateExpense(
       ...(due !== undefined && { due_date: due }),
       ...(reminders !== undefined && { reminder_days_before: reminders }),
       ...(reminderChannel !== undefined && { reminder_channel: reminderChannel }),
+      ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
     })
     .eq("id", entryId)
     .eq("profile_id", profile.id);

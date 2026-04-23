@@ -71,17 +71,35 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
   );
 }
 
+const FULL_NAME_MAX = 100;
+// Letters (including accented / Unicode), spaces, hyphens, apostrophes, periods
+const FULL_NAME_RE = /^[a-zA-ZÀ-ÖØ-öø-ÿĀ-ɏ\s'\-.]*$/;
+
 export default function SignUpPage() {
   const router = useRouter();
   const { user, loading } = useUser();
   const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [fullNameError, setFullNameError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
     if (user) router.replace("/dashboard");
   }, [user, loading, router]);
 
+  function handleFullNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (val.length > FULL_NAME_MAX) return; // hard-cap at 100
+    setFullName(val);
+    if (val && !FULL_NAME_RE.test(val)) {
+      setFullNameError("Name may only contain letters, spaces, hyphens, apostrophes, or periods.");
+    } else {
+      setFullNameError(null);
+    }
+  }
+
   async function handleSubmit(formData: FormData) {
+    if (fullNameError) return;
     setFormMessage(null);
     const result = await signUp(formData);
     if (result?.error) setFormMessage({ type: "error", text: result.error });
@@ -142,14 +160,37 @@ export default function SignUpPage() {
                   </div>
                 ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="full_name">Full name</Label>
+                  <div className="flex items-baseline justify-between">
+                    <Label htmlFor="full_name">Full name</Label>
+                    <span
+                      className={cn(
+                        "text-[11px] tabular-nums",
+                        fullName.length >= FULL_NAME_MAX
+                          ? "text-destructive"
+                          : "text-muted-foreground/60"
+                      )}
+                    >
+                      {fullName.length}/{FULL_NAME_MAX}
+                    </span>
+                  </div>
                   <Input
                     id="full_name"
                     name="full_name"
                     type="text"
                     autoComplete="name"
                     placeholder="Optional"
+                    value={fullName}
+                    onChange={handleFullNameChange}
+                    maxLength={FULL_NAME_MAX}
+                    aria-invalid={!!fullNameError}
+                    aria-describedby={fullNameError ? "full_name_error" : undefined}
+                    className={cn(fullNameError && "border-destructive focus-visible:ring-destructive/30")}
                   />
+                  {fullNameError && (
+                    <p id="full_name_error" role="alert" className="text-[12px] text-destructive">
+                      {fullNameError}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
