@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, CheckCircle2, ReceiptText, Users } from "lucide-react";
+import { Activity, ListChecks, Target, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface PlatformStats {
   users: number;
-  billsTracked: number;
-  paymentsMade: number;
   goalsSet: number;
+  listItems: number;
 }
 
-const EMPTY_STATS: PlatformStats = { users: 0, billsTracked: 0, paymentsMade: 0, goalsSet: 0 };
+const EMPTY_STATS: PlatformStats = { users: 0, goalsSet: 0, listItems: 0 };
 const POLL_MS = 30_000;
 
 function AnimatedNumber({ target, isVisible }: { target: number; isVisible: boolean }) {
@@ -68,19 +67,19 @@ const STAT_CARDS: {
     numColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    key: "billsTracked",
-    label: "Expenses logged",
-    description: "Expense and bill entries tracked across all members",
-    icon: ReceiptText,
+    key: "goalsSet",
+    label: "Goals tracked",
+    description: "Financial goals created and tracked across all members",
+    icon: Target,
     iconBg: "bg-blue-500/10",
     iconColor: "text-blue-600 dark:text-blue-400",
     numColor: "text-blue-600 dark:text-blue-400",
   },
   {
-    key: "paymentsMade",
-    label: "Bills paid",
-    description: "Bills marked as paid by our members",
-    icon: CheckCircle2,
+    key: "listItems",
+    label: "Items on lists",
+    description: "Shopping and to-do items saved by our members",
+    icon: ListChecks,
     iconBg: "bg-violet-500/10",
     iconColor: "text-violet-600 dark:text-violet-400",
     numColor: "text-violet-600 dark:text-violet-400",

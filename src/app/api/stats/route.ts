@@ -7,22 +7,21 @@ export async function GET() {
   try {
     const supabase = createServiceRoleClient();
 
-    const [usersResult, billsResult, paymentsResult, goalsResult] = await Promise.all([
+    const [usersResult, goalsResult, buyItemsResult, doItemsResult] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("expense_entries").select("*", { count: "exact", head: true }),
-      supabase.from("expense_payments").select("*", { count: "exact", head: true }),
       supabase.from("goal_entries").select("*", { count: "exact", head: true }),
+      supabase.from("to_buy_items").select("*", { count: "exact", head: true }),
+      supabase.from("to_do_items").select("*", { count: "exact", head: true }),
     ]);
 
     return NextResponse.json({
       users: usersResult.count ?? 0,
-      billsTracked: billsResult.count ?? 0,
-      paymentsMade: paymentsResult.count ?? 0,
       goalsSet: goalsResult.count ?? 0,
+      listItems: (buyItemsResult.count ?? 0) + (doItemsResult.count ?? 0),
     });
   } catch {
     return NextResponse.json(
-      { users: 0, billsTracked: 0, paymentsMade: 0, goalsSet: 0 },
+      { users: 0, goalsSet: 0, listItems: 0 },
       { status: 500 }
     );
   }
