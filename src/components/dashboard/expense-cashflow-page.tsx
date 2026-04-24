@@ -1778,7 +1778,7 @@ export function ExpenseCashflowPage({
                               <p className="mb-1.5 font-semibold">{label}</p>
                               {payload.map((p) => (
                                 <p key={p.dataKey as string} style={{ color: p.fill }} className="leading-5">
-                                  {p.dataKey}: {formatCurrency(Number(p.value))}
+                                  {String(p.dataKey)}: {formatCurrency(Number(p.value))}
                                 </p>
                               ))}
                             </div>
