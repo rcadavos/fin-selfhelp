@@ -102,8 +102,14 @@ export default function SignUpPage() {
     if (fullNameError) return;
     setFormMessage(null);
     const result = await signUp(formData);
-    if (result?.error) setFormMessage({ type: "error", text: result.error });
-    if (result?.message) setFormMessage({ type: "success", text: result.message });
+    if (result?.error) {
+      setFormMessage({ type: "error", text: result.error });
+    } else if (result?.next) {
+      // Auto-login successful, redirect to dashboard
+      router.push(result.next);
+    } else if (result?.message) {
+      setFormMessage({ type: "success", text: result.message });
+    }
   }
 
   if (loading || user) {
