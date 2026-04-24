@@ -768,8 +768,24 @@ export function MyExpensesBoard() {
   }
 
   async function handleTogglePaid(id: string) {
-    await toggleExpensePayment(id, paidMonth);
-    invalidate();
+    const queryKey = queryKeys.expenseData(paidMonth);
+    const snapshot = queryClient.getQueryData(queryKey);
+
+    // Optimistic — flip the paid state immediately
+    queryClient.setQueryData<import("@/actions/budget").ExpenseData | null>(queryKey, (old) => {
+      if (!old) return old;
+      const ids = old.paidEntryIds as string[];
+      const wasPaid = ids.includes(id);
+      return { ...old, paidEntryIds: wasPaid ? ids.filter((i) => i !== id) : [...ids, id] };
+    });
+
+    const res = await toggleExpensePayment(id, paidMonth);
+    if (res.error) {
+      queryClient.setQueryData(queryKey, snapshot);
+      setError(res.error);
+    } else {
+      invalidate();
+    }
   }
 
   function handleOpenEdit(entry: ExpenseEntryRow) {
@@ -1025,7 +1041,7 @@ export function MyExpensesBoard() {
                   <input
                     value={expAmount}
                     onChange={(e) => setExpAmount(e.target.value)}
-                    placeholder="₱0"
+                    placeholder="0"
                     type="number"
                     min="0.01"
                     step="any"
