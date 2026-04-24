@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,10 +38,12 @@ const PRO_FEATURES = [
   "Full access to calculators & tools",
 ] as const;
 
-export default function SubscriptionPage() {
+function SubscriptionPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { user, loading: userLoading } = useUser();
+  const justPaid = searchParams.get("paid") === "1";
   const { data: plans } = useQuery(subscriptionPlansQueryOptions());
   const statusQuery = useQuery({
     ...subscriptionStatusQueryOptions(),
@@ -57,6 +59,12 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (!userLoading && !user) router.replace("/login");
   }, [user, userLoading, router]);
+
+  useEffect(() => {
+    if (justPaid) {
+      void invalidateSubscriptionAndExpenseQueries(queryClient);
+    }
+  }, [justPaid, queryClient]);
 
   async function handleUnsubscribe() {
     const status = statusQuery.data ?? null;
@@ -115,6 +123,11 @@ export default function SubscriptionPage() {
 
   return (
     <main className="w-full min-w-0 space-y-8 py-2">
+      {justPaid && (
+        <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+          Payment received — your subscription is now active. Thank you!
+        </p>
+      )}
       {fetchError && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {fetchError}
@@ -320,5 +333,13 @@ export default function SubscriptionPage() {
         </Button>
       </div>
     </main>
+  );
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense>
+      <SubscriptionPageInner />
+    </Suspense>
   );
 }

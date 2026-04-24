@@ -78,7 +78,7 @@ const STAT_CARDS: {
   {
     key: "pageVisitors",
     label: "Page visitors",
-    description: "Landing page sessions tracked",
+    description: "Landing page visitors",
     icon: Eye,
     iconBg: "bg-blue-500/10",
     iconColor: "text-blue-600 dark:text-blue-400",

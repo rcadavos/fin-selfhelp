@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
-import { createPayMongoQRPhPaymentIntent, checkPayMongoPaymentStatus } from "@/actions/paymongo";
+import {
+  createPayMongoQRPhPaymentIntent,
+  createPayMongoCheckoutSession,
+  checkPayMongoPaymentStatus,
+} from "@/actions/paymongo";
 import {
   Card,
   CardContent,
@@ -21,7 +25,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { subscriptionPlansQueryOptions } from "@/lib/query/subscription-plan";
 import { invalidateSubscriptionAndExpenseQueries } from "@/lib/query/subscription-user";
 import { ContentHeader } from "@/components/app/content-header";
-import { CreditCard, Smartphone, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, Wallet, QrCode } from "lucide-react";
 
 function formatPrice(amount: number, currency: string, interval: string): string {
   return `${formatCurrency(amount, currency)}/${interval}`;
@@ -134,7 +138,9 @@ function SubscriptionPaymentInner() {
   const { user, loading } = useUser();
   const { data: plans } = useQuery(subscriptionPlansQueryOptions());
   const [checkoutPlan, setCheckoutPlan] = useState<"pro" | "premium">("pro");
-  const [method, setMethod] = useState<"card" | "qrph">("card");
+  const [method, setMethod] = useState<"card" | "ewallet" | "qrph">("card");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [paymongoQr, setPaymongoQr] = useState<{ paymentIntentId: string; qrImageDataUrl: string } | null>(null);
@@ -149,7 +155,10 @@ function SubscriptionPaymentInner() {
   useEffect(() => {
     setPaymongoQr(null);
     setPaymongoError(null);
+    setCheckoutError(null);
   }, [checkoutPlan]);
+
+  const wasCanceled = searchParams.get("canceled") === "1";
 
   const selectedPlan = checkoutPlan === "premium" ? plans?.premium : plans?.pro;
 
@@ -251,10 +260,16 @@ function SubscriptionPaymentInner() {
           </Card>
         )}
 
+        {wasCanceled && (
+          <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+            Payment was canceled. You can try again below.
+          </p>
+        )}
+
         <div className="flex rounded-lg border bg-muted/30 p-1">
           <button
             type="button"
-            onClick={() => setMethod("card")}
+            onClick={() => { setMethod("card"); setCheckoutError(null); }}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors",
               method === "card" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -265,16 +280,24 @@ function SubscriptionPaymentInner() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setMethod("qrph");
-              setPaymongoError(null);
-            }}
+            onClick={() => { setMethod("ewallet"); setCheckoutError(null); }}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors",
+              method === "ewallet" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Wallet className="h-4 w-4" />
+            GCash / Maya
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMethod("qrph"); setPaymongoError(null); }}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors",
               method === "qrph" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Smartphone className="h-4 w-4" />
+            <QrCode className="h-4 w-4" />
             QR PH
           </button>
         </div>
@@ -282,35 +305,104 @@ function SubscriptionPaymentInner() {
         {method === "card" && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pay with card</CardTitle>
+              <CardTitle className="text-base">Pay with Credit / Debit Card</CardTitle>
               <CardDescription>
-                Card payment will be powered by Stripe. Connect your Stripe account to accept payments.
+                You&#39;ll be redirected to PayMongo&#39;s secure checkout to enter your card details.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="card-number">Card number</Label>
-                <Input id="card-number" placeholder="4242 4242 4242 4242" disabled className="bg-muted/50" />
+            <CardContent className="flex flex-col items-center gap-4 py-6">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">Visa</span>
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">Mastercard</span>
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">JCB</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiry">Expiry</Label>
-                  <Input id="expiry" placeholder="MM / YY" disabled className="bg-muted/50" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvc">CVC</Label>
-                  <Input id="cvc" placeholder="123" disabled className="bg-muted/50" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">Add Stripe Elements or Checkout to enable card payments.</p>
+              {checkoutError && <p className="text-sm text-destructive">{checkoutError}</p>}
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" disabled>
-                Pay{" "}
-                {selectedPlan
-                  ? formatPrice(selectedPlan.priceAmount, selectedPlan.priceCurrency, selectedPlan.interval)
-                  : "—"}{" "}
-                — connect Stripe to enable
+            <CardFooter className="flex flex-col gap-2">
+              <Button
+                className="w-full"
+                disabled={checkoutLoading || !selectedPlan}
+                onClick={async () => {
+                  setCheckoutLoading(true);
+                  setCheckoutError(null);
+                  const result = await createPayMongoCheckoutSession(checkoutPlan, ["card"]);
+                  if (result.error) {
+                    setCheckoutError(result.error);
+                    setCheckoutLoading(false);
+                    return;
+                  }
+                  if (result.checkoutUrl) {
+                    window.location.href = result.checkoutUrl;
+                  }
+                }}
+              >
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting…
+                  </>
+                ) : (
+                  <>
+                    Pay with Card
+                    {selectedPlan ? ` — ${formatPrice(selectedPlan.priceAmount, selectedPlan.priceCurrency, selectedPlan.interval)}` : ""}
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/dashboard">Back to Dashboard</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+
+        {method === "ewallet" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Pay with GCash or Maya</CardTitle>
+              <CardDescription>
+                You&#39;ll be redirected to PayMongo&#39;s secure checkout. Choose GCash, Maya, or GrabPay.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4 py-6">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">GCash</span>
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">Maya</span>
+                <span className="rounded-md border bg-muted/50 px-3 py-1.5 text-sm font-medium">GrabPay</span>
+              </div>
+              {checkoutError && <p className="text-sm text-destructive">{checkoutError}</p>}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
+              <Button
+                className="w-full"
+                disabled={checkoutLoading || !selectedPlan}
+                onClick={async () => {
+                  setCheckoutLoading(true);
+                  setCheckoutError(null);
+                  const result = await createPayMongoCheckoutSession(checkoutPlan, ["gcash", "paymaya", "grab_pay"]);
+                  if (result.error) {
+                    setCheckoutError(result.error);
+                    setCheckoutLoading(false);
+                    return;
+                  }
+                  if (result.checkoutUrl) {
+                    window.location.href = result.checkoutUrl;
+                  }
+                }}
+              >
+                {checkoutLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting…
+                  </>
+                ) : (
+                  <>
+                    Continue to PayMongo
+                    {selectedPlan ? ` — ${formatPrice(selectedPlan.priceAmount, selectedPlan.priceCurrency, selectedPlan.interval)}` : ""}
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/dashboard">Back to Dashboard</Link>
               </Button>
             </CardFooter>
           </Card>

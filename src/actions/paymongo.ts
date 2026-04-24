@@ -130,6 +130,87 @@ export async function createPayMongoQRPhPaymentIntent(
   }
 }
 
+/**
+ * Create a PayMongo Checkout Session.
+ * Returns a hosted checkout URL that the user should be redirected to.
+ * Supports GCash, Maya, QR PH, GrabPay, and credit/debit cards in one flow.
+ * PayMongo fires `checkout_session.payment.paid` webhook on success.
+ */
+export async function createPayMongoCheckoutSession(
+  planId: "pro" | "premium" = "pro",
+  methods: string[] = ["gcash", "paymaya", "qrph", "card", "grab_pay"]
+): Promise<{ checkoutUrl?: string; sessionId?: string; error?: string }> {
+  const secret = getSecretKey();
+  if (!secret) return { error: "PayMongo is not configured. Set PAYMONGO_SECRET_KEY." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+
+  const { pro, premium } = await getSubscriptionPlans();
+  const plan = planId === "premium" ? premium ?? pro : pro;
+  if (!plan) return { error: "Subscription plan not found." };
+
+  const amountCentavos = Math.round(plan.priceAmount * 100);
+  if (amountCentavos < MIN_AMOUNT_CENTAVOS) {
+    return { error: `Minimum is PHP 20. Update Admin → Pricing to at least PHP 20.` };
+  }
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://omnitrak.cloud").replace(/\/$/, "");
+  const authHeader = `Basic ${Buffer.from(`${secret}:`).toString("base64")}`;
+
+  try {
+    const res = await fetch(`${PAYMONGO_API}/checkout_sessions`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            billing: {
+              name: user.user_metadata?.full_name ?? user.email ?? "Customer",
+              email: user.email ?? "",
+            },
+            send_email_receipt: false,
+            show_description: true,
+            show_line_items: true,
+            cancel_url: `${siteUrl}/account/subscription/payment?plan=${planId}&canceled=1`,
+            success_url: `${siteUrl}/account/subscription?paid=1`,
+            description: `${plan.name} subscription (1 ${plan.interval})`,
+            line_items: [
+              {
+                currency: "PHP",
+                amount: amountCentavos,
+                name: plan.name,
+                quantity: 1,
+              },
+            ],
+            payment_method_types: methods,
+            metadata: { user_id: user.id, subscription_tier: planId },
+          },
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      return { error: `PayMongo ${res.status}: ${err}` };
+    }
+
+    const json = await res.json();
+    const checkoutUrl = json?.data?.attributes?.checkout_url as string | undefined;
+    const sessionId = json?.data?.id as string | undefined;
+    if (!checkoutUrl) return { error: "PayMongo did not return a checkout URL. Try again." };
+    return { checkoutUrl, sessionId };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "PayMongo request failed." };
+  }
+}
+
 /** Retrieve payment intent status; if succeeded, grant subscription and return status. */
 export async function checkPayMongoPaymentStatus(
   paymentIntentId: string
