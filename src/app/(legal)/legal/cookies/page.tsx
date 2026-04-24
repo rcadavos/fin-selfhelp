@@ -58,7 +58,7 @@ export default function CookiesPage() {
             href={LEGAL_ROUTES.privacy}
             className="font-medium text-primary underline-offset-2 hover:underline"
           >
-            Privacy policy
+            Privacy Policy
           </Link>
           .
         </p>

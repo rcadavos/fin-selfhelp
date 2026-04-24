@@ -3,23 +3,24 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { BadgeCheck, ChevronLeft, Lock, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { BadgeCheck, Check, ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 import { cn } from "@/lib/utils";
 
-function SubmitButton({ children }: { children: React.ReactNode }) {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Creating account…" : children}
+    <Button type="submit" className="h-11 w-full" disabled={pending || disabled}>
+      {pending ? "Creating Account…" : "Sign Up"}
     </Button>
   );
 }
@@ -36,20 +37,17 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent" aria-hidden />
       <div className="relative flex min-h-0 flex-1 flex-col justify-center gap-6">
         <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary">OmniTrak</p>
+          <Image src="/omnitrak-logo.png" alt="OmniTrak" width={140} height={36} className="object-contain" priority />
           <h1 className="text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">Create your account</h1>
           {showFooter ? (
             <>
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Track bills, cashflow, and lists in one place. Start free and add more when you&apos;re ready.
-              </p>
-              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Add goals to plan short-term, long-term, and lifetime targets from day one.
+                Start tracking your expenses, bills, savings, and goals — all in one place.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">
                   <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-                  Free to start
+                  Get Started Free
                 </span>
               </div>
             </>
@@ -72,8 +70,27 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
 }
 
 const FULL_NAME_MAX = 100;
-// Letters (including accented / Unicode), spaces, hyphens, apostrophes, periods
 const FULL_NAME_RE = /^[a-zA-ZÀ-ÖØ-öø-ÿĀ-ɏ\s'\-.]*$/;
+
+const PW_RULES = [
+  { label: "At least 8 characters", test: (pw: string) => pw.length >= 8 },
+  { label: "At least 1 uppercase letter", test: (pw: string) => /[A-Z]/.test(pw) },
+  { label: "At least 1 number", test: (pw: string) => /[0-9]/.test(pw) },
+  { label: "At least 1 symbol", test: (pw: string) => /[^a-zA-Z0-9]/.test(pw) },
+] as const;
+
+function passwordScore(pw: string): number {
+  return PW_RULES.reduce((n, r) => n + (r.test(pw) ? 1 : 0), 0);
+}
+
+const STRENGTH_LABEL = ["", "Weak", "Fair", "Good", "Strong"] as const;
+const STRENGTH_COLOR = [
+  "bg-border",
+  "bg-red-500",
+  "bg-amber-400",
+  "bg-emerald-400",
+  "bg-emerald-600",
+] as const;
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -81,6 +98,8 @@ export default function SignUpPage() {
   const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [fullName, setFullName] = useState("");
   const [fullNameError, setFullNameError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -89,7 +108,7 @@ export default function SignUpPage() {
 
   function handleFullNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
-    if (val.length > FULL_NAME_MAX) return; // hard-cap at 100
+    if (val.length > FULL_NAME_MAX) return;
     setFullName(val);
     if (val && !FULL_NAME_RE.test(val)) {
       setFullNameError("Name may only contain letters, spaces, hyphens, apostrophes, or periods.");
@@ -100,57 +119,65 @@ export default function SignUpPage() {
 
   async function handleSubmit(formData: FormData) {
     if (fullNameError) return;
+    if (!agreed) return;
     setFormMessage(null);
     const result = await signUp(formData);
     if (result?.error) {
       setFormMessage({ type: "error", text: result.error });
     } else if (result?.next) {
-      // Auto-login successful, redirect to dashboard
       router.push(result.next);
     } else if (result?.message) {
       setFormMessage({ type: "success", text: result.message });
     }
   }
 
+  const score = passwordScore(password);
+  const canSubmit = agreed && !fullNameError && score >= 4;
+
   if (loading || user) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
-        <SignupBrandPanel />
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 md:px-6 md:py-5">
-          <p className="text-sm text-muted-foreground">{user ? "Redirecting…" : "Loading…"}</p>
-        </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <p className="text-sm text-muted-foreground">{user ? "Redirecting…" : "Loading…"}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 md:hidden">
-        <Link href="/" className="text-base font-semibold tracking-tight">
-          OmniTrak
-        </Link>
+    <div className="relative flex min-h-0 flex-1 flex-col bg-gradient-to-br from-primary/[0.05] via-background to-muted/20 dark:from-primary/[0.09] dark:via-background dark:to-muted/20">
+      {/* page-level blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/[0.05] blur-2xl" />
+      </div>
+
+      {/* Mobile top bar */}
+      <header className="relative flex h-12 shrink-0 items-center justify-between border-b bg-background/60 px-4 backdrop-blur-sm md:hidden">
+        <Link href="/" className="text-base font-semibold tracking-tight">OmniTrak</Link>
         <ThemeToggle />
       </header>
 
-      <SignupBrandPanel showFooter />
+      {/* Centered card */}
+      <div className="relative flex flex-1 items-center justify-center px-4 py-6 sm:py-10">
+        <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-border/80 shadow-2xl md:grid md:grid-cols-2">
+          <SignupBrandPanel showFooter />
 
-      <div
-        data-app-scroll="true"
-        className={cn(
-          "flex min-h-0 flex-1 flex-col justify-center px-4 py-6 sm:px-6 md:px-8 md:py-5 lg:px-10",
-          "md:max-h-full md:overflow-y-auto md:overflow-x-hidden",
-          "min-h-[min(100%,32rem)] md:min-h-0"
-        )}
-      >
-        <div className="mx-auto w-full max-w-sm sm:max-w-md">
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
-              <CardTitle className="text-xl md:text-lg">Sign up</CardTitle>
-              <CardDescription className="text-sm md:text-xs">
-                Start with bills, lists, and goals in a single dashboard.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
+          {/* Form panel */}
+          <div
+            data-app-scroll="true"
+            className="flex flex-col justify-center overflow-y-auto bg-background px-5 py-7 sm:px-8 md:max-h-[90vh]"
+          >
+            <div className="mx-auto w-full max-w-sm">
+              <div className="space-y-1 pb-4 text-center">
+                <h2 className="text-xl font-semibold">Sign up</h2>
+                <p className="text-xs text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-medium text-primary underline-offset-2 hover:underline">
+                    Log in
+                  </Link>
+                </p>
+              </div>
+
+              <div className="space-y-4">
               <form action={handleSubmit} className="space-y-3">
                 {formMessage ? (
                   <div
@@ -165,15 +192,15 @@ export default function SignUpPage() {
                     {formMessage.text}
                   </div>
                 ) : null}
+
+                {/* Full name */}
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between">
                     <Label htmlFor="full_name">Full name</Label>
                     <span
                       className={cn(
                         "text-[11px] tabular-nums",
-                        fullName.length >= FULL_NAME_MAX
-                          ? "text-destructive"
-                          : "text-muted-foreground/60"
+                        fullName.length >= FULL_NAME_MAX ? "text-destructive" : "text-muted-foreground/60"
                       )}
                     >
                       {fullName.length}/{FULL_NAME_MAX}
@@ -198,31 +225,10 @@ export default function SignUpPage() {
                     </p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    autoComplete="new-password"
-                    placeholder="At least 6 characters"
-                  />
-                </div>
+
+                {/* Security notes */}
                 <div
-                  className="space-y-2 text-xs leading-snug text-muted-foreground/80"
+                  className="flex flex-col gap-1.5 text-xs leading-snug text-muted-foreground/80"
                   role="status"
                   aria-label="Privacy and security"
                 >
@@ -235,7 +241,136 @@ export default function SignUpPage() {
                     <span>We&apos;ll never sell your personal info</span>
                   </div>
                 </div>
-                <SubmitButton>Create account</SubmitButton>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    placeholder="At least 8 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  {/* Strength bar */}
+                  {password.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "h-1 flex-1 rounded-full transition-colors",
+                              i <= score ? STRENGTH_COLOR[score] : "bg-border"
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Strength:{" "}
+                        <span
+                          className={cn(
+                            "font-medium",
+                            score <= 1 && "text-red-500",
+                            score === 2 && "text-amber-500",
+                            score >= 3 && "text-emerald-600 dark:text-emerald-400"
+                          )}
+                        >
+                          {STRENGTH_LABEL[score]}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {/* Requirements checklist */}
+                  <ul className="space-y-1" aria-label="Password requirements">
+                    {PW_RULES.map((rule) => {
+                      const met = rule.test(password);
+                      return (
+                        <li
+                          key={rule.label}
+                          className={cn(
+                            "flex items-center gap-1.5 text-[11px] transition-colors duration-200",
+                            met ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/70"
+                          )}
+                        >
+                          <span className="relative h-3 w-3 shrink-0">
+                            {/* Circle — visible when not met */}
+                            <svg
+                              viewBox="0 0 12 12"
+                              className={cn(
+                                "absolute inset-0 h-3 w-3 transition-all duration-200",
+                                met ? "scale-75 opacity-0" : "scale-100 opacity-100"
+                              )}
+                              aria-hidden
+                            >
+                              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                            </svg>
+                            {/* Check — visible when met */}
+                            <Check
+                              className={cn(
+                                "absolute inset-0 h-3 w-3 transition-all duration-200",
+                                met ? "scale-100 opacity-100" : "scale-75 opacity-0"
+                              )}
+                              aria-hidden
+                            />
+                          </span>
+                          {rule.label}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Agreement checkbox */}
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                  />
+                  <span className="text-xs leading-relaxed text-muted-foreground">
+                    I agree to the OmniTrak{" "}
+                    <Link
+                      href={LEGAL_ROUTES.privacy}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Privacy Policy
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      href={LEGAL_ROUTES.terms}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Terms of Service
+                    </Link>
+                  </span>
+                </label>
+                <SubmitButton disabled={!canSubmit} />
+                
               </form>
 
               <div className="relative">
@@ -247,31 +382,11 @@ export default function SignUpPage() {
                 </div>
               </div>
               <GoogleSignInButton next="/dashboard" />
-
-              <p className="border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-primary underline-offset-2 hover:underline">
-                  Log in
-                </Link>
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="mt-4 flex justify-center md:hidden">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-              Back to home
-            </Link>
-          </div>
-
-          <div className="mt-3 hidden justify-end md:flex">
-            <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
   );
 }

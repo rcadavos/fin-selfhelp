@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildPageMetadata } from "@/lib/seo";
 import { LEGAL_ROUTES } from "@/lib/legal-routes";
+import { Header } from "@/components/landing/header";
 
 export const metadata = buildPageMetadata({
   title: "Legal",
@@ -12,17 +13,17 @@ export const metadata = buildPageMetadata({
 const documents = [
   {
     href: LEGAL_ROUTES.terms,
-    title: "Terms of service",
+    title: "Terms of Service",
     description: "Rules for using the Service, subscriptions, and liability.",
   },
   {
     href: LEGAL_ROUTES.privacy,
-    title: "Privacy policy",
+    title: "Privacy Policy",
     description: "What we collect, how we use it, and your choices.",
   },
   {
     href: LEGAL_ROUTES.cookies,
-    title: "Cookie notice",
+    title: "Cookie Notice",
     description: "Cookies, local storage, and similar technologies.",
   },
   {
@@ -34,7 +35,9 @@ const documents = [
 
 export default function LegalHubPage() {
   return (
-    <main className="min-h-0 flex-1 bg-background">
+    <div className="min-h-0 flex-1 bg-background">
+      <Header />
+      <main>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
         <Link
           href="/"
@@ -61,6 +64,7 @@ export default function LegalHubPage() {
           ))}
         </ul>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }

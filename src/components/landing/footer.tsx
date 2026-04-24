@@ -18,9 +18,9 @@ const productLinks = [
 ] as const;
 
 const legalLinks = [
-  { href: LEGAL_ROUTES.terms, label: "Terms of service" },
-  { href: LEGAL_ROUTES.privacy, label: "Privacy policy" },
-  { href: LEGAL_ROUTES.cookies, label: "Cookie notice" },
+  { href: LEGAL_ROUTES.terms, label: "Terms of Service" },
+  { href: LEGAL_ROUTES.privacy, label: "Privacy Policy" },
+  { href: LEGAL_ROUTES.cookies, label: "Cookie Notice" },
   { href: LEGAL_ROUTES.noSale, label: "We don't sell your data" },
 ] as const;
 

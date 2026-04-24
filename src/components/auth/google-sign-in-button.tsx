@@ -43,7 +43,7 @@ export function GoogleSignInButton({ next, className }: GoogleSignInButtonProps)
     <Button
       type="button"
       variant="outline"
-      className={cn("w-full gap-2", className)}
+      className={cn("h-11 w-full gap-2", className)}
       disabled={pending}
       onClick={() => {
         startTransition(async () => {

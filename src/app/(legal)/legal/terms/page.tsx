@@ -3,14 +3,14 @@ import { buildPageMetadata } from "@/lib/seo";
 import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export const metadata = buildPageMetadata({
-  title: "Terms of service",
+  title: "Terms of Service",
   description: "OmniTrak terms of service and user agreement.",
   path: LEGAL_ROUTES.terms,
 });
 
 export default function TermsPage() {
   return (
-    <LegalDocShell title="Terms of service">
+    <LegalDocShell title="Terms of Service">
       <p>
         <strong>Last updated:</strong> April 12, 2026. These terms govern your use of OmniTrak
         (&quot;the Service&quot;). By creating an account or using the Service, you agree to them.

@@ -3,14 +3,14 @@ import { buildPageMetadata } from "@/lib/seo";
 import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 export const metadata = buildPageMetadata({
-  title: "Privacy policy",
+  title: "Privacy Policy",
   description: "How OmniTrak collects, uses, and protects your information.",
   path: LEGAL_ROUTES.privacy,
 });
 
 export default function PrivacyPage() {
   return (
-    <LegalDocShell title="Privacy policy">
+    <LegalDocShell title="Privacy Policy">
       <p>
         <strong>Last updated:</strong> April 12, 2026. This policy describes how OmniTrak
         (&quot;we&quot;, &quot;us&quot;) handles information when you use our website and

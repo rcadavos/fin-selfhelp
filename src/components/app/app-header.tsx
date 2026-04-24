@@ -97,7 +97,7 @@ export function AppHeader({ className }: { className?: string }) {
               <Link href="/login" className="text-sm font-medium text-foreground">
                 Log in
               </Link>
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="cursor-pointer">
                 <Link href="/signup">Sign up</Link>
               </Button>
             </div>

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
 import { confirmUserEmail, setUserSubscription, setUserAdmin, deleteUser, type AdminUserRow } from "@/actions/admin";
-import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX, Trash2 } from "lucide-react";
+import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX, Trash2, Search } from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -77,6 +77,7 @@ export default function AdminUsersPage() {
   const [expiresAt, setExpiresAt] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
+  const [search, setSearch] = useState("");
 
   const setAdminMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
@@ -157,6 +158,16 @@ export default function AdminUsersPage() {
     },
   });
 
+  const filteredUsers = search.trim()
+    ? users.filter((u) => {
+        const q = search.toLowerCase();
+        return (
+          u.email?.toLowerCase().includes(q) ||
+          u.full_name?.toLowerCase().includes(q)
+        );
+      })
+    : users;
+
   function openSetPaid(row: AdminUserRow) {
     setPaidUser(row);
     setPaidTier(row.subscription_tier === "premium" ? "premium" : "pro");
@@ -183,11 +194,27 @@ export default function AdminUsersPage() {
     <main className="container mx-auto max-w-5xl px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardDescription>
-            Free, paid Pro, or paid Premium. Active Pro or Premium unlocks product features; only users on recurring
-            billing can submit reviews and suggestions.
-          </CardDescription>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Users</CardTitle>
+              <CardDescription className="mt-1">
+                Free, paid Pro, or paid Premium. Active Pro or Premium unlocks product features; only users on recurring
+                billing can submit reviews and suggestions.
+              </CardDescription>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-muted-foreground sm:pt-0.5">
+              {users.length} total
+            </span>
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by email or name…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -195,6 +222,8 @@ export default function AdminUsersPage() {
           )}
           {users.length === 0 && !error ? (
             <p className="text-muted-foreground">No users yet.</p>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-muted-foreground">No users match &ldquo;{search}&rdquo;.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -202,7 +231,6 @@ export default function AdminUsersPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
-                  <TableHead className="text-right">Confirmed</TableHead>
                   <TableHead className="text-right">Last login</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
@@ -210,7 +238,7 @@ export default function AdminUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) => {
+                {filteredUsers.map((u) => {
                   const status = subscriptionStatus(u);
                   return (
                     <TableRow key={u.id}>
@@ -218,9 +246,6 @@ export default function AdminUsersPage() {
                       <TableCell className="text-muted-foreground">{u.full_name ?? "—"}</TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {formatDate(u.email_confirmed_at)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.last_login_at)}

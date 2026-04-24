@@ -3,13 +3,13 @@
 import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signInWithOtp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
+import Image from "next/image";
 import { ChevronLeft, LayoutDashboard } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useUser } from "@/hooks/use-user";
@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="h-11 w-full" disabled={pending}>
       {pending ? "Signing in…" : children}
     </Button>
   );
@@ -38,15 +38,12 @@ function LoginBrandPanel({ showFooter }: { showFooter?: boolean }) {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-transparent" aria-hidden />
       <div className="relative flex min-h-0 flex-1 flex-col justify-center gap-6">
         <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary">OmniTrak</p>
+          <Image src="/omnitrak-logo.png" alt="OmniTrak" width={140} height={36} className="object-contain" priority />
           <h1 className="text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">Welcome back</h1>
           {showFooter ? (
             <>
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Bills, cashflow, and lists in one place. Sign in to pick up where you left off.
-              </p>
-              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Continue your goals progress with short-term, long-term, and lifetime targets.
+                Log in to continue tracking your expenses, bills, savings, and goals.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">
@@ -150,168 +147,151 @@ function LoginContent() {
 
   if (loading || user) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
-        <LoginBrandPanel />
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 md:px-6 md:py-5">
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
-      {/* Mobile: compact top bar */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b px-4 md:hidden">
-        <Link href="/" className="text-base font-semibold tracking-tight">
-          OmniTrak
-        </Link>
+    <div className="relative flex min-h-0 flex-1 flex-col bg-gradient-to-br from-primary/[0.05] via-background to-muted/20 dark:from-primary/[0.09] dark:via-background dark:to-muted/20">
+      {/* page-level blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-primary/[0.07] blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-primary/[0.05] blur-2xl" />
+      </div>
+
+      {/* Mobile top bar */}
+      <header className="relative flex h-12 shrink-0 items-center justify-between border-b bg-background/60 px-4 backdrop-blur-sm md:hidden">
+        <Link href="/" className="text-base font-semibold tracking-tight">OmniTrak</Link>
         <ThemeToggle />
       </header>
 
-      <LoginBrandPanel showFooter />
+      {/* Centered card */}
+      <div className="relative flex flex-1 items-center justify-center px-4 py-6 sm:py-10">
+        <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-border/80 shadow-2xl md:grid md:grid-cols-2">
+          <LoginBrandPanel showFooter />
 
-      {/* Form column */}
-      <div
-        data-app-scroll="true"
-        className={cn(
-          "flex min-h-0 flex-1 flex-col justify-center px-4 py-6 sm:px-6 md:px-8 md:py-5 lg:px-10",
-          "md:max-h-full md:overflow-y-auto md:overflow-x-hidden",
-          "min-h-[min(100%,32rem)] md:min-h-0"
-        )}
-      >
-        <div className="mx-auto w-full max-w-sm sm:max-w-md">
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="space-y-1 pb-3 pt-5 text-center md:pt-4">
-              <CardTitle className="text-xl md:text-lg">Log in</CardTitle>
-              <CardDescription className="text-sm md:text-xs">
-                Manage bills, lists, and your goals progress in one place.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 px-4 pb-5 pt-0 sm:px-6 md:pb-5">
-              <div className="inline-flex w-full items-center gap-1 rounded-md border bg-muted/40 p-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={authTab === "password" ? "secondary" : "ghost"}
-                  className="h-8 flex-1 text-xs"
-                  onClick={() => setAuthTab("password")}
-                >
-                  Login
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={authTab === "otp" ? "secondary" : "ghost"}
-                  className="h-8 flex-1 text-xs"
-                  onClick={() => setAuthTab("otp")}
-                >
-                  One-time login link
-                </Button>
+          {/* Form panel */}
+          <div
+            data-app-scroll="true"
+            className="flex flex-col justify-center overflow-y-auto bg-background px-5 py-7 sm:px-8 md:max-h-[90vh]"
+          >
+            <div className="mx-auto w-full max-w-sm">
+              <div className="space-y-1 pb-6 text-center">
+                <h2 className="text-xl font-semibold">Log in</h2>
+                <p className="text-center text-xs text-muted-foreground">
+                  No account?{" "}
+                  <Link href="/signup" className="font-medium text-primary underline-offset-2 hover:underline">
+                    Sign up
+                  </Link>
+                </p>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  form="login-password"
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              {formMessage ? (
-                <div
-                  role={formMessage.type === "error" ? "alert" : "status"}
-                  className={cn(
-                    "rounded-md border px-3 py-2 text-sm",
-                    formMessage.type === "error"
-                      ? "border-destructive/40 bg-destructive/10 text-destructive"
-                      : "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  )}
-                >
-                  {formMessage.text}
-                </div>
-              ) : null}
-
-              {authTab === "password" ? (
-                <form id="login-password" action={handlePasswordSubmit} className="space-y-3">
-                  <input type="hidden" name="next" value={nextPath} />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Link
-                        href="/forgot-password"
-                        tabIndex={-1}
-                        className="text-xs text-muted-foreground hover:text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <SubmitButton>Log in</SubmitButton>
-                </form>
-              ) : (
-                <form id="login-otp" action={handleOtpSubmit} className="space-y-3">
-                  <input type="hidden" name="next" value={nextPath} />
-                  <input type="hidden" name="email" value={email} />
-                  <p className="text-sm text-muted-foreground">
-                    We&apos;ll send a one-time sign-in link to the email above. No password needed.
-                  </p>
+              <div className="space-y-4">
+                <div className="inline-flex w-full items-center gap-1 rounded-md border bg-muted/40 p-1">
                   <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={otpPending || !email.trim()}
+                    type="button"
+                    size="sm"
+                    variant={authTab === "password" ? "secondary" : "ghost"}
+                    className="h-8 flex-1 text-xs"
+                    onClick={() => setAuthTab("password")}
                   >
-                    {otpPending ? "Sending…" : "Send one-time sign-in link"}
+                    Login
                   </Button>
-                </form>
-              )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={authTab === "otp" ? "secondary" : "ghost"}
+                    className="h-8 flex-1 text-xs"
+                    onClick={() => setAuthTab("otp")}
+                  >
+                    One-time login link
+                  </Button>
+                </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    form="login-password"
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or</span>
+                {formMessage ? (
+                  <div
+                    role={formMessage.type === "error" ? "alert" : "status"}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm",
+                      formMessage.type === "error"
+                        ? "border-destructive/40 bg-destructive/10 text-destructive"
+                        : "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    )}
+                  >
+                    {formMessage.text}
+                  </div>
+                ) : null}
+
+                {authTab === "password" ? (
+                  <form id="login-password" action={handlePasswordSubmit} className="space-y-3">
+                    <input type="hidden" name="next" value={nextPath} />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Link
+                          href="/forgot-password"
+                          tabIndex={-1}
+                          className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                    <SubmitButton>Log in</SubmitButton>
+                  </form>
+                ) : (
+                  <form id="login-otp" action={handleOtpSubmit} className="space-y-3">
+                    <input type="hidden" name="next" value={nextPath} />
+                    <input type="hidden" name="email" value={email} />
+                    <p className="text-sm text-muted-foreground">
+                      We&apos;ll send a one-time sign-in link to the email above. No password needed.
+                    </p>
+                    <Button
+                      type="submit"
+                      className="h-11 w-full"
+                      disabled={otpPending || !email.trim()}
+                    >
+                      {otpPending ? "Sending…" : "Send one-time sign-in link"}
+                    </Button>
+                  </form>
+                )}
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or</span>
+                  </div>
                 </div>
+                <GoogleSignInButton next={nextPath} />
+
               </div>
-              <GoogleSignInButton next={nextPath} />
-
-              <p className="border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
-                No account?{" "}
-                <Link href="/signup" className="font-medium text-primary underline-offset-2 hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="mt-4 flex justify-center md:hidden">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-              Back to home
-            </Link>
-          </div>
-
-          <div className="mt-3 hidden justify-end md:flex">
-            <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
