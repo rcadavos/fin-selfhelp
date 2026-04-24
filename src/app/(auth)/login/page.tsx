@@ -86,9 +86,11 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { user, loading } = useUser();
   const [otpPending, setOtpPending] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [authTab, setAuthTab] = useState<"password" | "otp">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const nextPath = safeNextPath(searchParams.get("next"));
   const supabase = createClient();
@@ -131,6 +133,12 @@ function LoginContent() {
       setPassword("");
       return;
     }
+    if (!rememberMe) {
+      // Remove persisted session so it clears when the browser tab closes
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith("sb-")) localStorage.removeItem(k);
+      });
+    }
     setFormMessage(null);
     router.replace(nextPath || "/dashboard");
     router.refresh();
@@ -140,9 +148,14 @@ function LoginContent() {
     setOtpPending(true);
     setFormMessage(null);
     const result = await signInWithOtp(formData);
-    setOtpPending(false);
-    if (result?.error) setFormMessage({ type: "error", text: result.error });
-    if (result?.message) setFormMessage({ type: "success", text: result.message });
+    if (result?.error) {
+      setFormMessage({ type: "error", text: result.error });
+      setOtpPending(false);
+    } else if (result?.message) {
+      setFormMessage({ type: "success", text: result.message });
+      setOtpSent(true);
+      setOtpPending(false);
+    }
   }
 
   if (loading || user) {
@@ -220,7 +233,7 @@ function LoginContent() {
                     required
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setOtpSent(false); }}
                   />
                 </div>
                 {formMessage ? (
@@ -241,16 +254,7 @@ function LoginContent() {
                   <form id="login-password" action={handlePasswordSubmit} className="space-y-3">
                     <input type="hidden" name="next" value={nextPath} />
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Link
-                          href="/forgot-password"
-                          tabIndex={-1}
-                          className="text-xs text-muted-foreground hover:text-primary hover:underline"
-                        >
-                          Forgot password?
-                        </Link>
-                      </div>
+                      <Label htmlFor="password">Password</Label>
                       <Input
                         id="password"
                         name="password"
@@ -260,6 +264,24 @@ function LoginContent() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                       />
+                      <div className="flex items-center justify-between pt-0.5">
+                        <label className="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          <span className="text-xs text-muted-foreground">Keep me logged in</span>
+                        </label>
+                        <Link
+                          href="/forgot-password"
+                          tabIndex={-1}
+                          className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
                     </div>
                     <SubmitButton>Log in</SubmitButton>
                   </form>
@@ -273,9 +295,9 @@ function LoginContent() {
                     <Button
                       type="submit"
                       className="h-11 w-full"
-                      disabled={otpPending || !email.trim()}
+                      disabled={otpPending || otpSent || !email.trim()}
                     >
-                      {otpPending ? "Sending…" : "Send one-time sign-in link"}
+                      {otpPending ? "Sending…" : otpSent ? "Link sent — check your email" : "Send one-time sign-in link"}
                     </Button>
                   </form>
                 )}

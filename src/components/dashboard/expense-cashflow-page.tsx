@@ -1803,7 +1803,7 @@ export function ExpenseCashflowPage({
           <Card className="mb-6 border-primary/25 bg-muted/20">
             <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <p className="font-medium">Bills & expenses</p>
+                <p className="font-medium">Expenses & Bills</p>
                 <p className="text-sm text-muted-foreground">
                   Add, edit, and mark bills paid in My Expenses.
                 </p>
