@@ -14,6 +14,14 @@ interface PlatformStats {
 const EMPTY_STATS: PlatformStats = { users: 0, subscribers: 0, pageVisitors: 0 };
 const POLL_MS = 30_000;
 
+function roundedEstimate(n: number): { value: number; showPlus: boolean } {
+  if (n < 10) return { value: n, showPlus: false };
+  if (n < 100) return { value: Math.floor(n / 10) * 10, showPlus: true };
+  if (n < 1_000) return { value: Math.floor(n / 50) * 50, showPlus: true };
+  if (n < 10_000) return { value: Math.floor(n / 500) * 500, showPlus: true };
+  return { value: Math.floor(n / 1_000) * 1_000, showPlus: true };
+}
+
 function AnimatedNumber({ target, isVisible }: { target: number; isVisible: boolean }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
@@ -196,7 +204,9 @@ export function StatsSection({ className }: { className?: string }) {
 
         {/* Stat cards */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_CARDS.map(({ key, label, description, icon: Icon, iconBg, iconColor, numColor, staticDisplay }) => (
+          {STAT_CARDS.map(({ key, label, description, icon: Icon, iconBg, iconColor, numColor, staticDisplay }) => {
+            const est = staticDisplay ? null : roundedEstimate(stats[key as keyof PlatformStats] ?? 0);
+            return (
             <div
               key={key}
               className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur-sm transition-shadow hover:shadow-md"
@@ -219,15 +229,16 @@ export function StatsSection({ className }: { className?: string }) {
                 </p>
               ) : (
                 <p className={cn("text-4xl font-bold tabular-nums tracking-tight", numColor)}>
-                  <AnimatedNumber target={stats[key as keyof PlatformStats] ?? 0} isVisible={isVisible} />
-                  <span className="ml-0.5 text-2xl opacity-60">+</span>
+                  <AnimatedNumber target={est!.value} isVisible={isVisible} />
+                  {est!.showPlus && <span className="ml-0.5 text-2xl opacity-60">+</span>}
                 </p>
               )}
 
               <p className="mt-2 text-sm font-semibold text-foreground">{label}</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
