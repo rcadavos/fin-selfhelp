@@ -62,7 +62,7 @@ export async function signUp(formData: FormData) {
   }
 
   const siteUrl = normalizeSiteUrl();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -72,9 +72,16 @@ export async function signUp(formData: FormData) {
       },
     },
   });
+
   if (error) {
     return { error: error.message };
   }
+
+  // If email confirmation is disabled, Supabase returns a session immediately.
+  if (data.session) {
+    return { next: "/dashboard", message: "Account created! Logging you in..." };
+  }
+
   return { message: "Check your email to confirm your account." };
 }
 
