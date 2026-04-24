@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getExpenseCategories } from "@/actions/categories";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
-import { cn } from "@/lib/utils";
 
 export default async function CategoriesPage() {
   const dbCategories = await getExpenseCategories();
@@ -46,7 +45,6 @@ export default async function CategoriesPage() {
             key={cat.id}
             index={index}
             label={cat.label}
-            bgClass={cat.bgClass}
             description={cat.description}
             lists={cat.lists}
           />
@@ -59,22 +57,17 @@ export default async function CategoriesPage() {
 function CategoryCard({
   index,
   label,
-  bgClass,
   description,
   lists,
 }: {
   index: number;
   label: string;
-  bgClass: string;
   description: string | null;
   lists: string[];
 }) {
   return (
     <div
-      className={cn(
-        "flex flex-col rounded-2xl border border-border/60 p-5 shadow-sm transition-shadow hover:shadow-md",
-        bgClass
-      )}
+      className="flex flex-col rounded-2xl border border-border/60 bg-sky-50 p-5 shadow-sm transition-shadow hover:shadow-md dark:bg-sky-950/30"
     >
       {/* Header: number + category name */}
       <div className="mb-3 flex items-start gap-3">

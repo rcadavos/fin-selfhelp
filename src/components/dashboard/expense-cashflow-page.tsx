@@ -284,6 +284,24 @@ function exportToExcel(rows: DesktopExpenseRow[], categories: { id: string; labe
   document.body.removeChild(link);
 }
 
+const GREETINGS = [
+  "Hello",
+  "Hey",
+  "Hi",
+  "Welcome back",
+  "Good to see you",
+  "Howdy",
+  "Greetings",
+  "Hey there",
+  "What's up",
+  "Glad you're here",
+];
+
+function RandomGreeting() {
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+  return <>{greeting}</>;
+}
+
 function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -1608,7 +1626,7 @@ export function ExpenseCashflowPage({
           {/* ════════════════════ WELCOME ════════════════════ */}
           {user && (
             <p className="mt-4 mb-2 text-lg font-semibold text-foreground">
-              Welcome back, {getAccountDisplayName(user).split(" ")[0]} 👋
+              <RandomGreeting />, {getAccountDisplayName(user).split(" ")[0]} 👋
             </p>
           )}
 

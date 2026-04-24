@@ -6,7 +6,7 @@ import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
 import { Check, Gem, Sparkles } from "lucide-react";
 
 const proBenefits = [
-  "Due dates & email reminders",
+  "Email reminders for bills",
   "Unlimited to-buy & to-do",
   "Partner sharing (invite by email)",
   "Reviews & Suggestions",
@@ -29,7 +29,7 @@ export function SubscribeSection({
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Plans</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Start free, upgrade to Pro for reminders and unlimited lists, or Premium for extra modules.
+            Start free, upgrade to Pro for email reminders and unlimited lists, or Premium for extra modules.
           </p>
         </div>
 
@@ -40,9 +40,9 @@ export function SubscribeSection({
               <CardDescription>Track bills and cashflow with no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
-              <p>Unlimited expense rows</p>
+              <p>Unlimited expense & bill rows</p>
               <p>To-buy & to-do up to 10 items each</p>
-              <p>No due dates or reminder emails (upgrade to Pro)</p>
+              <p>No email reminders (upgrade to Pro)</p>
             </CardContent>
             <CardFooter className="mt-auto w-full">
               <Button variant="outline" className="w-full" asChild>

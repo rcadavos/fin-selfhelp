@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isStaleRefreshTokenError } from "@/lib/supabase/stale-session-error";
+import { getQueryClient } from "@/lib/query/query-client";
 import type { User } from "@supabase/supabase-js";
 
 type UserContextValue = {
@@ -28,6 +29,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const avatarSyncInFlightRef = useRef(false);
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -67,12 +69,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.getUser();
       if (error && isStaleRefreshTokenError(error)) {
         await supabase.auth.signOut({ scope: "local" });
+        getQueryClient().clear();
+        prevUserIdRef.current = null;
         setUser(null);
         return;
       }
       if (error) return;
-      setUser(data.user ?? null);
-      await ensureAppAvatarFromProvider(data.user ?? null);
+      const nextUser = data.user ?? null;
+      if (nextUser?.id !== prevUserIdRef.current) {
+        getQueryClient().clear();
+        prevUserIdRef.current = nextUser?.id ?? null;
+      }
+      setUser(nextUser);
+      await ensureAppAvatarFromProvider(nextUser);
     };
 
     void supabase.auth
@@ -80,6 +89,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .then(async ({ data: { session }, error }) => {
         if (error && isStaleRefreshTokenError(error)) {
           await supabase.auth.signOut({ scope: "local" });
+          getQueryClient().clear();
+          prevUserIdRef.current = null;
           setUser(null);
           setLoading(false);
           return;
@@ -105,6 +116,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (event === "INITIAL_SESSION") return;
 
       if (!session?.user) {
+        getQueryClient().clear();
+        prevUserIdRef.current = null;
         setUser(null);
         return;
       }

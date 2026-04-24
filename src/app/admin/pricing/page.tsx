@@ -191,7 +191,7 @@ export default function AdminPricingPage() {
         <PlanEditor
           planId="pro"
           title="Pro"
-          description="Due dates, reminders, unlimited lists, full My Expenses."
+          description="Email reminders, unlimited lists, partner sharing, full My Expenses."
           plan={plans.pro}
         />
         <PlanEditor

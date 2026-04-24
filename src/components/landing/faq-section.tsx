@@ -7,7 +7,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "What does the free plan include?",
-    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, My Goals tracking, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, due dates, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
+    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, My Goals tracking, due dates, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
   },
   {
     q: "How does My Goals work?",
@@ -23,7 +23,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "How do bill reminders work?",
-    a: "With Pro or Premium (and an active subscription), you can attach repeating due dates and reminder windows to expenses. Reminders are sent by email according to the options you pick for each bill. The free plan does not include due dates or reminder emails.",
+    a: "All plans can attach due dates to expenses. With Pro or Premium (and an active subscription), you can also enable email reminder windows for each bill. Reminders are sent by email according to the options you pick. The free plan does not include email reminders.",
   },
   {
     q: "Do I need to link a bank?",
