@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { loadExpenseData, loadExpenseSummary, type ExpenseData, type DashboardSummary } from "@/actions/budget";
-import { getPaymentHistoryMonths, type PaymentMonthStats } from "@/actions/expense-payments";
+import { getPaymentHistoryMonths, getMonthlyBreakdown, type PaymentMonthStats, type MonthlyBreakdownPoint } from "@/actions/expense-payments";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { queryKeys } from "./keys";
 
@@ -30,6 +30,17 @@ export function expensePaymentHistoryQueryOptions(months: number = EXPENSE_PAYME
     queryKey: queryKeys.expensePaymentHistory(months),
     queryFn: async (): Promise<PaymentMonthStats[]> => {
       const res = await getPaymentHistoryMonths(months);
+      if (res.error) throw new Error(res.error);
+      return res.stats ?? [];
+    },
+  });
+}
+
+export function monthlyBreakdownQueryOptions(months: number = EXPENSE_PAYMENT_HISTORY_MONTHS) {
+  return queryOptions({
+    queryKey: ["monthlyBreakdown", months],
+    queryFn: async (): Promise<MonthlyBreakdownPoint[]> => {
+      const res = await getMonthlyBreakdown(months);
       if (res.error) throw new Error(res.error);
       return res.stats ?? [];
     },

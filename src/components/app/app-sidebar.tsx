@@ -148,13 +148,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           <span className="min-w-0 flex-1 truncate">Shared with me</span>
         </Link>
       </div>
-      <div
-        className={cn(
-          "w-full shrink-0 border-t bg-muted/95 p-3 backdrop-blur",
-          "w-full shrink-0 border-t bg-muted/95 p-3 backdrop-blur",
-          "supports-[backdrop-filter]:bg-muted/80"
-        )}
-      >
+      <div className="w-full shrink-0 border-t bg-white p-3 dark:bg-muted/30">
         <AccountDropdownMenu
           user={user}
           align="start"
@@ -162,7 +156,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           trigger={
             <Button
               variant="ghost"
-              className="h-auto w-full justify-start gap-2 px-2 py-2 text-left font-normal hover:bg-slate-200/90 focus-visible:bg-slate-200/90 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:hover:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90"
+              className="h-auto w-full justify-start gap-2 rounded-lg border border-border/60 bg-white px-2 py-2 text-left font-normal shadow-sm hover:bg-slate-50 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:bg-transparent dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
               aria-label="Account menu"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">

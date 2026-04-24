@@ -141,7 +141,8 @@ function getBillStatus(bill: ExpenseEntryRow, isPaid: boolean, paidMonthYm: stri
 }
 
 function getCategoryLabel(id: string, categories: CatList): string {
-  return categories.find((c) => c.id === id)?.label ?? id;
+  if (!id) return "Uncategorized";
+  return categories.find((c) => c.id === id)?.label ?? "Uncategorized";
 }
 
 function getEntryName(entry: ExpenseEntryRow, categories: CatList): string {
@@ -532,7 +533,13 @@ export function MyExpensesBoard() {
         }),
     [allEntries]
   );
-  const billsRaw = useMemo(() => allEntries.filter((e) => !!e.due_date), [allEntries]);
+  const billsRaw = useMemo(
+    () =>
+      allEntries.filter(
+        (e) => !!e.due_date && !!effectiveDueDateInPaidMonth(e.due_date, paidMonth)
+      ),
+    [allEntries, paidMonth]
+  );
 
   // Summary totals
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
@@ -544,20 +551,14 @@ export function MyExpensesBoard() {
   );
 
   const expensesToday = useMemo(() => {
-    const today = startOfTodayLocal();
-    const todayTime = today.getTime();
+    const todayTime = startOfTodayLocal().getTime();
     return allEntries.filter((e) => {
-      if (e.due_date) {
-        const due = effectiveDueDateInPaidMonth(e.due_date, paidMonth);
-        return due && due.getTime() === todayTime;
-      } else {
-        if (!e.created_at) return false;
-        const created = new Date(e.created_at);
-        const createdFloor = new Date(created.getFullYear(), created.getMonth(), created.getDate());
-        return createdFloor.getTime() === todayTime;
-      }
+      if (e.due_date) return false; // bills are not daily expenses
+      if (!e.created_at) return false;
+      const d = new Date(e.created_at);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() === todayTime;
     });
-  }, [allEntries, paidMonth]);
+  }, [allEntries]);
 
   const totalToday = useMemo(() => expensesToday.reduce((s, e) => s + e.amount, 0), [expensesToday]);
 
@@ -661,7 +662,7 @@ export function MyExpensesBoard() {
     // Optimistic entry
     const optimisticEntry: ExpenseEntryRow = {
       id: `optimistic-${Date.now()}`,
-      category_id: expCategory || "other",
+      category_id: expCategory || "",
       amount: amt,
       billing_period: "monthly",
       note: name,

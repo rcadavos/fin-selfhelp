@@ -50,6 +50,7 @@ import {
   EXPENSE_PAYMENT_HISTORY_MONTHS,
   expenseDataQueryOptions,
   expensePaymentHistoryQueryOptions,
+  monthlyBreakdownQueryOptions,
 } from "@/lib/query/expenses";
 import { queryKeys } from "@/lib/query/keys";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
@@ -63,6 +64,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   Cell,
 } from "recharts";
@@ -351,6 +353,10 @@ export function ExpenseCashflowPage({
   const expensePaymentHistoryQuery = useQuery({
     ...expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
     enabled: !!user && !loading,
+  });
+  const monthlyBreakdownQuery = useQuery({
+    ...monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
+    enabled: !!user && !loading && pageVariant === "dashboard",
   });
   const invalidateExpenseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
@@ -1609,213 +1615,192 @@ export function ExpenseCashflowPage({
           )}
 
           {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
-          <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
-            <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
-            <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
+          {(() => {
+            // due_date = bill (regardless of category); no due_date = expense
+            const billEntries = entries.filter((e) => !!e.due_date);
+            const billsTotal = billEntries.reduce((s, e) => s + e.amount, 0);
+            const billsPaid = billEntries.filter((e) => paidIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
+            const billsUnpaid = Math.max(0, billsTotal - billsPaid);
+            const billsPaidCount = billEntries.filter((e) => paidIds.has(e.id)).length;
+            const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
+            const dailyTotal = entries.filter((e) => !e.due_date).reduce((s, e) => s + e.amount, 0);
+            const showRing = billsTotal > 0;
+            return (
+              <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
+                <div className="absolute -right-11 -top-11 h-48 w-48 rounded-full bg-white/10 sm:h-52 sm:w-52" aria-hidden />
+                <div className="absolute -bottom-7 -left-7 h-32 w-32 rounded-full bg-white/5 sm:h-36 sm:w-36" aria-hidden />
 
-            <div className="flex items-start">
-              <div className={cn("min-w-0 flex-1", totalExpenses > 0 && "pr-32 sm:pr-36")}>
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-1 rounded-md border border-emerald-200/35 bg-emerald-300/10 p-0.5">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className={cn(
-                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                        expenseCadenceTab === "monthly"
-                          ? "bg-white/25 text-white hover:bg-white/30"
-                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                <div className="flex items-start">
+                  <div className={cn("min-w-0 flex-1", showRing && "pr-32 sm:pr-36")}>
+                    <p className="flex items-center gap-2 text-sm font-medium opacity-90">
+                      <CalendarRange className="h-4 w-4" />
+                      {paidMonthDisplay}
+                    </p>
+                    <p className="mt-2 text-sm opacity-80">Bills still to pay</p>
+                    <p className="text-4xl font-bold tracking-tight sm:text-5xl">
+                      {formatCurrency(billsUnpaid)}
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      {billEntries.length > 0 && (
+                        <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
+                          {billsPaidCount} of {billEntries.length} bills paid
+                        </Badge>
                       )}
-                      onClick={() => setExpenseCadenceTab("monthly")}
-                    >
-                      Monthly
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className={cn(
-                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                        expenseCadenceTab === "quarterly"
-                          ? "bg-white/25 text-white hover:bg-white/30"
-                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
+                      {billsPaidPct > 0 && (
+                        <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
+                          {billsPaidPct}% complete
+                        </Badge>
                       )}
-                      onClick={() => setExpenseCadenceTab("quarterly")}
-                    >
-                      Quarterly
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className={cn(
-                        "h-7 rounded-sm px-2.5 text-xs font-semibold tracking-wide",
-                        expenseCadenceTab === "yearly"
-                          ? "bg-white/25 text-white hover:bg-white/30"
-                          : "text-emerald-100/90 hover:bg-white/10 hover:text-white"
-                      )}
-                      onClick={() => setExpenseCadenceTab("yearly")}
-                    >
-                      Yearly
-                    </Button>
+                    </div>
+                    {dailyTotal > 0 && (
+                      <div className="mt-4">
+                        <p className="text-[11px] opacity-70">Daily expenses</p>
+                        <p className="text-base font-semibold">{formatCurrency(dailyTotal)}</p>
+                      </div>
+                    )}
                   </div>
-                  <p className="flex items-center gap-2 text-sm font-medium opacity-90">
-                    <CalendarRange className="h-4 w-4" />
-                    {expenseCadenceTab === "yearly"
-                      ? `This year (${paidYearDisplay})`
-                      : expenseCadenceTab === "quarterly"
-                        ? `This quarter (Q${quarterIndex} ${paidYearDisplay})`
-                        : `This month (${paidMonthDisplay})`}
-                  </p>
-                </div>
-                <p className="mt-1 text-sm opacity-80">Still to pay</p>
-                <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-                  {formatCurrency(unpaidThisMonth)}
-                </p>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
-                    {paidCount} of {summaryEntries.length} bills marked paid
-                  </Badge>
-                  {summaryEntries.length > 0 && (
-                    <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
-                      {paidCountPct}% complete
-                    </Badge>
+                  {showRing && (
+                    <div
+                      className="absolute right-6 top-6 h-28 w-28 rounded-full"
+                      style={{
+                        background: `conic-gradient(rgb(34 197 94) 0% ${billsPaidPct}%, rgba(255,255,255,0.25) ${billsPaidPct}% 100%)`,
+                      }}
+                      aria-hidden
+                    >
+                      <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[10px] font-medium leading-tight text-primary-foreground">
+                        <span className="opacity-80">Bills paid</span>
+                        <span className="text-xl font-bold sm:text-2xl">{billsPaidPct}%</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-              {totalExpenses > 0 && (
-                <div
-                  className="absolute right-6 top-6 h-28 w-28 rounded-full"
-                  style={{
-                    background: `conic-gradient(rgb(34 197 94) 0% ${paidPct}%, rgba(255,255,255,0.25) ${paidPct}% 100%)`,
-                  }}
-                  aria-hidden
-                >
-                  <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-primary text-center text-[10px] font-medium leading-tight text-primary-foreground">
-                    <span className="opacity-80">Paid</span>
-                    <span className="text-xl font-bold sm:text-2xl">{paidPct}%</span>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {totalExpenses > 0 && (
-              <div className="mt-6">
-                <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
-                  <span>Paid vs Total</span>
-                  <span>
-                    {formatCurrency(totalPaidThisMonth)} / {formatCurrency(totalExpenses)}
-                  </span>
-                </div>
-                <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="bg-emerald-300 transition-all duration-500"
-                    style={{ width: `${paidPct}%` }}
-                  />
-                  <div className="flex-1 bg-white/10" />
-                </div>
+                {billsTotal > 0 && (
+                  <div className="mt-6">
+                    <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
+                      <span>Bills paid vs total</span>
+                      <span>{formatCurrency(billsPaid)} / {formatCurrency(billsTotal)}</span>
+                    </div>
+                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
+                      <div className="bg-emerald-300 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
+                      <div className="flex-1 bg-white/10" />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* ════════════════════ STAT CARDS ════════════════════ */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground">
-                <LayoutDashboard className="h-4 w-4" />
-              </div>
-              <p className="text-xs text-muted-foreground">Bills tracked</p>
-              <p className="text-lg font-bold">{summaryEntries.length}</p>
-            </Link>
+          {(() => {
+            const dailyAmt = entries.filter((e) => !e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
+            const billsTotal = entries.filter((e) => !!e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
+            const billsPaid = entries.filter((e) => !!e.due_date && e.category_id !== "savings" && paidIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
+            const savingsAmt = entries.filter((e) => e.category_id === "savings").reduce((s, e) => s + e.amount, 0);
+            const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
+            return (
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
+                    <Banknote className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Expenses</p>
+                  <p className="text-lg font-bold">{formatCurrency(dailyAmt)}</p>
+                  <p className="text-[10px] text-muted-foreground">Daily spending this month</p>
+                </Link>
 
-            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
-                <ArrowUpRight className="h-4 w-4" />
-              </div>
-              <p className="text-xs text-muted-foreground">Total out</p>
-              <p className="text-lg font-bold">{formatCurrency(totalExpenses)}</p>
-            </Link>
+                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Bills</p>
+                  <p className="text-lg font-bold">{formatCurrency(billsTotal)}</p>
+                  <p className="text-[10px] text-muted-foreground">Recurring bills this month</p>
+                </Link>
 
-            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <p className="text-xs text-muted-foreground">Paid this month</p>
-              <p className="text-lg font-bold">{formatCurrency(totalPaidThisMonth)}</p>
-              {totalExpenses > 0 && (
-                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />
-                </div>
-              )}
-            </Link>
+                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Bills paid</p>
+                  <p className="text-lg font-bold">{formatCurrency(billsPaid)}</p>
+                  {billsTotal > 0 && (
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
+                    </div>
+                  )}
+                </Link>
 
-            <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                <CircleDollarSign className="h-4 w-4" />
+                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
+                    <GoldCoin className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Savings</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(savingsAmt)}</p>
+                  <p className="text-[10px] text-muted-foreground">Set aside this month</p>
+                </Link>
               </div>
-              <p className="text-xs text-muted-foreground">Unpaid</p>
-              <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(unpaidThisMonth)}</p>
-            </Link>
-          </div>
+            );
+          })()}
 
-          {/* ════════════════════ PAYMENT HISTORY (6 MO) ════════════════════ */}
-          {paymentHistory.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Payment completion by month</CardTitle>
-                <CardDescription>Bills paid vs total each month</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart
-                    data={paymentHistory.map((row) => ({
-                      month: row.month.slice(5),
-                      Paid: row.paidCount,
-                      Unpaid: row.totalCount - row.paidCount,
-                      pct: row.totalCount > 0 ? Math.round((row.paidCount / row.totalCount) * 100) : 0,
-                    }))}
-                    margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
-                    barCategoryGap="30%"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      cursor={{ fill: "hsl(var(--muted))", radius: 4 }}
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        const paid = payload.find((p) => p.dataKey === "Paid")?.value ?? 0;
-                        const unpaid = payload.find((p) => p.dataKey === "Unpaid")?.value ?? 0;
-                        const total = Number(paid) + Number(unpaid);
-                        const pct = total > 0 ? Math.round((Number(paid) / total) * 100) : 0;
-                        return (
-                          <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
-                            <p className="mb-1 font-semibold">{label}</p>
-                            <p className="text-emerald-600 dark:text-emerald-400">{paid} paid</p>
-                            <p className="text-muted-foreground">{unpaid} unpaid</p>
-                            <p className="mt-1 font-medium">{pct}% complete</p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="Paid" stackId="a" radius={[0, 0, 0, 0]} fill="hsl(var(--primary))" opacity={0.9} />
-                    <Bar dataKey="Unpaid" stackId="a" radius={[4, 4, 0, 0]} fill="hsl(var(--muted))" />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-primary/90" />
-                    Paid
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted" />
-                    Unpaid
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* ════════════════════ BILLS VS EXPENSES VS SAVINGS (MONTHLY) ════════════════════ */}
+          {(() => {
+            const breakdown = monthlyBreakdownQuery.data ?? [];
+            if (!breakdown.length) return null;
+            const hasData = breakdown.some((r) => r.bills > 0 || r.expenses > 0 || r.savings > 0);
+            if (!hasData) return null;
+            const chartData = breakdown.map((r) => ({
+              month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
+              Bills: r.bills,
+              Expenses: r.expenses,
+              Savings: r.savings,
+            }));
+            const BILL_COLOR = "hsl(199 89% 48%)";
+            const EXP_COLOR = "hsl(38 92% 50%)";
+            const SAV_COLOR = "hsl(142 71% 45%)";
+            const fmtY = (v: number) => v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
+            return (
+              <Card className="mb-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Bills vs Expenses vs Savings</CardTitle>
+                  <CardDescription>Last 6 months breakdown by type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} barCategoryGap="25%" barGap={2}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                      <YAxis tickFormatter={fmtY} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={44} />
+                      <Tooltip
+                        cursor={{ fill: "hsl(var(--muted))", radius: 4 }}
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null;
+                          return (
+                            <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
+                              <p className="mb-1.5 font-semibold">{label}</p>
+                              {payload.map((p) => (
+                                <p key={p.dataKey as string} style={{ color: p.fill }} className="leading-5">
+                                  {p.dataKey}: {formatCurrency(Number(p.value))}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }}
+                      />
+                      <Legend
+                        iconType="square"
+                        iconSize={10}
+                        wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      />
+                      <Bar dataKey="Bills" fill={BILL_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Expenses" fill={EXP_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Savings" fill={SAV_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           <Card className="mb-6 border-primary/25 bg-muted/20">
             <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
