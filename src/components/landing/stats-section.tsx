@@ -1,17 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, ListChecks, Target, Users } from "lucide-react";
+import { Activity, BadgeCheck, Eye, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface PlatformStats {
   users: number;
-  goalsSet: number;
-  listItems: number;
+  subscribers: number;
+  pageVisitors: number;
 }
 
-const EMPTY_STATS: PlatformStats = { users: 0, goalsSet: 0, listItems: 0 };
+const EMPTY_STATS: PlatformStats = { users: 0, subscribers: 0, pageVisitors: 0 };
 const POLL_MS = 30_000;
 
 function AnimatedNumber({ target, isVisible }: { target: number; isVisible: boolean }) {
@@ -67,31 +67,31 @@ const STAT_CARDS: {
     numColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    key: "goalsSet",
-    label: "Goals tracked",
-    description: "Financial goals created and tracked across all members",
-    icon: Target,
+    key: "subscribers",
+    label: "Paying subscribers",
+    description: "Members on a paid plan",
+    icon: BadgeCheck,
+    iconBg: "bg-amber-500/10",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    numColor: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    key: "pageVisitors",
+    label: "Page visitors",
+    description: "Landing page sessions tracked",
+    icon: Eye,
     iconBg: "bg-blue-500/10",
     iconColor: "text-blue-600 dark:text-blue-400",
     numColor: "text-blue-600 dark:text-blue-400",
-  },
-  {
-    key: "listItems",
-    label: "Items on lists",
-    description: "Shopping and to-do items saved by our members",
-    icon: ListChecks,
-    iconBg: "bg-violet-500/10",
-    iconColor: "text-violet-600 dark:text-violet-400",
-    numColor: "text-violet-600 dark:text-violet-400",
   },
   {
     key: "uptime",
     label: "Uptime",
     description: "Platform availability over the last 90 days",
     icon: Activity,
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-600 dark:text-amber-400",
-    numColor: "text-amber-600 dark:text-amber-400",
+    iconBg: "bg-violet-500/10",
+    iconColor: "text-violet-600 dark:text-violet-400",
+    numColor: "text-violet-600 dark:text-violet-400",
     staticDisplay: "99.9%",
   },
 ];

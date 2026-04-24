@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import { Header } from "@/components/landing/header";
+import { PageViewTracker } from "@/components/landing/page-view-tracker";
 import { HeroSection } from "@/components/landing/hero-section";
 
 const FeaturesSection = dynamic(() => import("@/components/landing/features-section").then(m => m.FeaturesSection));
@@ -29,6 +30,7 @@ export default async function HomePage() {
 
   return (
     <main className="app-layout">
+      <PageViewTracker />
       <Header />
       <HeroSection />
       <FeaturesSection />
