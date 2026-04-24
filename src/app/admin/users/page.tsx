@@ -323,23 +323,24 @@ export default function AdminUsersPage() {
             </DialogDescription>
           </DialogHeader>
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteUserMutation.isPending}
-              onClick={() => deleteTarget && deleteUserMutation.mutate({ userId: deleteTarget.id })}
-            >
-              {deleteUserMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              <Button variant="outline" className="w-1/2" onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="w-1/2"
+                disabled={deleteUserMutation.isPending}
+                onClick={() => deleteTarget && deleteUserMutation.mutate({ userId: deleteTarget.id })}
+              >
+                {deleteUserMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Delete"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -377,19 +378,15 @@ export default function AdminUsersPage() {
             </div>
             {actionError && <p className="text-sm text-destructive">{actionError}</p>}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPaidUser(null)}>
-              Cancel
-            </Button>
-            <Button onClick={submitSetPaid} disabled={!expiresAt.trim() || setPaidMutation.isPending}>
-              {setPaidMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              <Button variant="outline" className="w-1/2" onClick={() => setPaidUser(null)}>
+                Cancel
+              </Button>
+              <Button className="w-1/2" onClick={submitSetPaid} disabled={!expiresAt.trim() || setPaidMutation.isPending}>
+                {setPaidMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

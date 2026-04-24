@@ -1357,16 +1357,19 @@ export function MyExpensesBoard() {
                 })}
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowBillForm(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={billSaving || !billName.trim() || !billAmount || !billDue}
-              >
-                {billSaving ? "Saving…" : `Add ${billPeriodFilter === "monthly" ? "Monthly" : billPeriodFilter === "quarterly" ? "Quarterly" : "Yearly"} Bill`}
-              </Button>
+            <DialogFooter className="pt-2">
+              <div className="flex w-full gap-2">
+                <Button type="button" variant="outline" className="w-1/2" onClick={() => setShowBillForm(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="w-1/2"
+                  disabled={billSaving || !billName.trim() || !billAmount || !billDue}
+                >
+                  {billSaving ? "Saving…" : `Add ${billPeriodFilter === "monthly" ? "Monthly" : billPeriodFilter === "quarterly" ? "Quarterly" : "Yearly"} Bill`}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1513,30 +1516,31 @@ export function MyExpensesBoard() {
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
 
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <div className="flex w-full items-center gap-2">
-                {/* Remove button — left */}
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  title="Remove"
+                  size="icon"
+                  className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  aria-label="Remove"
                   onClick={() => { handleDelete(editingEntry!.id); setEditingEntry(null); }}
                   disabled={editSaving}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden />
                 </Button>
-                <div className="flex-1" />
-                <Button type="button" variant="outline" onClick={() => setEditingEntry(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={editSaving || !editName.trim() || !editAmount}
-                >
-                  {editSaving ? "Saving…" : "Save"}
-                </Button>
+                <div className="flex flex-1 gap-2">
+                  <Button type="button" variant="outline" className="w-1/2" onClick={() => setEditingEntry(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="w-1/2"
+                    disabled={editSaving || !editName.trim() || !editAmount}
+                  >
+                    {editSaving ? "Saving…" : "Save"}
+                  </Button>
+                </div>
               </div>
             </DialogFooter>
           </form>

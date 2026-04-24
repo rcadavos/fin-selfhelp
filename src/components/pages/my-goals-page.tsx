@@ -10,8 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -54,13 +52,64 @@ import {
   Loader2,
   CircleOff,
   MoreHorizontal,
-  Pencil,
   Plus,
   Target,
   Trash2,
   PartyPopper,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DraggableSyntheticListeners,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+
+const LS_GOAL_ORDER = "goal_order_v1";
+
+function goalTypeDotClass(t: GoalType): string {
+  if (t === "lifetime") return "bg-violet-500";
+  if (t === "long_term") return "bg-sky-500";
+  return "bg-emerald-500";
+}
+
+type SortableItemProps = {
+  setNodeRef: (el: HTMLElement | null) => void;
+  style: React.CSSProperties;
+  attributes: React.HTMLAttributes<HTMLElement>;
+  listeners: DraggableSyntheticListeners;
+  isDragging: boolean;
+};
+
+function SortableGoalWrapper({
+  id,
+  children,
+}: {
+  id: string;
+  children: (sortable: SortableItemProps) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return children({
+    setNodeRef,
+    style: { transform: CSS.Transform.toString(transform), transition: transition ?? undefined },
+    attributes: attributes as React.HTMLAttributes<HTMLElement>,
+    listeners,
+    isDragging,
+  });
+}
 
 const GOAL_TYPES: { value: GoalType; label: string }[] = [
   { value: "short_term", label: "Short-term" },
@@ -85,9 +134,6 @@ const MONTH_OPTIONS = [
 
 const ACHIEVED_NONE = "__none__";
 
-/** Right-side goal art (celebration or target): same layout as CSS background layers. Narrower strip on small screens so title row keeps more width (padding below stays in sync). */
-const GOAL_CARD_ART_STRIP =
-  "pointer-events-none absolute inset-y-0 right-0 z-0 w-[min(22%,6.5rem)] min-w-[5rem] max-w-[15rem] bg-contain bg-right-bottom bg-no-repeat sm:w-[min(35%,16rem)] sm:min-w-[7.5rem] sm:max-w-[17rem]";
 
 function yearOptions(): number[] {
   const y = new Date().getFullYear();
@@ -206,9 +252,9 @@ export function MyGoalsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [inlineNameEditId, setInlineNameEditId] = useState<string | null>(null);
-  const [inlineNameDraft, setInlineNameDraft] = useState("");
-  const skipInlineNameBlurCommitRef = useRef(false);
+
+  const [goalOrder, setGoalOrder] = useState<string[]>([]);
+  const goalOrderLoaded = useRef(false);
 
   const [goalsCategorized, setGoalsCategorized] = useState(false);
   const [filterAchieved, setFilterAchieved] = useState(false);
@@ -216,6 +262,15 @@ export function MyGoalsPage() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [draftFilterAchieved, setDraftFilterAchieved] = useState(false);
   const [draftFilterNotYet, setDraftFilterNotYet] = useState(false);
+
+  useEffect(() => {
+    if (goalOrderLoaded.current) return;
+    goalOrderLoaded.current = true;
+    try {
+      const saved = localStorage.getItem(LS_GOAL_ORDER);
+      if (saved) setGoalOrder(JSON.parse(saved) as string[]);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const stored = readGoalsCategorizedPreference();
@@ -273,95 +328,44 @@ export function MyGoalsPage() {
     [listGoals]
   );
 
+  const orderedGoals = useMemo(() => {
+    if (!goalOrder.length) return listGoals;
+    const rankOf = new Map(goalOrder.map((id, i) => [id, i]));
+    return [...listGoals].sort((a, b) => (rankOf.get(a.id) ?? 9999) - (rankOf.get(b.id) ?? 9999));
+  }, [listGoals, goalOrder]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const activeFilterCount = Number(filterAchieved) + Number(filterNotYet);
 
   const invalidateGoals = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.goals() });
   }, [queryClient]);
 
+  function handleGoalDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const ids = orderedGoals.map((g) => g.id);
+    const newOrder = arrayMove(ids, ids.indexOf(active.id as string), ids.indexOf(over.id as string));
+    setGoalOrder(newOrder);
+    try {
+      localStorage.setItem(LS_GOAL_ORDER, JSON.stringify(newOrder));
+    } catch {}
+  }
+
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
-  const commitInlineNameEdit = useCallback(
-    async (goalId: string) => {
-      if (inlineNameEditId !== goalId) return;
-      const list = goalsQuery.data ?? [];
-      const g = list.find((x) => x.id === goalId);
-      if (!g) {
-        setInlineNameEditId(null);
-        setInlineNameDraft("");
-        return;
-      }
-      const next = inlineNameDraft.trim();
-      if (next === g.name.trim()) {
-        setInlineNameEditId(null);
-        setInlineNameDraft("");
-        return;
-      }
-      if (!next) {
-        showError("Goal name is required.");
-        setInlineNameDraft(g.name);
-        return;
-      }
-
-      const goalsKey = queryKeys.goals();
-      const prevGoals = queryClient.getQueryData<GoalEntryRow[]>(goalsKey);
-      queryClient.setQueryData<GoalEntryRow[]>(goalsKey, (old) =>
-        (old ?? []).map((row) => (row.id === goalId ? { ...row, name: next } : row))
-      );
-      setInlineNameEditId(null);
-      setInlineNameDraft("");
-
-      const res = await updateGoal(goalId, { ...goalRowToInput(g), name: next });
-      if (res.error) {
-        queryClient.setQueryData(goalsKey, prevGoals);
-        showError(res.error);
-        return;
-      }
-      invalidateGoals();
-    },
-    [
-      inlineNameEditId,
-      inlineNameDraft,
-      goalsQuery.data,
-      showError,
-      invalidateGoals,
-      queryClient,
-    ]
-  );
-
-  const beginInlineNameEdit = useCallback(
-    async (g: GoalEntryRow) => {
-      if (dialogOpen) {
-        setDialogOpen(false);
-        setEditingId(null);
-        setForm(emptyForm());
-      }
-      if (inlineNameEditId === g.id) {
-        await commitInlineNameEdit(g.id);
-        return;
-      }
-      if (inlineNameEditId) await commitInlineNameEdit(inlineNameEditId);
-      setInlineNameEditId(g.id);
-      setInlineNameDraft(g.name);
-    },
-    [dialogOpen, inlineNameEditId, commitInlineNameEdit]
-  );
-
-  const openAdd = async () => {
-    if (inlineNameEditId) await commitInlineNameEdit(inlineNameEditId);
-    setInlineNameEditId(null);
-    setInlineNameDraft("");
+  const openAdd = () => {
     setEditingId(null);
     setForm(emptyForm());
     setDialogOpen(true);
   };
 
-  const openEdit = async (g: GoalEntryRow) => {
-    if (inlineNameEditId) await commitInlineNameEdit(inlineNameEditId);
-    setInlineNameEditId(null);
-    setInlineNameDraft("");
+  const openEdit = (g: GoalEntryRow) => {
     setEditingId(g.id);
     setForm(rowToForm(g));
     setDialogOpen(true);
@@ -398,10 +402,6 @@ export function MyGoalsPage() {
     if (editingId === id) {
       setDialogOpen(false);
       setEditingId(null);
-    }
-    if (inlineNameEditId === id) {
-      setInlineNameEditId(null);
-      setInlineNameDraft("");
     }
   }
 
@@ -469,168 +469,137 @@ export function MyGoalsPage() {
       : "Could not load goals."
     : null;
 
-  const renderGoalListItem = (g: GoalEntryRow) => {
+  const renderGoalListItem = (g: GoalEntryRow, sortable?: SortableItemProps) => {
     const achieved = isGoalAchieved(g);
-    const typeLabel =
-      GOAL_TYPES.find((t) => t.value === g.goal_type)?.label ?? g.goal_type;
+    const typeLabel = GOAL_TYPES.find((t) => t.value === g.goal_type)?.label ?? g.goal_type;
     const achievedShort =
       achieved && g.date_achieved_month != null && g.date_achieved_year != null
         ? formatMonthYearShort(g.date_achieved_month, g.date_achieved_year)
         : null;
     return (
-      <li key={g.id}>
-        <Card
+      <li
+        key={g.id}
+        ref={sortable?.setNodeRef}
+        style={sortable?.style}
+        {...(sortable?.attributes ?? {})}
+      >
+        <div
+          onClick={() => openEdit(g)}
           className={cn(
-            "relative flex min-h-0 items-stretch overflow-hidden transition-shadow",
-            achieved &&
-            "border-emerald-400/50 bg-gradient-to-br from-emerald-400/15 via-background to-background shadow-md shadow-emerald-500/10 dark:border-emerald-400/70 dark:bg-gradient-to-br dark:from-emerald-500/45 dark:via-emerald-900/75 dark:to-emerald-950/55 dark:shadow-xl dark:shadow-emerald-500/40 dark:ring-2 dark:ring-emerald-400/45"
+            "flex cursor-pointer select-none items-center gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-shadow",
+            achieved ? "border-emerald-400/50 bg-emerald-500/5 dark:bg-emerald-900/20" : "",
+            sortable?.isDragging
+              ? "z-50 opacity-50 shadow-lg ring-2 ring-primary/30"
+              : "hover:border-primary/30 hover:shadow-md"
           )}
         >
-          <div
-            className={cn(
-              GOAL_CARD_ART_STRIP,
-              achieved
-                ? "bg-[url('/images/goals/celebration.png')]"
-                : "bg-[url('/images/goals/target.png')]"
-            )}
-            aria-hidden
-          />
-          <div
-            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col gap-1 py-3 pl-3 pr-[min(22%,6.5rem)] sm:gap-2 sm:py-3.5 sm:pl-4 sm:pr-[min(35%,16rem)]"
-          >
-            <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-              <div className="flex min-h-0 min-w-0 items-center gap-2 overflow-hidden">
-                {inlineNameEditId === g.id ? (
-                  <Input
-                    value={inlineNameDraft}
-                    onChange={(e) => setInlineNameDraft(e.target.value)}
-                    className="h-8 min-w-0 text-lg font-semibold sm:max-w-[min(100%,20rem)]"
-                    placeholder="Goal name"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void commitInlineNameEdit(g.id);
-                      }
-                      if (e.key === "Escape") {
-                        skipInlineNameBlurCommitRef.current = true;
-                        setInlineNameEditId(null);
-                        setInlineNameDraft("");
-                      }
-                    }}
-                    onBlur={() => {
-                      if (skipInlineNameBlurCommitRef.current) {
-                        skipInlineNameBlurCommitRef.current = false;
-                        return;
-                      }
-                      void commitInlineNameEdit(g.id);
-                    }}
-                    aria-label="Goal name"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="min-w-0 truncate text-left text-lg font-semibold leading-tight tracking-tight underline-offset-2 hover:underline"
-                    onClick={() => void beginInlineNameEdit(g)}
-                  >
-                    {g.name}
-                  </button>
-                )}
-                <Badge
-                  variant="outline"
-                  className={cn("shrink-0 font-medium", goalTypeBadgeClass(g.goal_type))}
-                >
-                  {typeLabel}
-                </Badge>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                    aria-label="Goal actions"
-                    disabled={deletingId === g.id}
-                    onPointerDown={(e) => {
-                      if (inlineNameEditId === g.id) e.preventDefault();
-                    }}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="z-[100] min-w-0 w-52">
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onSelect={() => {
-                      void openEdit(g);
-                    }}
-                  >
-                    <Pencil className="text-muted-foreground" aria-hidden />
-                    Edit
-                  </DropdownMenuItem>
-                  {!achieved ? (
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onSelect={() => {
-                        void handleMarkAchievedNow(g);
-                      }}
-                    >
-                      <PartyPopper className="text-emerald-600 dark:text-emerald-400" aria-hidden />
-                      Mark as Achieved
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onSelect={() => {
-                        void handleUnmarkAchieved(g);
-                      }}
-                    >
-                      <CircleOff className="text-muted-foreground" aria-hidden />
-                      Undo Mark Achieved
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                    disabled={deletingId === g.id}
-                    onSelect={() => {
-                      if (!confirm("Delete this goal?")) return;
-                      void handleDeleteGoal(g.id);
-                    }}
-                  >
-                    {deletingId === g.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <Trash2 className="text-destructive" aria-hidden />
-                    )}
-                    Remove
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          {/* Drag handle */}
+          {sortable && (
+            <button
+              {...sortable.listeners}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+              tabIndex={-1}
+              aria-label="Reorder goal"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Type dot */}
+          <span className={cn("h-2.5 w-2.5 flex-shrink-0 rounded-full", goalTypeDotClass(g.goal_type))} />
+
+          {/* Name + meta */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className={cn(
+                "truncate text-sm font-medium leading-tight",
+                achieved && "text-emerald-700 dark:text-emerald-300"
+              )}>
+                {g.name}
+              </p>
+              <Badge
+                variant="outline"
+                className={cn("flex-shrink-0 text-[10px] font-medium", goalTypeBadgeClass(g.goal_type))}
+              >
+                {typeLabel}
+              </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              <span className="text-muted-foreground sm:hidden">Set: </span>
-              <span className="hidden text-muted-foreground sm:inline">Date set: </span>
-              {formatMonthYearShort(g.date_set_month, g.date_set_year)}
-              {achieved && achievedShort ? (
-                <>
-                  <span aria-hidden className="px-1.5">
-                    •
-                  </span>
-                  <span className="text-muted-foreground sm:hidden">Achieved: </span>
-                  <span className="hidden text-muted-foreground sm:inline">Date achieved: </span>
-                  {achievedShort}
-                </>
-              ) : null}
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Set {formatMonthYearShort(g.date_set_month, g.date_set_year)}
+              {achieved && achievedShort && (
+                <span className="ml-1.5">· Achieved {achievedShort}</span>
+              )}
             </p>
-            {g.notes?.trim() ? (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Notes</p>
-                <p className="line-clamp-2 text-sm text-muted-foreground">{g.notes.trim()}</p>
-              </div>
-            ) : null}
+            {g.notes?.trim() && (
+              <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground/70 italic">
+                {g.notes.trim()}
+              </p>
+            )}
           </div>
-        </Card>
+
+          {/* Achieved badge */}
+          {achieved && (
+            <Badge
+              variant="outline"
+              className="flex-shrink-0 border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
+            >
+              <PartyPopper className="mr-1 h-2.5 w-2.5" aria-hidden />
+              Done
+            </Badge>
+          )}
+
+          {/* Actions menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Goal actions"
+                disabled={deletingId === g.id}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {deletingId === g.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <MoreHorizontal className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[100] w-48">
+              {!achieved ? (
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => void handleMarkAchievedNow(g)}
+                >
+                  <PartyPopper className="text-emerald-600 dark:text-emerald-400" aria-hidden />
+                  Mark as Achieved
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => void handleUnmarkAchieved(g)}
+                >
+                  <CircleOff className="text-muted-foreground" aria-hidden />
+                  Undo Mark Achieved
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="cursor-pointer text-destructive focus:text-destructive"
+                disabled={deletingId === g.id}
+                onSelect={() => {
+                  if (!confirm("Delete this goal?")) return;
+                  void handleDeleteGoal(g.id);
+                }}
+              >
+                <Trash2 className="text-destructive" aria-hidden />
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </li>
     );
   };
@@ -752,14 +721,24 @@ export function MyGoalsPage() {
                         {groupGoals.length} goal{groupGoals.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <ul className="space-y-4">{groupGoals.map(renderGoalListItem)}</ul>
+                    <ul className="space-y-4">{groupGoals.map((g) => renderGoalListItem(g))}</ul>
                     <hr className="border-border/60" />
                   </section>
                 )
               )}
             </div>
           ) : (
-            <ul className="space-y-4">{listGoals.map(renderGoalListItem)}</ul>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGoalDragEnd}>
+              <SortableContext items={orderedGoals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+                <ul className="space-y-4">
+                  {orderedGoals.map((g) => (
+                    <SortableGoalWrapper key={g.id} id={g.id}>
+                      {(sortable) => renderGoalListItem(g, sortable)}
+                    </SortableGoalWrapper>
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           )}
         </>
       )}
@@ -899,37 +878,39 @@ export function MyGoalsPage() {
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
-            <DialogFooter className="flex-col gap-3 pt-2">
-              <div className="flex w-full gap-2">
-                <Button type="button" variant="outline" className="w-1/2" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-1/2" disabled={saving}>
-                  {saving ? "Saving" : editingId ? "Save" : "Add"}
-                </Button>
+            <DialogFooter className="pt-2">
+              <div className="flex w-full items-center gap-2">
+                {editingId ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                    aria-label="Remove"
+                    disabled={saving || deletingId !== null}
+                    onClick={() => {
+                      if (!confirm("Delete this goal?")) return;
+                      void handleDeleteGoal(editingId);
+                    }}
+                  >
+                    {deletingId === editingId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    )}
+                  </Button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex flex-1 gap-2">
+                  <Button type="button" variant="outline" className="w-1/2" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="w-1/2" disabled={saving}>
+                    {saving ? "Saving…" : editingId ? "Save" : "Add Goal"}
+                  </Button>
+                </div>
               </div>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-destructive hover:bg-destructive/10 mt-1"
-                  disabled={saving || deletingId !== null}
-                  aria-label="Delete goal"
-                  onClick={() => {
-                    if (!editingId) return;
-                    if (!confirm("Delete this goal?")) return;
-                    void handleDeleteGoal(editingId);
-                  }}
-                >
-                  {deletingId === editingId ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-                  )}
-                  Remove
-                </Button>
-              )}
             </DialogFooter>
           </form>
         </DialogContent>

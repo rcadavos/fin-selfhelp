@@ -283,32 +283,32 @@ export default function AdminReviewsPage() {
                   </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditingReviewId(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  disabled={updateMutation.isPending}
-                  onClick={() =>
-                    updateMutation.mutate({
-                      id: editingReviewId!,
-                      authorName: editName,
-                      content: editContent,
-                      rating: editRating,
-                    })
-                  }
-                >
-                  {updateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
+              <DialogFooter className="pt-2">
+                <div className="flex w-full gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-1/2"
+                    onClick={() => setEditingReviewId(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-1/2"
+                    disabled={updateMutation.isPending}
+                    onClick={() =>
+                      updateMutation.mutate({
+                        id: editingReviewId!,
+                        authorName: editName,
+                        content: editContent,
+                        rating: editRating,
+                      })
+                    }
+                  >
+                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>

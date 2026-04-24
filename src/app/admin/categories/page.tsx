@@ -580,16 +580,19 @@ export default function AdminCategoriesPage() {
             />
           </div>
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!newId.trim() || !addForm.label.trim() || createMutation.isPending}
-            >
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-            </Button>
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              <Button variant="outline" className="w-1/2" onClick={() => setAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="w-1/2"
+                onClick={() => createMutation.mutate()}
+                disabled={!newId.trim() || !addForm.label.trim() || createMutation.isPending}
+              >
+                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -607,16 +610,19 @@ export default function AdminCategoriesPage() {
             <CategoryFormFields form={editForm} setForm={setEditForm} />
           </div>
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditCat(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => updateMutation.mutate()}
-              disabled={!editForm.label.trim() || updateMutation.isPending}
-            >
-              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-            </Button>
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              <Button variant="outline" className="w-1/2" onClick={() => setEditCat(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="w-1/2"
+                onClick={() => updateMutation.mutate()}
+                disabled={!editForm.label.trim() || updateMutation.isPending}
+              >
+                {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

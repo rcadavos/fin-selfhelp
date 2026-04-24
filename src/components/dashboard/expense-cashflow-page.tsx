@@ -1471,15 +1471,14 @@ export function ExpenseCashflowPage({
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-            <DialogFooter className="flex-col gap-3 pt-2">
+            <DialogFooter className="pt-2">
               <div className="flex w-full items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
-                  aria-label="Remove expense"
-                  title="Remove expense"
+                  size="icon"
+                  className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  aria-label="Remove"
                   onClick={() => editingId && handleDeleteExpense(editingId)}
                   disabled={editStatus === "saving" || deletingId !== null}
                 >
@@ -1489,14 +1488,13 @@ export function ExpenseCashflowPage({
                     <Trash2 className="h-4 w-4" aria-hidden />
                   )}
                 </Button>
-                <div className="flex-1" />
-                <div className="flex flex-1 flex-row gap-2">
-                  <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
+                <div className="flex flex-1 gap-2">
+                  <Button type="button" variant="outline" className="w-1/2" onClick={cancelEdit}>
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1"
+                    className="w-1/2"
                     disabled={
                       editStatus === "saving" ||
                       !editName.trim() ||
