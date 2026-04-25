@@ -23,6 +23,7 @@ import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
+import { APP_VERSION } from "@/lib/version";
 import {
   AccountDropdownMenu,
   getAccountAvatarUrl,
@@ -79,16 +80,17 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
         className
       )}
     >
-      <div className="flex h-14 shrink-0 items-center border-b px-3">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
         <Link
           href="/"
-          className="flex min-w-0 max-w-full items-center"
-          title="mnitrak"
-          aria-label="mnitrak home"
+          className="flex min-w-0 flex-1 items-center"
+          title="Omnitrak"
+          aria-label="Omnitrak home"
         >
           <SiteLogo className="max-w-full" />
-          <span className="sr-only">mnitrak</span>
+          <span className="sr-only">Omnitrak</span>
         </Link>
+        <span className="shrink-0 select-none text-[10px] text-muted-foreground/50">v{APP_VERSION}</span>
       </div>
       <nav
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"

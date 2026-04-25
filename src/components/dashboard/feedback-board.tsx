@@ -117,7 +117,7 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
             </p>
             {review.rating != null && (
               <div className="mt-1 flex gap-0.5">
-                {[1,2,3,4,5].map((n) => (
+                {[1, 2, 3, 4, 5].map((n) => (
                   <Star key={n} className={cn("h-3.5 w-3.5", n <= review.rating! ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20")} />
                 ))}
               </div>
@@ -223,7 +223,7 @@ function SuggestionSection() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim()) { setError("Please write your suggestion."); return; }
+    if (!content.trim()) { setError("Please write your feedback."); return; }
     setSaving(true);
     setError(null);
     const res = await submitSuggestion({ content: content.trim() });
@@ -238,7 +238,7 @@ function SuggestionSection() {
       <div className="space-y-3">
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/20">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-          <p className="text-sm font-medium">Your suggestion has been sent. Thank you!</p>
+          <p className="text-sm font-medium">Your feedback has been sent. Thank you!</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setDone(false)}>
           Submit another
@@ -250,12 +250,12 @@ function SuggestionSection() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="suggestion-content">Your suggestion</Label>
+        <Label htmlFor="suggestion-content">Your feedback</Label>
         <textarea
           id="suggestion-content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What feature or improvement would you like to see in mnitrak?"
+          placeholder="Want to report a bug? Or suggest a feature or improvement? Your feedback helps us make Omnitrak better! We will reward you with subscription if your bug is valid or your suggestion gets implemented."
           rows={5}
           disabled={saving}
           className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
@@ -272,7 +272,7 @@ function SuggestionSection() {
       )}
 
       <Button type="submit" className="w-full" disabled={saving || !content.trim()}>
-        {saving ? "Submitting…" : "Send suggestion"}
+        {saving ? "Submitting…" : "Send feedback"}
       </Button>
     </form>
   );
@@ -293,7 +293,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       <div className="mb-6">
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
           <MessageSquarePlus className="h-6 w-6 shrink-0" aria-hidden />
-          Review &amp; Suggestions
+          Review &amp; Feedback
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Share your experience or suggest new features — we read every submission.
@@ -304,7 +304,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       <div className="mb-6 flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5 w-fit">
         {([
           { key: "review", label: "Leave a Review" },
-          { key: "suggestion", label: "Suggest a Feature" },
+          { key: "suggestion", label: "Feedback" },
         ] as { key: Tab; label: string }[]).map(({ key, label }) => (
           <button
             key={key}

@@ -445,10 +445,10 @@ export function MyExpensesBoard() {
           </p>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" aria-label="View Categories" asChild>
+          <Button variant="outline" size="sm" aria-label="Categories" asChild>
             <Link href="/dashboard/expenses/categories">
               <LayoutGrid className="h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline">View Categories</span>
+              <span className="hidden sm:inline">Categories</span>
             </Link>
           </Button>
           {expenses.length > 0 && (

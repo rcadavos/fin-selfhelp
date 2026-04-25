@@ -15,6 +15,7 @@ const productLinks = [
   { href: "#subscribe", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
   { href: "#reviews", label: "Reviews" },
+  { href: "/changelog", label: "Changelog" },
 ] as const;
 
 const legalLinks = [
@@ -68,9 +69,15 @@ export function Footer({ className }: { className?: string }) {
               <ul className="space-y-2.5 text-sm text-muted-foreground">
                 {productLinks.map(({ href, label }) => (
                   <li key={href}>
-                    <a href={href} className="transition-colors hover:text-foreground">
-                      {label}
-                    </a>
+                    {href.startsWith("#") ? (
+                      <a href={href} className="transition-colors hover:text-foreground">
+                        {label}
+                      </a>
+                    ) : (
+                      <Link href={href} className="transition-colors hover:text-foreground">
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -1,0 +1,29 @@
+#!/bin/sh
+# Auto-bumps the app version based on the conventional commit prefix.
+#
+#   feat:     → minor bump  (1.2.0 → 1.3.0)
+#   anything  → patch bump  (1.2.0 → 1.2.1)
+#
+# Add [skip bump] anywhere in the message to skip the bump entirely.
+# Example: "chore: WIP refactor [skip bump]"
+
+set -e
+
+MSG=$(cat "$1")
+
+# Honour skip flag
+if echo "$MSG" | grep -qF "[skip bump]"; then
+  exit 0
+fi
+
+# Detect bump type from conventional commit prefix
+if echo "$MSG" | grep -qE "^feat(\(.+\))?!?:"; then
+  BUMP="minor"
+else
+  BUMP="patch"
+fi
+
+node scripts/bump-version.mjs "$BUMP"
+
+# Stage the two version files so they're included in this commit
+git add package.json src/lib/version.ts
