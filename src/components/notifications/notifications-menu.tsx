@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,10 +77,8 @@ export function NotificationsMenu() {
         ) : null}
         <div className="max-h-[min(60vh,20rem)] overflow-y-auto">
           {isLoading ? (
-            <div className="space-y-3 px-3 py-4">
-              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-full animate-pulse rounded bg-muted/80" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-muted/80" />
+            <div className="flex justify-center px-3 py-4">
+              <Image src="/favicon.png" alt="" aria-hidden className="h-8 w-8 animate-breathing" width={32} height={32} />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-center text-sm text-destructive">

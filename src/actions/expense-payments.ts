@@ -61,7 +61,7 @@ export async function toggleExpensePayment(
       .eq("id", existing.id);
     if (error) return { error: error.message };
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/my-expenses");
+    revalidatePath("/dashboard/expenses");
     return { paid: false };
   }
 
@@ -72,7 +72,7 @@ export async function toggleExpensePayment(
   });
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/dashboard/expenses");
   return { paid: true };
 }
 
@@ -232,9 +232,9 @@ export async function granteeSharedToggleExpensePayment(
   if (!result?.ok) return { error: result?.error?.replace(/_/g, " ") ?? "Could not update payment." };
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/my-expenses");
+  revalidatePath("/dashboard/expenses");
   revalidatePath("/account/shared");
-  revalidatePath(`/account/shared/${grantorUserId}/my-expenses`);
+  revalidatePath(`/account/shared/${grantorUserId}/expenses`);
 
   return { paid: result.paid };
 }

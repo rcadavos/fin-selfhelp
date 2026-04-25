@@ -20,6 +20,8 @@ export const queryKeys = {
   /** `fetchUserPreferencesFromDb()` — keyed by user id for account switches. */
   userPreferences: (userId: string | undefined) =>
     [...queryKeys.all, "user", "preferences", userId ?? "none"] as const,
+  /** Bills data for a paid month (see `billsDataQueryOptions`). */
+  billData: (paidMonth: string) => [...queryKeys.all, "bills", "data", paidMonth] as const,
   /** Current user’s subscription row shape from `getSubscriptionStatus` (see `subscriptionStatusQueryOptions`). */
   subscriptionStatus: () => [...queryKeys.all, "subscription", "status"] as const,
   /** Pro/Premium capability flags from `getSubscriptionCapabilities` (see `subscriptionCapabilitiesQueryOptions`). */

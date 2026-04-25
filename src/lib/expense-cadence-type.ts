@@ -1,4 +1,4 @@
-/** Valid values for `?type=` on `/dashboard/my-expenses`. */
+/** Valid values for `?type=` on `/dashboard/expenses`. */
 export type ExpenseCadenceTypeParam = "monthly" | "quarterly" | "yearly";
 
 export function parseExpenseCadenceTypeParam(

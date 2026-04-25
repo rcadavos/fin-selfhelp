@@ -72,11 +72,8 @@ function LoginBrandPanel({ showFooter }: { showFooter?: boolean }) {
 
 function LoginLoading() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-2 md:min-h-0">
-      <LoginBrandPanel />
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-6 md:px-6 md:py-5">
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      </div>
+    <div className="flex min-h-0 flex-1 items-center justify-center">
+      <Image src="/favicon.png" alt="" aria-hidden className="h-20 w-20 animate-breathing" width={80} height={80} />
     </div>
   );
 }
@@ -161,7 +158,7 @@ function LoginContent() {
   if (loading || user) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Image src="/favicon.png" alt="" aria-hidden className="h-20 w-20 animate-breathing" width={80} height={80} />
       </div>
     );
   }

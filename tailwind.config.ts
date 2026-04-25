@@ -43,6 +43,15 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        breathing: {
+          "0%, 100%": { opacity: "0.6", transform: "scale(1)" },
+          "50%": { opacity: "0.25", transform: "scale(1.25)" },
+        },
+      },
+      animation: {
+        breathing: "breathing 3s ease-in-out infinite",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

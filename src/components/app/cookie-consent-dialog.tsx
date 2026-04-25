@@ -49,7 +49,7 @@ export function CookieConsentDialog() {
         aria-describedby="cookie-consent-desc"
       >
         <DialogHeader>
-          <DialogTitle>Cookie preferences</DialogTitle>
+          <DialogTitle>Cookie Preferences</DialogTitle>
           <DialogDescription id="cookie-consent-desc" className="text-left leading-relaxed">
             We use cookies and similar storage for essential features (such as signing you in and
             remembering your theme). With your permission we can also use optional cookies to

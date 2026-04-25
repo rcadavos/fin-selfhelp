@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const bottomNavItems = [
   {
-    href: "/dashboard/my-expenses",
+    href: "/dashboard/expenses",
     label: "Expenses",
     icon: Banknote,
   },

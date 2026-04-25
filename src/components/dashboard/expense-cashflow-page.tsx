@@ -353,7 +353,7 @@ export function ExpenseCashflowPage({
   initialExpenseCadence,
 }: {
   pageVariant: ExpenseCashflowPageVariant;
-  /** From `?type=` on `/dashboard/my-expenses` (server + deep links). */
+  /** From `?type=` on `/dashboard/expenses` (server + deep links). */
   initialExpenseCadence?: ExpenseCadenceTypeParam;
 }) {
   const router = useRouter();
@@ -1716,7 +1716,7 @@ export function ExpenseCashflowPage({
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
                     <Banknote className="h-4 w-4" />
                   </div>
@@ -1725,7 +1725,7 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Daily spending this month</p>
                 </Link>
 
-                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
                     <Receipt className="h-4 w-4" />
                   </div>
@@ -1734,7 +1734,7 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Recurring bills this month</p>
                 </Link>
 
-                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
@@ -1747,7 +1747,7 @@ export function ExpenseCashflowPage({
                   )}
                 </Link>
 
-                <Link href="/dashboard/my-expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
                     <GoldCoin className="h-4 w-4" />
                   </div>
@@ -1827,7 +1827,7 @@ export function ExpenseCashflowPage({
                 </p>
               </div>
               <Button asChild>
-                <Link href="/dashboard/my-expenses">Open My Expenses</Link>
+                <Link href="/dashboard/expenses">Open Expenses</Link>
               </Button>
             </CardContent>
           </Card>

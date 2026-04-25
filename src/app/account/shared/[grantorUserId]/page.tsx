@@ -37,7 +37,7 @@ export default async function SharedHubPage({ params }: Props) {
         <CardContent className="flex flex-col gap-2">
           {share.can_view_expenses && (
             <Button asChild variant="outline">
-              <Link href={`/account/shared/${grantorUserId}/my-expenses`}>My Expenses</Link>
+              <Link href={`/account/shared/${grantorUserId}/expenses`}>Expenses</Link>
             </Button>
           )}
           {share.can_view_to_buy && (

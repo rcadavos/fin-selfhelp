@@ -23,11 +23,11 @@ export default async function CategoriesPage() {
     <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Back link */}
       <Link
-        href="/dashboard/my-expenses"
+        href="/dashboard/expenses"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
-        Back to My Expenses
+        Back to Expenses
       </Link>
 
       {/* Page header */}

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 
@@ -119,7 +119,9 @@ export function ExpensesForm(props: ExpensesFormProps) {
             <CardDescription>Loading…</CardDescription>
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-64 w-full rounded-md" />
+            <div className="flex h-64 items-center justify-center">
+              <Image src="/favicon.png" alt="" aria-hidden className="h-12 w-12 animate-breathing" width={48} height={48} />
+            </div>
           </CardContent>
         </Card>
       }

@@ -89,9 +89,9 @@ export default function SharedWithMePage() {
                   <div className="flex flex-wrap gap-2">
                     {share.can_view_expenses && (
                       <Button size="sm" variant="outline" asChild className="gap-1">
-                        <Link href={`/account/shared/${grantorUserId}/my-expenses`}>
+                        <Link href={`/account/shared/${grantorUserId}/expenses`}>
                           <Banknote className="h-4 w-4" />
-                          My Expenses
+                          Expenses
                         </Link>
                       </Button>
                     )}
