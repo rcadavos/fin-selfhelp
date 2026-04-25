@@ -3,22 +3,22 @@ import { cn } from "@/lib/utils";
 
 const highlights = [
   {
-    title: "Monthly rhythm",
-    description: "Mark bills paid each month and see what is still open — built around how you actually pay.",
+    title: "Stay ahead of your bills",
+    description: "Never miss a due date again.",
     icon: CalendarClock,
     iconBg: "bg-emerald-500/10",
     iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    title: "Categories that fit life",
-    description: "Rent, utilities, loans, savings, and more — organized so your dashboard stays readable.",
+    title: "Reach your goals",
+    description: "Track your progress and stay motivated — kahit paunti-unti.",
     icon: Layers,
     iconBg: "bg-violet-500/10",
     iconColor: "text-violet-600 dark:text-violet-400",
   },
   {
-    title: "Tools beyond bills",
-    description: "To-buy and to-do lists, goals tracker, plus savings and debt calculators when you want the bigger picture.",
+    title: "See everything clearly",
+    description: "Get a simple view of your life, not complicated charts.",
     icon: PiggyBank,
     iconBg: "bg-amber-500/10",
     iconColor: "text-amber-600 dark:text-amber-400",

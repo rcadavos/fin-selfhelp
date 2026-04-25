@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-const WORDS = ["bills", "expenses", "goals", "to buy list", "to do list"];
+const WORDS = ["expenses", "bills", "goals", "to buy list", "to do list"];
 const HOLD_MS = 2000;
 const DURATION = 0.5;
 const BASE_SPEED = DURATION * 200;

@@ -16,6 +16,8 @@ import {
   Plus,
   Trash2,
   Receipt,
+  Download,
+  LayoutGrid,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,12 +38,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useUser } from "@/hooks/use-user";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
+import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import {
@@ -50,6 +59,7 @@ import {
 } from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
 import Image from "next/image";
+import { ContentHeader } from "@/components/app/content-header";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
   toggleBillPayment,
@@ -57,6 +67,7 @@ import {
   updateBill,
   deleteBill,
   type BillRow,
+  type BillsData,
 } from "@/actions/bills";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -179,6 +190,8 @@ function BillDialog({
   isPending: boolean;
 }) {
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
+  const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
+  const hasProAccess = capabilities?.hasProLevelAccess ?? false;
   const categories = dbCategories && dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES;
 
   const [form, setForm] = useState<BillFormState>(initial ?? EMPTY_FORM);
@@ -228,7 +241,7 @@ function BillDialog({
           </div>
 
           {/* Row 2 — Category + Amount */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Category</Label>
               <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
@@ -258,7 +271,7 @@ function BillDialog({
           </div>
 
           {/* Row 3 — Due Date + End Date */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Due Day</Label>
               <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
@@ -293,7 +306,7 @@ function BillDialog({
           </div>
 
           {/* Row 4 — Billing Period (+ Due Month if yearly) */}
-          <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-2" : "grid-cols-1")}>
+          <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
             <div className="space-y-1.5">
               <Label>Billing Period</Label>
               <Select
@@ -331,7 +344,12 @@ function BillDialog({
 
           {/* Row 5 — Reminder */}
           <div className="space-y-1.5">
-            <Label>Reminders</Label>
+            <div className="flex items-center justify-between">
+              <Label>Reminders</Label>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                Pro / Premium
+              </span>
+            </div>
             <div className="flex gap-2">
               {REMINDER_OPTIONS.map(({ value, label }) => {
                 const active = form.reminderDays.includes(value);
@@ -352,6 +370,11 @@ function BillDialog({
                 );
               })}
             </div>
+            {!hasProAccess && (
+              <p className="text-[11px] text-muted-foreground">
+                Reminders require a Pro or Premium plan. Upgrade to activate them.
+              </p>
+            )}
           </div>
         </div>
 
@@ -444,6 +467,7 @@ function BillsPieChart({ bills, paidIds, currency }: { bills: BillRow[]; paidIds
 function BillRow({
   bill,
   isPaid,
+  isOverdue,
   isPending,
   currency,
   paidMonth,
@@ -453,6 +477,7 @@ function BillRow({
 }: {
   bill: BillRow;
   isPaid: boolean;
+  isOverdue: boolean;
   isPending: boolean;
   currency: string;
   paidMonth: string;
@@ -472,7 +497,9 @@ function BillRow({
         "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
         isPaid
           ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
-          : "border-border bg-card hover:bg-muted/40",
+          : isOverdue
+            ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
+            : "border-border bg-card hover:bg-muted/40",
       )}
     >
       {/* Paid toggle */}
@@ -485,7 +512,7 @@ function BillRow({
         {isPaid ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
         ) : (
-          <Circle className="h-5 w-5" />
+          <Circle className={cn("h-5 w-5", isOverdue && "text-amber-500")} />
         )}
       </button>
 
@@ -497,21 +524,23 @@ function BillRow({
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "truncate text-sm font-medium",
-            isPaid && "line-through text-muted-foreground",
+        <div className="flex items-center gap-1.5">
+          <p
+            className={cn(
+              "truncate text-sm font-medium",
+              isPaid && "line-through text-muted-foreground",
+            )}
+          >
+            {bill.note ?? cat?.label}
+          </p>
+          {isOverdue && !isPaid && (
+            <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              Outstanding
+            </span>
           )}
-        >
-          {bill.note ?? cat?.label}
-        </p>
+        </div>
         <p className="truncate text-xs text-muted-foreground">{dueDateLabel}</p>
       </div>
-
-      {/* Billing period badge */}
-      <Badge variant="outline" className="hidden sm:flex flex-shrink-0 text-xs capitalize">
-        {BILLING_PERIOD_LABELS[bill.billing_period] ?? bill.billing_period}
-      </Badge>
 
       {/* Amount */}
       <p
@@ -537,6 +566,129 @@ function BillRow({
   );
 }
 
+// ─── Export helpers ──────────────────────────────────────────────────────────
+
+type CatList = Array<{ id: string; label: string; bgClass: string }>;
+
+function getCategoryLabel(id: string, categories: CatList): string {
+  return categories.find((c) => c.id === id)?.label ?? id;
+}
+
+function exportBillsToCSV(bills: BillRow[], paidIds: Set<string>, currency: string, categories: CatList): void {
+  const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const rows = bills.map((b) => [
+    esc(b.note ?? getCategoryLabel(b.category_id, categories)),
+    esc(getCategoryLabel(b.category_id, categories)),
+    b.amount,
+    b.billing_period,
+    paidIds.has(b.id) ? "Paid" : "Unpaid",
+  ].join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const link = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })),
+    download: `bills-${new Date().toISOString().slice(0, 10)}.csv`,
+    style: "display:none",
+  });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportBillsToExcel(bills: BillRow[], paidIds: Set<string>, currency: string, categories: CatList): void {
+  const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const headerRow = headers.map((h) => `<th>${esc(h)}</th>`).join("");
+  const dataRows = bills.map((b) => {
+    const cells = [
+      b.note ?? getCategoryLabel(b.category_id, categories),
+      getCategoryLabel(b.category_id, categories),
+      String(b.amount),
+      b.billing_period,
+      paidIds.has(b.id) ? "Paid" : "Unpaid",
+    ].map((v) => `<td>${esc(v)}</td>`).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr>${headerRow}</tr>${dataRows}</table></body></html>`;
+  const link = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" })),
+    download: `bills-${new Date().toISOString().slice(0, 10)}.xls`,
+    style: "display:none",
+  });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ─── Categories dialog ────────────────────────────────────────────────────────
+
+function CategoriesDialog({
+  open,
+  onClose,
+  bills,
+  paidIds,
+  currency,
+  categories,
+}: {
+  open: boolean;
+  onClose: () => void;
+  bills: BillRow[];
+  paidIds: Set<string>;
+  currency: string;
+  categories: CatList;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, { total: number; paid: number; count: number }>();
+    for (const b of bills) {
+      const entry = map.get(b.category_id) ?? { total: 0, paid: 0, count: 0 };
+      entry.total += b.amount;
+      entry.count += 1;
+      if (paidIds.has(b.id)) entry.paid += b.amount;
+      map.set(b.category_id, entry);
+    }
+    return Array.from(map.entries())
+      .map(([id, v]) => ({ id, label: getCategoryLabel(id, categories), ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [bills, paidIds, categories]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Bills by Category</DialogTitle>
+        </DialogHeader>
+        {grouped.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">No bills yet.</p>
+        ) : (
+          <div className="divide-y">
+            {grouped.map(({ id, label, total, paid, count }) => {
+              const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+              const dotColor = getCategoryDotColor(
+                categories.find((c) => c.id === id)?.bgClass ?? ""
+              );
+              return (
+                <div key={id} className="flex items-center gap-3 py-3">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{label}</p>
+                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold tabular-nums">{formatCurrency(total, currency)}</p>
+                    <p className="text-[11px] text-muted-foreground">{count} bill{count !== 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main board ──────────────────────────────────────────────────────────────
 
 type PeriodTab = "monthly" | "quarterly" | "yearly";
@@ -548,6 +700,7 @@ export function BillsBoard() {
   const paidMonth = getCurrentPaidMonth();
   const [activeTab, setActiveTab] = useState<PeriodTab>("monthly");
   const [addOpen, setAddOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -562,6 +715,10 @@ export function BillsBoard() {
     ...userPreferencesQueryOptions(user?.id),
     enabled: !!user,
   });
+  const { data: dbCategories } = useQuery(categoriesQueryOptions());
+  const categories: CatList = dbCategories && dbCategories.length > 0
+    ? dbCategories.map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass }))
+    : EXPENSE_CATEGORIES;
 
   const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = data?.bills ?? [];
@@ -572,6 +729,29 @@ export function BillsBoard() {
     () => bills.filter((b) => b.billing_period === activeTab),
     [bills, activeTab],
   );
+
+  // Sorted: outstanding → unpaid → paid, then by due date within each group
+  const sortedFilteredBills = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    function statusRank(bill: BillRow): number {
+      if (paidIds.has(bill.id)) return 2;
+      const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
+      if (eff && eff < today) return 0; // outstanding
+      return 1; // unpaid
+    }
+
+    function dueTime(bill: BillRow): number {
+      return effectiveDueDateInPaidMonth(bill.due_date, paidMonth)?.getTime() ?? Infinity;
+    }
+
+    return [...filteredBills].sort((a, b) => {
+      const rankDiff = statusRank(a) - statusRank(b);
+      if (rankDiff !== 0) return rankDiff;
+      return dueTime(a) - dueTime(b);
+    });
+  }, [filteredBills, paidIds, paidMonth]);
 
   // Summary
   const { totalMonthly, totalPaid, totalRemaining, paidCount } = useMemo(() => {
@@ -599,10 +779,30 @@ export function BillsBoard() {
   }
 
   async function handleToggle(billId: string) {
+    const queryKey = queryKeys.billData(paidMonth);
+    const snapshot = queryClient.getQueryData(queryKey);
+
+    // Optimistic flip
+    queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
+      if (!old) return old;
+      const wasPaid = old.paidBillIds.includes(billId);
+      return {
+        ...old,
+        paidBillIds: wasPaid
+          ? old.paidBillIds.filter((id) => id !== billId)
+          : [...old.paidBillIds, billId],
+      };
+    });
+
     setPendingIds((prev) => new Set(prev).add(billId));
-    await toggleBillPayment(billId, paidMonth);
-    invalidate();
+    const res = await toggleBillPayment(billId, paidMonth);
     setPendingIds((prev) => { const s = new Set(prev); s.delete(billId); return s; });
+
+    if (res.error) {
+      queryClient.setQueryData(queryKey, snapshot);
+    } else {
+      invalidate();
+    }
   }
 
   async function handleAdd(form: BillFormState) {
@@ -662,23 +862,52 @@ export function BillsBoard() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Receipt className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight">Bills</h1>
-      </div>
+      <ContentHeader
+        title="Bills"
+        icon={Receipt}
+        className="mb-0"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setCategoriesOpen(true)}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Categories</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportBillsToCSV(bills, paidIds, currency, categories)}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportBillsToExcel(bills, paidIds, currency, categories)}>
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        }
+      />
 
-      {/* Summary: stats (1/3) + pie chart (2/3) */}
-      <div className="flex gap-3">
+      {/* Summary: stats + pie chart */}
+      <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
-        <div className="flex w-1/3 flex-col gap-3">
+        <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">Bills - This Month</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Bills - This Month</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalMonthly, currency)}</p>
             <p className="text-[11px] text-muted-foreground">{tabCounts.monthly} monthly bill{tabCounts.monthly !== 1 ? "s" : ""}</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">Bills - Remaining</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Bills - Remaining</p>
             <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
               {formatCurrency(totalRemaining, currency)}
             </p>
@@ -689,7 +918,7 @@ export function BillsBoard() {
         </div>
 
         {/* Pie chart */}
-        <div className="w-2/3">
+        <div className="sm:w-2/3">
           {bills.length > 0 ? (
             <Card className="h-full">
               <CardHeader className="pb-0 pt-4">
@@ -711,7 +940,7 @@ export function BillsBoard() {
 
       {/* Tabs + list */}
       <div>
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5">
             {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
               <button
@@ -740,19 +969,24 @@ export function BillsBoard() {
         <div className="space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-6">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={40} height={40} />
+              <Image src="/favicon.png" alt="" aria-hidden className="h-10 w-10 animate-breathing" width={40} height={40} />
             </div>
-          ) : filteredBills.length === 0 ? (
+          ) : sortedFilteredBills.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <Receipt className="h-8 w-8 opacity-30" />
               <p className="text-sm">No {activeTab} bills yet.</p>
             </div>
           ) : (
-            filteredBills.map((bill) => (
+            sortedFilteredBills.map((bill) => {
+              const today = new Date(); today.setHours(0, 0, 0, 0);
+              const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
+              const isOverdue = !paidIds.has(bill.id) && !!eff && eff < today;
+              return (
               <BillRow
                 key={bill.id}
                 bill={bill}
                 isPaid={paidIds.has(bill.id)}
+                isOverdue={isOverdue}
                 isPending={pendingIds.has(bill.id)}
                 currency={currency}
                 paidMonth={paidMonth}
@@ -760,10 +994,21 @@ export function BillsBoard() {
                 onEdit={() => setEditingBill(bill)}
                 onDelete={() => setDeletingId(bill.id)}
               />
-            ))
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Categories dialog */}
+      <CategoriesDialog
+        open={categoriesOpen}
+        onClose={() => setCategoriesOpen(false)}
+        bills={bills}
+        paidIds={paidIds}
+        currency={currency}
+        categories={categories}
+      />
 
       {/* Add dialog */}
       {addOpen && (

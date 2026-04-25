@@ -47,14 +47,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
-import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
 import { useUser } from "@/hooks/use-user";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -254,7 +253,6 @@ export function MyExpensesBoard() {
 
   const { data: expenseData, isLoading } = useQuery(expenseDataQueryOptions());
   const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
-  const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
   const categories = useMemo(
     () => (dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES),
     [dbCategories]
@@ -481,12 +479,12 @@ export function MyExpensesBoard() {
         {/* Stat cards */}
         <div className="flex w-1/3 flex-col gap-3">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">Expenses - Today</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - Today</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totalToday)}</p>
             <p className="text-[11px] text-muted-foreground">{expensesToday.length} item{expensesToday.length !== 1 ? "s" : ""} today</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">Expenses - This Month</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - This Month</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalExpenses)}</p>
             <p className="text-[11px] text-muted-foreground">{expenses.length} item{expenses.length !== 1 ? "s" : ""}</p>
           </div>

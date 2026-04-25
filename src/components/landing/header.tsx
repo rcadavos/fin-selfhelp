@@ -22,7 +22,7 @@ export function Header({ className }: HeaderProps) {
       )}
     >
       <div className="mx-auto max-w-6xl">
-        <div className="flex h-14 items-center justify-between px-4 sm:px-0">
+        <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center" title="OmniTrak" aria-label="OmniTrak home">
             <SiteLogo fetchPriority="high" />
             <span className="sr-only">OmniTrak</span>
