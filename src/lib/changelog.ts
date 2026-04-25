@@ -14,6 +14,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.2.1",
+    date: "2026-04-25",
+    summary: "Consistent page width and mobile layout for Bills and Expenses pages.",
+    changes: [
+      { type: "improvement", description: "Expenses page stats cards and pie chart now use a responsive layout: stacked vertically on mobile, side-by-side on tablet and up." },
+      { type: "improvement", description: "Bills page max width narrowed to match the Expenses page for a more consistent layout." },
+      { type: "improvement", description: "Dashboard stat card 'Bills unpaid' replaced with 'Bills + Expenses' showing the combined monthly total." },
+    ],
+  },
+  {
     version: "1.2.0",
     date: "2026-04-25",
     summary: "Welcome email for new users, in-app changelog page, and version display.",

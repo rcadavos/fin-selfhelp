@@ -12,7 +12,10 @@
       "Bash(git config *)",
       "Bash(node scripts/bump-version.mjs patch)",
       "Bash(echo \"exit: $?\")",
-      "Bash(node scripts/bump-version.mjs minor)"
+      "Bash(node scripts/bump-version.mjs minor)",
+      "Bash(git fetch *)",
+      "Bash(git restore *)",
+      "Bash(git commit *)"
     ]
   }
 }

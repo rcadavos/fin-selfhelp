@@ -432,7 +432,6 @@ export function ExpenseCashflowPage({
     () => new Set(expenseDataQuery.data?.paidEntryIds ?? []),
     [expenseDataQuery.data]
   );
-  const paymentHistory: PaymentMonthStats[] = expensePaymentHistoryQuery.data ?? [];
   const { showError: showSnackbar } = useSnackbar();
   const { refreshBudget } = useBudgetRefresh();
   const [addStatus, setAddStatus] = useState<"idle" | "saving" | "error">("idle");
@@ -689,13 +688,6 @@ export function ExpenseCashflowPage({
 
   const paidCount = summaryEntries.filter((e) => paidIds.has(e.id)).length;
   const paidPct = totalExpenses > 0 ? Math.min(100, Math.round((totalPaidThisMonth / totalExpenses) * 100)) : 0;
-  const paidCountPct =
-    summaryEntries.length > 0 ? Math.round((paidCount / summaryEntries.length) * 100) : 0;
-  const quarterIndex = useMemo(() => {
-    const month = Number(paidMonthYm.slice(5, 7));
-    if (!Number.isFinite(month) || month < 1 || month > 12) return 1;
-    return Math.floor((month - 1) / 3) + 1;
-  }, [paidMonthYm]);
   const cadenceCounts = useMemo(() => {
     const noFilterSelected = !filterPaid && !filterUnpaid && !filterPastDue;
     const counts: Record<ExpenseCadenceTab, number> = {
@@ -1662,9 +1654,7 @@ export function ExpenseCashflowPage({
             const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
             const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsUnpaid = Math.max(0, billsTotal - billsPaid);
-            const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
-            const dailyTotal = entries.filter((e) => !e.due_date).reduce((s, e) => s + e.amount, 0);
             const showRing = billsTotal > 0;
             return (
               <div className="relative mt-4 mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 p-6 text-primary-foreground shadow-lg dark:from-primary/80 dark:to-primary/50">
@@ -1688,13 +1678,13 @@ export function ExpenseCashflowPage({
                       <div
                         className="absolute inset-0 rounded-full"
                         style={{
-                          background: `conic-gradient(rgb(34 197 94) 0% ${billsPaidPct}%, rgba(255,255,255,0.25) ${billsPaidPct}% 100%)`,
+                          background: `conic-gradient(	#9FE2BF 0% ${billsPaidPct}%, rgba(255,255,255,0.25) ${billsPaidPct}% 100%)`,
                           WebkitMask: "radial-gradient(circle, transparent 55%, black 56%)",
                           mask: "radial-gradient(circle, transparent 55%, black 56%)",
                         }}
                       />
 
-                      {/* Text (separate layer, NOT masked) */}
+                      {/* Text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[10px] font-medium leading-tight text-primary-foreground">
                         <span className="opacity-80">Bills paid</span>
                         <span className="text-xl font-bold sm:text-2xl">
@@ -1726,15 +1716,11 @@ export function ExpenseCashflowPage({
           {/* ════════════════════ STAT CARDS ════════════════════ */}
           {(() => {
             const dailyAmt = entries.filter((e) => !e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
-            const savingsAmt = entries.filter((e) => e.category_id === "savings").reduce((s, e) => s + e.amount, 0);
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
             const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
             const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
-            const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
             const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
-            const billsUnpaid = Math.max(0, billsTotal - billsPaid);
-            const billsUnpaidCount = billsList.filter((b) => b.billing_period === "monthly" && !paidBillIds.has(b.id)).length;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
@@ -1766,16 +1752,16 @@ export function ExpenseCashflowPage({
                   </p>
                 </Link>
 
-                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
-                    <Clock className="h-4 w-4" />
+                <Link href="/dashboard" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
+                    <CircleDollarSign className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Bills unpaid</p>
-                  <p className={cn("text-lg font-bold", billsUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
-                    {formatCurrency(billsUnpaid)}
+                  <p className="text-xs text-muted-foreground">Bills + Expenses</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(billsTotal + dailyAmt)}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {billsUnpaidCount}/{billsList.filter((b) => b.billing_period === "monthly").length} Bills unpaid this month
+                    Combined total this month
                   </p>
                 </Link>
               </div>

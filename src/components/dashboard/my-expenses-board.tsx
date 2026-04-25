@@ -475,9 +475,9 @@ export function MyExpensesBoard() {
       </div>
 
       {/* Summary: stats (1/3) + pie chart (2/3) */}
-      <div className="mb-4 flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
-        <div className="flex w-1/3 flex-col gap-3">
+        <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - Today</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totalToday)}</p>
@@ -491,7 +491,7 @@ export function MyExpensesBoard() {
         </div>
 
         {/* Pie chart */}
-        <div className="w-2/3">
+        <div className="sm:w-2/3">
           {expenses.length > 0 ? (
             <Card className="h-full">
               <CardHeader className="pb-0 pt-4">
