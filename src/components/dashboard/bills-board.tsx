@@ -69,6 +69,7 @@ import {
   type BillRow,
   type BillsData,
 } from "@/actions/bills";
+import Link from "next/link";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -868,14 +869,11 @@ export function BillsBoard() {
         className="mb-0"
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setCategoriesOpen(true)}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Categories</span>
+            <Button variant="outline" size="sm" aria-label="Categories" asChild>
+              <Link href="/dashboard/expenses/categories">
+                <LayoutGrid className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">Categories</span>
+              </Link>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -982,18 +980,18 @@ export function BillsBoard() {
               const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
               const isOverdue = !paidIds.has(bill.id) && !!eff && eff < today;
               return (
-              <BillRow
-                key={bill.id}
-                bill={bill}
-                isPaid={paidIds.has(bill.id)}
-                isOverdue={isOverdue}
-                isPending={pendingIds.has(bill.id)}
-                currency={currency}
-                paidMonth={paidMonth}
-                onToggle={() => handleToggle(bill.id)}
-                onEdit={() => setEditingBill(bill)}
-                onDelete={() => setDeletingId(bill.id)}
-              />
+                <BillRow
+                  key={bill.id}
+                  bill={bill}
+                  isPaid={paidIds.has(bill.id)}
+                  isOverdue={isOverdue}
+                  isPending={pendingIds.has(bill.id)}
+                  currency={currency}
+                  paidMonth={paidMonth}
+                  onToggle={() => handleToggle(bill.id)}
+                  onEdit={() => setEditingBill(bill)}
+                  onDelete={() => setDeletingId(bill.id)}
+                />
               );
             })
           )}

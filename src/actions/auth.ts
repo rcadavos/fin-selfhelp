@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { redirect } from "next/navigation";
+import { sendWelcomeEmail } from "@/lib/email";
 
 function normalizeSiteUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
@@ -76,6 +77,9 @@ export async function signUp(formData: FormData) {
   if (error) {
     return { error: error.message };
   }
+
+  // Fire welcome email — errors are swallowed so they never break signup.
+  sendWelcomeEmail({ to: email, name: fullName || undefined }).catch(() => {});
 
   // If email confirmation is disabled, Supabase returns a session immediately.
   if (data.session) {
