@@ -254,32 +254,37 @@ export async function getMonthlyBreakdown(
   const { error: authErr, profileId } = await getProfileId(supabase);
   if (authErr || !profileId) return { error: authErr ?? "Not logged in." };
 
-  const { data: rows, error } = await supabase
-    .from("expense_entries")
-    .select("amount, due_date, category_id, created_at")
-    .eq("profile_id", profileId);
+  const [{ data: expenseRows, error }, { data: billRows }] = await Promise.all([
+    supabase
+      .from("expense_entries")
+      .select("amount, due_date, category_id, created_at")
+      .eq("profile_id", profileId),
+    supabase
+      .from("bills")
+      .select("amount, billing_period, created_at")
+      .eq("profile_id", profileId),
+  ]);
   if (error) return { error: error.message };
 
-  const allEntries = rows ?? [];
+  const allEntries = expenseRows ?? [];
+  const allBills = billRows ?? [];
   const monthKeys = getRecentPaidMonths(months);
 
   const stats: MonthlyBreakdownPoint[] = monthKeys.map((month) => {
     const [y, m] = month.split("-").map(Number);
-    const nextMonthPrefix = `${y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-`;
     const nextYear = m === 12 ? y + 1 : y;
     const monthEndIso = `${nextYear}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00`;
 
-    // Bills: recurring (has due_date), count all that existed by end of month
-    const bills = allEntries
+    // Bills: monthly bills from the new bills table that existed by end of this month
+    const bills = allBills
       .filter(
-        (e) =>
-          e.due_date &&
-          e.category_id !== "savings" &&
-          (e.created_at ?? "") < monthEndIso
+        (b) =>
+          b.billing_period === "monthly" &&
+          (b.created_at ?? "") < monthEndIso
       )
-      .reduce((s, e) => s + Number(e.amount), 0);
+      .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Expenses: daily entries (no due_date) created in this month
+    // Expenses: daily entries (no due_date, not savings) created in this month
     const expenses = allEntries
       .filter(
         (e) =>
@@ -289,15 +294,14 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, e) => s + Number(e.amount), 0);
 
-    // Savings: recurring savings bills count every month they exist (like other bills);
-    //          one-off savings entries count only in the month they were created.
+    // Savings: one-off savings entries created this month
     const savings = allEntries
-      .filter((e) => {
-        if (e.category_id !== "savings") return false;
-        return e.due_date
-          ? (e.created_at ?? "") < monthEndIso          // recurring — exists by month end
-          : (e.created_at ?? "").startsWith(month);     // one-off — created this month
-      })
+      .filter(
+        (e) =>
+          e.category_id === "savings" &&
+          !e.due_date &&
+          (e.created_at ?? "").startsWith(month)
+      )
       .reduce((s, e) => s + Number(e.amount), 0);
 
     return { month, bills, expenses, savings };

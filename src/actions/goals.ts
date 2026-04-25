@@ -144,7 +144,7 @@ export async function createGoal(input: GoalInput): Promise<{ error?: string }> 
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/my-goals");
+  revalidatePath("/dashboard/goals");
   return {};
 }
 
@@ -177,7 +177,7 @@ export async function updateGoal(goalId: string, input: GoalInput): Promise<{ er
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/my-goals");
+  revalidatePath("/dashboard/goals");
   return {};
 }
 
@@ -193,6 +193,6 @@ export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
 
   const { error } = await supabase.from("goal_entries").delete().eq("id", goalId).eq("profile_id", profile.id);
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/my-goals");
+  revalidatePath("/dashboard/goals");
   return {};
 }

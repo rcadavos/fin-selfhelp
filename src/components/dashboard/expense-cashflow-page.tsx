@@ -46,6 +46,7 @@ import {
 } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { billsDataQueryOptions } from "@/lib/query/bills";
 import {
   EXPENSE_PAYMENT_HISTORY_MONTHS,
   expenseDataQueryOptions,
@@ -374,6 +375,10 @@ export function ExpenseCashflowPage({
   });
   const monthlyBreakdownQuery = useQuery({
     ...monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
+    enabled: !!user && !loading && pageVariant === "dashboard",
+  });
+  const billsDataQuery = useQuery({
+    ...billsDataQueryOptions(paidMonthQueryKey),
     enabled: !!user && !loading && pageVariant === "dashboard",
   });
   const invalidateExpenseQueries = useCallback(() => {
@@ -1632,12 +1637,12 @@ export function ExpenseCashflowPage({
 
           {/* ════════════════════ HERO: MONTHLY OVERVIEW ════════════════════ */}
           {(() => {
-            // due_date = bill (regardless of category); no due_date = expense
-            const billEntries = entries.filter((e) => !!e.due_date);
-            const billsTotal = billEntries.reduce((s, e) => s + e.amount, 0);
-            const billsPaid = billEntries.filter((e) => paidIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
+            const billsList = billsDataQuery.data?.bills ?? [];
+            const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
+            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
+            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsUnpaid = Math.max(0, billsTotal - billsPaid);
-            const billsPaidCount = billEntries.filter((e) => paidIds.has(e.id)).length;
+            const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
             const dailyTotal = entries.filter((e) => !e.due_date).reduce((s, e) => s + e.amount, 0);
             const showRing = billsTotal > 0;
@@ -1657,9 +1662,9 @@ export function ExpenseCashflowPage({
                       {formatCurrency(billsUnpaid)}
                     </p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      {billEntries.length > 0 && (
+                      {billsList.length > 0 && (
                         <Badge className="w-fit border-white/30 bg-white/20 text-white hover:bg-white/30">
-                          {billsPaidCount} of {billEntries.length} bills paid
+                          {billsPaidCount} of {billsList.length} bills paid
                         </Badge>
                       )}
                       {billsPaidPct > 0 && (
@@ -1710,9 +1715,11 @@ export function ExpenseCashflowPage({
           {/* ════════════════════ STAT CARDS ════════════════════ */}
           {(() => {
             const dailyAmt = entries.filter((e) => !e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
-            const billsTotal = entries.filter((e) => !!e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
-            const billsPaid = entries.filter((e) => !!e.due_date && e.category_id !== "savings" && paidIds.has(e.id)).reduce((s, e) => s + e.amount, 0);
             const savingsAmt = entries.filter((e) => e.category_id === "savings").reduce((s, e) => s + e.amount, 0);
+            const billsList = billsDataQuery.data?.bills ?? [];
+            const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
+            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
+            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -1725,7 +1732,7 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Daily spending this month</p>
                 </Link>
 
-                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
                     <Receipt className="h-4 w-4" />
                   </div>
@@ -1734,7 +1741,7 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Recurring bills this month</p>
                 </Link>
 
-                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
@@ -1823,12 +1830,17 @@ export function ExpenseCashflowPage({
               <div className="space-y-1">
                 <p className="font-medium">Expenses & Bills</p>
                 <p className="text-sm text-muted-foreground">
-                  Add, edit, and mark bills paid in My Expenses.
+                  Track daily spending in Expenses, manage recurring bills in Bills.
                 </p>
               </div>
-              <Button asChild>
-                <Link href="/dashboard/expenses">Open Expenses</Link>
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/expenses">Expenses</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/dashboard/bills">Bills</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </>
