@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, MessageSquareText, Lightbulb } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, MessageSquareText, Lightbulb, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/pricing", label: "Pricing", icon: CreditCard },
   { href: "/admin/reviews", label: "Reviews", icon: MessageSquareText },

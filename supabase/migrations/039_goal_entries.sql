@@ -1,4 +1,4 @@
--- Personal goals (My Goals) per profile
+-- Personal goals (Goals) per profile
 
 create table if not exists public.goal_entries (
   id uuid primary key default gen_random_uuid(),

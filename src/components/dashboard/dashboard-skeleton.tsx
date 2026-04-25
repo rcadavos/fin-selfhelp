@@ -23,7 +23,7 @@ export function DashboardSkeleton({ className }: DashboardSkeletonProps) {
       className={cn("flex min-h-[60vh] items-center justify-center", className)}
     >
       <span className="sr-only">Loading…</span>
-      <Image src="/favicon.png" alt="" aria-hidden className="h-20 w-20 animate-breathing" width={80} height={80} />
+      <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={80} height={80} />
     </div>
   );
 }

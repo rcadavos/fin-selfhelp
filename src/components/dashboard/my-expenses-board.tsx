@@ -427,7 +427,7 @@ export function MyExpensesBoard() {
   if (userLoading || isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Image src="/favicon.png" alt="" aria-hidden className="h-20 w-20 animate-breathing" width={80} height={80} />
+        <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={80} height={80} />
       </div>
     );
   }

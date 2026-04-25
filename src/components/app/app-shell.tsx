@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex h-full min-h-0 min-w-0 w-full flex-1 flex-col md:min-h-0 md:overflow-hidden",
-          showAuthenticatedShell && "md:pl-56"
+          showAuthenticatedShell && "md:pl-64"
         )}
       >
         {showAuthenticatedShell ? (

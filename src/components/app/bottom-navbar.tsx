@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
-  Target,
-  Gem,
   ShoppingCart,
   ClipboardList,
+  Receipt,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,14 +18,14 @@ const bottomNavItems = [
     icon: Banknote,
   },
   {
-    href: "/dashboard/my-goals",
-    label: "Goals",
-    icon: Target,
+    href: "/dashboard/bills",
+    label: "Bills",
+    icon: Receipt,
   },
   {
-    href: "/dashboard/premium",
-    label: "Premium",
-    icon: Gem,
+    href: "/dashboard",
+    label: "Home",
+    icon: LayoutDashboard,
   },
   {
     href: "/dashboard/to-buy",

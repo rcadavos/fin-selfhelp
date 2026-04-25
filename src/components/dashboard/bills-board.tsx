@@ -13,10 +13,7 @@ import {
 import {
   CheckCircle2,
   Circle,
-  ChevronLeft,
-  ChevronRight,
   Plus,
-  Pencil,
   Trash2,
   Receipt,
 } from "lucide-react";
@@ -108,19 +105,6 @@ function getCategoryDotColor(bgClass: string): string {
   return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
 }
 
-function formatPaidMonth(ym: string): string {
-  const [y, m] = ym.split("-");
-  const idx = parseInt(m, 10) - 1;
-  return `${MONTH_NAMES[idx] ?? m} ${y}`;
-}
-
-function addMonths(ym: string, delta: number): string {
-  const [y, m] = ym.split("-").map(Number);
-  const date = new Date(y, m - 1 + delta, 1);
-  const ny = date.getFullYear();
-  const nm = String(date.getMonth() + 1).padStart(2, "0");
-  return `${ny}-${nm}`;
-}
 
 function formatDueDay(bill: BillRow, paidMonth: string): string {
   if (bill.billing_period === "yearly") {
@@ -483,16 +467,17 @@ function BillRow({
 
   return (
     <div
+      onClick={onEdit}
       className={cn(
-        "flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
+        "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
         isPaid
-          ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/50 dark:bg-emerald-950/20"
-          : "border-border bg-card hover:border-border/80",
+          ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
+          : "border-border bg-card hover:bg-muted/40",
       )}
     >
       {/* Paid toggle */}
       <button
-        onClick={onToggle}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         disabled={isPending}
         className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         aria-label={isPaid ? "Mark unpaid" : "Mark paid"}
@@ -539,40 +524,29 @@ function BillRow({
       </p>
 
       {/* Actions */}
-      <div className="flex flex-shrink-0 items-center gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-          onClick={onEdit}
-          aria-label="Edit bill"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-          onClick={onDelete}
-          aria-label="Delete bill"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        aria-label="Delete bill"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }
 
 // ─── Main board ──────────────────────────────────────────────────────────────
 
-type PeriodTab = "all" | "monthly" | "quarterly" | "yearly";
+type PeriodTab = "monthly" | "quarterly" | "yearly";
 
 export function BillsBoard() {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const [paidMonth, setPaidMonth] = useState(getCurrentPaidMonth());
-  const [activeTab, setActiveTab] = useState<PeriodTab>("all");
+  const paidMonth = getCurrentPaidMonth();
+  const [activeTab, setActiveTab] = useState<PeriodTab>("monthly");
   const [addOpen, setAddOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -594,10 +568,10 @@ export function BillsBoard() {
   const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data?.paidBillIds]);
 
   // Filtered by tab
-  const filteredBills = useMemo(() => {
-    if (activeTab === "all") return bills;
-    return bills.filter((b) => b.billing_period === activeTab);
-  }, [bills, activeTab]);
+  const filteredBills = useMemo(
+    () => bills.filter((b) => b.billing_period === activeTab),
+    [bills, activeTab],
+  );
 
   // Summary
   const { totalMonthly, totalPaid, totalRemaining, paidCount } = useMemo(() => {
@@ -615,7 +589,6 @@ export function BillsBoard() {
 
   // Tab counts
   const tabCounts = useMemo(() => ({
-    all: bills.length,
     monthly: bills.filter((b) => b.billing_period === "monthly").length,
     quarterly: bills.filter((b) => b.billing_period === "quarterly").length,
     yearly: bills.filter((b) => b.billing_period === "yearly").length,
@@ -690,41 +663,9 @@ export function BillsBoard() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Receipt className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight">Bills</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Month nav */}
-          <div className="flex items-center gap-1 rounded-lg border bg-card px-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => setPaidMonth((m) => addMonths(m, -1))}
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-[6rem] text-center text-sm font-medium">
-              {formatPaidMonth(paidMonth)}
-            </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => setPaidMonth((m) => addMonths(m, 1))}
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button onClick={() => setAddOpen(true)} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Add Bill
-          </Button>
-        </div>
+      <div className="flex items-center gap-3">
+        <Receipt className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold tracking-tight">Bills</h1>
       </div>
 
       {/* Summary: stats (1/3) + pie chart (2/3) */}
@@ -769,53 +710,42 @@ export function BillsBoard() {
       </div>
 
       {/* Tabs + list */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base font-semibold">
-              {isLoading ? "Loading…" : `${filteredBills.length} bill${filteredBills.length !== 1 ? "s" : ""}`}
-            </CardTitle>
-            <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5">
-              {(["all", "monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
-                    activeTab === tab
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {tab}{" "}
-                  {tabCounts[tab] > 0 && (
-                    <span className="opacity-60">{tabCounts[tab]}</span>
-                  )}
-                </button>
-              ))}
-            </div>
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5">
+            {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
+                  activeTab === tab
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab}
+                {tabCounts[tab] > 0 && (
+                  <span className="ml-1 opacity-60">{tabCounts[tab]}</span>
+                )}
+              </button>
+            ))}
           </div>
-        </CardHeader>
+          <Button onClick={() => setAddOpen(true)} size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Add Bill
+          </Button>
+        </div>
 
-        <CardContent className="space-y-2">
+        <div className="space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-6">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-10 w-10 animate-breathing" width={40} height={40} />
+              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={40} height={40} />
             </div>
           ) : filteredBills.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <Receipt className="h-8 w-8 opacity-30" />
-              <p className="text-sm">
-                {activeTab === "all"
-                  ? "No bills yet. Add your first recurring bill."
-                  : `No ${activeTab} bills.`}
-              </p>
-              {activeTab === "all" && (
-                <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add Bill
-                </Button>
-              )}
+              <p className="text-sm">No {activeTab} bills yet.</p>
             </div>
           ) : (
             filteredBills.map((bill) => (
@@ -832,8 +762,8 @@ export function BillsBoard() {
               />
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Add dialog */}
       {addOpen && (

@@ -78,7 +78,7 @@ export function NotificationsMenu() {
         <div className="max-h-[min(60vh,20rem)] overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center px-3 py-4">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-8 w-8 animate-breathing" width={32} height={32} />
+              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={32} height={32} />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-center text-sm text-destructive">

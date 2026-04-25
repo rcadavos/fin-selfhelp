@@ -615,7 +615,7 @@ export function MyGoalsPage() {
   return (
     <div className="container mx-auto max-w-3xl px-4 pb-10 pt-4">
       <ContentHeader
-        title="My Goals"
+        title="Goals"
         subtitle="Track what you&#39;re working toward — we&#39;ll celebrate with you."
         icon={Target}
         className="mb-4"

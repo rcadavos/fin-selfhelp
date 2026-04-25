@@ -1,6 +1,6 @@
 const STORAGE_KEY = "omni-trak-goals-categorized";
 
-/** Read My Goals “Categorized” toggle from localStorage. `null` = unset / unreadable. */
+/** Read Goals “Categorized” toggle from localStorage. `null` = unset / unreadable. */
 export function readGoalsCategorizedPreference(): boolean | null {
   if (typeof window === "undefined") return null;
   try {

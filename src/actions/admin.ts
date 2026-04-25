@@ -167,6 +167,79 @@ export async function confirmUserEmail(userId: string): Promise<{ error?: string
   }
 }
 
+export async function sendAdminNotification(params: {
+  target: "all" | "subscribers" | "specific";
+  userIds?: string[];
+  title: string;
+  body: string;
+}): Promise<{ sent: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { sent: 0, error: "Not logged in." };
+
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!profile?.is_admin) return { sent: 0, error: "Forbidden." };
+
+    const title = params.title.trim();
+    const body = params.body.trim();
+    if (!title) return { sent: 0, error: "Title is required." };
+
+    let targetUserIds: string[] = [];
+
+    if (params.target === "specific") {
+      targetUserIds = (params.userIds ?? []).filter(Boolean);
+    } else {
+      const { data: profiles, error: profilesError } = await admin
+        .from("profiles")
+        .select("user_id, is_subscriber, subscription_tier, subscription_ends_at");
+      if (profilesError) return { sent: 0, error: profilesError.message };
+
+      const now = new Date();
+      targetUserIds = (profiles ?? [])
+        .filter((p) => {
+          if (params.target === "all") return true;
+          if (p.is_subscriber) return true;
+          if (p.subscription_tier === "pro" || p.subscription_tier === "premium") {
+            const endsAt = p.subscription_ends_at ? new Date(p.subscription_ends_at as string) : null;
+            return endsAt != null && endsAt > now;
+          }
+          return false;
+        })
+        .map((p) => p.user_id as string)
+        .filter(Boolean);
+    }
+
+    if (targetUserIds.length === 0) return { sent: 0, error: "No target users found." };
+
+    const broadcastId = crypto.randomUUID();
+    const notifications = targetUserIds.map((userId) => ({
+      user_id: userId,
+      title,
+      body,
+      kind: "system",
+      dedupe_key: `admin:${broadcastId}:${userId}`,
+    }));
+
+    const batchSize = 500;
+    for (let i = 0; i < notifications.length; i += batchSize) {
+      const { error: insertError } = await admin.rpc("insert_user_notifications_bulk", {
+        notifications: notifications.slice(i, i + batchSize),
+      });
+      if (insertError) return { sent: 0, error: insertError.message };
+    }
+
+    return { sent: notifications.length };
+  } catch (e) {
+    return { sent: 0, error: e instanceof Error ? e.message : "Failed to send notification." };
+  }
+}
+
 /** Admin: permanently delete a user and all their data. Cannot delete yourself. */
 export async function deleteUser(userId: string): Promise<{ error?: string }> {
   try {

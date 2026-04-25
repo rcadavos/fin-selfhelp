@@ -120,7 +120,7 @@ export function ExpensesForm(props: ExpensesFormProps) {
           </CardHeader>
           <CardContent>
             <div className="flex h-64 items-center justify-center">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-12 w-12 animate-breathing" width={48} height={48} />
+              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={48} height={48} />
             </div>
           </CardContent>
         </Card>
