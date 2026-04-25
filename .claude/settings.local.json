@@ -15,7 +15,8 @@
       "Bash(node scripts/bump-version.mjs minor)",
       "Bash(git fetch *)",
       "Bash(git restore *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(find c:\\\\\\\\WORK\\\\\\\\MyProjects\\\\\\\\fin-selfhelp -type f -name \"*.ts\" -o -name \"*.tsx\")"
     ]
   }
 }

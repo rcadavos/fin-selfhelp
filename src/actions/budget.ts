@@ -52,6 +52,7 @@ export type ExpenseEntryRow = {
   due_date?: string | null;
   reminder_days_before?: number[] | null;
   reminder_channel?: "email" | "in-app" | "both";
+  account_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -130,7 +131,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, created_at, updated_at")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, account_id, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -501,7 +502,8 @@ export async function addExpense(
   reminderDaysBefore?: ReminderDay[] | null,
   billingPeriod: "monthly" | "quarterly" | "yearly" = "monthly",
   reminderChannel: "email" | "in-app" | "both" = "both",
-  expenseDate?: string
+  expenseDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -547,6 +549,7 @@ export async function addExpense(
       ...(reminders && { reminder_days_before: reminders }),
       reminder_channel: reminderChannel,
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
+      ...(accountId && { account_id: accountId }),
     })
     .select("id")
     .single();
@@ -567,7 +570,8 @@ export async function updateExpense(
   reminderDaysBefore?: ReminderDay[] | null,
   billingPeriod?: "monthly" | "quarterly" | "yearly",
   reminderChannel?: "email" | "in-app" | "both",
-  expenseDate?: string
+  expenseDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -618,6 +622,7 @@ export async function updateExpense(
       ...(reminders !== undefined && { reminder_days_before: reminders }),
       ...(reminderChannel !== undefined && { reminder_channel: reminderChannel }),
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
+      ...(accountId !== undefined && { account_id: accountId || null }),
     })
     .eq("id", entryId)
     .eq("profile_id", profile.id);

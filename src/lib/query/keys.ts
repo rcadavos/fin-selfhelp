@@ -30,4 +30,6 @@ export const queryKeys = {
   subscriptionPayments: () => [...queryKeys.all, "subscription", "payments"] as const,
   /** In-app notifications (`user_notifications` via `loadMyNotifications`). */
   notifications: () => [...queryKeys.all, "notifications"] as const,
+  /** User's named bank/e-wallet accounts (see `accountsQueryOptions`). */
+  accounts: () => [...queryKeys.all, "accounts"] as const,
 };

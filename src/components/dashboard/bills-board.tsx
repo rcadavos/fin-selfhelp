@@ -51,6 +51,8 @@ import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
+import { accountsQueryOptions } from "@/lib/query/accounts";
+import type { AccountRow } from "@/actions/accounts";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import {
@@ -144,6 +146,7 @@ type BillFormState = {
   billingPeriod: "monthly" | "quarterly" | "yearly";
   dueMonth: string;
   reminderDays: number[];
+  accountId: string;
 };
 
 const EMPTY_FORM: BillFormState = {
@@ -155,6 +158,7 @@ const EMPTY_FORM: BillFormState = {
   billingPeriod: "monthly",
   dueMonth: "1",
   reminderDays: [],
+  accountId: "",
 };
 
 function billToForm(bill: BillRow): BillFormState {
@@ -168,6 +172,7 @@ function billToForm(bill: BillRow): BillFormState {
     billingPeriod: bill.billing_period,
     dueMonth: String(bill.due_month ?? 1),
     reminderDays: bill.reminder_days_before ?? [],
+    accountId: bill.account_id ?? "",
   };
 }
 
@@ -183,12 +188,14 @@ function BillDialog({
   onSave,
   initial,
   isPending,
+  accounts,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (form: BillFormState) => void;
   initial?: BillFormState;
   isPending: boolean;
+  accounts: AccountRow[];
 }) {
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
   const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
@@ -343,7 +350,30 @@ function BillDialog({
             )}
           </div>
 
-          {/* Row 5 — Reminder */}
+          {/* Row 5 — Account */}
+          {accounts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Account <span className="font-normal text-muted-foreground">(optional)</span></Label>
+              <Select value={form.accountId} onValueChange={(v) => set("accountId", v === "__none__" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No account</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: acc.color }} />
+                        {acc.account_alias}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Row 6 — Reminder */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label>Reminders</Label>
@@ -720,6 +750,7 @@ export function BillsBoard() {
   const categories: CatList = dbCategories && dbCategories.length > 0
     ? dbCategories.map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass }))
     : EXPENSE_CATEGORIES;
+  const { data: accounts = [] } = useQuery({ ...accountsQueryOptions(), enabled: !!user });
 
   const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = data?.bills ?? [];
@@ -820,6 +851,7 @@ export function BillsBoard() {
         form.reminderDays.length > 0 ? form.reminderDays : undefined,
         "both",
         form.endDate || undefined,
+        form.accountId || undefined,
       );
       if (!res.error) {
         setAddOpen(false);
@@ -844,6 +876,7 @@ export function BillsBoard() {
         form.reminderDays.length > 0 ? form.reminderDays : undefined,
         "both",
         form.endDate || undefined,
+        form.accountId || undefined,
       );
       if (!res.error) {
         setEditingBill(null);
@@ -1015,6 +1048,7 @@ export function BillsBoard() {
           onClose={() => setAddOpen(false)}
           onSave={handleAdd}
           isPending={isPending}
+          accounts={accounts}
         />
       )}
 
@@ -1026,6 +1060,7 @@ export function BillsBoard() {
           onSave={handleEdit}
           initial={billToForm(editingBill)}
           isPending={isPending}
+          accounts={accounts}
         />
       )}
 

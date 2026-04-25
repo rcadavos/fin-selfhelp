@@ -36,6 +36,7 @@ export type BillRow = {
   due_month?: number | null;
   reminder_days_before?: number[] | null;
   reminder_channel?: "email" | "in-app" | "both";
+  account_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -77,7 +78,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
   const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }] = await Promise.all([
     supabase
       .from("bills")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, created_at, updated_at")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -196,6 +197,7 @@ export async function addBill(
   reminderDaysBefore?: number[],
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -229,6 +231,7 @@ export async function addBill(
     due_month: billingPeriod === "yearly" ? (dueMonth ?? null) : null,
     reminder_days_before: reminders ?? null,
     reminder_channel: reminders ? reminderChannel : "both",
+    account_id: accountId ?? null,
   });
 
   if (error) return { error: error.message };
@@ -248,6 +251,7 @@ export async function updateBill(
   reminderDaysBefore?: number[],
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -282,6 +286,7 @@ export async function updateBill(
       due_month: billingPeriod === "yearly" ? (dueMonth ?? null) : null,
       reminder_days_before: reminders ?? null,
       reminder_channel: reminders ? reminderChannel : "both",
+      account_id: accountId ?? null,
     })
     .eq("id", billId)
     .eq("profile_id", profile.id);

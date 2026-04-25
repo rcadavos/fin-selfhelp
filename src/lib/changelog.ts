@@ -14,6 +14,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.0",
+    date: "2026-04-26",
+    summary: "Accounts page — label expenses and bills by bank or e-wallet account.",
+    changes: [
+      { type: "feature", description: "New Accounts page (/dashboard/accounts) to create named bank/e-wallet accounts with alias, bank name, tags, and color." },
+      { type: "feature", description: "Accounts can be tagged on individual expenses and bills via a new optional account selector in both add and edit forms." },
+      { type: "feature", description: "Each account card shows a combined this-month total of all tagged expenses and monthly bills." },
+      { type: "improvement", description: "Accounts query uses staleTime: Infinity — data is fetched once and refreshed only after mutations." },
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2026-04-25",
     summary: "Consistent page width and mobile layout for Bills and Expenses pages.",

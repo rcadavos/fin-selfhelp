@@ -17,6 +17,7 @@ import {
   Target,
   Receipt,
   MessageSquarePlus,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -42,6 +43,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/bills", label: "Bills", icon: Receipt, premium: false },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Landmark, premium: false },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
   { href: "/dashboard/to-do", label: "To-Do List", icon: ClipboardList, premium: false },

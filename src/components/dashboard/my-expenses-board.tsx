@@ -47,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
+import { accountsQueryOptions } from "@/lib/query/accounts";
 import { useUser } from "@/hooks/use-user";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
@@ -253,6 +254,7 @@ export function MyExpensesBoard() {
 
   const { data: expenseData, isLoading } = useQuery(expenseDataQueryOptions());
   const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
+  const { data: accounts = [] } = useQuery({ ...accountsQueryOptions(), enabled: !!user });
   const categories = useMemo(
     () => (dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES),
     [dbCategories]
@@ -291,6 +293,7 @@ export function MyExpensesBoard() {
   const [expAmount, setExpAmount] = useState("");
   const [expCategory, setExpCategory] = useState("");
   const [expDate, setExpDate] = useState(todayYmd);
+  const [expAccountId, setExpAccountId] = useState("");
   const [expSaving, setExpSaving] = useState(false);
   const expNameRef = useRef<HTMLInputElement>(null);
 
@@ -304,6 +307,7 @@ export function MyExpensesBoard() {
   const [editCategory, setEditCategory] = useState("other");
   const [editNote, setEditNote] = useState("");
   const [editExpenseDate, setEditExpenseDate] = useState("");
+  const [editAccountId, setEditAccountId] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -357,7 +361,7 @@ export function MyExpensesBoard() {
 
     const res = await addExpense(
       savedCategory || "other", amt, savedName,
-      null, null, null, "monthly", "both", savedDate
+      null, null, null, "monthly", "both", savedDate, expAccountId || null
     );
     setExpSaving(false);
     if (res.error) {
@@ -387,6 +391,7 @@ export function MyExpensesBoard() {
     setEditCategory(entry.category_id);
     setEditNote(entry.notes?.trim() || "");
     setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
+    setEditAccountId(entry.account_id ?? "");
     setEditError(null);
   }
 
@@ -411,7 +416,8 @@ export function MyExpensesBoard() {
       null,
       undefined,
       undefined,
-      editExpenseDate
+      editExpenseDate,
+      editAccountId || null,
     );
     setEditSaving(false);
     if (res.error) {
@@ -570,6 +576,21 @@ export function MyExpensesBoard() {
                   formatDisplay={formatShortDate}
                   triggerClassName="h-7 w-auto flex-shrink-0 gap-1 px-2 text-xs"
                 />
+                {accounts.length > 0 && (
+                  <Select value={expAccountId} onValueChange={(v) => setExpAccountId(v === "__none__" ? "" : v)}>
+                    <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
+                      <SelectValue placeholder="Account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" className="text-xs">No account</SelectItem>
+                      {accounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id} className="text-xs">
+                          {acc.account_alias}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
             <button
@@ -698,6 +719,29 @@ export function MyExpensesBoard() {
                 className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               />
             </div>
+
+            {/* Account */}
+            {accounts.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-account">Account <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <Select value={editAccountId} onValueChange={(v) => setEditAccountId(v === "__none__" ? "" : v)}>
+                  <SelectTrigger id="edit-account">
+                    <SelectValue placeholder="No account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No account</SelectItem>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: acc.color }} />
+                          {acc.account_alias}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
 
