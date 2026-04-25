@@ -10,11 +10,9 @@ const HighlightsSection = dynamic(() => import("@/components/landing/highlights-
 const BuiltForSection = dynamic(() => import("@/components/landing/built-for-section").then(m => m.BuiltForSection));
 const SubscribeSection = dynamic(() => import("@/components/landing/subscribe-section").then(m => m.SubscribeSection));
 const FaqSection = dynamic(() => import("@/components/landing/faq-section").then(m => m.FaqSection));
-const ReviewsSection = dynamic(() => import("@/components/landing/reviews-section").then(m => m.ReviewsSection));
 const CtaBandSection = dynamic(() => import("@/components/landing/cta-band-section").then(m => m.CtaBandSection));
 const Footer = dynamic(() => import("@/components/landing/footer").then(m => m.Footer));
 import { getSubscriptionPlans } from "@/actions/subscription-plan";
-import { getApprovedReviews } from "@/actions/feedback";
 import { SUBSCRIPTION_PLAN_FALLBACK, SUBSCRIPTION_PREMIUM_FALLBACK } from "@/lib/query/subscription-plan";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -23,10 +21,9 @@ export const metadata = buildPageMetadata({ path: "/" });
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
-  const [plansRow, reviewsResult] = await Promise.all([getSubscriptionPlans(), getApprovedReviews()]);
+  const plansRow = await getSubscriptionPlans();
   const proPlan = plansRow.pro ?? SUBSCRIPTION_PLAN_FALLBACK;
   const premiumPlan = plansRow.premium ?? SUBSCRIPTION_PREMIUM_FALLBACK;
-  const reviews = reviewsResult.error ? [] : reviewsResult.reviews;
 
   return (
     <main className="app-layout">
@@ -40,7 +37,6 @@ export default async function HomePage() {
       <BuiltForSection />
       <SubscribeSection proPlan={proPlan} premiumPlan={premiumPlan} />
       <FaqSection />
-      <ReviewsSection reviews={reviews} />
       <CtaBandSection />
       <Footer />
     </main>

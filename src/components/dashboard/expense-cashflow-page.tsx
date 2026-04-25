@@ -120,6 +120,7 @@ import {
   Loader2,
   Pencil,
   XCircle,
+  Clock,
   Undo2,
   Coins as GoldCoin,
   Gem,
@@ -1721,6 +1722,9 @@ export function ExpenseCashflowPage({
             const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
             const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
+            const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
+            const billsUnpaid = Math.max(0, billsTotal - billsPaid);
+            const billsUnpaidCount = billsList.filter((b) => b.billing_period === "monthly" && !paidBillIds.has(b.id)).length;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
@@ -1747,20 +1751,22 @@ export function ExpenseCashflowPage({
                   </div>
                   <p className="text-xs text-muted-foreground">Bills paid</p>
                   <p className="text-lg font-bold">{formatCurrency(billsPaid)}</p>
-                  {billsTotal > 0 && (
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
-                    </div>
-                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {billsPaidCount}/{billsList.length} Bills paid this month
+                  </p>
                 </Link>
 
-                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
-                    <GoldCoin className="h-4 w-4" />
+                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">
+                    <Clock className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Savings</p>
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(savingsAmt)}</p>
-                  <p className="text-[10px] text-muted-foreground">Set aside this month</p>
+                  <p className="text-xs text-muted-foreground">Bills unpaid</p>
+                  <p className={cn("text-lg font-bold", billsUnpaid > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
+                    {formatCurrency(billsUnpaid)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {billsUnpaidCount}/{billsList.filter((b) => b.billing_period === "monthly").length} Bills unpaid this month
+                  </p>
                 </Link>
               </div>
             );

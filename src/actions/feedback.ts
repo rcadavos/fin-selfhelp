@@ -22,10 +22,9 @@ export async function submitSuggestion(params: {
   const content = params.content?.trim();
   if (!content || content.length < 2) return { error: "Please enter a suggestion (at least 2 characters)." };
   try {
-    const isPaid = await getCurrentUserIsPaidTier();
-    if (isPaid === null) return { error: "Sign in to submit a suggestion." };
-    if (!isPaid) return { error: "Suggestions are for paid subscribers only." };
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Sign in to submit a suggestion." };
     const { error } = await supabase.from("suggestions").insert({
       email: params.email?.trim() || null,
       content,
@@ -50,8 +49,6 @@ export async function submitReview(params: {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      const isPaid = await getCurrentUserIsPaidTier();
-      if (!isPaid) return { error: "Reviews are for paid subscribers only. Free trial users cannot submit." };
       try {
         const admin = createServiceRoleClient();
         const { data: existing, error: existingError } = await admin
@@ -89,9 +86,6 @@ export async function getReviewEligibility(): Promise<{ canSubmit: boolean; reas
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { canSubmit: false, reason: "Sign in with a paid account to submit a review." };
-
-    const isPaid = await getCurrentUserIsPaidTier();
-    if (!isPaid) return { canSubmit: false, reason: "Reviews are for paid subscribers only." };
 
     const admin = createServiceRoleClient();
     const { data: existing, error } = await admin
