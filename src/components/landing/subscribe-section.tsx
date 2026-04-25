@@ -33,7 +33,7 @@ export function SubscribeSection({
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl items-stretch gap-6 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-3">
           <Card className="flex h-full flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Free</CardTitle>
@@ -51,9 +51,14 @@ export function SubscribeSection({
             </CardFooter>
           </Card>
 
-          <Card className="relative flex h-full flex-col overflow-hidden border-primary/50 bg-primary/5 shadow-sm">
+          <Card className="relative flex h-full flex-col overflow-hidden border-primary/60 bg-primary/5 shadow-xl ring-2 ring-primary/20 lg:scale-[1.06] lg:z-10">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-primary/10" aria-hidden />
-            <CardHeader>
+            <div className="absolute left-0 top-0">
+              <span className="inline-flex items-center gap-1 rounded-br-xl bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                🔥 Most Popular
+              </span>
+            </div>
+            <CardHeader className="pt-8">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" aria-hidden />
                 <CardTitle className="text-lg text-foreground">{proPlan.name}</CardTitle>

@@ -434,7 +434,7 @@ function SubscriptionPageInner() {
           Start free, upgrade to Pro for reminders and unlimited lists, or Premium for extra modules.
         </p>
 
-        <div className="grid items-stretch gap-5 sm:grid-cols-3">
+        <div className="grid items-center gap-5 sm:grid-cols-3">
           {/* Free */}
           <Card className="flex flex-col border-border/50">
             <CardHeader>
@@ -460,13 +460,18 @@ function SubscriptionPageInner() {
 
           {/* Pro */}
           <Card className={cn(
-            "relative flex flex-col overflow-hidden border-primary/50",
+            "relative flex flex-col overflow-hidden border-primary/60 shadow-xl ring-2 ring-primary/20 sm:scale-[1.06] sm:z-10",
             hasPro && !hasPremium ? "bg-primary/5" : "bg-primary/[0.03]"
           )}>
+            <div className="absolute left-0 top-0">
+              <span className="inline-flex items-center gap-1 rounded-br-xl bg-orange-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                🔥 Most Popular
+              </span>
+            </div>
             {(!hasPro || hasPremium) && (
               <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-primary/10" aria-hidden />
             )}
-            <CardHeader>
+            <CardHeader className="pt-7">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" aria-hidden />
                 <CardTitle className="text-base">{plans?.pro?.name ?? "Pro"}</CardTitle>
