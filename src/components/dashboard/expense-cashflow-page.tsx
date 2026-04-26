@@ -1269,13 +1269,13 @@ export function ExpenseCashflowPage({
 
   if (loading || !user) {
     return (
-      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
+      <DashboardSkeleton variant="page" />
     );
   }
 
   if (expenseDataQuery.isPending || expensePaymentHistoryQuery.isPending) {
     return (
-      <DashboardSkeleton variant={pageVariant === "dashboard" ? "dashboard" : "expenses"} />
+      <DashboardSkeleton variant="page" />
     );
   }
 

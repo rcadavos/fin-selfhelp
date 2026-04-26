@@ -556,7 +556,7 @@ export function MyExpensesBoard() {
 
   // ── Render ──
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       {/* Header */}
       <ContentHeader
         title="Expenses"
@@ -767,7 +767,6 @@ export function MyExpensesBoard() {
 
             {accounts.length > 0 && (
               <div className="grid gap-1.5">
-                <Label>Account</Label>
                 <AccountTagSelector accounts={accounts} value={addAccountId} onChange={setAddAccountId} />
               </div>
             )}
@@ -860,7 +859,6 @@ export function MyExpensesBoard() {
 
             {accounts.length > 0 && (
               <div className="grid gap-1.5">
-                <Label>Account</Label>
                 <AccountTagSelector accounts={accounts} value={editAccountId} onChange={setEditAccountId} />
               </div>
             )}

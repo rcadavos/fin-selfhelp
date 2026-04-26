@@ -197,6 +197,7 @@ export async function addBill(
   reminderDaysBefore?: number[],
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -230,6 +231,7 @@ export async function addBill(
     due_month: billingPeriod === "yearly" ? (dueMonth ?? null) : null,
     reminder_days_before: reminders ?? null,
     reminder_channel: reminders ? reminderChannel : "both",
+    account_id: accountId ?? null,
   });
 
   if (error) return { error: error.message };
@@ -249,6 +251,7 @@ export async function updateBill(
   reminderDaysBefore?: number[],
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
+  accountId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -283,6 +286,7 @@ export async function updateBill(
       due_month: billingPeriod === "yearly" ? (dueMonth ?? null) : null,
       reminder_days_before: reminders ?? null,
       reminder_channel: reminders ? reminderChannel : "both",
+      account_id: accountId ?? null,
     })
     .eq("id", billId)
     .eq("profile_id", profile.id);

@@ -14,6 +14,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.5",
+    date: "2026-04-26",
+    summary: "Bills add/edit modal now supports Account tags.",
+    changes: [
+      { type: "improvement", description: "Bills add and edit modals now include an Account tag selector, matching the Expenses modal." },
+    ],
+  },
+  {
     version: "1.3.4",
     date: "2026-04-26",
     summary: "Fix quick-add expense form mobile layout and placeholder visibility.",

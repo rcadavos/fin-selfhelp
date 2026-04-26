@@ -126,6 +126,7 @@ type BillFormState = {
   billingPeriod: "monthly" | "quarterly" | "yearly";
   dueMonth: string;
   reminderDays: number[];
+  accountId: string;
 };
 
 const EMPTY_FORM: BillFormState = {
@@ -137,6 +138,7 @@ const EMPTY_FORM: BillFormState = {
   billingPeriod: "monthly",
   dueMonth: "1",
   reminderDays: [],
+  accountId: "",
 };
 
 function billToForm(bill: BillRow): BillFormState {
@@ -150,6 +152,7 @@ function billToForm(bill: BillRow): BillFormState {
     billingPeriod: bill.billing_period,
     dueMonth: String(bill.due_month ?? 1),
     reminderDays: bill.reminder_days_before ?? [],
+    accountId: bill.account_id ?? "",
   };
 }
 
@@ -159,18 +162,60 @@ const REMINDER_OPTIONS = [
   { value: 0, label: "On due date" },
 ] as const;
 
+function AccountTagSelector({
+  accounts,
+  value,
+  onChange,
+}: {
+  accounts: AccountRow[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  if (!accounts.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {accounts.map((acc) => {
+        const selected = value === acc.id;
+        return (
+          <button
+            key={acc.id}
+            type="button"
+            onClick={() => onChange(selected ? "" : acc.id)}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              selected
+                ? "ring-1"
+                : "bg-muted/60 text-muted-foreground hover:bg-muted"
+            )}
+            style={selected ? {
+              backgroundColor: `${acc.color}22`,
+              color: acc.color,
+              outlineColor: acc.color,
+            } : undefined}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} />
+            {acc.account_alias}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BillDialog({
   open,
   onClose,
   onSave,
   initial,
   isPending,
+  accounts,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (form: BillFormState) => void;
   initial?: BillFormState;
   isPending: boolean;
+  accounts: AccountRow[];
 }) {
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
   const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
@@ -222,6 +267,13 @@ function BillDialog({
               onChange={(e) => set("note", e.target.value)}
             />
           </div>
+
+          {/* Account tags */}
+          {accounts.length > 0 && (
+            <div className="space-y-1.5">
+              <AccountTagSelector accounts={accounts} value={form.accountId} onChange={(id) => set("accountId", id)} />
+            </div>
+          )}
 
           {/* Row 2 — Category + Amount */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -531,7 +583,10 @@ function BillRow({
             </span>
           )}
         </div>
-        <p className="truncate text-xs text-muted-foreground">{dueDateLabel}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {cat?.label}
+          {dueDateLabel && <span className="text-muted-foreground/60"> · {dueDateLabel}</span>}
+        </p>
         {bill.account_id && accountMap[bill.account_id] && (
           <span
             className="mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -760,19 +815,16 @@ export function BillsBoard() {
     });
   }, [filteredBills, paidIds, paidMonth]);
 
-  // Summary
-  const { totalMonthly, totalPaid, totalRemaining, paidCount } = useMemo(() => {
-    const monthly = bills
-      .filter((b) => b.billing_period === "monthly")
-      .reduce((s, b) => s + b.amount, 0);
-    const paid = bills.filter((b) => paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+  // Summary — reactive to active tab
+  const { totalFiltered, totalRemaining, unpaidCount } = useMemo(() => {
+    const total = filteredBills.reduce((s, b) => s + b.amount, 0);
+    const paidAmt = filteredBills.filter((b) => paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
     return {
-      totalMonthly: monthly,
-      totalPaid: paid,
-      totalRemaining: monthly - bills.filter((b) => b.billing_period === "monthly" && paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0),
-      paidCount: bills.filter((b) => paidIds.has(b.id)).length,
+      totalFiltered: total,
+      totalRemaining: total - paidAmt,
+      unpaidCount: filteredBills.filter((b) => !paidIds.has(b.id)).length,
     };
-  }, [bills, paidIds]);
+  }, [filteredBills, paidIds]);
 
   // Tab counts
   const tabCounts = useMemo(() => ({
@@ -826,6 +878,7 @@ export function BillsBoard() {
         form.reminderDays.length > 0 ? form.reminderDays : undefined,
         "both",
         form.endDate || undefined,
+        form.accountId || null,
       );
       if (!res.error) {
         setAddOpen(false);
@@ -850,6 +903,7 @@ export function BillsBoard() {
         form.reminderDays.length > 0 ? form.reminderDays : undefined,
         "both",
         form.endDate || undefined,
+        form.accountId || null,
       );
       if (!res.error) {
         setEditingBill(null);
@@ -868,7 +922,7 @@ export function BillsBoard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
         title="Bills"
         subtitle="Manage your bills, due dates, and mark them as paid when you settle up."
@@ -906,18 +960,16 @@ export function BillsBoard() {
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Bills - This Month</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalMonthly, currency)}</p>
-            <p className="text-[11px] text-muted-foreground">{tabCounts.monthly} monthly bill{tabCounts.monthly !== 1 ? "s" : ""}</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Bills - {activeTab}</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalFiltered, currency)}</p>
+            <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} bill{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Bills - Remaining</p>
             <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
               {formatCurrency(totalRemaining, currency)}
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              {tabCounts.monthly - bills.filter((b) => b.billing_period === "monthly" && paidIds.has(b.id)).length} unpaid
-            </p>
+            <p className="text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>
           </div>
         </div>
 
@@ -931,7 +983,7 @@ export function BillsBoard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-1 pb-3">
-                <BillsPieChart bills={bills} currency={currency} categories={categories} />
+                <BillsPieChart bills={filteredBills} currency={currency} categories={categories} />
               </CardContent>
             </Card>
           ) : (
@@ -1020,6 +1072,7 @@ export function BillsBoard() {
           onClose={() => setAddOpen(false)}
           onSave={handleAdd}
           isPending={isPending}
+          accounts={accounts}
         />
       )}
 
@@ -1031,6 +1084,7 @@ export function BillsBoard() {
           onSave={handleEdit}
           initial={billToForm(editingBill)}
           isPending={isPending}
+          accounts={accounts}
         />
       )}
 

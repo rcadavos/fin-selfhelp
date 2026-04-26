@@ -605,11 +605,11 @@ export function MyGoalsPage() {
   };
 
   if (loading || !user) {
-    return <DashboardSkeleton variant="my-goals" />;
+    return <DashboardSkeleton variant="page" />;
   }
 
   if (goalsQuery.isPending) {
-    return <DashboardSkeleton variant="my-goals" />;
+    return <DashboardSkeleton variant="page" />;
   }
 
   return (

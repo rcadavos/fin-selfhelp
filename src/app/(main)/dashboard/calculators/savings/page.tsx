@@ -59,7 +59,7 @@ export default function SavingsCalculatorPage() {
 
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
-    return <DashboardSkeleton variant="calculator-detail" />;
+    return <DashboardSkeleton variant="page" />;
   }
 
   return (

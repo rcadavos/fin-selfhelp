@@ -294,7 +294,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   }
 
   if (loading || !user || listQuery.isPending) {
-    return <DashboardSkeleton variant="to-buy-list" />;
+    return <DashboardSkeleton variant="page" />;
   }
 
   const ListIcon = cfg.ListIcon;

@@ -13,7 +13,7 @@ export default async function ExpenseTrackerPage({
     sp.type != null && sp.type !== "" ? parseExpenseCadenceTypeParam(sp.type) : null;
 
   return (
-    <Suspense fallback={<DashboardSkeleton variant="expenses" />}>
+    <Suspense fallback={<DashboardSkeleton variant="page" />}>
       <ExpenseCashflowPage
         pageVariant="expenses"
         initialExpenseCadence={fromQuery ?? undefined}

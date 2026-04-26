@@ -13,7 +13,7 @@ export default function CalculatorsPage() {
 
   if (loading || !user) {
     if (!loading && !user) router.replace("/login");
-    return <DashboardSkeleton variant="calculators-index" />;
+    return <DashboardSkeleton variant="page" />;
   }
 
   return (

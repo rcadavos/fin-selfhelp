@@ -1,5 +1,5 @@
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
 export default function ToBuyLoading() {
-  return <DashboardSkeleton variant="to-buy-list" />;
+  return <DashboardSkeleton variant="page" />;
 }
