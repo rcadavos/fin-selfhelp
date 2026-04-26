@@ -66,6 +66,7 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const results = searchItems(query);
@@ -78,6 +79,17 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
     setActiveIndex(0);
   }, [query]);
 
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") { onClose(); return; }
     if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex((i) => Math.min(i + 1, results.length - 1)); return; }
@@ -89,7 +101,7 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <>
+    <div ref={containerRef}>
       {/* Search row */}
       <div className="flex h-14 w-full items-center gap-2 px-3">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -97,7 +109,7 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
           ref={inputRef}
           type="search"
           placeholder="Search anything…"
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground text-base"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -127,7 +139,7 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-muted-foreground">No results for &ldquo;{query}&rdquo;</p>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

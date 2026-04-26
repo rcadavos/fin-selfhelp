@@ -14,8 +14,8 @@ type ContentHeaderProps = {
 
 export function ContentHeader({ title, subtitle, icon: Icon, actions, className }: ContentHeaderProps) {
   return (
-    <header className={cn("mb-8", className)}>
-      <div className="flex items-center justify-between gap-3">
+    <header className={cn("mb-4", className)}>
+      <div className="flex items-center justify-between gap-2">
         <h1 className="flex min-w-0 items-center gap-2 text-2xl font-semibold tracking-tight">
           {Icon ? <Icon className="h-7 w-7 shrink-0 text-primary" aria-hidden /> : null}
           {typeof title === "string" ? <span className="min-w-0 truncate">{title}</span> : title}
@@ -23,7 +23,7 @@ export function ContentHeader({ title, subtitle, icon: Icon, actions, className 
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
       {subtitle ? (
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
       ) : null}
     </header>
   );

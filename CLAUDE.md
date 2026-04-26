@@ -88,3 +88,9 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 - Use `subscriptionStatusQueryOptions()` from `src/lib/query/subscription-user` to check plan.
 - Pro features: email reminders. Free features: due dates, all core tracking.
 - Premium features: Rent Tracker, Payment Tracker.
+
+### Constants
+- Add every new constants `src/lib/constants` so it can be reusable to other components.
+
+### Compact instructions
+When you are using compact, please focus on test output and code changes

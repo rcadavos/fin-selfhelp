@@ -62,30 +62,12 @@ import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import Image from "next/image";
+import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import DashboardLoading from "@/app/(main)/dashboard/loading";
+import { DashboardSkeleton } from "./dashboard-skeleton";
+import { ContentHeader } from "../app/content-header";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const TAILWIND_DOT_COLORS: Record<string, string> = {
-  amber: "#f59e0b",
-  sky: "#0ea5e9",
-  slate: "#64748b",
-  emerald: "#10b981",
-  rose: "#f43f5e",
-  green: "#22c55e",
-  violet: "#8b5cf6",
-  orange: "#f97316",
-  teal: "#14b8a6",
-  indigo: "#6366f1",
-  pink: "#ec4899",
-  cyan: "#06b6d4",
-  fuchsia: "#d946ef",
-  lime: "#84cc16",
-  blue: "#3b82f6",
-  neutral: "#9ca3af",
-  red: "#ef4444",
-  yellow: "#eab308",
-  purple: "#a855f7",
-};
 
 function colorFromBgClass(bgClass: string): string {
   const m = bgClass.match(/bg-([a-z]+)-/);
@@ -215,7 +197,7 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
 
   return (
     <div className="[&_svg]:outline-none">
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={150}>
         <PieChart style={{ outline: "none" }}>
           <Pie
             style={{ outline: "none" }}
@@ -224,8 +206,8 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             nameKey="name"
             cx="50%"
             cy="50%"
-            innerRadius={50}
-            outerRadius={75}
+            innerRadius={35}
+            outerRadius={55}
             paddingAngle={2}
             labelLine={false}
             label={PiePercentLabel}
@@ -239,6 +221,10 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             contentStyle={{ fontSize: 12 }}
           />
           <Legend
+            layout="vertical"
+            align="right"
+            verticalAlign="middle"
+            wrapperStyle={{ right: 10 }}
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
@@ -565,56 +551,44 @@ export function MyExpensesBoard() {
   }
 
   if (userLoading || isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={80} height={80} />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // ── Render ──
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       {/* Header */}
-      <div className="mb-2 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <Banknote className="h-6 w-6 text-primary" />
-            Expenses
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track your one-off expenses and spending by category.
-          </p>
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" aria-label="Categories" asChild>
-            <Link href="/dashboard/expenses/categories">
-              <LayoutGrid className="h-4 w-4" aria-hidden />
-              <span className="hidden sm:inline">Categories</span>
-            </Link>
-          </Button>
-          {expenses.length > 0 && (
+      <ContentHeader
+        title="Expenses"
+        subtitle="Track your one-off expenses and spending by category."
+        icon={Banknote}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" aria-label="Categories" asChild>
+              <Link href="/dashboard/expenses/categories">
+                <LayoutGrid className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">Categories</span>
+              </Link>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" aria-label="Export expenses">
-                  <Download className="h-4 w-4" aria-hidden />
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Export as</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => exportBoardToCSV(expenses, categories)}>
-                  CSV
+                  Export as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportBoardToExcel(expenses, categories)}>
-                  Excel
+                  Export as Excel
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Summary: stats (1/3) + pie chart (2/3) */}
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -646,7 +620,7 @@ export function MyExpensesBoard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
+            <div className="flex h-full min-h-[150px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
               Add an expense to see the chart
             </div>
           )}
@@ -673,30 +647,36 @@ export function MyExpensesBoard() {
 
       <form
         onSubmit={handleAddExpense}
-        className="flex items-center gap-3 border border-border/70 py-3 mt-1 mb-2 rounded-lg px-4"
+        className="flex items-center gap-1.5 sm:gap-3 border border-border/70 py-3 mt-1 mb-2 rounded-lg px-3 sm:px-4"
       >
-        <div className="h-5 w-5 shrink-0 rounded-full border border-dashed border-muted-foreground/30" aria-hidden />
         <input
           ref={expNameRef}
           value={expName}
           onChange={(e) => setExpName(e.target.value)}
-          placeholder=""
-          className="h-9 flex-1 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-sm shadow-none placeholder:text-transparent focus:border-primary focus:outline-none focus:ring-0"
+          placeholder="Expense name"
+          className="h-9 flex-1 min-w-0 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-sm shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0"
           disabled={expSaving}
           aria-label="Expense name"
         />
         <input
           value={expAmount}
           onChange={(e) => setExpAmount(e.target.value)}
-          placeholder="0"
+          placeholder="Amount"
           type="number"
           min="0.01"
           step="any"
-          className="w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-sm tabular-nums shadow-none focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="w-16 sm:w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-sm tabular-nums shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           disabled={expSaving}
           aria-label="Amount"
         />
         <InlineDatePicker value={expDate} onChange={setExpDate} disabled={expSaving} />
+        <button
+          type="submit"
+          disabled={expSaving || !expName.trim() || !expAmount}
+          className="flex-shrink-0 rounded-md bg-primary px-2.5 sm:px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-40"
+        >
+          {expSaving ? "…" : "Add"}
+        </button>
       </form>
 
       {/* Expenses board */}

@@ -22,7 +22,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -58,7 +57,6 @@ import {
   effectiveDueDateInPaidMonth,
 } from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
-import Image from "next/image";
 import { ContentHeader } from "@/components/app/content-header";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
@@ -72,6 +70,9 @@ import {
 import { type AccountRow } from "@/actions/accounts";
 import { accountsQueryOptions } from "@/lib/query/accounts";
 import Link from "next/link";
+import DashboardLoading from "@/app/(main)/dashboard/loading";
+import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import { DashboardSkeleton } from "./dashboard-skeleton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -84,27 +85,6 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
   yearly: "Yearly",
-};
-
-const TAILWIND_DOT_COLORS: Record<string, string> = {
-  amber: "#f59e0b",
-  sky: "#0ea5e9",
-  slate: "#64748b",
-  emerald: "#10b981",
-  rose: "#f43f5e",
-  green: "#22c55e",
-  violet: "#8b5cf6",
-  orange: "#f97316",
-  teal: "#14b8a6",
-  indigo: "#6366f1",
-  fuchsia: "#d946ef",
-  lime: "#84cc16",
-  cyan: "#06b6d4",
-  red: "#ef4444",
-  blue: "#3b82f6",
-  pink: "#ec4899",
-  yellow: "#eab308",
-  purple: "#a855f7",
 };
 
 function ordinal(n: number): string {
@@ -273,42 +253,7 @@ function BillDialog({
             </div>
           </div>
 
-          {/* Row 3 — Due Date + End Date */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Due Day</Label>
-              <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select day of the month" />
-                </SelectTrigger>
-                <SelectContent className="max-h-52">
-                  <SelectItem value="15">{ordinal(15)} of the month</SelectItem>
-                  <SelectItem value="31">End of the month</SelectItem>
-                  <SelectSeparator />
-                  {Array.from({ length: 31 }, (_, i) => i + 1)
-                    .filter((d) => d !== 15 && d !== 31)
-                    .map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {ordinal(d)} of the month
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>
-                End Date{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <DatePicker
-                value={form.endDate}
-                onChange={(ymd) => set("endDate", ymd)}
-                placeholder="No end date"
-              />
-            </div>
-          </div>
-
-          {/* Row 4 — Billing Period (+ Due Month if yearly) */}
+          {/* Row 3 — Billing Period (+ Due Month if yearly) */}
           <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
             <div className="space-y-1.5">
               <Label>Billing Period</Label>
@@ -343,6 +288,41 @@ function BillDialog({
                 </Select>
               </div>
             )}
+          </div>
+
+          {/* Row 4 — Due Date + End Date */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Due Day</Label>
+              <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select day of the month" />
+                </SelectTrigger>
+                <SelectContent className="max-h-52">
+                  <SelectItem value="15">{ordinal(15)} of the month</SelectItem>
+                  <SelectItem value="31">End of the month</SelectItem>
+                  <SelectSeparator />
+                  {Array.from({ length: 31 }, (_, i) => i + 1)
+                    .filter((d) => d !== 15 && d !== 31)
+                    .map((d) => (
+                      <SelectItem key={d} value={String(d)}>
+                        {ordinal(d)} of the month
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                End Date{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <DatePicker
+                value={form.endDate}
+                onChange={(ymd) => set("endDate", ymd)}
+                placeholder="No end date"
+              />
+            </div>
           </div>
 
           {/* Row 5 — Reminder */}
@@ -415,31 +395,35 @@ function PiePercentLabel({
   );
 }
 
-function BillsPieChart({ bills, paidIds, currency }: { bills: BillRow[]; paidIds: Set<string>; currency: string }) {
+function BillsPieChart({ bills, currency, categories }: { bills: BillRow[]; currency: string; categories: CatList }) {
   const data = useMemo(() => {
-    const paid = bills.filter((b) => paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
-    const unpaid = bills.filter((b) => !paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
-    return [
-      { name: "Paid", value: paid, color: "#10b981" },
-      { name: "Unpaid", value: unpaid, color: "#f97316" },
-    ].filter((d) => d.value > 0);
-  }, [bills, paidIds]);
+    const map = new Map<string, number>();
+    for (const b of bills) map.set(b.category_id, (map.get(b.category_id) ?? 0) + b.amount);
+    return Array.from(map.entries())
+      .map(([id, value]) => ({
+        name: categories.find((c) => c.id === id)?.label ?? id,
+        value,
+        color: getCategoryDotColor(categories.find((c) => c.id === id)?.bgClass ?? ""),
+      }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [bills, categories]);
 
   if (!data.length) return null;
 
   return (
     <div className="[&_svg]:outline-none">
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={150}>
         <PieChart style={{ outline: "none" }}>
           <Pie
             style={{ outline: "none" }}
             data={data}
             dataKey="value"
             nameKey="name"
-            cx="50%"
+            cx="35%"
             cy="50%"
-            innerRadius={50}
-            outerRadius={75}
+            innerRadius={35}
+            outerRadius={55}
             paddingAngle={2}
             labelLine={false}
             label={PiePercentLabel}
@@ -453,6 +437,9 @@ function BillsPieChart({ bills, paidIds, currency }: { bills: BillRow[]; paidIds
             contentStyle={{ fontSize: 12 }}
           />
           <Legend
+            layout="vertical"
+            align="right"
+            verticalAlign="middle"
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
@@ -881,11 +868,11 @@ export function BillsBoard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-3xl px-4 py-6">
       <ContentHeader
         title="Bills"
+        subtitle="Manage your bills, due dates, and mark them as paid when you settle up."
         icon={Receipt}
-        className="mb-0"
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" aria-label="Categories" asChild>
@@ -940,11 +927,11 @@ export function BillsBoard() {
             <Card className="h-full">
               <CardHeader className="pb-0 pt-4">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Paid vs unpaid
+                  Spending by category
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-1 pb-3">
-                <BillsPieChart bills={bills} paidIds={paidIds} currency={currency} />
+                <BillsPieChart bills={bills} currency={currency} categories={categories} />
               </CardContent>
             </Card>
           ) : (
@@ -985,9 +972,7 @@ export function BillsBoard() {
 
         <div className="space-y-2">
           {isLoading ? (
-            <div className="flex justify-center py-6">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-10 w-10 animate-breathing" width={40} height={40} />
-            </div>
+            <DashboardSkeleton variant="form" />
           ) : sortedFilteredBills.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <Receipt className="h-8 w-8 opacity-30" />

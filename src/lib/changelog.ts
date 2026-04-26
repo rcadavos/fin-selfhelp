@@ -14,6 +14,24 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.4",
+    date: "2026-04-26",
+    summary: "Fix quick-add expense form mobile layout and placeholder visibility.",
+    changes: [
+      { type: "fix", description: "Quick-add expense form now stacks vertically on mobile, preventing button overlap." },
+      { type: "fix", description: "Placeholder text in the expense name and amount inputs is now visible." },
+    ],
+  },
+  {
+    version: "1.3.3",
+    date: "2026-04-26",
+    summary: "Fix mobile search closing and iOS zoom issues.",
+    changes: [
+      { type: "fix", description: "Mobile search now closes when clicking outside the search area." },
+      { type: "fix", description: "Mobile search input now uses 16px font size to prevent iOS auto-zoom on focus." },
+    ],
+  },
+  {
     version: "1.3.2",
     date: "2026-04-26",
     summary: "Built-in Cash and Borrowed accounts appear for all users automatically.",

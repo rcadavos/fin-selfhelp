@@ -2,28 +2,34 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export type DashboardSkeletonVariant =
-  | "dashboard"
-  | "expenses"
-  | "my-goals"
-  | "calculators-index"
-  | "calculator-detail"
-  | "to-buy-list";
+  | "page"
+  | "form";
 
 type DashboardSkeletonProps = {
-  variant: DashboardSkeletonVariant;
+  variant?: DashboardSkeletonVariant;
   className?: string;
 };
 
-export function DashboardSkeleton({ className }: DashboardSkeletonProps) {
+export function DashboardSkeleton({ variant = "page", className }: DashboardSkeletonProps) {
   return (
     <div
       role="status"
       aria-busy="true"
       aria-label="Loading"
-      className={cn("flex min-h-[60vh] items-center justify-center", className)}
+      className={cn(
+        "flex items-center justify-center",
+        variant === "form" ? "min-h-[30vh]" : "min-h-[60vh]",
+        className
+      )}
     >
-      <span className="sr-only">Loading…</span>
-      <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={80} height={80} />
+      <Image
+        src="/favicon.png"
+        alt=""
+        aria-hidden
+        className="animate-breathing"
+        width={100}
+        height={100}
+      />
     </div>
   );
 }
