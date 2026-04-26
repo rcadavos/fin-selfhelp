@@ -548,7 +548,7 @@ export function AccountsBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
       <ContentHeader
         title="Accounts"
-        subtitle="Track spending by bank or e-wallet account."
+        subtitle="This isn&apos;t linked to your real bank or e-wallet account—it's simply for labeling."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddOpen(true); }}>
             <Plus className="h-4 w-4" />

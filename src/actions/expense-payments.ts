@@ -257,7 +257,7 @@ export async function getMonthlyBreakdown(
   const [{ data: expenseRows, error }, { data: billRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("amount, due_date, category_id, created_at")
+      .select("amount, due_date, category_id, billing_period, created_at")
       .eq("profile_id", profileId),
     supabase
       .from("bills")
@@ -294,14 +294,19 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, e) => s + Number(e.amount), 0);
 
-    // Savings: one-off savings entries created this month
+    // Savings: one-off entries (no due_date) created this month, plus recurring
+    // monthly savings entries (due_date set, billing_period monthly) that existed by month-end.
     const savings = allEntries
-      .filter(
-        (e) =>
-          e.category_id === "savings" &&
-          !e.due_date &&
-          (e.created_at ?? "").startsWith(month)
-      )
+      .filter((e) => {
+        if (e.category_id !== "savings") return false;
+        if (e.due_date) {
+          return (
+            (e.billing_period ?? "monthly") === "monthly" &&
+            (e.created_at ?? "") < monthEndIso
+          );
+        }
+        return (e.created_at ?? "").startsWith(month);
+      })
       .reduce((s, e) => s + Number(e.amount), 0);
 
     return { month, bills, expenses, savings };

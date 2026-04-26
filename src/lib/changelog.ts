@@ -14,6 +14,32 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.8",
+    date: "2026-04-26",
+    summary: "Signup shows check-email success screen; login shows confirmation reminder for unverified accounts.",
+    changes: [
+      { type: "improvement", description: "Signup now replaces the form with a dedicated check-your-email screen after successful registration instead of a small inline banner." },
+      { type: "improvement", description: "Login now shows a clear amber warning with the email address when the user has not confirmed their email yet." },
+    ],
+  },
+  {
+    version: "1.3.7",
+    date: "2026-04-26",
+    summary: "Send a notification email when user changes their phone number.",
+    changes: [
+      { type: "feature", description: "Users now receive a confirmation email when their phone number is updated from the profile page." },
+    ],
+  },
+  {
+    version: "1.3.6",
+    date: "2026-04-26",
+    summary: "Fix dashboard chart showing zero savings for recurring savings entries; add go-to arrows on stat cards.",
+    changes: [
+      { type: "fix", description: "Monthly breakdown chart now correctly includes recurring savings entries (those with a due date) in every month since they were created, matching how bills are counted." },
+      { type: "improvement", description: "Added an ArrowUpRight icon to the top-right of each dashboard stat card to visually indicate they are clickable links." },
+    ],
+  },
+  {
     version: "1.3.5",
     date: "2026-04-26",
     summary: "Bills add/edit modal now supports Account tags.",

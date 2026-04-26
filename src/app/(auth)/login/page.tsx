@@ -10,7 +10,7 @@ import { signInWithOtp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import Image from "next/image";
-import { ChevronLeft, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, LayoutDashboard, Mail } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -84,6 +84,7 @@ function LoginContent() {
   const { user, loading } = useUser();
   const [otpPending, setOtpPending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
   const [authTab, setAuthTab] = useState<"password" | "otp">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -126,6 +127,11 @@ function LoginContent() {
       password: passwordValue,
     });
     if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        setUnconfirmedEmail(emailValue);
+        setPassword("");
+        return;
+      }
       setFormMessage({ type: "error", text: error.message });
       setPassword("");
       return;
@@ -230,10 +236,21 @@ function LoginContent() {
                     required
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setOtpSent(false); }}
+                    onChange={(e) => { setEmail(e.target.value); setOtpSent(false); setUnconfirmedEmail(null); }}
                   />
                 </div>
-                {formMessage ? (
+                {unconfirmedEmail ? (
+                  <div
+                    role="alert"
+                    className="flex gap-3 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300"
+                  >
+                    <Mail className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                    <span>
+                      Please confirm your email before logging in. Check your inbox for{" "}
+                      <span className="font-medium">{unconfirmedEmail}</span> and click the confirmation link.
+                    </span>
+                  </div>
+                ) : formMessage ? (
                   <div
                     role={formMessage.type === "error" ? "alert" : "status"}
                     className={cn(

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { redirect } from "next/navigation";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendPhoneChangedEmail } from "@/lib/email";
 
 function normalizeSiteUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
@@ -129,6 +129,34 @@ export async function requestPasswordReset(formData: FormData) {
     return { error: error.message };
   }
   return { message: "Check your email for the password reset link." };
+}
+
+export async function updateProfile(params: {
+  fullName: string;
+  phone: string;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return { error: "Not authenticated." };
+
+  const prevPhone = (user.user_metadata?.phone as string | undefined)?.trim() ?? user.phone ?? "";
+  const newPhone = params.phone.trim();
+
+  const { error } = await supabase.auth.updateUser({
+    data: {
+      full_name: params.fullName.trim() || undefined,
+      phone: newPhone || undefined,
+    },
+  });
+
+  if (error) return { error: error.message };
+
+  if (newPhone && newPhone !== prevPhone && user.email) {
+    const name = (user.user_metadata?.full_name as string | undefined) ?? params.fullName;
+    sendPhoneChangedEmail({ to: user.email, name, newPhone }).catch(() => {});
+  }
+
+  return { error: null };
 }
 
 export async function signOut() {

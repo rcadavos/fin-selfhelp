@@ -1723,7 +1723,8 @@ export function ExpenseCashflowPage({
             const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Link href="/dashboard/expenses" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/expenses" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <ArrowUpRight className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground/50" />
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400">
                     <Banknote className="h-4 w-4" />
                   </div>
@@ -1732,7 +1733,8 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Daily spending this month</p>
                 </Link>
 
-                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/bills" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <ArrowUpRight className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground/50" />
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
                     <Receipt className="h-4 w-4" />
                   </div>
@@ -1741,7 +1743,8 @@ export function ExpenseCashflowPage({
                   <p className="text-[10px] text-muted-foreground">Recurring bills this month</p>
                 </Link>
 
-                <Link href="/dashboard/bills" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/bills" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                  <ArrowUpRight className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground/50" />
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
@@ -1752,7 +1755,7 @@ export function ExpenseCashflowPage({
                   </p>
                 </Link>
 
-                <Link href="/dashboard" className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
                     <CircleDollarSign className="h-4 w-4" />
                   </div>

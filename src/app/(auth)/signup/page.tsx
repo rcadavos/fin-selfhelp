@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import Image from "next/image";
-import { BadgeCheck, Check, ChevronLeft, Lock, Sparkles } from "lucide-react";
+import { BadgeCheck, Check, ChevronLeft, Lock, Mail, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useUser } from "@/hooks/use-user";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -95,7 +95,9 @@ const STRENGTH_COLOR = [
 export default function SignUpPage() {
   const router = useRouter();
   const { user, loading } = useUser();
-  const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [fullNameError, setFullNameError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -120,14 +122,16 @@ export default function SignUpPage() {
   async function handleSubmit(formData: FormData) {
     if (fullNameError) return;
     if (!agreed) return;
-    setFormMessage(null);
+    setFormError(null);
+    const email = (formData.get("email") as string | null)?.trim() ?? "";
     const result = await signUp(formData);
     if (result?.error) {
-      setFormMessage({ type: "error", text: result.error });
+      setFormError(result.error);
     } else if (result?.next) {
       router.push(result.next);
     } else if (result?.message) {
-      setFormMessage({ type: "success", text: result.message });
+      setSubmittedEmail(email);
+      setSubmitted(true);
     }
   }
 
@@ -166,6 +170,37 @@ export default function SignUpPage() {
             data-app-scroll="true"
             className="flex flex-col justify-center overflow-y-auto bg-background px-5 py-7 sm:px-8 md:max-h-[90vh]"
           >
+            {submitted ? (
+              <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-5 py-6 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                  <Mail className="h-7 w-7 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-xl font-semibold">Check your email</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    We sent a confirmation link to{" "}
+                    {submittedEmail && (
+                      <span className="font-medium text-foreground">{submittedEmail}</span>
+                    )}
+                    {submittedEmail ? "." : "your email address."}{" "}
+                    Click it to activate your account.
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Didn&apos;t receive it? Check your spam folder or{" "}
+                  <Link href="/signup" className="font-medium text-primary underline-offset-2 hover:underline">
+                    try again
+                  </Link>
+                  .
+                </p>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  Back to log in
+                </Link>
+              </div>
+            ) : (
             <div className="mx-auto w-full max-w-sm">
               <div className="space-y-1 pb-4 text-center">
                 <h2 className="text-xl font-semibold">Sign up</h2>
@@ -179,17 +214,12 @@ export default function SignUpPage() {
 
               <div className="space-y-4">
               <form action={handleSubmit} className="space-y-3">
-                {formMessage ? (
+                {formError ? (
                   <div
-                    role={formMessage.type === "error" ? "alert" : "status"}
-                    className={cn(
-                      "rounded-md border px-3 py-2 text-sm",
-                      formMessage.type === "error"
-                        ? "border-destructive/40 bg-destructive/10 text-destructive"
-                        : "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    )}
+                    role="alert"
+                    className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                   >
-                    {formMessage.text}
+                    {formError}
                   </div>
                 ) : null}
 
@@ -384,6 +414,7 @@ export default function SignUpPage() {
               <GoogleSignInButton next="/dashboard" />
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

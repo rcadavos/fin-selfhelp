@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/use-user";
+import { updateProfile } from "@/actions/auth";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ProfileAvatarUploader } from "@/components/account/profile-avatar-uploader";
 import { Loader2 } from "lucide-react";
@@ -50,16 +50,10 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        full_name: fullName.trim() || undefined,
-        phone: phone.trim() || undefined,
-      },
-    });
+    const { error } = await updateProfile({ fullName, phone });
     setSaving(false);
     if (error) {
-      showError(error.message);
+      showError(error);
       return;
     }
     showSuccess("Profile updated.");
