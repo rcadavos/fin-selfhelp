@@ -7,12 +7,35 @@ import {
   hasPremiumProductAccess,
   hasProLevelProductAccess,
   normalizeDbTier,
+  FREE_TIER_MAX_BILL_REMINDERS,
   type SubscriptionTierId,
 } from "@/lib/subscription-tier";
 import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 const VALID_REMINDER_DAYS: ReminderDay[] = [3, 1, 0];
+
+function extractBillIdFromDedupeKey(key: string): string | null {
+  const m = key.match(/^bill:([^:]+):/);
+  return m ? m[1] : null;
+}
+
+async function getLockedFreeReminderBillId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("user_notifications")
+    .select("dedupe_key")
+    .eq("user_id", userId)
+    .like("dedupe_key", "bill:%")
+    .limit(1);
+  for (const row of data ?? []) {
+    const id = extractBillIdFromDedupeKey(row.dedupe_key as string);
+    if (id) return id;
+  }
+  return null;
+}
 
 function normalizeReminderDaysBefore(raw: unknown): ReminderDay[] | undefined {
   if (raw == null) return undefined;
@@ -50,6 +73,8 @@ export type BillsData = {
   subscriptionTier: SubscriptionTierId;
   hasPremiumAccess: boolean;
   subscriptionExpired: boolean;
+  /** Bill ID that permanently holds the free reminder slot (reminder already sent for it). Free tier only; undefined for pro/premium. */
+  lockedFreeReminderBillId?: string;
 };
 
 export async function loadBillsData(paidMonth?: string): Promise<BillsData | null> {
@@ -75,7 +100,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
 
   const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
 
-  const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }] = await Promise.all([
+  const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }] = await Promise.all([
     supabase
       .from("bills")
       .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, created_at, updated_at")
@@ -90,23 +115,43 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       .from("income_entries")
       .select("amount")
       .eq("profile_id", profile.id),
+    hasProAccess
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from("user_notifications")
+          .select("dedupe_key")
+          .eq("user_id", user.id)
+          .like("dedupe_key", "bill:%")
+          .limit(1),
   ]);
 
   let bills = billsRaw ?? [];
 
+  let lockedFreeReminderBillId: string | undefined;
   if (!hasProAccess) {
-    const hasReminders = bills.some(
+    for (const row of lockLogs ?? []) {
+      const id = extractBillIdFromDedupeKey(row.dedupe_key as string);
+      if (id) { lockedFreeReminderBillId = id; break; }
+    }
+  }
+
+  if (!hasProAccess) {
+    const billsWithReminders = bills.filter(
       (row) =>
         row.reminder_days_before != null &&
-        (!Array.isArray(row.reminder_days_before) || row.reminder_days_before.length > 0),
+        Array.isArray(row.reminder_days_before) &&
+        row.reminder_days_before.length > 0,
     );
-    if (hasReminders) {
+    if (billsWithReminders.length > FREE_TIER_MAX_BILL_REMINDERS) {
+      const toClearIds = billsWithReminders.slice(FREE_TIER_MAX_BILL_REMINDERS).map((b) => b.id);
       const { error: clearErr } = await supabase
         .from("bills")
         .update({ reminder_days_before: null })
-        .eq("profile_id", profile.id);
+        .in("id", toClearIds);
       if (!clearErr) {
-        bills = bills.map((row) => ({ ...row, reminder_days_before: null }));
+        bills = bills.map((row) =>
+          toClearIds.includes(row.id) ? { ...row, reminder_days_before: null } : row,
+        );
       }
     }
   }
@@ -143,6 +188,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
     subscriptionTier: tier,
     hasPremiumAccess,
     subscriptionExpired,
+    lockedFreeReminderBillId,
   };
 }
 
@@ -217,7 +263,23 @@ export async function addBill(
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
 
-  const reminders = hasProAccess ? normalizeReminderDaysBefore(reminderDaysBefore) : undefined;
+  let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
+  if (hasProAccess) {
+    reminders = normalizeReminderDaysBefore(reminderDaysBefore);
+  } else if (reminderDaysBefore && reminderDaysBefore.length > 0) {
+    const lockedId = await getLockedFreeReminderBillId(supabase, user.id);
+    if (!lockedId) {
+      const { count } = await supabase
+        .from("bills")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", profile.id)
+        .not("reminder_days_before", "is", null);
+      if ((count ?? 0) < FREE_TIER_MAX_BILL_REMINDERS) {
+        reminders = normalizeReminderDaysBefore(reminderDaysBefore);
+      }
+    }
+    // If lockedId exists: reminder blocked — slot permanently taken by another bill
+  }
 
   const { error } = await supabase.from("bills").insert({
     profile_id: profile.id,
@@ -271,7 +333,28 @@ export async function updateBill(
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
 
-  const reminders = hasProAccess ? normalizeReminderDaysBefore(reminderDaysBefore) : undefined;
+  let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
+  if (hasProAccess) {
+    reminders = normalizeReminderDaysBefore(reminderDaysBefore);
+  } else if (reminderDaysBefore && reminderDaysBefore.length > 0) {
+    const lockedId = await getLockedFreeReminderBillId(supabase, user.id);
+    if (lockedId) {
+      // Only the locked bill may set/keep its reminder
+      if (lockedId === billId) {
+        reminders = normalizeReminderDaysBefore(reminderDaysBefore);
+      }
+    } else {
+      const { count } = await supabase
+        .from("bills")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", profile.id)
+        .neq("id", billId)
+        .not("reminder_days_before", "is", null);
+      if ((count ?? 0) < FREE_TIER_MAX_BILL_REMINDERS) {
+        reminders = normalizeReminderDaysBefore(reminderDaysBefore);
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("bills")

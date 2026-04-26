@@ -42,7 +42,8 @@ export function SubscribeSection({
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               <p>Unlimited expense & bill rows</p>
               <p>To-buy & to-do up to 10 items each</p>
-              <p>No email reminders (upgrade to Pro)</p>
+              <p>1 bill reminder (in-app & email)</p>
+              <p>Unlimited reminders — upgrade to Pro</p>
             </CardContent>
             <CardFooter className="mt-auto w-full">
               <Button variant="outline" className="w-full" asChild>

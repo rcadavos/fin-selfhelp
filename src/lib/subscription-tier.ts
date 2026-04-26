@@ -38,3 +38,6 @@ export function hasPremiumProductAccess(
 
 /** Free accounts: max items per to-buy / to-do list. */
 export const FREE_TIER_MAX_LIST_ITEMS = 10;
+
+/** Free accounts: max bills that can have a reminder set. */
+export const FREE_TIER_MAX_BILL_REMINDERS = 1;

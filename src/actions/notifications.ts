@@ -24,6 +24,14 @@ type ExpenseReminderRow = {
   reminder_channel: string | null;
 };
 
+type BillReminderRow = {
+  id: string;
+  note: string | null;
+  due_date: string | null;
+  reminder_days_before: number[] | null;
+  reminder_channel: string | null;
+};
+
 type ToDoTargetRow = {
   id: string;
   name: string;
@@ -92,7 +100,6 @@ export async function syncGeneratedProNotificationsForToday(
     (profile.subscription_ends_at as string | null) ?? null,
     Boolean(profile.is_subscriber)
   );
-  if (!hasProAccess) return { notificationsInserted: 0, errors: [], skipped: false };
 
   const today = new Date();
   if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
@@ -100,23 +107,66 @@ export async function syncGeneratedProNotificationsForToday(
   }
   const todayYmd = formatYmdLocal(today);
 
-  const [{ data: expenses }, { data: toDoRows }] = await Promise.all([
-    supabase
-      .from("expense_entries")
-      .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
-      .eq("profile_id", profile.id),
-    supabase
-      .from("to_do_items")
-      .select("id, name, target_date")
-      .eq("profile_id", profile.id)
-      .eq("checked", false)
-      .eq("target_date", todayYmd),
-  ]);
-
-  const rowsToInsert: NewNotificationRow[] = [];
   const { getCandidateDueDates } = await import("@/lib/expense-due-date");
 
-  for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
+  const billsQueryResult = await supabase
+    .from("bills")
+    .select("id, note, due_date, reminder_days_before, reminder_channel")
+    .eq("profile_id", profile.id)
+    .not("reminder_days_before", "is", null);
+
+  let expenses: ExpenseReminderRow[] = [];
+  let toDoRows: ToDoTargetRow[] = [];
+
+  if (hasProAccess) {
+    const [{ data: expData }, { data: todoData }] = await Promise.all([
+      supabase
+        .from("expense_entries")
+        .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
+        .eq("profile_id", profile.id),
+      supabase
+        .from("to_do_items")
+        .select("id, name, target_date")
+        .eq("profile_id", profile.id)
+        .eq("checked", false)
+        .eq("target_date", todayYmd),
+    ]);
+    expenses = (expData ?? []) as ExpenseReminderRow[];
+    toDoRows = (todoData ?? []) as ToDoTargetRow[];
+  }
+
+  const rowsToInsert: NewNotificationRow[] = [];
+
+  for (const bill of (billsQueryResult.data ?? []) as BillReminderRow[]) {
+    if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
+      continue;
+    }
+    const candidates = getCandidateDueDates(bill.due_date, today);
+    const billLabel = (bill.note ?? "Bill").trim() || "Bill";
+    const channel = bill.reminder_channel || "both";
+
+    if (channel !== "in-app" && channel !== "both") continue;
+
+    for (const dueThisMonth of candidates) {
+      for (const reminderDay of bill.reminder_days_before) {
+        if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+        const reminderDate = addDays(dueThisMonth, -reminderDay);
+        if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+        rowsToInsert.push({
+          user_id: userId,
+          kind: "expense_reminder",
+          dedupe_key: `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`,
+          title: reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`,
+          body:
+            reminderDay === 0
+              ? "This bill is due today. Please review and settle it."
+              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
+        });
+      }
+    }
+  }
+
+  for (const entry of expenses) {
     if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
       continue;
     }
@@ -145,7 +195,7 @@ export async function syncGeneratedProNotificationsForToday(
     }
   }
 
-  for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
+  for (const item of toDoRows) {
     rowsToInsert.push({
       user_id: userId,
       kind: "todo_target_date",
@@ -307,9 +357,6 @@ export async function sendGeneratedProReminderEmailsForToday(
     (profile.subscription_ends_at as string | null) ?? null,
     Boolean(profile.is_subscriber)
   );
-  if (!hasProAccess) {
-    return { emailsSent: 0, pendingCount: 0, skipped: false, errors: [] };
-  }
 
   const today = new Date();
   if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
@@ -319,19 +366,33 @@ export async function sendGeneratedProReminderEmailsForToday(
   const todayYmd = formatYmdLocal(today);
   const { getCandidateDueDates } = await import("@/lib/expense-due-date");
 
-  const [{ data: expenses }, { data: toDoRows }, authUserResult] = await Promise.all([
-    supabase
-      .from("expense_entries")
-      .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
-      .eq("profile_id", profile.id),
-    supabase
-      .from("to_do_items")
-      .select("id, name, target_date")
-      .eq("profile_id", profile.id)
-      .eq("checked", false)
-      .eq("target_date", todayYmd),
-    supabase.auth.admin.getUserById(userId),
-  ]);
+  const billsQueryResult = await supabase
+    .from("bills")
+    .select("id, note, due_date, reminder_days_before, reminder_channel")
+    .eq("profile_id", profile.id)
+    .not("reminder_days_before", "is", null);
+
+  let expenses: ExpenseReminderRow[] = [];
+  let toDoRows: ToDoTargetRow[] = [];
+
+  const [authUserResult] = await Promise.all([supabase.auth.admin.getUserById(userId)]);
+
+  if (hasProAccess) {
+    const [{ data: expData }, { data: todoData }] = await Promise.all([
+      supabase
+        .from("expense_entries")
+        .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
+        .eq("profile_id", profile.id),
+      supabase
+        .from("to_do_items")
+        .select("id, name, target_date")
+        .eq("profile_id", profile.id)
+        .eq("checked", false)
+        .eq("target_date", todayYmd),
+    ]);
+    expenses = (expData ?? []) as ExpenseReminderRow[];
+    toDoRows = (todoData ?? []) as ToDoTargetRow[];
+  }
 
   const toEmail = authUserResult.data.user?.email?.trim();
   if (!toEmail) {
@@ -340,19 +401,40 @@ export async function sendGeneratedProReminderEmailsForToday(
       pendingCount: 0,
       skipped: false,
       errors: ["No email address available for user."],
-      debug: options?.includeDebug
-        ? {
-            todayYmd,
-            expensesCount: (expenses ?? []).length,
-            toDoCount: (toDoRows ?? []).length,
-          }
-        : undefined,
     };
   }
 
   const pending: PendingReminder[] = [];
 
-  for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
+  for (const bill of (billsQueryResult.data ?? []) as BillReminderRow[]) {
+    if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
+      continue;
+    }
+    const candidates = getCandidateDueDates(bill.due_date, today);
+    const billLabel = (bill.note ?? "Bill").trim() || "Bill";
+    const channel = bill.reminder_channel || "both";
+
+    if (channel !== "email" && channel !== "both") continue;
+
+    for (const dueThisMonth of candidates) {
+      for (const reminderDay of bill.reminder_days_before) {
+        if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+        const reminderDate = addDays(dueThisMonth, -reminderDay);
+        if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+
+        const dedupeKey = `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+        pending.push({
+          dedupeKey,
+          title: reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`,
+          body: reminderDay === 0
+            ? "This bill is due today. Please review and settle it."
+            : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
+        });
+      }
+    }
+  }
+
+  for (const entry of expenses) {
     if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
       continue;
     }
@@ -381,7 +463,7 @@ export async function sendGeneratedProReminderEmailsForToday(
     }
   }
 
-  for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
+  for (const item of toDoRows) {
     const dedupeKey = `todo:${item.id}:${todayYmd}`;
     pending.push({
       dedupeKey,

@@ -18,6 +18,7 @@ import {
   Receipt,
   Download,
   LayoutGrid,
+  Lock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -207,15 +208,21 @@ function BillDialog({
   onClose,
   onSave,
   initial,
+  editingBillId,
   isPending,
   accounts,
+  freeReminderUsed,
+  lockedFreeReminderBillId,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (form: BillFormState) => void;
   initial?: BillFormState;
+  editingBillId?: string;
   isPending: boolean;
   accounts: AccountRow[];
+  freeReminderUsed: number;
+  lockedFreeReminderBillId?: string;
 }) {
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
   const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
@@ -378,39 +385,76 @@ function BillDialog({
           </div>
 
           {/* Row 5 — Reminder */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Reminders</Label>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                Pro / Premium
-              </span>
-            </div>
-            <div className="flex gap-2">
-              {REMINDER_OPTIONS.map(({ value, label }) => {
-                const active = form.reminderDays.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleReminder(value)}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
-                      active
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            {!hasProAccess && (
-              <p className="text-[11px] text-muted-foreground">
-                Reminders require a Pro or Premium plan. Upgrade to activate them.
-              </p>
-            )}
-          </div>
+          {(() => {
+            const isThisTheLocked = !!lockedFreeReminderBillId && editingBillId === lockedFreeReminderBillId;
+            const slotLockedByOther = !!lockedFreeReminderBillId && !isThisTheLocked;
+
+            let reminderEnabled: boolean;
+            let badgeLabel: string;
+            let badgeClass: string;
+            let hintText: string;
+
+            if (hasProAccess) {
+              reminderEnabled = true;
+              badgeLabel = "Pro / Premium";
+              badgeClass = "bg-muted text-muted-foreground";
+              hintText = "";
+            } else if (slotLockedByOther) {
+              reminderEnabled = false;
+              badgeLabel = "Slot locked";
+              badgeClass = "bg-destructive/10 text-destructive";
+              hintText = "Your free reminder slot is permanently assigned to another bill. Upgrade to Pro for unlimited reminders.";
+            } else if (isThisTheLocked) {
+              reminderEnabled = true;
+              badgeLabel = "Permanent";
+              badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+              hintText = "This bill permanently holds your free reminder slot.";
+            } else {
+              const canHaveFree = (initial?.reminderDays?.length ?? 0) > 0 || freeReminderUsed === 0;
+              reminderEnabled = canHaveFree;
+              badgeLabel = freeReminderUsed >= 1 && !canHaveFree ? "1/1 used" : freeReminderUsed >= 1 ? "1/1 free" : "0/1 free";
+              badgeClass = freeReminderUsed >= 1 && !canHaveFree ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground";
+              hintText = canHaveFree
+                ? "Free plan: 1 bill reminder. Once a reminder fires, this slot is permanently assigned to that bill."
+                : "Free reminder slot used by another bill. Upgrade to Pro for unlimited reminders.";
+            }
+
+            return (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>Reminders</Label>
+                  <span className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", badgeClass)}>
+                    {(isThisTheLocked || slotLockedByOther) && <Lock className="h-2.5 w-2.5" />}
+                    {badgeLabel}
+                  </span>
+                </div>
+                <div className={cn("flex gap-2", !reminderEnabled && "pointer-events-none opacity-40")}>
+                  {REMINDER_OPTIONS.map(({ value, label }) => {
+                    const active = form.reminderDays.includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => reminderEnabled && toggleReminder(value)}
+                        disabled={!reminderEnabled}
+                        className={cn(
+                          "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!hasProAccess && hintText && (
+                  <p className="text-[11px] text-muted-foreground">{hintText}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex gap-2 pt-2">
@@ -517,6 +561,7 @@ function BillRow({
   onToggle,
   onEdit,
   onDelete,
+  isLockedFreeReminder,
 }: {
   bill: BillRow;
   isPaid: boolean;
@@ -528,6 +573,7 @@ function BillRow({
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  isLockedFreeReminder?: boolean;
 }) {
   const cat =
     EXPENSE_CATEGORIES.find((c) => c.id === bill.category_id) ?? EXPENSE_CATEGORIES[0];
@@ -580,6 +626,12 @@ function BillRow({
           {isOverdue && !isPaid && (
             <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
               Outstanding
+            </span>
+          )}
+          {isLockedFreeReminder && (
+            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              <Lock className="h-2.5 w-2.5" />
+              Reminder
             </span>
           )}
         </div>
@@ -785,6 +837,11 @@ export function BillsBoard() {
   const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = data?.bills ?? [];
   const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data?.paidBillIds]);
+  const lockedFreeReminderBillId = data?.lockedFreeReminderBillId;
+  const freeReminderUsed = useMemo(
+    () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
+    [bills],
+  );
 
   // Filtered by tab
   const filteredBills = useMemo(
@@ -1048,6 +1105,7 @@ export function BillsBoard() {
                   onToggle={() => handleToggle(bill.id)}
                   onEdit={() => setEditingBill(bill)}
                   onDelete={() => setDeletingId(bill.id)}
+                  isLockedFreeReminder={bill.id === lockedFreeReminderBillId}
                 />
               );
             })
@@ -1073,6 +1131,8 @@ export function BillsBoard() {
           onSave={handleAdd}
           isPending={isPending}
           accounts={accounts}
+          freeReminderUsed={freeReminderUsed}
+          lockedFreeReminderBillId={lockedFreeReminderBillId}
         />
       )}
 
@@ -1083,8 +1143,11 @@ export function BillsBoard() {
           onClose={() => setEditingBill(null)}
           onSave={handleEdit}
           initial={billToForm(editingBill)}
+          editingBillId={editingBill.id}
           isPending={isPending}
           accounts={accounts}
+          freeReminderUsed={freeReminderUsed}
+          lockedFreeReminderBillId={lockedFreeReminderBillId}
         />
       )}
 

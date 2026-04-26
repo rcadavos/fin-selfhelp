@@ -14,6 +14,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.9",
+    date: "2026-04-26",
+    summary: "Free users get 1 permanent bill reminder (in-app & email); bill reminders now actually fire via cron.",
+    changes: [
+      { type: "feature", description: "Free plan now allows 1 bill to have a due reminder (in-app and email)." },
+      { type: "feature", description: "Free reminder slot is permanently locked to the first bill that fires a reminder — prevents swapping bills to abuse the free tier." },
+      { type: "fix", description: "Bill reminders were never sent by the cron job — it only processed expense entries. Now the cron and notification system also process the bills table for all users." },
+      { type: "improvement", description: "Bills add/edit modal shows a 0/1 or 1/1 free reminder badge; once permanently locked, shows a lock icon with 'Permanent' label on the owning bill and 'Slot locked' on all others." },
+      { type: "improvement", description: "Bill row shows an amber lock chip when it permanently holds the free reminder slot." },
+      { type: "improvement", description: "Subscription pages (landing and account) updated to reflect the 1 bill reminder free tier benefit." },
+    ],
+  },
+  {
     version: "1.3.8",
     date: "2026-04-26",
     summary: "Signup shows check-email success screen; login shows confirmation reminder for unverified accounts.",

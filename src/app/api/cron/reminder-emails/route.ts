@@ -23,6 +23,14 @@ type ExpenseReminderRow = {
   reminder_channel: string | null;
 };
 
+type BillReminderRow = {
+  id: string;
+  note: string | null;
+  due_date: string | null;
+  reminder_days_before: number[] | null;
+  reminder_channel: string | null;
+};
+
 type ToDoTargetRow = {
   id: string;
   name: string;
@@ -241,6 +249,8 @@ export async function GET(request: Request) {
     let sentEmails = 0;
     const errors: string[] = [];
 
+    const { getCandidateDueDates } = await import("@/lib/expense-due-date");
+
     for (const profile of (profiles ?? []) as ProfileRow[]) {
       const tier = normalizeDbTier(profile.subscription_tier);
       const hasProAccess = hasProLevelProductAccess(
@@ -248,25 +258,38 @@ export async function GET(request: Request) {
         profile.subscription_ends_at,
         Boolean(profile.is_subscriber)
       );
-      if (!hasProAccess) continue;
 
       processedUsers += 1;
 
-      const { getCandidateDueDates } = await import("@/lib/expense-due-date");
+      const billsQuery = supabase
+        .from("bills")
+        .select("id, note, due_date, reminder_days_before, reminder_channel")
+        .eq("profile_id", profile.id)
+        .not("reminder_days_before", "is", null);
 
-      const [{ data: expenses }, { data: toDoRows }, authUserResult] = await Promise.all([
-        supabase
-          .from("expense_entries")
-          .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
-          .eq("profile_id", profile.id),
-        supabase
-          .from("to_do_items")
-          .select("id, name, target_date")
-          .eq("profile_id", profile.id)
-          .eq("checked", false)
-          .eq("target_date", todayYmd),
-        supabase.auth.admin.getUserById(profile.user_id),
-      ]);
+      const authUserPromise = supabase.auth.admin.getUserById(profile.user_id);
+
+      let expenses: ExpenseReminderRow[] = [];
+      let toDoRows: ToDoTargetRow[] = [];
+
+      if (hasProAccess) {
+        const [{ data: expData }, { data: todoData }] = await Promise.all([
+          supabase
+            .from("expense_entries")
+            .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
+            .eq("profile_id", profile.id),
+          supabase
+            .from("to_do_items")
+            .select("id, name, target_date")
+            .eq("profile_id", profile.id)
+            .eq("checked", false)
+            .eq("target_date", todayYmd),
+        ]);
+        expenses = (expData ?? []) as ExpenseReminderRow[];
+        toDoRows = (todoData ?? []) as ToDoTargetRow[];
+      }
+
+      const [{ data: billsRaw }, authUserResult] = await Promise.all([billsQuery, authUserPromise]);
 
       const toEmail = authUserResult.data.user?.email?.trim();
       if (!toEmail) continue;
@@ -274,48 +297,83 @@ export async function GET(request: Request) {
       const pending: PendingReminder[] = [];
       const notificationsToInsert: any[] = [];
 
-      for (const entry of (expenses ?? []) as ExpenseReminderRow[]) {
+      for (const bill of (billsRaw ?? []) as BillReminderRow[]) {
+        if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
+          continue;
+        }
+        const candidates = getCandidateDueDates(bill.due_date, now);
+        const billLabel = (bill.note ?? "Bill").trim() || "Bill";
+        const channel = bill.reminder_channel || "both";
+
+        for (const dueThisMonth of candidates) {
+          for (const reminderDay of bill.reminder_days_before) {
+            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+            const reminderDate = addDays(dueThisMonth, -reminderDay);
+            if (formatYmdLocal(reminderDate) !== todayYmd) continue;
+
+            const dedupeKey = `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+            const title = reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`;
+            const body = reminderDay === 0
+              ? "This bill is due today. Please review and settle it."
+              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+
+            if (channel === "email" || channel === "both") {
+              pending.push({ dedupeKey, title, body });
+            }
+            if (channel === "in-app" || channel === "both") {
+              notificationsToInsert.push({
+                user_id: profile.user_id,
+                kind: "expense_reminder",
+                dedupe_key: dedupeKey,
+                title,
+                body,
+              });
+            }
+          }
+        }
+      }
+
+      for (const entry of expenses) {
         if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
           continue;
         }
-        
         const candidates = getCandidateDueDates(entry.due_date, now);
-            const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
-            const channel = entry.reminder_channel || "both";
+        const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
+        const channel = entry.reminder_channel || "both";
 
-            for (const dueThisMonth of candidates) {
-              for (const reminderDay of entry.reminder_days_before) {
-                if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
-                const reminderDate = addDays(dueThisMonth, -reminderDay);
-                if (formatYmdLocal(reminderDate) !== todayYmd) continue;
-                
-                const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
-                const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
-                const body = reminderDay === 0
-                  ? "This expense is due today. Please review and settle it."
-                  : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+        for (const dueThisMonth of candidates) {
+          for (const reminderDay of entry.reminder_days_before) {
+            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+            const reminderDate = addDays(dueThisMonth, -reminderDay);
+            if (formatYmdLocal(reminderDate) !== todayYmd) continue;
 
-                if (channel === "email" || channel === "both") {
-                  pending.push({ dedupeKey, title, body });
-                }
-                if (channel === "in-app" || channel === "both") {
-                  notificationsToInsert.push({
-                    user_id: profile.user_id,
-                    kind: "expense_reminder",
-                    dedupe_key: dedupeKey,
-                    title,
-                    body,
-                  });
-                }
-              }
+            const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+            const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
+            const body = reminderDay === 0
+              ? "This expense is due today. Please review and settle it."
+              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
+
+            if (channel === "email" || channel === "both") {
+              pending.push({ dedupeKey, title, body });
             }
+            if (channel === "in-app" || channel === "both") {
+              notificationsToInsert.push({
+                user_id: profile.user_id,
+                kind: "expense_reminder",
+                dedupe_key: dedupeKey,
+                title,
+                body,
+              });
+            }
+          }
+        }
       }
 
-      for (const item of (toDoRows ?? []) as ToDoTargetRow[]) {
+      for (const item of toDoRows) {
         const dedupeKey = `todo:${item.id}:${todayYmd}`;
         const title = `To-do target today: ${item.name}`;
         const body = "This task reaches its target date today.";
-        
+
         pending.push({ dedupeKey, title, body });
         notificationsToInsert.push({
           user_id: profile.user_id,
