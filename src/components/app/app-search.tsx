@@ -109,7 +109,8 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
           ref={inputRef}
           type="search"
           placeholder="Search anything…"
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground text-base"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          style={{ fontSize: "16px" }}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
