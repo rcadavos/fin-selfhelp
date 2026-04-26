@@ -11,6 +11,7 @@ export type AccountRow = {
   color: string;
 };
 
+
 export async function loadAccounts(): Promise<{ accounts: AccountRow[]; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -186,6 +187,12 @@ export async function deleteAccount(accountId: string): Promise<{ error?: string
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "Profile not found." };
+
+  // Null out references before delete (FK cascade removed to support static account IDs).
+  await Promise.all([
+    supabase.from("expense_entries").update({ account_id: null }).eq("account_id", accountId).eq("profile_id", profile.id),
+    supabase.from("bills").update({ account_id: null }).eq("account_id", accountId).eq("profile_id", profile.id),
+  ]);
 
   const { error } = await supabase
     .from("accounts")

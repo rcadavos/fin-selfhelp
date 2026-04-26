@@ -1,5 +1,6 @@
 import { queryOptions, QueryClient } from "@tanstack/react-query";
 import { loadAccounts, loadAccountTotals } from "@/actions/accounts";
+import { STATIC_ACCOUNTS } from "@/lib/static-accounts";
 import { queryKeys } from "./keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
@@ -9,7 +10,7 @@ export const accountsQueryOptions = () =>
     queryFn: async () => {
       const res = await loadAccounts();
       if (res.error) throw new Error(res.error);
-      return res.accounts;
+      return [...STATIC_ACCOUNTS, ...res.accounts];
     },
     staleTime: Infinity,
     refetchOnWindowFocus: false,

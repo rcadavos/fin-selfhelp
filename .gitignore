@@ -41,3 +41,6 @@ next-env.d.ts
 .ai/
 .cursor/
 .cursorignore
+
+# Claude Token Monitor data
+.claude-monitor/

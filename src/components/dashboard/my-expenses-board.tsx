@@ -13,8 +13,10 @@ import {
 } from "recharts";
 import {
   Banknote,
+  CalendarDays,
   Download,
   LayoutGrid,
+  Plus,
   Trash2,
   X,
 } from "lucide-react";
@@ -37,7 +39,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker, parseYmdToLocalDate } from "@/components/ui/date-picker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { formatYmdLocal } from "@/lib/expense-due-date";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,14 +52,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
-import { accountsQueryOptions } from "@/lib/query/accounts";
+import { type AccountRow } from "@/actions/accounts";
 import { useUser } from "@/hooks/use-user";
 import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { accountsQueryOptions } from "@/lib/query/accounts";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import Image from "next/image";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -245,6 +251,92 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
   );
 }
 
+// ─── Account Tag Selector ─────────────────────────────────────────────────────
+
+function AccountTagSelector({
+  accounts,
+  value,
+  onChange,
+}: {
+  accounts: AccountRow[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  if (!accounts.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {accounts.map((acc) => {
+        const selected = value === acc.id;
+        return (
+          <button
+            key={acc.id}
+            type="button"
+            onClick={() => onChange(selected ? "" : acc.id)}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              selected
+                ? "ring-1"
+                : "bg-muted/60 text-muted-foreground hover:bg-muted"
+            )}
+            style={selected ? {
+              backgroundColor: `${acc.color}22`,
+              color: acc.color,
+              outlineColor: acc.color,
+            } : undefined}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} />
+            {acc.account_alias}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Inline Date Picker (icon-only) ──────────────────────────────────────────
+
+function InlineDatePicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (ymd: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value.trim() ? parseYmdToLocalDate(value) : undefined;
+  return (
+    <Popover modal={false} open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted",
+            value ? "text-primary" : "text-muted-foreground/50"
+          )}
+          aria-label={value ? `Date: ${value}` : "Pick date"}
+        >
+          <CalendarDays className="h-4 w-4" aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="z-[100] w-auto border-0 bg-transparent p-0 shadow-none" align="end">
+        <Calendar
+          mode="single"
+          selected={selected}
+          defaultMonth={selected ?? new Date()}
+          onSelect={(d) => {
+            if (!d) return;
+            onChange(formatYmdLocal(d));
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function MyExpensesBoard() {
@@ -254,7 +346,11 @@ export function MyExpensesBoard() {
 
   const { data: expenseData, isLoading } = useQuery(expenseDataQueryOptions());
   const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
-  const { data: accounts = [] } = useQuery({ ...accountsQueryOptions(), enabled: !!user });
+  const { data: accounts = [] } = useQuery(accountsQueryOptions());
+  const accountMap = useMemo(
+    () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
+    [accounts]
+  );
   const categories = useMemo(
     () => (dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES),
     [dbCategories]
@@ -293,12 +389,22 @@ export function MyExpensesBoard() {
   const [expAmount, setExpAmount] = useState("");
   const [expCategory, setExpCategory] = useState("");
   const [expDate, setExpDate] = useState(todayYmd);
-  const [expAccountId, setExpAccountId] = useState("");
   const [expSaving, setExpSaving] = useState(false);
   const expNameRef = useRef<HTMLInputElement>(null);
 
   // ── Error banner ──
   const [error, setError] = useState<string | null>(null);
+
+  // ── Add dialog state ──
+  const [addOpen, setAddOpen] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addAmount, setAddAmount] = useState("");
+  const [addCategory, setAddCategory] = useState("");
+  const [addNote, setAddNote] = useState("");
+  const [addDate, setAddDate] = useState(todayYmd);
+  const [addAccountId, setAddAccountId] = useState("");
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   // ── Edit modal state ──
   const [editingEntry, setEditingEntry] = useState<ExpenseEntryRow | null>(null);
@@ -308,6 +414,7 @@ export function MyExpensesBoard() {
   const [editNote, setEditNote] = useState("");
   const [editExpenseDate, setEditExpenseDate] = useState("");
   const [editAccountId, setEditAccountId] = useState("");
+
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -361,7 +468,7 @@ export function MyExpensesBoard() {
 
     const res = await addExpense(
       savedCategory || "other", amt, savedName,
-      null, null, null, "monthly", "both", savedDate, expAccountId || null
+      null, null, null, "monthly", "both", savedDate
     );
     setExpSaving(false);
     if (res.error) {
@@ -393,6 +500,35 @@ export function MyExpensesBoard() {
     setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
     setEditAccountId(entry.account_id ?? "");
     setEditError(null);
+  }
+
+  async function handleAddFromDialog(e: React.FormEvent) {
+    e.preventDefault();
+    const name = addName.trim();
+    const amt = parseFloat(addAmount);
+    if (!name || isNaN(amt) || amt <= 0) {
+      setAddError("Please enter a name and a valid amount.");
+      return;
+    }
+    setAddSaving(true);
+    setAddError(null);
+    const res = await addExpense(
+      addCategory || "other", amt, name,
+      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null
+    );
+    setAddSaving(false);
+    if (res.error) {
+      setAddError(res.error);
+    } else {
+      setAddOpen(false);
+      setAddName("");
+      setAddAmount("");
+      setAddCategory("");
+      setAddNote("");
+      setAddDate(todayYmd());
+      setAddAccountId("");
+      invalidate();
+    }
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
@@ -517,6 +653,14 @@ export function MyExpensesBoard() {
         </div>
       </div>
 
+      {/* Add Expense button */}
+      <div className="flex justify-end my-2">
+        <Button size="sm" onClick={() => { setAddOpen(true); setAddError(null); }} className="gap-1.5">
+          <Plus className="h-4 w-4" aria-hidden />
+          Add Expense
+        </Button>
+      </div>
+
       {/* Error */}
       {error && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-400">
@@ -527,123 +671,179 @@ export function MyExpensesBoard() {
         </div>
       )}
 
+      <form
+        onSubmit={handleAddExpense}
+        className="flex items-center gap-3 border border-border/70 py-3 mt-1 mb-2 rounded-lg px-4"
+      >
+        <div className="h-5 w-5 shrink-0 rounded-full border border-dashed border-muted-foreground/30" aria-hidden />
+        <input
+          ref={expNameRef}
+          value={expName}
+          onChange={(e) => setExpName(e.target.value)}
+          placeholder=""
+          className="h-9 flex-1 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-sm shadow-none placeholder:text-transparent focus:border-primary focus:outline-none focus:ring-0"
+          disabled={expSaving}
+          aria-label="Expense name"
+        />
+        <input
+          value={expAmount}
+          onChange={(e) => setExpAmount(e.target.value)}
+          placeholder="0"
+          type="number"
+          min="0.01"
+          step="any"
+          className="w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-sm tabular-nums shadow-none focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          disabled={expSaving}
+          aria-label="Amount"
+        />
+        <InlineDatePicker value={expDate} onChange={setExpDate} disabled={expSaving} />
+      </form>
+
       {/* Expenses board */}
-      <div className="flex flex-col gap-4">
-        {/* Quick-add form */}
-        <form
-          onSubmit={handleAddExpense}
-          className="rounded-xl border bg-card px-3 py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/30"
-        >
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:gap-2">
-              <div className="flex items-center gap-2 lg:contents">
-                <input
-                  ref={expNameRef}
-                  value={expName}
-                  onChange={(e) => setExpName(e.target.value)}
-                  placeholder="Expense name"
-                  className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
-                  disabled={expSaving}
+      <div className="flex flex-col gap-2">
+        {expenses.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            No expenses yet — add one above or use the form below.
+          </p>
+        ) : (
+          expenses.map((exp) => (
+            <div
+              key={exp.id}
+              onClick={() => handleOpenEdit(exp)}
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md hover:border-primary/30"
+            >
+              <span
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                style={{ backgroundColor: getCategoryColor(exp.category_id, categories) }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {getCategoryLabel(exp.category_id, categories)}
+                  {getExpenseDateLabel(exp) && (
+                    <span className="text-muted-foreground/60"> · {getExpenseDateLabel(exp)}</span>
+                  )}
+                </p>
+              </div>
+              {exp.account_id && accountMap[exp.account_id] && (
+                <span
+                  className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `${accountMap[exp.account_id].color}22`,
+                    color: accountMap[exp.account_id].color,
+                  }}
+                >
+                  {accountMap[exp.account_id].account_alias}
+                </span>
+              )}
+              <span className="flex-shrink-0 text-sm font-semibold tabular-nums">
+                {formatCurrency(exp.amount)}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(exp.id); }}
+                className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                title="Delete"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+
+      </div>
+
+      {/* ── Add modal ── */}
+      <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddFromDialog} className="grid gap-4 py-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-name">Name</Label>
+                <Input
+                  id="add-name"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  placeholder="Name"
+                  autoFocus
                 />
-                <input
-                  value={expAmount}
-                  onChange={(e) => setExpAmount(e.target.value)}
-                  placeholder="0"
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-amount">Amount</Label>
+                <Input
+                  id="add-amount"
                   type="number"
                   min="0.01"
                   step="any"
-                  className="h-7 w-20 flex-shrink-0 rounded-md border border-input bg-transparent px-2 text-right text-sm placeholder:text-muted-foreground tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  disabled={expSaving}
+                  value={addAmount}
+                  onChange={(e) => setAddAmount(e.target.value)}
+                  placeholder="₱0"
+                  className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
-              <div className="flex items-center gap-2 lg:contents">
-                <Select value={expCategory} onValueChange={setExpCategory}>
-                  <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
-                    <SelectValue placeholder="Select category" />
+            </div>
+
+            {accounts.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label>Account</Label>
+                <AccountTagSelector accounts={accounts} value={addAccountId} onChange={setAddAccountId} />
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-category">Category</Label>
+                <Select value={addCategory} onValueChange={setAddCategory}>
+                  <SelectTrigger id="add-category">
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                        {cat.label}
-                      </SelectItem>
+                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-date">Date</Label>
                 <DatePicker
-                  value={expDate}
-                  onChange={setExpDate}
-                  disabled={expSaving}
+                  id="add-date"
+                  value={addDate}
+                  onChange={setAddDate}
                   formatDisplay={formatShortDate}
-                  triggerClassName="h-7 w-auto flex-shrink-0 gap-1 px-2 text-xs"
                 />
-                {accounts.length > 0 && (
-                  <Select value={expAccountId} onValueChange={(v) => setExpAccountId(v === "__none__" ? "" : v)}>
-                    <SelectTrigger className="h-7 min-w-0 flex-1 text-xs">
-                      <SelectValue placeholder="Account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__" className="text-xs">No account</SelectItem>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id} className="text-xs">
-                          {acc.account_alias}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={expSaving || !expName.trim() || !expAmount}
-              className="flex-shrink-0 self-stretch rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-40"
-            >
-              {expSaving ? "…" : "Add"}
-            </button>
-          </div>
-        </form>
 
-        {/* Expenses list */}
-        <div className="flex flex-col gap-2">
-          {expenses.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              No expenses yet — type above and press Enter or click Add.
-            </p>
-          ) : (
-            expenses.map((exp) => (
-              <div
-                key={exp.id}
-                onClick={() => handleOpenEdit(exp)}
-                className="flex cursor-pointer items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md hover:border-primary/30"
-              >
-                <span
-                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: getCategoryColor(exp.category_id, categories) }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {getCategoryLabel(exp.category_id, categories)}
-                    {getExpenseDateLabel(exp) && (
-                      <span className="text-muted-foreground/60"> · {getExpenseDateLabel(exp)}</span>
-                    )}
-                  </p>
-                </div>
-                <span className="flex-shrink-0 text-sm font-semibold tabular-nums">
-                  {formatCurrency(exp.amount)}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(exp.id); }}
-                  className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
-                  title="Delete"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-note">Note</Label>
+              <textarea
+                id="add-note"
+                value={addNote}
+                onChange={(e) => setAddNote(e.target.value)}
+                placeholder="Optional note…"
+                rows={2}
+                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+
+            {addError && <p className="text-sm text-destructive">{addError}</p>}
+
+            <DialogFooter className="pt-2">
+              <div className="flex w-full gap-2">
+                <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddOpen(false)} disabled={addSaving}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-1/2" disabled={addSaving || !addName.trim() || !addAmount}>
+                  {addSaving ? "Saving…" : "Add"}
+                </Button>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Edit modal ── */}
       <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
@@ -652,7 +852,6 @@ export function MyExpensesBoard() {
             <DialogTitle>Edit Expense</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="grid gap-4 py-2">
-            {/* Row 1: Name + Amount */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-name">Name</Label>
@@ -679,7 +878,13 @@ export function MyExpensesBoard() {
               </div>
             </div>
 
-            {/* Row 2: Category + Date */}
+            {accounts.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label>Account</Label>
+                <AccountTagSelector accounts={accounts} value={editAccountId} onChange={setEditAccountId} />
+              </div>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-category">Category</Label>
@@ -689,9 +894,7 @@ export function MyExpensesBoard() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.label}
-                      </SelectItem>
+                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -707,7 +910,6 @@ export function MyExpensesBoard() {
               </div>
             </div>
 
-            {/* Note */}
             <div className="grid gap-1.5">
               <Label htmlFor="edit-note">Note</Label>
               <textarea
@@ -715,33 +917,10 @@ export function MyExpensesBoard() {
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
                 placeholder="Optional note…"
-                rows={3}
-                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                rows={2}
+                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
-
-            {/* Account */}
-            {accounts.length > 0 && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-account">Account <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Select value={editAccountId} onValueChange={(v) => setEditAccountId(v === "__none__" ? "" : v)}>
-                  <SelectTrigger id="edit-account">
-                    <SelectValue placeholder="No account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">No account</SelectItem>
-                    {accounts.map((acc) => (
-                      <SelectItem key={acc.id} value={acc.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: acc.color }} />
-                          {acc.account_alias}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
 

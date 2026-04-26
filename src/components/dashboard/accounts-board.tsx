@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Landmark, Plus, Pencil, Trash2, X } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { Landmark, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +45,10 @@ import {
   deleteAccount,
   type AccountRow,
 } from "@/actions/accounts";
+import { STATIC_ACCOUNT_IDS } from "@/lib/static-accounts";
+import DashboardLoading from "@/app/(main)/dashboard/loading";
+
+const STATIC_IDS = new Set(Object.values(STATIC_ACCOUNT_IDS));
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -73,6 +86,8 @@ const PHILIPPINE_BANKS = [
 ];
 
 const TAG_PRESETS = [
+  "Cash",
+  "Borrowed",
   "Savings",
   "Bills & Utilities",
   "Daily Expenses",
@@ -103,6 +118,174 @@ const COLOR_SWATCHES = [
   { label: "Blue", value: "#3b82f6" },
   { label: "Slate", value: "#64748b" },
 ];
+
+// ─── Pie chart ───────────────────────────────────────────────────────────────
+
+function PiePercentLabel({
+  cx, cy, midAngle, innerRadius, outerRadius, percent,
+}: {
+  cx?: number; cy?: number; midAngle?: number;
+  innerRadius?: number; outerRadius?: number; percent?: number;
+}) {
+  if (percent === undefined || percent < 0.05) return null;
+  if (cx === undefined || cy === undefined || midAngle === undefined || innerRadius === undefined || outerRadius === undefined) return null;
+  const RADIAN = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
+
+function AccountsPieChart({
+  accounts,
+  expenseTotals,
+  billTotals,
+}: {
+  accounts: AccountRow[];
+  expenseTotals: Record<string, number>;
+  billTotals: Record<string, number>;
+}) {
+  const data = useMemo(() =>
+    accounts
+      .map((acc) => ({
+        name: acc.account_alias,
+        value: (expenseTotals[acc.id] ?? 0) + (billTotals[acc.id] ?? 0),
+        color: acc.color,
+      }))
+      .filter((d) => d.value > 0),
+    [accounts, expenseTotals, billTotals]
+  );
+
+  if (!data.length) return null;
+
+  return (
+    <div style={{ height: 200 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={75}
+            paddingAngle={2}
+            labelLine={false}
+            label={PiePercentLabel}
+            dataKey="value"
+          >
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.color} style={{ outline: "none" }} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value) => [formatCurrency(Number(value ?? 0)), ""]}
+            contentStyle={{ fontSize: 12 }}
+          />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            formatter={(value) => (
+              <span className="text-xs text-foreground">{value}</span>
+            )}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─── Account row ─────────────────────────────────────────────────────────────
+
+function AccountRow({
+  account,
+  expenseTotal,
+  billTotal,
+  onEdit,
+  onDelete,
+  isStatic,
+}: {
+  account: AccountRow;
+  expenseTotal: number;
+  billTotal: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  isStatic?: boolean;
+}) {
+  const total = expenseTotal + billTotal;
+  return (
+    <div
+      onClick={isStatic ? undefined : onEdit}
+      className={cn(
+        "group flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors",
+        !isStatic && "cursor-pointer hover:bg-muted/40"
+      )}
+    >
+      {/* Color dot */}
+      <span
+        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+        style={{ backgroundColor: account.color }}
+      />
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="text-sm font-semibold">{account.account_alias}</p>
+          {isStatic ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              Built-in
+            </span>
+          ) : (
+            <p className="text-xs text-muted-foreground">{account.bank_name}</p>
+          )}
+          {account.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ backgroundColor: `${account.color}22`, color: account.color }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {total === 0
+            ? "No spending tagged"
+            : `Expenses ${formatCurrency(expenseTotal)} · Bills ${formatCurrency(billTotal)}`}
+        </p>
+      </div>
+
+      {/* Total */}
+      <p className="flex-shrink-0 text-sm font-semibold tabular-nums">
+        {formatCurrency(total)}
+      </p>
+
+      {/* Delete — hidden for built-in accounts */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className={cn(
+          "h-7 w-7 flex-shrink-0 text-muted-foreground transition-opacity hover:text-destructive",
+          {
+            "opacity-100": !isStatic,
+            "opacity-0 pointer-events-none": isStatic,
+          }
+        )}
+        disabled={isStatic}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        aria-label="Delete account"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
 
 // ─── Account Form Dialog ─────────────────────────────────────────────────────
 
@@ -147,11 +330,6 @@ function AccountFormDialog({
   const [form, setForm] = useState<AccountFormState>(initial ?? EMPTY_FORM);
   const [customTag, setCustomTag] = useState("");
 
-  function resetAndOpen() {
-    setForm(initial ?? EMPTY_FORM);
-    setCustomTag("");
-  }
-
   function toggleTag(tag: string) {
     setForm((prev) => ({
       ...prev,
@@ -170,13 +348,7 @@ function AccountFormDialog({
   const isValid = form.account_alias.trim() && form.bank_name.trim();
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        if (v) resetAndOpen();
-        else onClose();
-      }}
-    >
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{initial ? "Edit Account" : "Add Account"}</DialogTitle>
@@ -216,7 +388,7 @@ function AccountFormDialog({
           </div>
 
           {/* Tags */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label>Tags</Label>
             <div className="flex flex-wrap gap-1.5">
               {TAG_PRESETS.map((tag) => {
@@ -239,16 +411,18 @@ function AccountFormDialog({
               })}
             </div>
             {/* Selected non-preset tags */}
-            {form.tags.filter((t) => !TAG_PRESETS.includes(t)).map((t) => (
-              <Badge key={t} variant="secondary" className="gap-1 text-xs">
-                {t}
-                <button type="button" onClick={() => toggleTag(t)} className="ml-0.5 hover:text-destructive">
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </Badge>
-            ))}
+            <div className="flex flex-wrap gap-1">
+              {form.tags.filter((t) => !TAG_PRESETS.includes(t)).map((t) => (
+                <Badge key={t} variant="secondary" className="gap-1 text-xs">
+                  {t}
+                  <button type="button" onClick={() => toggleTag(t)} className="ml-0.5 hover:text-destructive">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
             {/* Custom tag input */}
-            <div className="flex gap-1.5 pt-1">
+            <div className="flex gap-1.5">
               <Input
                 placeholder="Custom tag…"
                 value={customTag}
@@ -300,79 +474,6 @@ function AccountFormDialog({
   );
 }
 
-// ─── Account Card ─────────────────────────────────────────────────────────────
-
-function AccountCard({
-  account,
-  expenseTotal,
-  billTotal,
-  onEdit,
-  onDelete,
-}: {
-  account: AccountRow;
-  expenseTotal: number;
-  billTotal: number;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const total = expenseTotal + billTotal;
-  return (
-    <div className="group relative flex overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md">
-      {/* Color stripe */}
-      <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: account.color }} />
-
-      <div className="flex flex-1 flex-col gap-2 px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-base font-bold leading-tight">{account.account_alias}</p>
-            <p className="truncate text-xs text-muted-foreground">{account.bank_name}</p>
-          </div>
-          <div className="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              onClick={onEdit}
-              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="Edit"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={onDelete}
-              className="rounded-full p-1 text-muted-foreground hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
-              title="Delete"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {account.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {account.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                style={{ backgroundColor: `${account.color}22`, color: account.color }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-auto border-t pt-2">
-          <p className="text-lg font-bold tabular-nums">{formatCurrency(total)}</p>
-          <div className="flex gap-3 text-[10px] text-muted-foreground">
-            {expenseTotal > 0 && <span>Expenses {formatCurrency(expenseTotal)}</span>}
-            {billTotal > 0 && <span>Bills {formatCurrency(billTotal)}</span>}
-            {total === 0 && <span>No spending tagged yet</span>}
-          </div>
-          <p className="text-[10px] text-muted-foreground">This month</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function AccountsBoard() {
@@ -389,6 +490,20 @@ export function AccountsBoard() {
     ...accountTotalsQueryOptions(paidMonth),
     enabled: !!user,
   });
+
+  const expenseTotals = totals?.expenseTotals ?? {};
+  const billTotals = totals?.billTotals ?? {};
+
+  const userAccounts = useMemo(() => accounts.filter((a) => !STATIC_IDS.has(a.id as never)), [accounts]);
+
+  const grandTotal = useMemo(
+    () => accounts.reduce((s, acc) => s + (expenseTotals[acc.id] ?? 0) + (billTotals[acc.id] ?? 0), 0),
+    [accounts, expenseTotals, billTotals]
+  );
+
+  const hasChartData = accounts.some(
+    (acc) => (expenseTotals[acc.id] ?? 0) + (billTotals[acc.id] ?? 0) > 0
+  );
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null);
@@ -433,7 +548,7 @@ export function AccountsBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
       <ContentHeader
         title="Accounts"
-        subtitle="Label expenses and bills to track spending by account."
+        subtitle="Track spending by bank or e-wallet account."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -442,33 +557,76 @@ export function AccountsBoard() {
         }
       />
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Landmark className="h-8 w-8 animate-pulse text-muted-foreground/40" />
+      {/* Summary: stats + pie chart */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {/* Stat cards */}
+        <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
+          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Accounts</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums">{userAccounts.length}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {userAccounts.length === 1 ? "Account" : "Accounts"} added
+            </p>
+          </div>
+          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">This Month</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(grandTotal)}</p>
+            <p className="text-[11px] text-muted-foreground">Across all accounts</p>
+          </div>
         </div>
-      ) : accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-muted-foreground">
-          <Landmark className="h-9 w-9 opacity-30" />
-          <p className="text-sm">No accounts yet. Add one to start tagging expenses and bills.</p>
-          <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddOpen(true); }}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add Account
-          </Button>
+
+        {/* Pie chart */}
+        <div className="sm:w-2/3">
+          {hasChartData ? (
+            <Card className="h-full">
+              <CardHeader className="pb-0 pt-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Spending by account - this month
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-1 pb-3">
+                <AccountsPieChart accounts={accounts} expenseTotals={expenseTotals} billTotals={billTotals} />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
+              {accounts.length === 0 ? "Add an account to see the chart" : "Tag expenses or bills to see the chart"}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((acc) => (
-            <AccountCard
-              key={acc.id}
-              account={acc}
-              expenseTotal={totals?.expenseTotals[acc.id] ?? 0}
-              billTotal={totals?.billTotals[acc.id] ?? 0}
-              onEdit={() => { setFormError(null); setEditingAccount(acc); }}
-              onDelete={() => setDeletingId(acc.id)}
-            />
-          ))}
-        </div>
-      )}
+      </div>
+
+      {/* Accounts list */}
+      <div className="space-y-2">
+        {isLoading ? (
+          <div className="flex justify-center">
+            <DashboardLoading />
+          </div>
+        ) : (
+          <>
+            {accounts.map((acc) => (
+              <AccountRow
+                key={acc.id}
+                account={acc}
+                expenseTotal={expenseTotals[acc.id] ?? 0}
+                billTotal={billTotals[acc.id] ?? 0}
+                onEdit={() => { setFormError(null); setEditingAccount(acc); }}
+                onDelete={() => setDeletingId(acc.id)}
+                isStatic={STATIC_IDS.has(acc.id as never)}
+              />
+            ))}
+            {userAccounts.length === 0 && (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-muted-foreground">
+                <p className="text-sm">No custom accounts yet. Add one to start tracking by account.</p>
+                <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddOpen(true); }}>
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Add Account
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Add dialog */}
       <AccountFormDialog
@@ -498,7 +656,7 @@ export function AccountsBoard() {
             <DialogTitle>Delete account?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The account will be removed. Expenses and bills tagged to it will be unlinked (not deleted).
+            The account will be removed. Expenses and bills tagged to it will be unlinked but not deleted.
           </p>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="w-1/2" onClick={() => setDeletingId(null)} disabled={isPending}>

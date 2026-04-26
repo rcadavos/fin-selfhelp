@@ -14,6 +14,27 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.2",
+    date: "2026-04-26",
+    summary: "Built-in Cash and Borrowed accounts appear for all users automatically.",
+    changes: [
+      { type: "feature", description: "Cash and Borrowed are now built-in accounts — they appear on the Accounts page for every user without needing to be created manually." },
+      { type: "improvement", description: "Built-in accounts show a 'Built-in' badge and cannot be edited or deleted." },
+      { type: "improvement", description: "Accounts stat card now counts only user-created accounts, not built-in ones." },
+    ],
+  },
+  {
+    version: "1.3.1",
+    date: "2026-04-26",
+    summary: "Add Expense modal and account tag selector in expense forms.",
+    changes: [
+      { type: "feature", description: "Added full Add Expense dialog matching the edit modal — with name, amount, account, category, date, and note fields." },
+      { type: "feature", description: "Account tag chips now appear in both Add and Edit Expense modals, letting users assign a tagged account directly from the form." },
+      { type: "improvement", description: "Quick-add row (to-do style) revised — clean underline inputs with name, amount, and calendar icon at the right." },
+      { type: "improvement", description: "Account tag chips also shown on each expense row and bill row for quick visual reference." },
+    ],
+  },
+  {
     version: "1.3.0",
     date: "2026-04-26",
     summary: "Accounts page — label expenses and bills by bank or e-wallet account.",

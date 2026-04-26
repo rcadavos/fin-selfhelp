@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,8 @@ import {
 import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound, Lock } from "lucide-react";
+import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound, Lock, Settings2 } from "lucide-react";
+import { useIsAdmin } from "@/hooks/use-admin";
 
 export function getAccountDisplayName(user: {
   email?: string | null;
@@ -61,9 +62,11 @@ export function AccountDropdownMenu({
   align = "end",
   side = "bottom",
 }: AccountDropdownMenuProps) {
+  const pathname = usePathname();
   const router = useRouter();
   const displayName = getAccountDisplayName(user);
   const avatarUrl = getAccountAvatarUrl(user);
+  const { isAdmin } = useIsAdmin(!!user);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const isMountedRef = useRef(false);
@@ -172,6 +175,29 @@ export function AccountDropdownMenu({
             <CreditCard className="h-4 w-4 shrink-0" aria-hidden />
             Subscription
           </DropdownMenuItem>
+          <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
+            <Link href="/account/shared" className="flex cursor-pointer items-center gap-2.5">
+              <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
+              Shared with me
+            </Link>
+          </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
+              <Link
+                href="/admin"
+                prefetch={false}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+                  pathname?.startsWith("/admin")
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <Settings2 className="h-4 w-4 shrink-0" />
+                Admin
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={(e: Event) => {

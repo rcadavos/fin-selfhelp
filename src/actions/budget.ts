@@ -194,6 +194,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       due_date: row.due_date ?? undefined,
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      account_id: (row.account_id as string | null) ?? null,
       created_at: row.created_at ?? undefined,
       updated_at: row.updated_at ?? undefined,
     })),
@@ -549,7 +550,7 @@ export async function addExpense(
       ...(reminders && { reminder_days_before: reminders }),
       reminder_channel: reminderChannel,
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
-      ...(accountId && { account_id: accountId }),
+      account_id: accountId || null,
     })
     .select("id")
     .single();

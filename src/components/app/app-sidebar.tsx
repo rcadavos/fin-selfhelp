@@ -10,7 +10,6 @@ import {
   ShoppingCart,
   Settings2,
   SlidersHorizontal,
-  UsersRound,
   Banknote,
   ClipboardList,
   Gem,
@@ -43,10 +42,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/bills", label: "Bills", icon: Receipt, premium: false },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Landmark, premium: false },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
-  { href: "/dashboard/to-do", label: "To-Do List", icon: ClipboardList, premium: false },
+  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
   { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
   { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
@@ -55,7 +53,6 @@ const navItems = [
 export function AppSidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user } = useUser();
-  const { isAdmin } = useIsAdmin(!!user);
   const { data: subscriptionStatus } = useQuery({
     ...subscriptionStatusQueryOptions(),
     enabled: !!user,
@@ -82,17 +79,17 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
         className
       )}
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+      <div className="flex h-14 shrink-0 items-end gap-0.5 border-b px-3 pb-2">
         <Link
           href="/"
-          className="flex min-w-0 flex-1 items-center"
+          className="flex min-w-0 items-center"
           title="Omnitrak"
           aria-label="Omnitrak home"
         >
           <SiteLogo className="max-w-full" />
           <span className="sr-only">Omnitrak</span>
         </Link>
-        <span className="shrink-0 select-none text-[10px] text-muted-foreground/50">v{APP_VERSION}</span>
+        <span className="shrink-0 select-none text-[10px] text-muted-foreground/50 pb-1">v{APP_VERSION}</span>
       </div>
       <nav
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"
@@ -120,36 +117,20 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
             </Link>
           );
         })}
-        {isAdmin && (
-          <Link
-            href="/admin"
-            prefetch={false}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname?.startsWith("/admin")
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <Settings2 className="h-4 w-4 shrink-0" />
-            Admin
-          </Link>
-        )}
       </nav>
       <div className="shrink-0 px-3 py-2">
         <Link
-          href="/account/shared"
+          href="/dashboard/accounts"
           onClick={onNavigate}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            isSidebarNavActive(pathname, "/account/shared")
+            isSidebarNavActive(pathname, "/dashboard/accounts")
               ? "bg-primary/15 text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1 truncate">Shared with me</span>
+          <Landmark className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">Accounts</span>
         </Link>
       </div>
       <div className="w-full shrink-0 border-t bg-white p-3 dark:bg-muted/30">
