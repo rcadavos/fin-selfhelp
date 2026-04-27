@@ -9,5 +9,8 @@ export function billsDataQueryOptions(paidMonth?: string) {
   return queryOptions({
     queryKey: queryKeys.billData(month),
     queryFn: (): Promise<BillsData | null> => loadBillsData(month),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

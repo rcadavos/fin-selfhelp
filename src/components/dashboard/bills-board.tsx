@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
+  Car,
   CheckCircle2,
   Circle,
   Plus,
@@ -70,6 +71,8 @@ import {
 } from "@/actions/bills";
 import { type AccountRow } from "@/actions/accounts";
 import { accountsQueryOptions } from "@/lib/query/accounts";
+import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
+import { type VehicleRow } from "@/actions/vehicles";
 import Link from "next/link";
 import DashboardLoading from "@/app/(main)/dashboard/loading";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
@@ -152,6 +155,7 @@ type BillFormState = {
   dueMonth: string;
   reminderDays: number[];
   accountId: string;
+  vehicleId: string;
 };
 
 const EMPTY_FORM: BillFormState = {
@@ -164,6 +168,7 @@ const EMPTY_FORM: BillFormState = {
   dueMonth: "1",
   reminderDays: [],
   accountId: "",
+  vehicleId: "",
 };
 
 function billToForm(bill: BillRow): BillFormState {
@@ -178,6 +183,7 @@ function billToForm(bill: BillRow): BillFormState {
     dueMonth: String(bill.due_month ?? 1),
     reminderDays: bill.reminder_days_before ?? [],
     accountId: bill.account_id ?? "",
+    vehicleId: bill.vehicle_id ?? "",
   };
 }
 
@@ -242,6 +248,7 @@ function BillDialog({
   editingBillId,
   isPending,
   accounts,
+  vehicles,
   freeReminderUsed,
   lockedFreeReminderBillId,
 }: {
@@ -252,6 +259,7 @@ function BillDialog({
   editingBillId?: string;
   isPending: boolean;
   accounts: AccountRow[];
+  vehicles: VehicleRow[];
   freeReminderUsed: number;
   lockedFreeReminderBillId?: string;
 }) {
@@ -342,6 +350,26 @@ function BillDialog({
               />
             </div>
           </div>
+
+          {/* Vehicle selector — only when category is transport */}
+          {form.categoryId === "transport" && vehicles.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Vehicle (optional)</Label>
+              <Select value={form.vehicleId} onValueChange={(v) => set("vehicleId", v === "_none" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Link to a vehicle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">— None —</SelectItem>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Row 3 — Billing Period (+ Due Month if yearly) */}
           <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
@@ -589,6 +617,8 @@ function BillRow({
   currency,
   paidMonth,
   accountMap,
+  vehicleMap,
+  vehicleColorMap,
   categories,
   onToggle,
   onEdit,
@@ -602,6 +632,8 @@ function BillRow({
   currency: string;
   paidMonth: string;
   accountMap: Record<string, AccountRow>;
+  vehicleMap: Record<string, VehicleRow>;
+  vehicleColorMap: Record<string, string>;
   categories: CatList;
   onToggle: () => void;
   onEdit: () => void;
@@ -657,6 +689,18 @@ function BillRow({
           >
             {bill.note ?? cat?.label}
           </p>
+          {bill.vehicle_id && vehicleMap[bill.vehicle_id] && (() => {
+            const color = vehicleColorMap[bill.vehicle_id!] ?? "#6b7280";
+            return (
+              <span
+                className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
+              >
+                <Car className="h-2.5 w-2.5" />
+                {vehicleMap[bill.vehicle_id!].name}
+              </span>
+            );
+          })()}
           {isPaid ? (
             <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
               Paid
@@ -870,12 +914,21 @@ export function BillsBoard() {
     enabled: !!user,
   });
   const { data: accounts = [] } = useQuery(accountsQueryOptions());
+  const { data: vehicles = [] } = useQuery({ ...vehiclesQueryOptions(), enabled: !!user });
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
   );
+  const vehicleMap = useMemo(
+    () => Object.fromEntries(vehicles.map((v) => [v.id, v])),
+    [vehicles]
+  );
+  const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
-  const categories: CatList = (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass }));
+  const categories: CatList = useMemo(
+    () => (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass })),
+    [dbCategories]
+  );
   const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = data?.bills ?? [];
   const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data?.paidBillIds]);
@@ -978,6 +1031,7 @@ export function BillsBoard() {
         "both",
         form.endDate || undefined,
         form.accountId || null,
+        form.vehicleId || null,
       );
       if (!res.error) {
         setAddOpen(false);
@@ -1003,6 +1057,7 @@ export function BillsBoard() {
         "both",
         form.endDate || undefined,
         form.accountId || null,
+        form.vehicleId || null,
       );
       if (!res.error) {
         setEditingBill(null);
@@ -1144,6 +1199,8 @@ export function BillsBoard() {
                   currency={currency}
                   paidMonth={paidMonth}
                   accountMap={accountMap}
+                  vehicleMap={vehicleMap}
+                  vehicleColorMap={vehicleColorMap}
                   categories={categories}
                   onToggle={() => handleToggle(bill.id)}
                   onEdit={() => setEditingBill(bill)}
@@ -1175,6 +1232,7 @@ export function BillsBoard() {
           initial={{ ...EMPTY_FORM, billingPeriod: activeTab }}
           isPending={isPending}
           accounts={accounts}
+          vehicles={vehicles}
           freeReminderUsed={freeReminderUsed}
           lockedFreeReminderBillId={lockedFreeReminderBillId}
         />
@@ -1190,6 +1248,7 @@ export function BillsBoard() {
           editingBillId={editingBill.id}
           isPending={isPending}
           accounts={accounts}
+          vehicles={vehicles}
           freeReminderUsed={freeReminderUsed}
           lockedFreeReminderBillId={lockedFreeReminderBillId}
         />

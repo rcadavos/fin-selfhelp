@@ -34,4 +34,8 @@ export const queryKeys = {
   accounts: () => [...queryKeys.all, "accounts"] as const,
   /** Current user's daily login streak (see `userStreakQueryOptions`). */
   userStreak: () => [...queryKeys.all, "user", "streak"] as const,
+  /** Current user's registered vehicles (see `vehiclesQueryOptions`). */
+  vehicles: () => [...queryKeys.all, "vehicles"] as const,
+  /** Monthly expense totals for the bar chart (see `monthlyBreakdownQueryOptions`). */
+  monthlyBreakdown: (months: number) => [...queryKeys.all, "monthly-breakdown", months] as const,
 };

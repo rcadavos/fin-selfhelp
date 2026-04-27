@@ -353,6 +353,14 @@ function cadenceLabel(cadence: ExpenseCadenceTab): string {
   return "Monthly";
 }
 
+const DASHBOARD_BENEFITS = [
+  "Due-date reminders (3 days, 1 day, on the day) — Pro or Premium",
+  "Unlimited expenses on every plan",
+  "Export cashflow (CSV/PDF)",
+  "Priority support",
+  "Can leave review and suggestions (paid subscribers)",
+];
+
 export function ExpenseCashflowPage({
   pageVariant,
   initialExpenseCadence,
@@ -367,7 +375,10 @@ export function ExpenseCashflowPage({
   const { user, loading } = useUser();
   const queryClient = useQueryClient();
   const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
-  const { data: subscriptionPlan } = useQuery(subscriptionPlanQueryOptions());
+  const { data: subscriptionPlan } = useQuery({
+    ...subscriptionPlanQueryOptions(),
+    enabled: !!user && !loading,
+  });
   const paidMonthQueryKey = getCurrentPaidMonth();
   const expenseDataQuery = useQuery({
     ...expenseDataQueryOptions(paidMonthQueryKey),
@@ -392,13 +403,6 @@ export function ExpenseCashflowPage({
   const invalidateExpenseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
   }, [queryClient]);
-  const dashboardBenefits = [
-    "Due-date reminders (3 days, 1 day, on the day) — Pro or Premium",
-    "Unlimited expenses on every plan",
-    "Export cashflow (CSV/PDF)",
-    "Priority support",
-    "Can leave review and suggestions (paid subscribers)",
-  ];
   const categoriesList = categoriesFromDb;
   const orderedCategoryIds = useMemo(
     () => [...categoriesFromDb].sort((a, b) => a.sortOrder - b.sortOrder).map((c) => c.id),
@@ -568,7 +572,6 @@ export function ExpenseCashflowPage({
     },
     onSuccess: () => {
       refreshBudget();
-      invalidateExpenseQueries();
     },
   });
 
@@ -642,9 +645,8 @@ export function ExpenseCashflowPage({
       return cadence === expenseCadenceTab;
     });
   }, [entries, expenseCadenceTab]);
-  const summaryEntries = useMemo(() => tabAllEntries, [tabAllEntries]);
-  const totalExpenses = summaryEntries.reduce((sum, e) => sum + e.amount, 0);
-  const totalPaidThisMonth = summaryEntries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
+  const totalExpenses = tabAllEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidThisMonth = tabAllEntries.reduce((sum, e) => sum + (paidIds.has(e.id) ? e.amount : 0), 0);
   const unpaidThisMonth = Math.max(0, totalExpenses - totalPaidThisMonth);
   const listEntries = useMemo(() => {
     const noFilterSelected = !filterPaid && !filterUnpaid && !filterPastDue;
@@ -686,7 +688,7 @@ export function ExpenseCashflowPage({
     [addReminderDays]
   );
 
-  const paidCount = summaryEntries.filter((e) => paidIds.has(e.id)).length;
+  const paidCount = tabAllEntries.filter((e) => paidIds.has(e.id)).length;
   const paidPct = totalExpenses > 0 ? Math.min(100, Math.round((totalPaidThisMonth / totalExpenses) * 100)) : 0;
   const cadenceCounts = useMemo(() => {
     const noFilterSelected = !filterPaid && !filterUnpaid && !filterPastDue;
@@ -2380,7 +2382,7 @@ export function ExpenseCashflowPage({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {dashboardBenefits.map((item) => (
+              {DASHBOARD_BENEFITS.map((item) => (
                 <div key={item} className="flex items-start gap-2 text-muted-foreground">
                   <Check className="h-4 w-4 shrink-0 text-primary mt-0.5" />
                   <span>{item}</span>

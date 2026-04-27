@@ -11,5 +11,8 @@ export function notificationsQueryOptions() {
       if (res.error) throw new Error(res.error);
       return res.items;
     },
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

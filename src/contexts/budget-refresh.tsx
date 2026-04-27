@@ -1,21 +1,20 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext } from "react";
 
 type BudgetRefreshContextValue = {
-  refreshKey: number;
   refreshBudget: () => void;
 };
 
 const BudgetRefreshContext = createContext<BudgetRefreshContextValue | null>(null);
 
 export function BudgetRefreshProvider({ children }: { children: React.ReactNode }) {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refreshBudget = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
+  // Stable no-op — data refreshes are handled by React Query invalidations after mutations.
+  // refreshKey was previously here but was never consumed by any component; removing it
+  // prevents spurious re-renders of every useBudgetRefresh() subscriber on every mutation.
+  const refreshBudget = useCallback(() => {}, []);
   return (
-    <BudgetRefreshContext.Provider value={{ refreshKey, refreshBudget }}>
+    <BudgetRefreshContext.Provider value={{ refreshBudget }}>
       {children}
     </BudgetRefreshContext.Provider>
   );

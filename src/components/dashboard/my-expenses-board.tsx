@@ -14,6 +14,7 @@ import {
 import {
   Banknote,
   CalendarDays,
+  Car,
   Download,
   LayoutGrid,
   Plus,
@@ -57,6 +58,7 @@ import { useUser } from "@/hooks/use-user";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { accountsQueryOptions } from "@/lib/query/accounts";
+import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -336,13 +338,22 @@ export function MyExpensesBoard() {
   const { user, loading: userLoading } = useUser();
   const queryClient = useQueryClient();
 
-  const { data: expenseData, isLoading } = useQuery(expenseDataQueryOptions());
+  const { data: expenseData, isLoading } = useQuery({
+    ...expenseDataQueryOptions(),
+    enabled: !!user && !userLoading,
+  });
   const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
   const { data: accounts = [] } = useQuery(accountsQueryOptions());
+  const { data: vehicles = [] } = useQuery({ ...vehiclesQueryOptions(), enabled: !!user });
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
   );
+  const vehicleMap = useMemo(
+    () => Object.fromEntries(vehicles.map((v) => [v.id, v])),
+    [vehicles]
+  );
+  const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
   const categories = dbCategories;
   const paidMonth = expenseData?.paidMonth ?? getCurrentPaidMonth();
   const allEntries: ExpenseEntryRow[] = expenseData?.entries ?? [];
@@ -392,6 +403,7 @@ export function MyExpensesBoard() {
   const [addNote, setAddNote] = useState("");
   const [addDate, setAddDate] = useState(todayYmd);
   const [addAccountId, setAddAccountId] = useState("");
+  const [addVehicleId, setAddVehicleId] = useState("");
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -403,6 +415,7 @@ export function MyExpensesBoard() {
   const [editNote, setEditNote] = useState("");
   const [editExpenseDate, setEditExpenseDate] = useState("");
   const [editAccountId, setEditAccountId] = useState("");
+  const [editVehicleId, setEditVehicleId] = useState("");
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -488,6 +501,7 @@ export function MyExpensesBoard() {
     setEditNote(entry.notes?.trim() || "");
     setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
     setEditAccountId(entry.account_id ?? "");
+    setEditVehicleId(entry.vehicle_id ?? "");
     setEditError(null);
   }
 
@@ -503,7 +517,7 @@ export function MyExpensesBoard() {
     setAddError(null);
     const res = await addExpense(
       addCategory || "other", amt, name,
-      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null
+      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null, addVehicleId || null
     );
     setAddSaving(false);
     if (res.error) {
@@ -516,6 +530,7 @@ export function MyExpensesBoard() {
       setAddNote("");
       setAddDate(todayYmd());
       setAddAccountId("");
+      setAddVehicleId("");
       invalidate();
     }
   }
@@ -543,6 +558,7 @@ export function MyExpensesBoard() {
       undefined,
       editExpenseDate,
       editAccountId || null,
+      editVehicleId || null,
     );
     setEditSaving(false);
     if (res.error) {
@@ -700,7 +716,21 @@ export function MyExpensesBoard() {
                 style={{ backgroundColor: getCategoryColor(exp.category_id, categories) }}
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
+                  {exp.vehicle_id && vehicleMap[exp.vehicle_id] && (() => {
+                    const color = vehicleColorMap[exp.vehicle_id!] ?? "#6b7280";
+                    return (
+                      <span
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
+                      >
+                        <Car className="h-2.5 w-2.5" />
+                        {vehicleMap[exp.vehicle_id!].name}
+                      </span>
+                    );
+                  })()}
+                </div>
                 <p className="text-[11px] text-muted-foreground">
                   {getCategoryLabel(exp.category_id, categories)}
                   {getExpenseDateLabel(exp) && (
@@ -799,6 +829,26 @@ export function MyExpensesBoard() {
               </div>
             </div>
 
+            {/* Vehicle selector — transport category only */}
+            {addCategory === "transport" && vehicles.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
+                <Select value={addVehicleId} onValueChange={(v) => setAddVehicleId(v === "_none" ? "" : v)}>
+                  <SelectTrigger id="add-vehicle">
+                    <SelectValue placeholder="Link to a vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— None —</SelectItem>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid gap-1.5">
               <Label htmlFor="add-note">Note</Label>
               <textarea
@@ -890,6 +940,26 @@ export function MyExpensesBoard() {
                 />
               </div>
             </div>
+
+            {/* Vehicle selector — transport category only */}
+            {editCategory === "transport" && vehicles.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
+                <Select value={editVehicleId} onValueChange={(v) => setEditVehicleId(v === "_none" ? "" : v)}>
+                  <SelectTrigger id="edit-vehicle">
+                    <SelectValue placeholder="Link to a vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— None —</SelectItem>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid gap-1.5">
               <Label htmlFor="edit-note">Note</Label>

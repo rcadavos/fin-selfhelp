@@ -92,5 +92,28 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 ### Constants
 - Add every new constants `src/lib/constants` so it can be reusable to other components.
 
+---
+
+## Design & Responsiveness
+
+### Responsive layout
+- Every page must be **mobile, iPad, and tablet friendly**. Use Tailwind responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`) for all layout, spacing, and typography.
+- All page content must be wrapped in a `container` class (e.g. `<div className="container mx-auto px-4">`) so content is centered and constrained on wide screens.
+- Avoid fixed pixel widths on page-level elements — use `w-full`, `max-w-*`, and responsive grid/flex.
+- Test layouts at mobile (375px), tablet (768px), and desktop (1280px) breakpoints before marking a page complete.
+
+### Reusability
+- **Components**: Before writing a new component, check `src/components/` for an existing one to extend. Extract any UI pattern used in 2+ places into a shared component.
+- **Functions**: Shared utilities belong in `src/lib/utils/` or an appropriate `src/lib/` module — never duplicate logic across files.
+- **Constants**: All magic strings, numbers, and config values go in `src/lib/constants/` so they are reusable and easy to update.
+- **Query options**: All React Query options belong in `src/lib/query/` — never inline `queryFn` directly in a component.
+
+### Performance & scalability
+- Prefer **React Server Components** for data-fetching pages; only add `"use client"` when interactivity or browser APIs are required.
+- Use `React.memo`, `useMemo`, and `useCallback` for expensive renders or stable references — but only when there is a measurable benefit, not by default.
+- Paginate or virtualize any list that can grow unboundedly (transactions, history, etc.).
+- Keep bundle size lean: import only what you need from libraries (e.g. named imports from `lucide-react`, not the whole package).
+- Images should use `next/image` with explicit `width`/`height` or `fill` for automatic optimization.
+
 ### Compact instructions
 When you are using compact, please focus on test output and code changes

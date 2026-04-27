@@ -60,6 +60,7 @@ export type BillRow = {
   reminder_days_before?: number[] | null;
   reminder_channel?: "email" | "in-app" | "both";
   account_id?: string | null;
+  vehicle_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -103,7 +104,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
   const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }] = await Promise.all([
     supabase
       .from("bills")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, created_at, updated_at")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -179,6 +180,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
       account_id: row.account_id ?? undefined,
+      vehicle_id: (row.vehicle_id as string | null) ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     })),
@@ -371,6 +373,7 @@ export async function addBill(
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
   accountId?: string | null,
+  vehicleId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -421,10 +424,12 @@ export async function addBill(
     reminder_days_before: reminders ?? null,
     reminder_channel: reminders ? reminderChannel : "both",
     account_id: accountId ?? null,
+    vehicle_id: vehicleId ?? null,
   });
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/fuel");
   return {};
 }
 
@@ -441,6 +446,7 @@ export async function updateBill(
   reminderChannel: "email" | "in-app" | "both" = "both",
   endDate?: string,
   accountId?: string | null,
+  vehicleId?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -497,12 +503,14 @@ export async function updateBill(
       reminder_days_before: reminders ?? null,
       reminder_channel: reminders ? reminderChannel : "both",
       account_id: accountId ?? null,
+      vehicle_id: vehicleId ?? null,
     })
     .eq("id", billId)
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/fuel");
   return {};
 }
 

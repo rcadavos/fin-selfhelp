@@ -14,6 +14,35 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.0",
+    date: "2026-04-27",
+    summary: "Fuel & Vehicles tracker — register vehicles and monitor transport spending.",
+    changes: [
+      { type: "feature", description: "New Fuel & Vehicles page at /dashboard/fuel — add, edit, and delete your vehicles (name, type, make, model, year, plate, color, fuel type, notes)." },
+      { type: "feature", description: "Each vehicle card shows total transport spending from linked bills and expenses (bills total, expenses total, and entry count)." },
+      { type: "feature", description: "Bills with Transport & Commute category now show an optional Vehicle selector, linking the bill directly to one of your registered vehicles." },
+      { type: "improvement", description: "Fuel & Vehicles added to sidebar navigation and global search index at /dashboard/fuel." },
+    ],
+  },
+  {
+    version: "1.3.21",
+    date: "2026-04-27",
+    summary: "Performance: eliminate unwanted refetches and rerenders on dashboard, expenses, and bills.",
+    changes: [
+      { type: "improvement", description: "Dashboard, expenses, and bills data now use staleTime: Infinity — data only refreshes after a real mutation, not on timer or window focus." },
+      { type: "improvement", description: "Disabled refetchOnWindowFocus and refetchOnReconnect globally — switching tabs or reconnecting no longer triggers unnecessary network requests." },
+      { type: "improvement", description: "Fixed staleTime typo in query client (was 25 min due to wrong multiplier, now correctly 5 min for general queries)." },
+      { type: "fix", description: "monthlyBreakdown query key is now correctly scoped under the app's query hierarchy so it clears properly on user logout." },
+      { type: "improvement", description: "Toggling a bill/expense payment no longer triggers a redundant refetch — optimistic updates are already correct and sufficient." },
+      { type: "improvement", description: "Bills board category list is now memoized to prevent unnecessary child rerenders." },
+      { type: "fix", description: "Expenses board no longer fires a data fetch before auth resolves (added enabled guard)." },
+      { type: "improvement", description: "Removed refreshKey state from BudgetRefreshContext — calling refreshBudget() after mutations was causing a full re-render of the dashboard for no benefit (refreshKey was never consumed)." },
+      { type: "improvement", description: "Notifications query now uses staleTime: Infinity with refetch guards — no longer polling on a 5-min cycle between navigations." },
+      { type: "improvement", description: "Subscription plan query on dashboard now waits for auth before firing, avoiding a wasted pre-auth request." },
+      { type: "improvement", description: "DASHBOARD_BENEFITS list moved outside the component — was recreated as a new array on every render." },
+    ],
+  },
+  {
     version: "1.3.20",
     date: "2026-04-27",
     summary: "Profile name change now instantly updates the account menu.",

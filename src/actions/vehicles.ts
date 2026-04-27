@@ -93,7 +93,7 @@ export async function addVehicle(input: {
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/gas");
+  revalidatePath("/dashboard/fuel");
   return {};
 }
 
@@ -143,8 +143,88 @@ export async function updateVehicle(
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/gas");
+  revalidatePath("/dashboard/fuel");
   return {};
+}
+
+export type VehicleSpendEntry = {
+  id: string;
+  source: "bill" | "expense";
+  label: string;
+  amount: number;
+  date: string;
+};
+
+export type VehicleSpendSummary = {
+  vehicleId: string;
+  totalBills: number;
+  totalExpenses: number;
+  entries: VehicleSpendEntry[];
+};
+
+export async function loadVehicleSpending(): Promise<{ summaries: VehicleSpendSummary[]; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { summaries: [], error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile) return { summaries: [] };
+
+  const [billsRes, expensesRes] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, note, notes, amount, vehicle_id, created_at")
+      .eq("profile_id", profile.id)
+      .not("vehicle_id", "is", null),
+    supabase
+      .from("expense_entries")
+      .select("id, note, notes, amount, vehicle_id, created_at")
+      .eq("profile_id", profile.id)
+      .not("vehicle_id", "is", null),
+  ]);
+
+  const map = new Map<string, VehicleSpendSummary>();
+
+  function ensureVehicle(vehicleId: string) {
+    if (!map.has(vehicleId)) {
+      map.set(vehicleId, { vehicleId, totalBills: 0, totalExpenses: 0, entries: [] });
+    }
+    return map.get(vehicleId)!;
+  }
+
+  for (const row of billsRes.data ?? []) {
+    const vid = String(row.vehicle_id);
+    const summary = ensureVehicle(vid);
+    const amount = Number(row.amount);
+    summary.totalBills += amount;
+    summary.entries.push({
+      id: String(row.id),
+      source: "bill",
+      label: String(row.note ?? row.notes ?? "Bill"),
+      amount,
+      date: String(row.created_at),
+    });
+  }
+
+  for (const row of expensesRes.data ?? []) {
+    const vid = String(row.vehicle_id);
+    const summary = ensureVehicle(vid);
+    const amount = Number(row.amount);
+    summary.totalExpenses += amount;
+    summary.entries.push({
+      id: String(row.id),
+      source: "expense",
+      label: String(row.note ?? row.notes ?? "Expense"),
+      amount,
+      date: String(row.created_at),
+    });
+  }
+
+  return { summaries: Array.from(map.values()) };
 }
 
 export async function deleteVehicle(vehicleId: string): Promise<{ error?: string }> {
@@ -166,6 +246,6 @@ export async function deleteVehicle(vehicleId: string): Promise<{ error?: string
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/gas");
+  revalidatePath("/dashboard/fuel");
   return {};
 }

@@ -12,6 +12,9 @@ export function expenseDataQueryOptions(paidMonth?: string) {
   return queryOptions({
     queryKey: queryKeys.expenseData(month),
     queryFn: (): Promise<ExpenseData | null> => loadExpenseData(month),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -21,9 +24,11 @@ export function expenseSummaryQueryOptions(paidMonth?: string) {
   return queryOptions({
     queryKey: [...queryKeys.expenseData(month), "summary"],
     queryFn: (): Promise<DashboardSummary | null> => loadExpenseSummary(month),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
-
 
 export function expensePaymentHistoryQueryOptions(months: number = EXPENSE_PAYMENT_HISTORY_MONTHS) {
   return queryOptions({
@@ -33,16 +38,22 @@ export function expensePaymentHistoryQueryOptions(months: number = EXPENSE_PAYME
       if (res.error) throw new Error(res.error);
       return res.stats ?? [];
     },
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
 export function monthlyBreakdownQueryOptions(months: number = EXPENSE_PAYMENT_HISTORY_MONTHS) {
   return queryOptions({
-    queryKey: ["monthlyBreakdown", months],
+    queryKey: queryKeys.monthlyBreakdown(months),
     queryFn: async (): Promise<MonthlyBreakdownPoint[]> => {
       const res = await getMonthlyBreakdown(months);
       if (res.error) throw new Error(res.error);
       return res.stats ?? [];
     },
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
