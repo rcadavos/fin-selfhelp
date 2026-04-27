@@ -115,7 +115,7 @@ export default function ChangelogPage() {
                         <li key={i} className="flex items-start gap-2.5">
                           <span
                             className={cn(
-                              "mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              "mt-0.5 inline-flex w-24 shrink-0 items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                               cfg.className
                             )}
                           >
