@@ -14,6 +14,42 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.19",
+    date: "2026-04-27",
+    summary: "Landing page now shows user reviews; removed 'Reviews & Suggestions' from Pro plan benefits.",
+    changes: [
+      { type: "improvement", description: "User reviews section restored to the landing page." },
+      { type: "improvement", description: "Removed 'Reviews & Suggestions' from Pro plan feature list on the pricing section." },
+    ],
+  },
+  {
+    version: "1.3.18",
+    date: "2026-04-27",
+    summary: "Partner sharing now shares Bills instead of My Expenses.",
+    changes: [
+      { type: "improvement", description: "Shared access now shows a partner's Bills (read-only with paid/unpaid toggle) instead of the My Expenses cashflow view." },
+      { type: "improvement", description: "All sharing labels updated from 'My Expenses' to 'Bills' in settings, shared account hub, and access descriptions." },
+    ],
+  },
+  {
+    version: "1.3.17",
+    date: "2026-04-27",
+    summary: "In-app notification when admin grants a Pro or Premium subscription.",
+    changes: [
+      { type: "feature", description: "Users now receive an in-app notification when an admin activates their Pro or Premium plan, showing the tier and expiry date." },
+    ],
+  },
+  {
+    version: "1.3.16",
+    date: "2026-04-27",
+    summary: "To-buy and to-do free plan reduced to 5 items; items beyond the limit are blurred with a Pro lock badge.",
+    changes: [
+      { type: "improvement", description: "Free plan to-buy and to-do lists now allow 5 items max (down from 10). Items beyond the limit are blurred and show a Pro lock badge instead of being hidden or deleted." },
+      { type: "improvement", description: "A plan note is shown below the page title: free users see '5 items max — upgrade to Pro', Pro/Premium users see 'Unlimited items with Pro or Premium'." },
+      { type: "improvement", description: "Subscription pages (landing and account) updated to reflect the new 5-item free tier limit." },
+    ],
+  },
+  {
     version: "1.3.15",
     date: "2026-04-27",
     summary: "Dashboard insight popup shows streak or financial status in the bottom-right corner.",

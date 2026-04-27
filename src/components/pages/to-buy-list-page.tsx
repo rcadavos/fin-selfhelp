@@ -31,7 +31,8 @@ import { HoverPopover } from "@/components/ui/hover-popover";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { parseYmdToLocalDate } from "@/components/ui/date-picker";
 import { formatYmdLocal } from "@/lib/expense-due-date";
-import { Trash2, Check, ShoppingCart, ClipboardList, CalendarDays } from "lucide-react";
+import { Trash2, Check, ShoppingCart, ClipboardList, CalendarDays, Lock } from "lucide-react";
+import { FREE_TIER_MAX_LIST_ITEMS } from "@/lib/subscription-tier";
 
 export type ToBuyListMode = "buy" | "do";
 
@@ -189,7 +190,8 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
     enabled: !!user && !loading,
   });
   const items = listQuery.data ?? [];
-  const canEditTargetDate = Boolean(capabilitiesQuery.data?.hasProLevelAccess);
+  const hasProAccess = Boolean(capabilitiesQuery.data?.hasProLevelAccess);
+  const canEditTargetDate = hasProAccess;
   const [composer, setComposer] = useState("");
   const skipComposerBlur = useRef(false);
 
@@ -215,6 +217,10 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       ListIcon: ClipboardList,
     } as const;
   }, [mode]);
+
+  const planNote = hasProAccess
+    ? "Unlimited items with Pro or Premium."
+    : `Free plan: ${FREE_TIER_MAX_LIST_ITEMS} items max. Upgrade to Pro for unlimited.`;
 
   const persist = useCallback(
     async (next: ToBuyItem[]) => {
@@ -302,65 +308,88 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-8 md:px-6">
       <ContentHeader title={cfg.title} subtitle={cfg.subtitle} icon={ListIcon} />
+      <p className={cn(
+        "mb-4 -mt-2 text-[11px] font-medium",
+        hasProAccess ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+      )}>
+        {planNote}
+      </p>
 
       <ul>
-        {items.map((item) => (
-          <li
-            key={item.id}
-            className="border-b border-border/70 py-3 transition-colors focus-within:border-emerald-300 last:border-b-0"
-          >
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={item.checked}
-                aria-label={item.checked ? "Mark as not done" : "Mark as done"}
-                onClick={() => handleToggle(item.id)}
-                className={cn(
-                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                  item.checked
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-muted-foreground/45 hover:border-primary"
-                )}
-              >
-                {item.checked ? <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden /> : null}
-              </button>
-              <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-                <InlineItemName
-                  item={item}
-                  onCommit={commitName}
-                />
-                {mode === "do" && (!item.checked || item.targetDate) ? (
-                  <TargetDatePickerIcon
-                    value={item.targetDate}
-                    onChange={(next) => commitTargetDate(item.id, next)}
-                    formattedValue={
-                      item.targetDate
-                        ? formatDateWithPreferences(
-                            item.targetDate,
-                            prefsOptional?.preferences ?? DEFAULT_USER_PREFERENCES
-                          )
-                        : ""
-                    }
-                    canEdit={canEditTargetDate}
+        {items.map((item, index) => {
+          const isLocked = !hasProAccess && index >= FREE_TIER_MAX_LIST_ITEMS;
+          return (
+            <li
+              key={item.id}
+              className={cn(
+                "relative border-b border-border/70 py-3 transition-colors last:border-b-0",
+                isLocked ? "overflow-hidden" : "focus-within:border-emerald-300",
+              )}
+            >
+              <div className={cn(
+                "flex items-center gap-3",
+                isLocked && "pointer-events-none select-none blur-sm opacity-60",
+              )}>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={item.checked}
+                  aria-label={item.checked ? "Mark as not done" : "Mark as done"}
+                  onClick={() => handleToggle(item.id)}
+                  className={cn(
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                    item.checked
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/45 hover:border-primary"
+                  )}
+                >
+                  {item.checked ? <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden /> : null}
+                </button>
+                <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+                  <InlineItemName
+                    item={item}
+                    onCommit={commitName}
                   />
-                ) : null}
-                {item.checked ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    aria-label="Delete item"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </Button>
-                ) : null}
+                  {mode === "do" && (!item.checked || item.targetDate) ? (
+                    <TargetDatePickerIcon
+                      value={item.targetDate}
+                      onChange={(next) => commitTargetDate(item.id, next)}
+                      formattedValue={
+                        item.targetDate
+                          ? formatDateWithPreferences(
+                              item.targetDate,
+                              prefsOptional?.preferences ?? DEFAULT_USER_PREFERENCES
+                            )
+                          : ""
+                      }
+                      canEdit={canEditTargetDate}
+                    />
+                  ) : null}
+                  {item.checked ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Delete item"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
+              {isLocked && (
+                <div className="absolute inset-0 flex items-center justify-end pr-3">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-primary backdrop-blur-sm">
+                    <Lock className="h-2.5 w-2.5" />
+                    Pro
+                  </span>
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <div className="mt-1 flex items-center gap-3 border-t border-border/70 pt-4">

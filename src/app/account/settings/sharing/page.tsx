@@ -28,7 +28,7 @@ import { UsersRound, Link2, Trash2, Ban, ExternalLink } from "lucide-react";
 
 function permBadges(s: AccountShareRow) {
   const parts: string[] = [];
-  if (s.can_view_expenses) parts.push("My Expenses");
+  if (s.can_view_expenses) parts.push("Bills");
   if (s.can_view_to_buy) parts.push("To-buy");
   return parts.length ? parts.join(" · ") : "—";
 }
@@ -176,7 +176,7 @@ export default function SharingSettingsPage() {
                 <legend className="text-sm font-medium">They can view</legend>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={pe} onChange={(e) => setPe(e.target.checked)} className="rounded border-input" />
-                  My Expenses (bills, mark paid for the month — no editing amounts)
+                  Bills (mark paid for the month — no editing, adding, or deleting)
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={ptb} onChange={(e) => setPtb(e.target.checked)} className="rounded border-input" />
@@ -245,7 +245,7 @@ export default function SharingSettingsPage() {
                         disabled={busy || !canShare}
                         onChange={(e) => onUpdatePerms(s, { canViewExpenses: e.target.checked })}
                       />
-                      My Expenses
+                      Bills
                     </label>
                     <label className="flex items-center gap-1">
                       <input

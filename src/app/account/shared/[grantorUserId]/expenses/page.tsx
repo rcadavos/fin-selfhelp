@@ -1,9 +1,9 @@
-import { SharedPartnerCashflowPage } from "@/components/pages/shared-partner-cashflow-page";
+import { SharedPartnerBillsPage } from "@/components/pages/shared-partner-bills-page";
 
 export default function SharedExpensesPage({
   params,
 }: {
   params: Promise<{ grantorUserId: string }>;
 }) {
-  return <SharedPartnerCashflowPage params={params} />;
+  return <SharedPartnerBillsPage params={params} />;
 }

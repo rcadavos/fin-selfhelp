@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import type { ReminderDay } from "@/types/database.types";
 import {
   hasPremiumProductAccess,
@@ -191,6 +191,132 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
     subscriptionExpired,
     lockedFreeReminderBillId,
   };
+}
+
+export type SharedBillsData = {
+  bills: BillRow[];
+  paidMonth: string;
+  paidBillIds: string[];
+  grantorUserId: string;
+};
+
+export async function loadSharedBillsData(
+  grantorUserId: string,
+  paidMonth?: string,
+): Promise<SharedBillsData | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: grantorProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", grantorUserId)
+    .single();
+  if (!grantorProfile) return null;
+
+  const { data: share } = await supabase
+    .from("account_shares")
+    .select("id")
+    .eq("grantor_profile_id", grantorProfile.id)
+    .eq("grantee_user_id", user.id)
+    .eq("status", "accepted")
+    .eq("can_view_expenses", true)
+    .maybeSingle();
+  if (!share) return null;
+
+  const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
+
+  const [{ data: billsRaw }, { data: paymentRows }] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, account_id, created_at, updated_at")
+      .eq("profile_id", grantorProfile.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("bill_payments")
+      .select("bill_id")
+      .eq("profile_id", grantorProfile.id)
+      .eq("paid_month", month),
+  ]);
+
+  return {
+    bills: (billsRaw ?? []).map((row) => ({
+      id: row.id,
+      category_id: String(row.category_id ?? ""),
+      amount: Number(row.amount),
+      billing_period:
+        row.billing_period === "yearly"
+          ? "yearly"
+          : row.billing_period === "quarterly"
+            ? "quarterly"
+            : "monthly",
+      due_month: row.due_month != null ? Number(row.due_month) : undefined,
+      note: row.note ?? undefined,
+      notes: row.notes ?? undefined,
+      due_date: String(row.due_date),
+      end_date: row.end_date ? String(row.end_date) : null,
+      account_id: row.account_id ?? undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    })),
+    paidMonth: month,
+    paidBillIds: (paymentRows ?? []).map((r) => r.bill_id as string),
+    grantorUserId,
+  };
+}
+
+export async function granteeSharedToggleBillPayment(
+  grantorUserId: string,
+  billId: string,
+  paidMonth: string,
+): Promise<{ error?: string; paid?: boolean }> {
+  if (!/^\d{4}-\d{2}$/.test(paidMonth)) return { error: "Invalid month." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+
+  const { data: grantorProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", grantorUserId)
+    .single();
+  if (!grantorProfile) return { error: "Account not found." };
+
+  const { data: share } = await supabase
+    .from("account_shares")
+    .select("id")
+    .eq("grantor_profile_id", grantorProfile.id)
+    .eq("grantee_user_id", user.id)
+    .eq("status", "accepted")
+    .eq("can_view_expenses", true)
+    .maybeSingle();
+  if (!share) return { error: "No shared access to this account." };
+
+  const srClient = createServiceRoleClient();
+
+  const { data: existing } = await srClient
+    .from("bill_payments")
+    .select("id")
+    .eq("bill_id", billId)
+    .eq("profile_id", grantorProfile.id)
+    .eq("paid_month", paidMonth)
+    .maybeSingle();
+
+  if (existing) {
+    await srClient.from("bill_payments").delete().eq("id", existing.id);
+    revalidatePath(`/account/shared/${grantorUserId}/expenses`);
+    return { paid: false };
+  }
+
+  const { error } = await srClient
+    .from("bill_payments")
+    .insert({ bill_id: billId, profile_id: grantorProfile.id, paid_month: paidMonth });
+
+  if (error) return { error: error.message };
+  revalidatePath(`/account/shared/${grantorUserId}/expenses`);
+  return { paid: true };
 }
 
 export async function toggleBillPayment(

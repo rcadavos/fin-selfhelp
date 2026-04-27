@@ -187,6 +187,8 @@ const REMINDER_OPTIONS = [
   { value: 0, label: "On due date" },
 ] as const;
 
+const LAST_ACCOUNT_NAMES = ["cash", "borrowed"];
+
 function AccountTagSelector({
   accounts,
   value,
@@ -197,9 +199,14 @@ function AccountTagSelector({
   onChange: (id: string) => void;
 }) {
   if (!accounts.length) return null;
+  const sorted = [...accounts].sort((a, b) => {
+    const aLast = LAST_ACCOUNT_NAMES.includes(a.account_alias.toLowerCase()) ? 1 : 0;
+    const bLast = LAST_ACCOUNT_NAMES.includes(b.account_alias.toLowerCase()) ? 1 : 0;
+    return aLast - bLast;
+  });
   return (
     <div className="flex flex-wrap gap-1.5">
-      {accounts.map((acc) => {
+      {sorted.map((acc) => {
         const selected = value === acc.id;
         return (
           <button
@@ -623,6 +630,7 @@ function BillRow({
         disabled={isPending}
         className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         aria-label={isPaid ? "Mark unpaid" : "Mark paid"}
+        title={isPaid ? "Mark unpaid" : "Mark paid"}
         data-title={isPaid ? "Mark unpaid" : "Mark paid"}
       >
         {isPaid ? (

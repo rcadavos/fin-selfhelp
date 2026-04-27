@@ -50,7 +50,7 @@ function formatPrice(amount: number, currency: string, interval: string) {
 
 const FREE_FEATURES = [
   "Unlimited expense & bill rows",
-  "To-buy & to-do (up to 10 items each)",
+  "To-buy & to-do (up to 5 items each)",
   "1 bill reminder (in-app & email)",
   "Unlimited reminders — upgrade to Pro",
 ];

@@ -15,7 +15,7 @@ type Row = NonNullable<Awaited<ReturnType<typeof listAcceptedSharesWithGrantors>
 
 function shareAccessLabel(share: AccountShareRow) {
   const parts: string[] = [];
-  if (share.can_view_expenses) parts.push("My Expenses");
+  if (share.can_view_expenses) parts.push("Bills");
   if (share.can_view_to_buy) parts.push("To-buy");
   return parts.length ? parts.join(" · ") : "—";
 }
@@ -52,7 +52,7 @@ export default function SharedWithMePage() {
     <div className="w-full py-2">
       <ContentHeader
         title="Accounts Shared With You"
-        subtitle="Open a partner's hub below for My Expenses and/or To-buy, depending on what they shared with you."
+        subtitle="Open a partner's hub below for Bills and/or To-buy, depending on what they shared with you."
         icon={UsersRound}
         className="mb-4"
       />
@@ -91,7 +91,7 @@ export default function SharedWithMePage() {
                       <Button size="sm" variant="outline" asChild className="gap-1">
                         <Link href={`/account/shared/${grantorUserId}/expenses`}>
                           <Banknote className="h-4 w-4" />
-                          Expenses
+                          Bills
                         </Link>
                       </Button>
                     )}

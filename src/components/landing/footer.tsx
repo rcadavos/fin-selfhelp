@@ -36,9 +36,7 @@ export function Footer({ className }: { className?: string }) {
       )}
     >
       <div className="mx-auto max-w-6xl">
-        <FooterFeedback />
-
-        <div className="mt-12 grid gap-10 border-t border-border/60 pt-12 md:grid-cols-12 md:gap-12">
+        <div className="grid gap-10 border-t border-border/60 pt-12 md:grid-cols-12 md:gap-12">
           <div className="space-y-4 md:col-span-5">
             <div>
               <p className="text-lg font-semibold tracking-tight text-foreground">OmniTrak</p>

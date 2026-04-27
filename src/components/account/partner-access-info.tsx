@@ -9,7 +9,7 @@ export function PartnerAccessInfo({ className }: { className?: string }) {
       </p>
       <ul className="list-disc space-y-1.5 pl-5">
         <li>
-          <span className="text-foreground">My Expenses</span> — Your partner can open your bills for the current month
+          <span className="text-foreground">Bills</span> — Your partner can view your bills for the current month
           and mark them paid or unpaid. They cannot change amounts, add, or remove bills.
         </li>
         <li>

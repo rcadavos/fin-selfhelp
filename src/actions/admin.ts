@@ -138,6 +138,27 @@ export async function setUserSubscription(
       p_expires_at: expiresAt?.trim() || null,
     });
     if (error) return { error: error.message };
+
+    if (tier === "pro" || tier === "premium") {
+      const effectiveExpiry = expiresAt?.trim()
+        ? new Date(expiresAt.trim())
+        : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d; })();
+      const expiryLabel = effectiveExpiry.toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric",
+      });
+      const tierLabel = tier === "premium" ? "Premium" : "Pro";
+      const dedupeKey = `sub:grant:${userId}:${tier}:${effectiveExpiry.toISOString().slice(0, 10)}`;
+      await admin.rpc("insert_user_notifications_bulk", {
+        notifications: [{
+          user_id: userId,
+          title: `${tierLabel} subscription activated`,
+          body: `Your ${tierLabel} plan is now active until ${expiryLabel}. Enjoy all ${tierLabel} features!`,
+          kind: "system",
+          dedupe_key: dedupeKey,
+        }],
+      });
+    }
+
     return {};
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to update subscription." };

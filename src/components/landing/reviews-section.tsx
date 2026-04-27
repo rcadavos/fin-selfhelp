@@ -95,7 +95,7 @@ export function ReviewsSection({
         <div className="mx-auto max-w-5xl">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What users say</h2>
-            <p className="mt-2 text-muted-foreground">From paid OmniTrak users.</p>
+            <p className="mt-2 text-muted-foreground">From OmniTrak users.</p>
           </div>
           <div className="flex flex-wrap justify-center gap-6">
             {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}

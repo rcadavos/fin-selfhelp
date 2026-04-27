@@ -9,7 +9,6 @@ const proBenefits = [
   "Email reminders for bills",
   "Unlimited to-buy & to-do",
   "Partner sharing (invite by email)",
-  "Reviews & Suggestions",
 ];
 
 const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];
@@ -41,7 +40,7 @@ export function SubscribeSection({
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               <p>Unlimited expense & bill rows</p>
-              <p>To-buy & to-do up to 10 items each</p>
+              <p>To-buy & to-do up to 5 items each</p>
               <p>1 bill reminder (in-app & email)</p>
               <p>Unlimited reminders — upgrade to Pro</p>
             </CardContent>
