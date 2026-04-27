@@ -54,7 +54,6 @@ import {
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
 import { type AccountRow } from "@/actions/accounts";
 import { useUser } from "@/hooks/use-user";
-import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { accountsQueryOptions } from "@/lib/query/accounts";
@@ -337,10 +336,7 @@ export function MyExpensesBoard() {
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
   );
-  const categories = useMemo(
-    () => (dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES),
-    [dbCategories]
-  );
+  const categories = dbCategories;
   const paidMonth = expenseData?.paidMonth ?? getCurrentPaidMonth();
   const allEntries: ExpenseEntryRow[] = expenseData?.entries ?? [];
 

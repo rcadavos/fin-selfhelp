@@ -1,7 +1,7 @@
 "use server";
 
-import nodemailer from "nodemailer";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { sendReminderEmail } from "@/lib/email";
 import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import type { AppNotification } from "@/types/notifications";
@@ -271,71 +271,6 @@ type EmailResult = {
   debug?: Record<string, any>;
 };
 
-async function sendReminderEmail(params: {
-  to: string;
-  from: string;
-  items: PendingReminder[];
-  todayYmd: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  const smtpHost = process.env.SMTP_HOST?.trim();
-  const smtpPortRaw = process.env.SMTP_PORT?.trim();
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPass = process.env.SMTP_PASS?.trim();
-  if (!smtpHost || !smtpPortRaw || !smtpUser || !smtpPass) {
-    return {
-      ok: false,
-      error: "SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS must all be set",
-    };
-  }
-  const smtpPort = Number(smtpPortRaw);
-  if (!Number.isFinite(smtpPort) || smtpPort <= 0) {
-    return { ok: false, error: "SMTP_PORT must be a valid positive number" };
-  }
-  const smtpSecure = String(process.env.SMTP_SECURE ?? "").toLowerCase() === "true";
-
-  const subject = `OmniTrak reminders for ${params.todayYmd}`;
-  const textLines = [
-    "You have reminders today:",
-    "",
-    ...params.items.map((item) => `- ${item.title}: ${item.body}`),
-  ];
-
-  const html = [
-    "<p>You have reminders today:</p>",
-    "<ul>",
-    ...params.items.map(
-      (item) =>
-        `<li><strong>${item.title.replace(/</g, "&lt;")}</strong>: ${item.body.replace(/</g, "&lt;")}</li>`
-    ),
-    "</ul>",
-  ].join("");
-
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
-
-  try {
-    await transporter.sendMail({
-      from: params.from,
-      to: params.to,
-      subject,
-      text: textLines.join("\n"),
-      html,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, error: `SMTP send failed: ${message}` };
-  }
-
-  return { ok: true };
-}
-
 export async function sendGeneratedProReminderEmailsForToday(
   userId: string,
   options?: { skipReleaseHourCheck?: boolean; includeDebug?: boolean }
@@ -538,15 +473,19 @@ export async function sendGeneratedProReminderEmailsForToday(
     };
   }
 
-  const from = process.env.REMINDER_FROM_EMAIL?.trim() || "OmniTrak <reminders@omnitrak.cloud>";
   const sendResult = await sendReminderEmail({
     to: toEmail,
-    from,
     items: newlyPending,
     todayYmd,
   });
 
   if (!sendResult.ok) {
+    // Roll back the log entries so the next run can retry them.
+    await supabase
+      .from("reminder_email_logs")
+      .delete()
+      .eq("user_id", userId)
+      .in("dedupe_key", newlyPending.map((p) => p.dedupeKey));
     return {
       emailsSent: 0,
       pendingCount: pending.length,

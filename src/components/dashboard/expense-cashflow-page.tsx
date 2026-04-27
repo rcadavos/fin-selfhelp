@@ -37,7 +37,6 @@ import { toggleExpensePayment, type PaymentMonthStats } from "@/actions/expense-
 import { useUser } from "@/hooks/use-user";
 import { useBudgetRefresh } from "@/contexts/budget-refresh";
 import type { ReminderDay } from "@/types/database.types";
-import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import type { ExpenseData, ExpenseEntryRow } from "@/actions/budget";
 import {
   effectiveDueDateInPaidMonth,
@@ -394,16 +393,11 @@ export function ExpenseCashflowPage({
     "Priority support",
     "Can leave review and suggestions (paid subscribers)",
   ];
-  const categoriesList = useMemo(
-    () => (categoriesFromDb.length > 0 ? categoriesFromDb : EXPENSE_CATEGORIES),
+  const categoriesList = categoriesFromDb;
+  const orderedCategoryIds = useMemo(
+    () => [...categoriesFromDb].sort((a, b) => a.sortOrder - b.sortOrder).map((c) => c.id),
     [categoriesFromDb]
   );
-  const orderedCategoryIds = useMemo(() => {
-    if (categoriesFromDb.length > 0) {
-      return [...categoriesFromDb].sort((a, b) => a.sortOrder - b.sortOrder).map((c) => c.id);
-    }
-    return EXPENSE_CATEGORIES.map((c) => c.id);
-  }, [categoriesFromDb]);
   const entries = expenseDataQuery.data?.entries ?? [];
   const isSubscriber = expenseDataQuery.data?.isSubscriber ?? false;
   const subscriptionExpired = expenseDataQuery.data?.subscriptionExpired ?? false;

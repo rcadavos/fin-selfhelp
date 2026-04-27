@@ -178,6 +178,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       end_date: row.end_date ? String(row.end_date) : null,
       reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      account_id: row.account_id ?? undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     })),

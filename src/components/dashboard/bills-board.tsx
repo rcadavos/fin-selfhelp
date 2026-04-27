@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useUser } from "@/hooks/use-user";
-import { EXPENSE_CATEGORIES } from "@/types/database.types";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
@@ -227,7 +226,7 @@ function BillDialog({
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
   const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
   const hasProAccess = capabilities?.hasProLevelAccess ?? false;
-  const categories = dbCategories && dbCategories.length > 0 ? dbCategories : EXPENSE_CATEGORIES;
+  const categories = dbCategories ?? [];
 
   const [form, setForm] = useState<BillFormState>(initial ?? EMPTY_FORM);
 
@@ -558,6 +557,7 @@ function BillRow({
   currency,
   paidMonth,
   accountMap,
+  categories,
   onToggle,
   onEdit,
   onDelete,
@@ -570,13 +570,13 @@ function BillRow({
   currency: string;
   paidMonth: string;
   accountMap: Record<string, AccountRow>;
+  categories: CatList;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
   isLockedFreeReminder?: boolean;
 }) {
-  const cat =
-    EXPENSE_CATEGORIES.find((c) => c.id === bill.category_id) ?? EXPENSE_CATEGORIES[0];
+  const cat = categories.find((c) => c.id === bill.category_id);
   const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
   const dueDateLabel = formatDueDay(bill, paidMonth);
 
@@ -598,6 +598,7 @@ function BillRow({
         disabled={isPending}
         className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         aria-label={isPaid ? "Mark unpaid" : "Mark paid"}
+        data-title={isPaid ? "Mark unpaid" : "Mark paid"}
       >
         {isPaid ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -623,9 +624,17 @@ function BillRow({
           >
             {bill.note ?? cat?.label}
           </p>
-          {isOverdue && !isPaid && (
+          {isPaid ? (
+            <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              Paid
+            </span>
+          ) : isOverdue ? (
             <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
               Outstanding
+            </span>
+          ) : (
+            <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              Unpaid
             </span>
           )}
           {isLockedFreeReminder && (
@@ -639,18 +648,20 @@ function BillRow({
           {cat?.label}
           {dueDateLabel && <span className="text-muted-foreground/60"> · {dueDateLabel}</span>}
         </p>
-        {bill.account_id && accountMap[bill.account_id] && (
-          <span
-            className="mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={{
-              backgroundColor: `${accountMap[bill.account_id].color}22`,
-              color: accountMap[bill.account_id].color,
-            }}
-          >
-            {accountMap[bill.account_id].account_alias}
-          </span>
-        )}
       </div>
+
+      {/* Account badge */}
+      {bill.account_id && accountMap[bill.account_id] && (
+        <span
+          className="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{
+            backgroundColor: `${accountMap[bill.account_id].color}22`,
+            color: accountMap[bill.account_id].color,
+          }}
+        >
+          {accountMap[bill.account_id].account_alias}
+        </span>
+      )}
 
       {/* Amount */}
       <p
@@ -831,9 +842,7 @@ export function BillsBoard() {
     [accounts]
   );
   const { data: dbCategories } = useQuery(categoriesQueryOptions());
-  const categories: CatList = dbCategories && dbCategories.length > 0
-    ? dbCategories.map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass }))
-    : EXPENSE_CATEGORIES;
+  const categories: CatList = (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass }));
   const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = data?.bills ?? [];
   const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data?.paidBillIds]);
@@ -1102,6 +1111,7 @@ export function BillsBoard() {
                   currency={currency}
                   paidMonth={paidMonth}
                   accountMap={accountMap}
+                  categories={categories}
                   onToggle={() => handleToggle(bill.id)}
                   onEdit={() => setEditingBill(bill)}
                   onDelete={() => setDeletingId(bill.id)}

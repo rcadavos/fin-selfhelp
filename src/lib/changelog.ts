@@ -14,6 +14,25 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.11",
+    date: "2026-04-27",
+    summary: "Category names in bills and expenses now come from the database instead of a static list.",
+    changes: [
+      { type: "improvement", description: "Bills board and expenses board now load category names from the database, so admin-managed categories are always reflected." },
+    ],
+  },
+  {
+    version: "1.3.10",
+    date: "2026-04-27",
+    summary: "Bills list shows paid/unpaid/outstanding status badges and account badge before amount.",
+    changes: [
+      { type: "improvement", description: "Bill rows now show a Paid, Unpaid, or Outstanding status badge next to the bill name." },
+      { type: "improvement", description: "Account badge moved to appear directly before the amount for better visual grouping." },
+      { type: "improvement", description: "Mark paid/unpaid toggle button now has a data-title attribute for tooltip support." },
+      { type: "fix", description: "Editing a bill no longer clears the Account tag — account_id was being fetched from Supabase but dropped during data mapping." },
+    ],
+  },
+  {
     version: "1.3.9",
     date: "2026-04-26",
     summary: "Free users get 1 permanent bill reminder (in-app & email); bill reminders now actually fire via cron.",
@@ -24,6 +43,16 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Bills add/edit modal shows a 0/1 or 1/1 free reminder badge; once permanently locked, shows a lock icon with 'Permanent' label on the owning bill and 'Slot locked' on all others." },
       { type: "improvement", description: "Bill row shows an amber lock chip when it permanently holds the free reminder slot." },
       { type: "improvement", description: "Subscription pages (landing and account) updated to reflect the 1 bill reminder free tier benefit." },
+    ],
+  },
+  {
+    version: "1.3.9",
+    date: "2026-04-27",
+    summary: "Reminder emails now use the styled OmniTrak template; fix dedupe rollback so failed sends can retry.",
+    changes: [
+      { type: "improvement", description: "Reminder emails now use the same branded HTML template as auth emails — logo, styled item cards, and a CTA button." },
+      { type: "fix", description: "Reminder email dedupe log entries are now rolled back when SMTP send fails, so the next cron run or test trigger can retry instead of silently skipping." },
+      { type: "improvement", description: "Consolidated duplicate sendReminderEmail implementations into a single shared function in email.ts." },
     ],
   },
   {
