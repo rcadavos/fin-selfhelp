@@ -30,7 +30,7 @@ function getPhoneForForm(user: {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, refreshUser } = useUser();
   const { showError, showSuccess } = useSnackbar();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -51,11 +51,13 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true);
     const { error } = await updateProfile({ fullName, phone });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       showError(error);
       return;
     }
+    await refreshUser();
+    setSaving(false);
     showSuccess("Profile updated.");
   }
 

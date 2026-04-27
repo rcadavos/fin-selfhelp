@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -17,6 +18,7 @@ import type { User } from "@supabase/supabase-js";
 type UserContextValue = {
   user: User | null;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
@@ -127,7 +129,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const value = useMemo(() => ({ user, loading }), [user, loading]);
+  const refreshUser = useCallback(async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data.user) setUser(data.user);
+  }, []);
+
+  const value = useMemo(() => ({ user, loading, refreshUser }), [user, loading, refreshUser]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

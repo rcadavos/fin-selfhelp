@@ -14,6 +14,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.20",
+    date: "2026-04-27",
+    summary: "Profile name change now instantly updates the account menu.",
+    changes: [
+      { type: "fix", description: "Saving a new full name on the Profile page now immediately reflects in the account dropdown menu without requiring a page reload." },
+    ],
+  },
+  {
     version: "1.3.19",
     date: "2026-04-27",
     summary: "Landing page now shows user reviews; removed 'Reviews & Suggestions' from Pro plan benefits.",

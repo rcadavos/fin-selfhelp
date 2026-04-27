@@ -33,6 +33,7 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
+import { freeBenefits, premiumExtra, proBenefits } from "@/components/landing/subscribe-section";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 
@@ -45,29 +46,6 @@ function formatDate(iso: string | null): string {
 function formatPrice(amount: number, currency: string, interval: string) {
   return `${formatCurrency(amount, currency)}/${interval}`;
 }
-
-/* ─── plan feature lists (matching landing page) ─────────── */
-
-const FREE_FEATURES = [
-  "Unlimited expense & bill rows",
-  "To-buy & to-do (up to 5 items each)",
-  "1 bill reminder (in-app & email)",
-  "Unlimited reminders — upgrade to Pro",
-];
-
-const PRO_FEATURES = [
-  "Email reminders for bills",
-  "Unlimited to-buy & to-do",
-  "Partner sharing (invite by email)",
-  "Reviews & Suggestions",
-];
-
-const PREMIUM_FEATURES = [
-  "Everything in Pro",
-  "Rent Tracker",
-  "Payment Tracker",
-  "All Future Features",
-];
 
 /* ─── QR PH card (reused from payment page) ─────────────── */
 
@@ -443,7 +421,7 @@ function SubscriptionPageInner() {
               <CardDescription>Track bills and cashflow, no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
-              {FREE_FEATURES.map((f) => (
+              {freeBenefits.map((f) => (
                 <div key={f} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />
                   <span>{f}</span>
@@ -492,7 +470,7 @@ function SubscriptionPageInner() {
               <CardDescription>Full access on My Expenses, To Buy and To Do.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
-              {PRO_FEATURES.map((f) => (
+              {proBenefits.map((f) => (
                 <div key={f} className="flex items-start gap-2 text-muted-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span>{f}</span>
@@ -544,7 +522,7 @@ function SubscriptionPageInner() {
               <CardDescription>Pro plus premium-only trackers.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
-              {PREMIUM_FEATURES.map((f) => (
+              {premiumExtra.map((f) => (
                 <div key={f} className="flex items-start gap-2 text-muted-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
                   <span>{f}</span>

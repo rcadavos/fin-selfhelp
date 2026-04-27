@@ -5,13 +5,21 @@ import { cn, formatCurrency } from "@/lib/utils";
 import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
 import { Check, Gem, Sparkles } from "lucide-react";
 
-const proBenefits = [
-  "Email reminders for bills",
+
+export const freeBenefits = [
+  "Unlimited expense & bill rows",
+  "To-buy & to-do (up to 5 items each)",
+  "1 bill reminder (in-app & email)",
+  "Unlimited reminders — upgrade to Pro",
+];
+
+export const proBenefits = [
+  "Email reminders for bills and to-do lists",
   "Unlimited to-buy & to-do",
   "Partner sharing (invite by email)",
 ];
 
-const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];
+export const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];
 
 export function SubscribeSection({
   className,
@@ -33,16 +41,18 @@ export function SubscribeSection({
         </div>
 
         <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-3">
-          <Card className="flex h-full flex-col border-border/50">
+          <Card className="flex flex-col border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Free</CardTitle>
-              <CardDescription>Track bills and cashflow with no card required.</CardDescription>
+              <CardTitle className="text-base">Free</CardTitle>
+              <CardDescription>Track bills and cashflow, no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
-              <p>Unlimited expense & bill rows</p>
-              <p>To-buy & to-do up to 5 items each</p>
-              <p>1 bill reminder (in-app & email)</p>
-              <p>Unlimited reminders — upgrade to Pro</p>
+              {freeBenefits.map((f) => (
+                <div key={f} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />
+                  <span>{f}</span>
+                </div>
+              ))}
             </CardContent>
             <CardFooter className="mt-auto w-full">
               <Button variant="outline" className="w-full" asChild>
