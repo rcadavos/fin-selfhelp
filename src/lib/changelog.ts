@@ -14,6 +14,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.12",
+    date: "2026-04-27",
+    summary: "Bills page smart defaults and correct outstanding logic for quarterly/yearly bills.",
+    changes: [
+      { type: "improvement", description: "Add Bill dialog auto-selects the billing period matching the active tab (quarterly or yearly)." },
+      { type: "fix", description: "Quarterly bills now show outstanding based on the current quarter's due date, not the current month." },
+      { type: "fix", description: "Yearly bills now show outstanding based on the bill's due month in the current year, not the current month." },
+      { type: "improvement", description: "Quarterly bill due date label now shows Q1–Q4 and the quarter's start month (e.g. Q2 · Apr 15)." },
+    ],
+  },
+  {
     version: "1.3.11",
     date: "2026-04-27",
     summary: "Category names in bills and expenses now come from the database instead of a static list.",

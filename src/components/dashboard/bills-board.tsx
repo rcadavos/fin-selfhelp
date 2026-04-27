@@ -55,6 +55,7 @@ import { getCurrentPaidMonth } from "@/lib/paid-month";
 import {
   getDueDayOfMonthFromYmd,
   effectiveDueDateInPaidMonth,
+  parseYmToYearMonth,
 } from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ContentHeader } from "@/components/app/content-header";
@@ -99,6 +100,26 @@ function getCategoryDotColor(bgClass: string): string {
   return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
 }
 
+function effectiveBillDueDate(bill: BillRow, today: Date, paidMonthYm: string): Date | null {
+  const dueDay = getDueDayOfMonthFromYmd(bill.due_date);
+  if (!dueDay) return null;
+
+  if (bill.billing_period === "yearly") {
+    const dueMonth1 = bill.due_month ?? 1;
+    const year = today.getFullYear();
+    const lastDay = new Date(year, dueMonth1, 0).getDate();
+    return new Date(year, dueMonth1 - 1, Math.min(dueDay, lastDay));
+  }
+
+  if (bill.billing_period === "quarterly") {
+    const qStartMonth = Math.floor(today.getMonth() / 3) * 3; // 0, 3, 6, or 9
+    const year = today.getFullYear();
+    const lastDay = new Date(year, qStartMonth + 1, 0).getDate();
+    return new Date(year, qStartMonth, Math.min(dueDay, lastDay));
+  }
+
+  return effectiveDueDateInPaidMonth(bill.due_date, paidMonthYm);
+}
 
 function formatDueDay(bill: BillRow, paidMonth: string): string {
   if (bill.billing_period === "yearly") {
@@ -108,7 +129,11 @@ function formatDueDay(bill: BillRow, paidMonth: string): string {
   }
   if (bill.billing_period === "quarterly") {
     const day = getDueDayOfMonthFromYmd(bill.due_date);
-    return `Day ${day} (quarterly)`;
+    const ym = parseYmToYearMonth(paidMonth);
+    if (!ym || !day) return "—";
+    const quarter = Math.floor((ym.month1to12 - 1) / 3) + 1;
+    const qStartMonthName = MONTH_NAMES[Math.floor((ym.month1to12 - 1) / 3) * 3];
+    return `Q${quarter} · ${qStartMonthName} ${day}`;
   }
   const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
   if (!eff) return "—";
@@ -260,7 +285,7 @@ function BillDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit Bill" : "Add Bill"}</DialogTitle>
+          <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -865,13 +890,13 @@ export function BillsBoard() {
 
     function statusRank(bill: BillRow): number {
       if (paidIds.has(bill.id)) return 2;
-      const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
+      const eff = effectiveBillDueDate(bill, today, paidMonth);
       if (eff && eff < today) return 0; // outstanding
       return 1; // unpaid
     }
 
     function dueTime(bill: BillRow): number {
-      return effectiveDueDateInPaidMonth(bill.due_date, paidMonth)?.getTime() ?? Infinity;
+      return effectiveBillDueDate(bill, today, paidMonth)?.getTime() ?? Infinity;
     }
 
     return [...filteredBills].sort((a, b) => {
@@ -1099,7 +1124,7 @@ export function BillsBoard() {
           ) : (
             sortedFilteredBills.map((bill) => {
               const today = new Date(); today.setHours(0, 0, 0, 0);
-              const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
+              const eff = effectiveBillDueDate(bill, today, paidMonth);
               const isOverdue = !paidIds.has(bill.id) && !!eff && eff < today;
               return (
                 <BillRow
@@ -1139,6 +1164,7 @@ export function BillsBoard() {
           open={addOpen}
           onClose={() => setAddOpen(false)}
           onSave={handleAdd}
+          initial={{ ...EMPTY_FORM, billingPeriod: activeTab }}
           isPending={isPending}
           accounts={accounts}
           freeReminderUsed={freeReminderUsed}
