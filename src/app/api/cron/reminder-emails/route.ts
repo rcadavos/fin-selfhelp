@@ -139,10 +139,28 @@ export async function GET(request: Request) {
         toDoRows = (todoData ?? []) as ToDoTargetRow[];
       }
 
-      const [{ data: billsRaw }, authUserResult] = await Promise.all([billsQuery, authUserPromise]);
+      const [[{ data: billsRaw }, authUserResult], lockRow] = await Promise.all([
+        Promise.all([billsQuery, authUserPromise]),
+        hasProAccess
+          ? Promise.resolve(null)
+          : supabase
+              .from("user_notifications")
+              .select("dedupe_key")
+              .eq("user_id", profile.user_id)
+              .like("dedupe_key", "bill:%")
+              .limit(1),
+      ]);
 
       const toEmail = authUserResult.data.user?.email?.trim();
       if (!toEmail) continue;
+
+      // Free-tier: only the bill that previously fired keeps its slot; if none
+      // has fired yet the first one to match today gets to fire and lock itself.
+      const lockedFreeBillId = hasProAccess
+        ? null
+        : ((lockRow as { data: { dedupe_key: string }[] | null } | null)
+            ?.data?.[0]?.dedupe_key?.match(/^bill:([^:]+):/)?.[1] ?? null);
+      let freeTierBillFired = false;
 
       const pending: PendingReminder[] = [];
       const notificationsToInsert: any[] = [];
@@ -150,6 +168,10 @@ export async function GET(request: Request) {
       for (const bill of (billsRaw ?? []) as BillReminderRow[]) {
         if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
           continue;
+        }
+        if (!hasProAccess) {
+          if (lockedFreeBillId !== null && bill.id !== lockedFreeBillId) continue;
+          if (lockedFreeBillId === null && freeTierBillFired) continue;
         }
         const candidates = getCandidateDueDates(bill.due_date, now);
         const billLabel = (bill.note ?? "Bill").trim() || "Bill";
@@ -169,6 +191,7 @@ export async function GET(request: Request) {
 
             if (channel === "email" || channel === "both") {
               pending.push({ dedupeKey, title, body });
+              if (!hasProAccess) freeTierBillFired = true;
             }
             if (channel === "in-app" || channel === "both") {
               notificationsToInsert.push({
@@ -178,6 +201,7 @@ export async function GET(request: Request) {
                 title,
                 body,
               });
+              if (!hasProAccess) freeTierBillFired = true;
             }
           }
         }

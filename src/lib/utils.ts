@@ -18,14 +18,16 @@ export function formatCurrency(amount: number, currencyOverride?: string): strin
   })
 }
 
-/** Digit-only storage string → thousands separators for amount fields. */
-export function formatAmountWithCommas(rawDigits: string): string {
-  const digits = rawDigits.replace(/\D/g, "")
-  if (!digits) return ""
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+export function formatAmountWithCommas(raw: string): string {
+  if (!raw) return ""
+  const [intPart, decPart] = raw.split(".")
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  return decPart !== undefined ? formattedInt + "." + decPart : formattedInt
 }
 
-/** Strip non-digits from an amount field value. */
 export function parseAmountInput(input: string): string {
-  return input.replace(/\D/g, "")
+  const cleaned = input.replace(/[^\d.]/g, "")
+  const parts = cleaned.split(".")
+  if (parts.length === 1) return parts[0]
+  return parts[0] + "." + parts.slice(1).join("")
 }

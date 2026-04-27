@@ -8,11 +8,11 @@ function getCursorPositionAfterFormat(
   oldValue: string,
   oldCursor: number
 ): number {
-  const digitsBeforeCursor = (oldValue.slice(0, oldCursor).match(/\d/g) || []).length;
+  const nonCommaBeforeCursor = (oldValue.slice(0, oldCursor).match(/[^,]/g) || []).length;
   let count = 0;
   for (let i = 0; i < formatted.length; i++) {
-    if (/\d/.test(formatted[i])) count++;
-    if (count === digitsBeforeCursor) return i + 1;
+    if (formatted[i] !== ",") count++;
+    if (count === nonCommaBeforeCursor) return i + 1;
   }
   return formatted.length;
 }
@@ -63,7 +63,7 @@ const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
     return (
       <input
         type="text"
-        inputMode="numeric"
+        inputMode="decimal"
         value={formatted}
         onChange={handleChange}
         ref={mergedRef}

@@ -32,4 +32,6 @@ export const queryKeys = {
   notifications: () => [...queryKeys.all, "notifications"] as const,
   /** User's named bank/e-wallet accounts (see `accountsQueryOptions`). */
   accounts: () => [...queryKeys.all, "accounts"] as const,
+  /** Current user's daily login streak (see `userStreakQueryOptions`). */
+  userStreak: () => [...queryKeys.all, "user", "streak"] as const,
 };

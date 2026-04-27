@@ -53,6 +53,8 @@ import {
   monthlyBreakdownQueryOptions,
 } from "@/lib/query/expenses";
 import { queryKeys } from "@/lib/query/keys";
+import { userStreakQueryOptions } from "@/lib/query/streaks";
+import { InsightPopup } from "@/components/dashboard/insight-popup";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
 import Link from "next/link";
@@ -381,6 +383,10 @@ export function ExpenseCashflowPage({
   });
   const billsDataQuery = useQuery({
     ...billsDataQueryOptions(paidMonthQueryKey),
+    enabled: !!user && !loading && pageVariant === "dashboard",
+  });
+  const streakQuery = useQuery({
+    ...userStreakQueryOptions(),
     enabled: !!user && !loading && pageVariant === "dashboard",
   });
   const invalidateExpenseQueries = useCallback(() => {
@@ -1842,6 +1848,24 @@ export function ExpenseCashflowPage({
               </div>
             </CardContent>
           </Card>
+
+          {/* ════════════════════ INSIGHT POPUP ════════════════════ */}
+          {user && (() => {
+            const firstName = getAccountDisplayName(user).split(" ")[0];
+            const streak = streakQuery.data?.streak_count ?? 1;
+            const billsList = billsDataQuery.data?.bills ?? [];
+            const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
+            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
+            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+            const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : undefined;
+            return (
+              <InsightPopup
+                firstName={firstName}
+                streak={streak}
+                billsPaidPct={billsPaidPct}
+              />
+            );
+          })()}
         </>
       )
       }

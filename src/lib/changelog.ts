@@ -14,6 +14,32 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.3.15",
+    date: "2026-04-27",
+    summary: "Dashboard insight popup shows streak or financial status in the bottom-right corner.",
+    changes: [
+      { type: "feature", description: "A closable bottom-right popup slides in on the dashboard showing your day streak (if 2+), monthly bills paid percentage, or a financial tip." },
+      { type: "improvement", description: "Streak info moved from the welcome greeting to the insight popup." },
+    ],
+  },
+  {
+    version: "1.3.14",
+    date: "2026-04-27",
+    summary: "All monetary values now display with two decimal places app-wide.",
+    changes: [
+      { type: "improvement", description: "Currency and number formatting now shows full decimal values instead of rounding to whole numbers." },
+      { type: "improvement", description: "Amount input fields now accept decimal values (e.g. 1,234.56)." },
+    ],
+  },
+  {
+    version: "1.3.13",
+    date: "2026-04-27",
+    summary: "Dashboard welcome greeting shows a fire streak for consecutive daily active users.",
+    changes: [
+      { type: "feature", description: "Dashboard welcome now shows a 🔥 day streak count when you visit on consecutive days." },
+    ],
+  },
+  {
     version: "1.3.12",
     date: "2026-04-27",
     summary: "Bills page smart defaults and correct outstanding logic for quarterly/yearly bills.",
@@ -22,6 +48,14 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "fix", description: "Quarterly bills now show outstanding based on the current quarter's due date, not the current month." },
       { type: "fix", description: "Yearly bills now show outstanding based on the bill's due month in the current year, not the current month." },
       { type: "improvement", description: "Quarterly bill due date label now shows Q1–Q4 and the quarter's start month (e.g. Q2 · Apr 15)." },
+    ],
+  },
+  {
+    version: "1.3.12",
+    date: "2026-04-27",
+    summary: "Free/expired users receive exactly 1 bill reminder per month, not all reminders set during Pro.",
+    changes: [
+      { type: "fix", description: "When a subscription expires, bill reminders are now capped to 1 — the bill that previously held the free reminder slot, or the first eligible bill if none has fired yet. Expense and to-do reminders remain Pro-only." },
     ],
   },
   {

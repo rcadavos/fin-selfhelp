@@ -301,16 +301,25 @@ export async function sendGeneratedProReminderEmailsForToday(
   const todayYmd = formatYmdLocal(today);
   const { getCandidateDueDates } = await import("@/lib/expense-due-date");
 
-  const billsQueryResult = await supabase
-    .from("bills")
-    .select("id, note, due_date, reminder_days_before, reminder_channel")
-    .eq("profile_id", profile.id)
-    .not("reminder_days_before", "is", null);
+  const [billsQueryResult, authUserResult, lockRow] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, note, due_date, reminder_days_before, reminder_channel")
+      .eq("profile_id", profile.id)
+      .not("reminder_days_before", "is", null),
+    supabase.auth.admin.getUserById(userId),
+    hasProAccess
+      ? Promise.resolve(null)
+      : supabase
+          .from("user_notifications")
+          .select("dedupe_key")
+          .eq("user_id", userId)
+          .like("dedupe_key", "bill:%")
+          .limit(1),
+  ]);
 
   let expenses: ExpenseReminderRow[] = [];
   let toDoRows: ToDoTargetRow[] = [];
-
-  const [authUserResult] = await Promise.all([supabase.auth.admin.getUserById(userId)]);
 
   if (hasProAccess) {
     const [{ data: expData }, { data: todoData }] = await Promise.all([
@@ -339,11 +348,21 @@ export async function sendGeneratedProReminderEmailsForToday(
     };
   }
 
+  const lockedFreeBillId = hasProAccess
+    ? null
+    : ((lockRow as { data: { dedupe_key: string }[] | null } | null)
+        ?.data?.[0]?.dedupe_key?.match(/^bill:([^:]+):/)?.[1] ?? null);
+  let freeTierBillFired = false;
+
   const pending: PendingReminder[] = [];
 
   for (const bill of (billsQueryResult.data ?? []) as BillReminderRow[]) {
     if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
       continue;
+    }
+    if (!hasProAccess) {
+      if (lockedFreeBillId !== null && bill.id !== lockedFreeBillId) continue;
+      if (lockedFreeBillId === null && freeTierBillFired) continue;
     }
     const candidates = getCandidateDueDates(bill.due_date, today);
     const billLabel = (bill.note ?? "Bill").trim() || "Bill";
@@ -365,6 +384,7 @@ export async function sendGeneratedProReminderEmailsForToday(
             ? "This bill is due today. Please review and settle it."
             : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`,
         });
+        if (!hasProAccess) freeTierBillFired = true;
       }
     }
   }

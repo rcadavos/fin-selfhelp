@@ -21,6 +21,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   // ── Calculators ──────────────────────────────────────────────────────────
   { title: "Debt Payoff Calculator", href: "/dashboard/calculators/debt-payoff", group: "Calculators", keywords: ["loan", "debt", "payoff", "amortization", "interest", "monthly payment", "installment"] },
   { title: "Savings Calculator", href: "/dashboard/calculators/savings", group: "Calculators", keywords: ["savings", "interest", "compound", "future value", "investment", "earn"] },
+  { title: "Tax Calculator", href: "/dashboard/calculators/tax", group: "Calculators", keywords: ["tax", "income tax", "BIR", "TRAIN law", "SSS", "PhilHealth", "Pag-IBIG", "contributions", "take-home", "net pay", "salary", "withholding"] },
 
   // ── Expenses sub ─────────────────────────────────────────────────────────
   { title: "Expense Categories", href: "/dashboard/my-expenses/categories", group: "Expenses", keywords: ["category", "organize", "type", "label", "food", "utilities", "rent", "transport", "groups"] },

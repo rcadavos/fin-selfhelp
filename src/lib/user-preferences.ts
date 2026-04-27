@@ -183,7 +183,7 @@ export function formatNumberWithPreferences(
         ? "de-DE"
         : "fil-PH"
       : numberFormatLocale(prefs.numberGrouping);
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n);
 }
 
 export function formatCurrencyWithPreferences(
@@ -200,7 +200,7 @@ export function formatCurrencyWithPreferences(
     style: "currency",
     currency: prefs.currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
