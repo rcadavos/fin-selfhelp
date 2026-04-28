@@ -1041,25 +1041,23 @@ export function MyExpensesBoard() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                className="h-9 w-9 flex-none rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
                 aria-label="Remove"
                 onClick={() => { setEditingEntry(null); handleDelete(editingEntry!.id); }}
                 disabled={editSaving}
               >
                 <Trash2 className="h-4 w-4" aria-hidden />
               </Button>
-              <div className="flex flex-1 gap-2">
-                <Button type="button" variant="outline" className="w-1/2" onClick={() => setEditingEntry(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="w-1/2"
-                  disabled={editSaving || !editName.trim() || !editAmount}
-                >
-                  {editSaving ? "Saving…" : "Save"}
-                </Button>
-              </div>
+              <Button type="button" variant="outline" className="flex-1 w-1/2" onClick={() => setEditingEntry(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 w-1/2"
+                disabled={editSaving || !editName.trim() || !editAmount}
+              >
+                {editSaving ? "Saving…" : "Save"}
+              </Button>
             </div>
           </DialogFooter>
 

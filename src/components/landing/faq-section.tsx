@@ -15,7 +15,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Can my partner see my data?",
-    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your My Expenses and/or a to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your bill amounts.",
+    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your Bills and/or your to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your bill amounts.",
   },
   {
     q: "What currencies and formats are supported?",
@@ -53,7 +53,7 @@ export function FaqSection({ className }: { className?: string }) {
                   </span>
                 </span>
               </summary>
-              <p className="border-t border-border/60 pb-4 pt-0 text-sm leading-relaxed text-muted-foreground">{a}</p>
+              <p className="border-t border-border/60 pb-4 pt-2 text-sm leading-relaxed text-muted-foreground">{a}</p>
             </details>
           ))}
         </div>
