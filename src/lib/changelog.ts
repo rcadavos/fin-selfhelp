@@ -14,6 +14,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.5",
+    date: "2026-04-28",
+    summary: "Add/Edit Bill modal now matches the expense modal UX.",
+    changes: [
+      { type: "improvement", description: "Bill dialog now uses a proper form element — pressing Enter submits the form." },
+      { type: "improvement", description: "Name field auto-focuses when the dialog opens." },
+      { type: "improvement", description: "Edit Bill dialog now has an inline Delete button in the footer, matching the expense modal." },
+      { type: "fix", description: "End Date picker no longer allows selecting future months or dates." },
+    ],
+  },
+  {
     version: "1.4.4",
     date: "2026-04-28",
     summary: "Expenses page: month selector, locked calendar, and delete confirmation.",

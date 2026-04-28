@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
@@ -37,6 +37,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -245,6 +246,7 @@ function BillDialog({
   open,
   onClose,
   onSave,
+  onDelete,
   initial,
   editingBillId,
   isPending,
@@ -256,6 +258,7 @@ function BillDialog({
   open: boolean;
   onClose: () => void;
   onSave: (form: BillFormState) => void;
+  onDelete?: () => void;
   initial?: BillFormState;
   editingBillId?: string;
   isPending: boolean;
@@ -271,10 +274,10 @@ function BillDialog({
 
   const [form, setForm] = useState<BillFormState>(initial ?? EMPTY_FORM);
 
-  // reset when dialog opens with new initial
-  useState(() => {
+  useEffect(() => {
     if (open) setForm(initial ?? EMPTY_FORM);
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function set<K extends keyof BillFormState>(key: K, val: BillFormState[K]) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -299,32 +302,34 @@ function BillDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="grid gap-4 py-2">
           {/* Row 1 — Name */}
-          <div className="space-y-1.5">
-            <Label>Name</Label>
+          <div className="grid gap-1.5">
+            <Label htmlFor="bill-name">Name</Label>
             <Input
+              id="bill-name"
               placeholder="e.g. Internet, Electricity"
               value={form.note}
               onChange={(e) => set("note", e.target.value)}
+              autoFocus
             />
           </div>
 
           {/* Account tags */}
           {accounts.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <AccountTagSelector accounts={accounts} value={form.accountId} onChange={(id) => set("accountId", id)} />
             </div>
           )}
 
           {/* Row 2 — Category + Amount */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>Category</Label>
               <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
                 <SelectTrigger>
@@ -339,7 +344,7 @@ function BillDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>Amount</Label>
               <Input
                 type="number"
@@ -354,7 +359,7 @@ function BillDialog({
 
           {/* Vehicle selector — only when category is transport */}
           {form.categoryId === "transport" && vehicles.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>Vehicle (optional)</Label>
               <Select value={form.vehicleId} onValueChange={(v) => set("vehicleId", v === "_none" ? "" : v)}>
                 <SelectTrigger>
@@ -374,7 +379,7 @@ function BillDialog({
 
           {/* Row 3 — Billing Period (+ Due Month if yearly) */}
           <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>Billing Period</Label>
               <Select
                 value={form.billingPeriod}
@@ -391,7 +396,7 @@ function BillDialog({
               </Select>
             </div>
             {form.billingPeriod === "yearly" && (
-              <div className="space-y-1.5">
+              <div className="grid gap-1.5">
                 <Label>Due Month</Label>
                 <Select value={form.dueMonth} onValueChange={(v) => set("dueMonth", v)}>
                   <SelectTrigger>
@@ -411,7 +416,7 @@ function BillDialog({
 
           {/* Row 4 — Due Date + End Date */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>Due Day</Label>
               <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
                 <SelectTrigger>
@@ -431,7 +436,7 @@ function BillDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="grid gap-1.5">
               <Label>
                 End Date{" "}
                 <span className="font-normal text-muted-foreground">(optional)</span>
@@ -480,7 +485,7 @@ function BillDialog({
             }
 
             return (
-              <div className="space-y-1.5">
+              <div className="grid gap-1.5">
                 <div className="flex items-center justify-between">
                   <Label>Reminders</Label>
                   <span className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", badgeClass)}>
@@ -515,16 +520,25 @@ function BillDialog({
               </div>
             );
           })()}
-        </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" className="w-1/2" onClick={onClose} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button className="w-1/2" onClick={() => onSave(form)} disabled={!isValid || isPending}>
-            {isPending ? "Saving…" : initial ? "Save changes" : "Add bill"}
-          </Button>
-        </div>
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              {editingBillId && onDelete && (
+                <Button type="button" variant="ghost" size="icon" className="flex-none text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={isPending}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              <div className={cn("flex gap-2", editingBillId ? "flex-1 justify-end" : "w-full")}>
+                <Button type="button" variant="outline" className={editingBillId ? "flex-1" : "w-1/2"} onClick={onClose} disabled={isPending}>
+                  Cancel
+                </Button>
+                <Button type="submit" className={editingBillId ? "flex-1" : "w-1/2"} disabled={!isValid || isPending}>
+                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add bill"}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
@@ -1299,6 +1313,7 @@ export function BillsBoard() {
           open={!!editingBill}
           onClose={() => setEditingBill(null)}
           onSave={handleEdit}
+          onDelete={() => { setEditingBill(null); setDeletingId(editingBill.id); }}
           initial={billToForm(editingBill)}
           editingBillId={editingBill.id}
           isPending={isPending}
