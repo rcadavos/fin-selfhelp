@@ -302,12 +302,12 @@ function BillDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="grid gap-4 py-2">
+        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="grid gap-4">
           {/* Row 1 — Name */}
           <div className="grid gap-1.5">
             <Label htmlFor="bill-name">Name</Label>

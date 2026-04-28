@@ -25,7 +25,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Tax Calculator", href: "/dashboard/calculators/tax", group: "Calculators", keywords: ["tax", "income tax", "BIR", "TRAIN law", "SSS", "PhilHealth", "Pag-IBIG", "contributions", "take-home", "net pay", "salary", "withholding"] },
 
   // ── Expenses sub ─────────────────────────────────────────────────────────
-  { title: "Expense Categories", href: "/dashboard/my-expenses/categories", group: "Expenses", keywords: ["category", "organize", "type", "label", "food", "utilities", "rent", "transport", "groups"] },
+  { title: "Expense Categories", href: "/dashboard/expenses/categories", group: "Expenses", keywords: ["category", "organize", "type", "label", "food", "utilities", "rent", "transport", "groups", "custom category", "my categories"] },
 
   // ── Premium features ─────────────────────────────────────────────────────
   { title: "Rent Tracker", href: "/dashboard/rent-tracker", group: "Premium", keywords: ["rent", "landlord", "tenant", "property", "lease", "apartment", "house rental"] },

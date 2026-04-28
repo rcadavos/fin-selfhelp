@@ -17,6 +17,7 @@ export const proBenefits = [
   "Email reminders for bills and to-do lists",
   "Unlimited to-buy & to-do",
   "Partner sharing (invite by email)",
+  "Custom expense categories",
 ];
 
 export const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];

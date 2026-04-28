@@ -830,7 +830,7 @@ export function MyExpensesBoard() {
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddFromDialog} className="grid gap-4 py-2">
+          <form onSubmit={handleAddFromDialog} className="grid gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="add-name">Name</Label>
@@ -942,7 +942,7 @@ export function MyExpensesBoard() {
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSaveEdit} className="grid gap-4 py-2">
+          <form onSubmit={handleSaveEdit} className="grid gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-name">Name</Label>
@@ -1033,35 +1033,36 @@ export function MyExpensesBoard() {
             </div>
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
-
-            <DialogFooter className="pt-2">
-              <div className="flex w-full items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
-                  aria-label="Remove"
-                  onClick={() => { setEditingEntry(null); handleDelete(editingEntry!.id); }}
-                  disabled={editSaving}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </Button>
-                <div className="flex flex-1 gap-2">
-                  <Button type="button" variant="outline" className="w-1/2" onClick={() => setEditingEntry(null)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="w-1/2"
-                    disabled={editSaving || !editName.trim() || !editAmount}
-                  >
-                    {editSaving ? "Saving…" : "Save"}
-                  </Button>
-                </div>
-              </div>
-            </DialogFooter>
           </form>
+
+          <DialogFooter className="pt-2">
+            <div className="flex w-full gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                aria-label="Remove"
+                onClick={() => { setEditingEntry(null); handleDelete(editingEntry!.id); }}
+                disabled={editSaving}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </Button>
+              <div className="flex flex-1 gap-2">
+                <Button type="button" variant="outline" className="w-1/2" onClick={() => setEditingEntry(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="w-1/2"
+                  disabled={editSaving || !editName.trim() || !editAmount}
+                >
+                  {editSaving ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+
         </DialogContent>
       </Dialog>
 

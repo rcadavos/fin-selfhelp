@@ -14,6 +14,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.6",
+    date: "2026-04-28",
+    summary: "Pro/Premium users can now create custom expense categories.",
+    changes: [
+      { type: "feature", description: "Pro and Premium users can create, edit, and delete their own custom expense categories from /dashboard/expenses/categories." },
+      { type: "improvement", description: "Custom categories appear first on the Expense Categories page, above the standard built-in categories." },
+      { type: "improvement", description: "Custom categories are included in expense dropdowns so they can be assigned to expenses immediately after creation." },
+      { type: "improvement", description: "Added 'Custom expense categories' to Pro plan benefits on the subscription and landing pages." },
+      { type: "fix", description: "Corrected the search index URL for Expense Categories to /dashboard/expenses/categories." },
+    ],
+  },
+  {
     version: "1.4.5",
     date: "2026-04-28",
     summary: "Add/Edit Bill modal now matches the expense modal UX.",
@@ -163,19 +175,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.3.12",
     date: "2026-04-27",
-    summary: "Bills page smart defaults and correct outstanding logic for quarterly/yearly bills.",
+    summary: "Bills page smart defaults, correct outstanding logic, and reminder cap for free users.",
     changes: [
       { type: "improvement", description: "Add Bill dialog auto-selects the billing period matching the active tab (quarterly or yearly)." },
       { type: "fix", description: "Quarterly bills now show outstanding based on the current quarter's due date, not the current month." },
       { type: "fix", description: "Yearly bills now show outstanding based on the bill's due month in the current year, not the current month." },
       { type: "improvement", description: "Quarterly bill due date label now shows Q1–Q4 and the quarter's start month (e.g. Q2 • Apr 15)." },
-    ],
-  },
-  {
-    version: "1.3.12",
-    date: "2026-04-27",
-    summary: "Free/expired users receive exactly 1 bill reminder per month, not all reminders set during Pro.",
-    changes: [
       { type: "fix", description: "When a subscription expires, bill reminders are now capped to 1 — the bill that previously held the free reminder slot, or the first eligible bill if none has fired yet. Expense and to-do reminders remain Pro-only." },
     ],
   },

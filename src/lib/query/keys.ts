@@ -38,4 +38,6 @@ export const queryKeys = {
   vehicles: () => [...queryKeys.all, "vehicles"] as const,
   /** Monthly expense totals for the bar chart (see `monthlyBreakdownQueryOptions`). */
   monthlyBreakdown: (months: number) => [...queryKeys.all, "monthly-breakdown", months] as const,
+  /** Current user's own custom expense categories (see `userCategoriesQueryOptions`). */
+  userCategories: () => [...queryKeys.all, "user-categories"] as const,
 };
