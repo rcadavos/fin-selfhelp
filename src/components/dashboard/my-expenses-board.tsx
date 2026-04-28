@@ -48,8 +48,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
@@ -62,9 +60,7 @@ import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
-import Image from "next/image";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
-import DashboardLoading from "@/app/(main)/dashboard/loading";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 import { ContentHeader } from "../app/content-header";
 
@@ -218,7 +214,11 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             ))}
           </Pie>
           <Tooltip
-            formatter={(value, _name, props) => [`${(((props as any).percent ?? 0) * 100).toFixed(0)}% : ${formatCurrency(Number(value ?? 0))}`, ""]}
+            formatter={(value) => {
+              const total = data.reduce((s, d) => s + d.value, 0);
+              const pct = total > 0 ? ((Number(value) / total) * 100).toFixed(0) : 0;
+              return [`${pct}% : ${formatCurrency(Number(value ?? 0))}`, ""];
+            }}
             contentStyle={{ fontSize: 12 }}
           />
           <Legend
@@ -386,13 +386,13 @@ export function MyExpensesBoard() {
   const expenses = useMemo(
     () =>
       allEntries
-        .filter((e) => !e.due_date)
+        .filter((e) => !e.due_date && e.created_at?.slice(0, 7) === selectedMonth)
         .sort((a, b) => {
           const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
           const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
           return tb - ta;
         }),
-    [allEntries]
+    [allEntries, selectedMonth]
   );
 
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);

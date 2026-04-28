@@ -1614,7 +1614,11 @@ export function ExpenseCashflowPage({
                               ))}
                             </Pie>
                             <Tooltip
-                              formatter={(value, _name, props) => [`${(((props as any).percent ?? 0) * 100).toFixed(0)}% : ${formatCurrency(Number(value ?? 0))}`, ""]}
+                              formatter={(value) => {
+                                const total = pieData.reduce((s, d) => s + d.value, 0);
+                                const pct = total > 0 ? ((Number(value) / total) * 100).toFixed(0) : 0;
+                                return [`${pct}% : ${formatCurrency(Number(value ?? 0))}`, ""];
+                              }}
                               contentStyle={{ fontSize: 12 }}
                             />
                             <Legend

@@ -589,7 +589,11 @@ function BillsPieChart({ bills, currency, categories }: { bills: BillRow[]; curr
             ))}
           </Pie>
           <Tooltip
-            formatter={(value, _name, props) => [`${(((props as any).percent ?? 0) * 100).toFixed(0)}% : ${formatCurrency(Number(value ?? 0), currency)}`, ""]}
+            formatter={(value) => {
+              const total = data.reduce((s, d) => s + d.value, 0);
+              const pct = total > 0 ? ((Number(value) / total) * 100).toFixed(0) : 0;
+              return [`${pct}% : ${formatCurrency(Number(value ?? 0), currency)}`, ""];
+            }}
             contentStyle={{ fontSize: 12 }}
           />
           <Legend
