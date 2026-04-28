@@ -2,19 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getStoredCookieConsent,
   setStoredCookieConsent,
-  type CookieConsentChoice,
 } from "@/lib/cookie-consent";
 import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
@@ -29,54 +21,33 @@ export function CookieConsentDialog() {
     }
   }, []);
 
-  function choose(choice: CookieConsentChoice) {
-    setStoredCookieConsent(choice);
+  function dismiss() {
+    setStoredCookieConsent("essential");
     setOpen(false);
   }
 
-  if (!mounted) {
+  if (!mounted || !open) {
     return null;
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent
-        placement="bottom"
-        showClose={false}
-        className="max-w-md sm:max-w-lg"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        aria-describedby="cookie-consent-desc"
+    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+      <Link
+        href={LEGAL_ROUTES.cookies}
+        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
-        <DialogHeader>
-          <DialogTitle>Cookie Preferences</DialogTitle>
-          <DialogDescription id="cookie-consent-desc" className="text-left leading-relaxed">
-            We use cookies and similar storage for essential features (such as signing you in and
-            remembering your theme). With your permission we can also use optional cookies to
-            improve the product over time. Read more in our{" "}
-            <Link
-              href={LEGAL_ROUTES.cookies}
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              cookie notice
-            </Link>
-            .
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex w-full flex-row gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-1/2"
-            onClick={() => choose("essential")}
-          >
-            Essential
-          </Button>
-          <Button type="button" className="w-1/2" onClick={() => choose("all")}>
-            Accept
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        Read our cookie policy
+      </Link>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 shrink-0"
+        onClick={dismiss}
+        aria-label="Close"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }

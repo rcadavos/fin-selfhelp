@@ -182,7 +182,7 @@ function AccountsPieChart({
             ))}
           </Pie>
           <Tooltip
-            formatter={(value) => [formatCurrency(Number(value ?? 0)), ""]}
+            formatter={(value, _name, props) => [`${(((props as any).percent ?? 0) * 100).toFixed(0)}% : ${formatCurrency(Number(value ?? 0))}`, ""]}
             contentStyle={{ fontSize: 12 }}
           />
           <Legend

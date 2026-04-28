@@ -232,6 +232,7 @@ export default function AdminUsersPage() {
                   <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
                   <TableHead className="text-right">Last login</TableHead>
+                  <TableHead className="text-right">Confirmed</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
                   <TableHead className="text-right w-[220px]">Actions</TableHead>
@@ -249,6 +250,9 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.last_login_at)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatDate(u.email_confirmed_at)}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">

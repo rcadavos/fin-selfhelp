@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -218,7 +218,7 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             ))}
           </Pie>
           <Tooltip
-            formatter={(value) => [formatCurrency(Number(value ?? 0)), ""]}
+            formatter={(value, _name, props) => [`${(((props as any).percent ?? 0) * 100).toFixed(0)}% : ${formatCurrency(Number(value ?? 0))}`, ""]}
             contentStyle={{ fontSize: 12 }}
           />
           <Legend
@@ -293,13 +293,20 @@ function InlineDatePicker({
   value,
   onChange,
   disabled,
+  restrictToMonth,
 }: {
   value: string;
   onChange: (ymd: string) => void;
   disabled?: boolean;
+  restrictToMonth?: string; // YYYY-MM — locks calendar nav to this month
 }) {
   const [open, setOpen] = useState(false);
   const selected = value.trim() ? parseYmdToLocalDate(value) : undefined;
+  const monthDate = useMemo(() => {
+    if (!restrictToMonth) return undefined;
+    const [y, m] = restrictToMonth.split("-").map(Number);
+    return new Date(y, m - 1, 1);
+  }, [restrictToMonth]);
   return (
     <Popover modal={false} open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -319,7 +326,9 @@ function InlineDatePicker({
         <Calendar
           mode="single"
           selected={selected}
-          defaultMonth={selected ?? new Date()}
+          defaultMonth={monthDate ?? selected ?? new Date()}
+          startMonth={monthDate}
+          endMonth={monthDate}
           onSelect={(d) => {
             if (!d) return;
             onChange(formatYmdLocal(d));
@@ -338,8 +347,24 @@ export function MyExpensesBoard() {
   const { user, loading: userLoading } = useUser();
   const queryClient = useQueryClient();
 
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentPaidMonth());
+
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const opts: { value: string; label: string }[] = [];
+    for (let i = 0; i < 13; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      opts.push({
+        value: ym,
+        label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      });
+    }
+    return opts;
+  }, []);
+
   const { data: expenseData, isLoading } = useQuery({
-    ...expenseDataQueryOptions(),
+    ...expenseDataQueryOptions(selectedMonth),
     enabled: !!user && !userLoading,
   });
   const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
@@ -355,7 +380,7 @@ export function MyExpensesBoard() {
   );
   const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
   const categories = dbCategories;
-  const paidMonth = expenseData?.paidMonth ?? getCurrentPaidMonth();
+  const paidMonth = selectedMonth;
   const allEntries: ExpenseEntryRow[] = expenseData?.entries ?? [];
 
   const expenses = useMemo(
@@ -419,6 +444,21 @@ export function MyExpensesBoard() {
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return selectedMonth === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }, [selectedMonth]);
+
+  // Reset quick-add date when month changes
+  useEffect(() => {
+    const defaultDate = isCurrentMonth ? todayYmd() : `${selectedMonth}-01`;
+    setExpDate(defaultDate);
+    setAddDate(defaultDate);
+  }, [selectedMonth, isCurrentMonth]);
 
   // Auth guard
   useEffect(() => {
@@ -486,11 +526,18 @@ export function MyExpensesBoard() {
     }
   }
 
-  async function handleDelete(id: string) {
-    setError(null);
-    const res = await deleteExpense(id);
-    if (res.error) setError(res.error);
-    else invalidate();
+  function handleDelete(id: string) {
+    setDeletingId(id);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingId) return;
+    startTransition(async () => {
+      const res = await deleteExpense(deletingId);
+      setDeletingId(null);
+      if (res.error) setError(res.error);
+      else invalidate();
+    });
   }
 
   function handleOpenEdit(entry: ExpenseEntryRow) {
@@ -646,8 +693,20 @@ export function MyExpensesBoard() {
         </div>
       </div>
 
-      {/* Add Expense button */}
-      <div className="flex justify-end my-2">
+      {/* Month selector + Add Expense button */}
+      <div className="flex items-center justify-between my-2">
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="h-8 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {monthOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button size="sm" onClick={() => { setAddOpen(true); setAddError(null); }} className="gap-1.5">
           <Plus className="h-4 w-4" aria-hidden />
           Add Expense
@@ -688,7 +747,7 @@ export function MyExpensesBoard() {
           disabled={expSaving}
           aria-label="Amount"
         />
-        <InlineDatePicker value={expDate} onChange={setExpDate} disabled={expSaving} />
+        <InlineDatePicker value={expDate} onChange={setExpDate} disabled={expSaving} restrictToMonth={selectedMonth} />
         <button
           type="submit"
           disabled={expSaving || !expName.trim() || !expAmount}
@@ -983,7 +1042,7 @@ export function MyExpensesBoard() {
                   size="icon"
                   className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
                   aria-label="Remove"
-                  onClick={() => { handleDelete(editingEntry!.id); setEditingEntry(null); }}
+                  onClick={() => { setEditingEntry(null); handleDelete(editingEntry!.id); }}
                   disabled={editSaving}
                 >
                   <Trash2 className="h-4 w-4" aria-hidden />
@@ -1003,6 +1062,26 @@ export function MyExpensesBoard() {
               </div>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete expense?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete the expense.
+          </p>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="w-1/2" onClick={() => setDeletingId(null)} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" className="w-1/2" onClick={handleDeleteConfirm} disabled={isPending}>
+              {isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

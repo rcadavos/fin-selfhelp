@@ -14,6 +14,33 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.4",
+    date: "2026-04-28",
+    summary: "Expenses page: month selector, locked calendar, and delete confirmation.",
+    changes: [
+      { type: "improvement", description: "Added month selector on the Expenses page (inline with + Add Expense) defaulting to current month, allowing navigation to past 12 months." },
+      { type: "improvement", description: "Inline date picker calendar now locks navigation to the selected month only — no forward/backward month browsing." },
+      { type: "improvement", description: "Quick-add date resets to the 1st of the selected month when switching to a past month, and to today when on the current month." },
+      { type: "improvement", description: "Expense list delete now shows a confirmation dialog before permanently removing an expense." },
+    ],
+  },
+  {
+    version: "1.4.3",
+    date: "2026-04-28",
+    summary: "Admin users table now shows email confirmation date.",
+    changes: [
+      { type: "improvement", description: "Admin users table: added 'Confirmed' column showing the date the user confirmed their email." },
+    ],
+  },
+  {
+    version: "1.4.2",
+    date: "2026-04-28",
+    summary: "Cookie consent replaced with a minimal bottom-right popover.",
+    changes: [
+      { type: "improvement", description: "Cookie consent dialog replaced with a compact bottom-right popover showing a 'Read our cookie policy' link and a close button." },
+    ],
+  },
+  {
     version: "1.4.1",
     date: "2026-04-28",
     summary: "Bills board: distinct status colors for Upcoming, Unpaid, Overdue, and Paid.",
