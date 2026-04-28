@@ -1300,9 +1300,9 @@ export function ExpenseCashflowPage({
             {editingEntry ? (
               <DialogDescription>
                 {getCategoryLabel(categoriesList, editingEntry.category_id)}
-                {" · "}
+                {" • "}
                 {formatCurrency(editingEntry.amount)}
-                {" · "}
+                {" • "}
                 {paidIds.has(editingEntry.id)
                   ? "Paid"
                   : getExpensePayStatus(editingEntry, paidIds, paidMonthYm) === "outstanding"

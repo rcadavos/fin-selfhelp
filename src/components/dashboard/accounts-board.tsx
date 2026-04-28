@@ -254,7 +254,7 @@ function AccountRow({
         <p className="text-[11px] text-muted-foreground">
           {total === 0
             ? "No spending tagged"
-            : `Expenses ${formatCurrency(expenseTotal)} · Bills ${formatCurrency(billTotal)}`}
+            : `Expenses ${formatCurrency(expenseTotal)} • Bills ${formatCurrency(billTotal)}`}
         </p>
       </div>
 

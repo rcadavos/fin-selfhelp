@@ -344,9 +344,9 @@ function SubscriptionPageInner() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 {isRecurring ? (
-                  <Badge variant="success" className="font-medium">{hasPremium ? "Premium" : "Pro"} · active</Badge>
+                  <Badge variant="success" className="font-medium">{hasPremium ? "Premium" : "Pro"} • active</Badge>
                 ) : (
-                  <Badge variant="warning" className="font-medium">{tierLabel} · ends {endsAt ? formatDate(endsAt) : "soon"}</Badge>
+                  <Badge variant="warning" className="font-medium">{tierLabel} • ends {endsAt ? formatDate(endsAt) : "soon"}</Badge>
                 )}
               </div>
               <h2 className="text-2xl font-bold tracking-tight">

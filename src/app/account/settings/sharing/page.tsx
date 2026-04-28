@@ -30,7 +30,7 @@ function permBadges(s: AccountShareRow) {
   const parts: string[] = [];
   if (s.can_view_expenses) parts.push("Bills");
   if (s.can_view_to_buy) parts.push("To-buy");
-  return parts.length ? parts.join(" · ") : "—";
+  return parts.length ? parts.join(" • ") : "—";
 }
 
 export default function SharingSettingsPage() {

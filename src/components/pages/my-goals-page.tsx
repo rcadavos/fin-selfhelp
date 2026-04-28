@@ -528,7 +528,7 @@ export function MyGoalsPage() {
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               Set {formatMonthYearShort(g.date_set_month, g.date_set_year)}
               {achieved && achievedShort && (
-                <span className="ml-1.5">· Achieved {achievedShort}</span>
+                <span className="ml-1.5">• Achieved {achievedShort}</span>
               )}
             </p>
             {g.notes?.trim() && (

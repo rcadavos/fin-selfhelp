@@ -26,7 +26,7 @@ function formatDueDay(bill: BillRow, paidMonth: string): string {
     if (!ym || !day) return "—";
     const quarter = Math.floor((ym.month1to12 - 1) / 3) + 1;
     const qStartMonthName = MONTH_NAMES[Math.floor((ym.month1to12 - 1) / 3) * 3];
-    return `Q${quarter} · ${qStartMonthName} ${day}`;
+    return `Q${quarter} • ${qStartMonthName} ${day}`;
   }
   const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
   if (!eff) return "—";
@@ -259,7 +259,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
                       {cat?.label}
-                      {formatDueDay(bill, paidMonth) && <span className="text-muted-foreground/60"> · {formatDueDay(bill, paidMonth)}</span>}
+                      {formatDueDay(bill, paidMonth) && <span className="text-muted-foreground/60"> • {formatDueDay(bill, paidMonth)}</span>}
                     </p>
                   </div>
 

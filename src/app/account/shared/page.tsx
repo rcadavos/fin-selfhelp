@@ -17,7 +17,7 @@ function shareAccessLabel(share: AccountShareRow) {
   const parts: string[] = [];
   if (share.can_view_expenses) parts.push("Bills");
   if (share.can_view_to_buy) parts.push("To-buy");
-  return parts.length ? parts.join(" · ") : "—";
+  return parts.length ? parts.join(" • ") : "—";
 }
 
 export default function SharedWithMePage() {

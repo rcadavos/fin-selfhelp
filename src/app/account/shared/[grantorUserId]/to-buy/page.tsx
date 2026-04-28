@@ -117,7 +117,7 @@ export default function SharedToBuyPage({ params }: { params: Promise<{ grantorU
                       </Badge>
                       {item.quantity > 1 && <span>Qty {item.quantity}</span>}
                       {price > 0 && <span>{formatCurrency(price)}</span>}
-                      {price > 0 && item.quantity > 1 && <span>· {formatCurrency(line)} total</span>}
+                      {price > 0 && item.quantity > 1 && <span>• {formatCurrency(line)} total</span>}
                     </div>
                   </div>
                 </li>

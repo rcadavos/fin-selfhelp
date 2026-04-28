@@ -734,7 +734,7 @@ export function MyExpensesBoard() {
                 <p className="text-[11px] text-muted-foreground">
                   {getCategoryLabel(exp.category_id, categories)}
                   {getExpenseDateLabel(exp) && (
-                    <span className="text-muted-foreground/60"> · {getExpenseDateLabel(exp)}</span>
+                    <span className="text-muted-foreground/60"> • {getExpenseDateLabel(exp)}</span>
                   )}
                 </p>
               </div>

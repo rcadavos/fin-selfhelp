@@ -14,6 +14,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.1",
+    date: "2026-04-28",
+    summary: "Bills board: distinct status colors for Upcoming, Unpaid, Overdue, and Paid.",
+    changes: [
+      { type: "improvement", description: "Bill status 'Upcoming' (not yet due) now shows a blue badge and blue row highlight." },
+      { type: "improvement", description: "Bill status 'Overdue' label renamed from 'Outstanding' to 'Overdue' for clarity." },
+      { type: "improvement", description: "Bills sort order updated: Overdue → Unpaid (due today) → Upcoming → Paid." },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "2026-04-27",
     summary: "Fuel & Vehicles tracker — register vehicles and monitor transport spending.",
@@ -120,7 +130,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Add Bill dialog auto-selects the billing period matching the active tab (quarterly or yearly)." },
       { type: "fix", description: "Quarterly bills now show outstanding based on the current quarter's due date, not the current month." },
       { type: "fix", description: "Yearly bills now show outstanding based on the bill's due month in the current year, not the current month." },
-      { type: "improvement", description: "Quarterly bill due date label now shows Q1–Q4 and the quarter's start month (e.g. Q2 · Apr 15)." },
+      { type: "improvement", description: "Quarterly bill due date label now shows Q1–Q4 and the quarter's start month (e.g. Q2 • Apr 15)." },
     ],
   },
   {

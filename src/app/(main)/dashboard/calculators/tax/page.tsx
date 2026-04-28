@@ -125,7 +125,7 @@ export default function TaxCalculatorPage() {
                 <span className="text-muted-foreground">SSS (4.5% of monthly salary credit)</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(result.contributions.sssMonthly)}/mo
-                  &nbsp;·&nbsp;
+                  &nbsp;•&nbsp;
                   {formatCurrency(result.contributions.sssAnnual)}/yr
                 </span>
               </div>
@@ -133,7 +133,7 @@ export default function TaxCalculatorPage() {
                 <span className="text-muted-foreground">PhilHealth (2.5% of salary, employee share)</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(result.contributions.philhealthMonthly)}/mo
-                  &nbsp;·&nbsp;
+                  &nbsp;•&nbsp;
                   {formatCurrency(result.contributions.philhealthAnnual)}/yr
                 </span>
               </div>
@@ -141,7 +141,7 @@ export default function TaxCalculatorPage() {
                 <span className="text-muted-foreground">Pag-IBIG (2% of salary, max ₱100/mo)</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(result.contributions.pagibigMonthly)}/mo
-                  &nbsp;·&nbsp;
+                  &nbsp;•&nbsp;
                   {formatCurrency(result.contributions.pagibigAnnual)}/yr
                 </span>
               </div>
@@ -149,7 +149,7 @@ export default function TaxCalculatorPage() {
                 <span>Total contributions</span>
                 <span className="tabular-nums">
                   {formatCurrency(result.contributions.totalMonthly)}/mo
-                  &nbsp;·&nbsp;
+                  &nbsp;•&nbsp;
                   {formatCurrency(result.contributions.totalAnnual)}/yr
                 </span>
               </div>

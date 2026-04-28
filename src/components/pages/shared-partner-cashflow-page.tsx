@@ -333,7 +333,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
             </div>
             {totalExpenses > 0 && (
               <div className="mt-2 text-xs text-muted-foreground">
-                {paidPct}% of amount · {paidCountPct}% of bills
+                {paidPct}% of amount • {paidCountPct}% of bills
               </div>
             )}
           </div>

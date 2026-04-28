@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart,
@@ -150,9 +150,9 @@ function VehicleDialog({
 }) {
   const [form, setForm] = useState<VehicleFormState>(initial ?? EMPTY_FORM);
 
-  useState(() => {
+  useEffect(() => {
     if (open) setForm(initial ?? EMPTY_FORM);
-  });
+  }, [open, initial]);
 
   function set<K extends keyof VehicleFormState>(key: K, val: VehicleFormState[K]) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -339,8 +339,8 @@ function VehicleRow({
           )}
         </div>
         <p className="text-[11px] text-muted-foreground">
-          {vehicle.type}{subtitle ? ` · ${subtitle}` : ""}
-          {vehicle.fuel_type ? ` · ${vehicle.fuel_type}` : ""}
+          {vehicle.type}{subtitle ? ` • ${subtitle}` : ""}
+          {vehicle.fuel_type ? ` • ${vehicle.fuel_type}` : ""}
         </p>
       </div>
 

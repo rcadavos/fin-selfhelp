@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
+  Bell,
   Car,
   CheckCircle2,
   Circle,
@@ -136,7 +137,7 @@ function formatDueDay(bill: BillRow, paidMonth: string): string {
     if (!ym || !day) return "—";
     const quarter = Math.floor((ym.month1to12 - 1) / 3) + 1;
     const qStartMonthName = MONTH_NAMES[Math.floor((ym.month1to12 - 1) / 3) * 3];
-    return `Q${quarter} · ${qStartMonthName} ${day}`;
+    return `Q${quarter} • ${qStartMonthName} ${day}`;
   }
   const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
   if (!eff) return "—";
@@ -613,6 +614,7 @@ function BillRow({
   bill,
   isPaid,
   isOverdue,
+  isUpcoming,
   isPending,
   currency,
   paidMonth,
@@ -628,6 +630,7 @@ function BillRow({
   bill: BillRow;
   isPaid: boolean;
   isOverdue: boolean;
+  isUpcoming: boolean;
   isPending: boolean;
   currency: string;
   paidMonth: string;
@@ -643,6 +646,9 @@ function BillRow({
   const cat = categories.find((c) => c.id === bill.category_id);
   const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
   const dueDateLabel = formatDueDay(bill, paidMonth);
+  const reminderLabel = bill.reminder_days_before?.length
+    ? bill.reminder_days_before.map(d => d === 0 ? "Due date" : `${d}d before`).join(", ")
+    : null;
 
   return (
     <div
@@ -653,7 +659,9 @@ function BillRow({
           ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
           : isOverdue
             ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
-            : "border-border bg-card hover:bg-muted/40",
+            : isUpcoming
+              ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+              : "border-border bg-card hover:bg-muted/40",
       )}
     >
       {/* Paid toggle */}
@@ -668,7 +676,7 @@ function BillRow({
         {isPaid ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
         ) : (
-          <Circle className={cn("h-5 w-5", isOverdue && "text-amber-500")} />
+          <Circle className={cn("h-5 w-5", isOverdue ? "text-amber-500" : isUpcoming ? "text-blue-500" : "")} />
         )}
       </button>
 
@@ -707,7 +715,11 @@ function BillRow({
             </span>
           ) : isOverdue ? (
             <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-              Outstanding
+              Overdue
+            </span>
+          ) : isUpcoming ? (
+            <span className="shrink-0 rounded-full border border-blue-400/60 bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+              Upcoming
             </span>
           ) : (
             <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -715,7 +727,7 @@ function BillRow({
             </span>
           )}
           {isLockedFreeReminder && (
-            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+            <span className="hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
               <Lock className="h-2.5 w-2.5" />
               Reminder
             </span>
@@ -723,14 +735,37 @@ function BillRow({
         </div>
         <p className="truncate text-xs text-muted-foreground">
           {cat?.label}
-          {dueDateLabel && <span className="text-muted-foreground/60"> · {dueDateLabel}</span>}
+          {dueDateLabel && <span className="hidden sm:inline text-muted-foreground/60"> • {dueDateLabel}</span>}
+          {reminderLabel && (
+            <span className="hidden sm:inline-flex items-center gap-0.5 text-muted-foreground/60">
+              &nbsp;•&nbsp;<Bell className="inline h-2.5 w-2.5" />{" "}{reminderLabel}
+            </span>
+          )}
         </p>
+        {cat && (dueDateLabel || reminderLabel || isLockedFreeReminder) && (
+          <div className="sm:hidden flex flex-wrap items-center gap-1.5 mt-0.5">
+            {dueDateLabel && (
+              <span className="text-xs text-muted-foreground/60">{dueDateLabel}</span>
+            )}
+            {reminderLabel && (
+              <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground/60">
+                <Bell className="h-3 w-3" />{reminderLabel}
+              </span>
+            )}
+            {isLockedFreeReminder && (
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                <Lock className="h-2.5 w-2.5" />
+                Reminder
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Account badge */}
+      {/* Account badge — desktop only */}
       {bill.account_id && accountMap[bill.account_id] && (
         <span
-          className="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+          className="hidden sm:inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{
             backgroundColor: `${accountMap[bill.account_id].color}22`,
             color: accountMap[bill.account_id].color,
@@ -740,15 +775,28 @@ function BillRow({
         </span>
       )}
 
-      {/* Amount */}
-      <p
-        className={cn(
-          "flex-shrink-0 text-sm font-semibold tabular-nums",
-          isPaid && "text-muted-foreground",
+      {/* Amount + account badge below on mobile */}
+      <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
+        {bill.account_id && accountMap[bill.account_id] && (
+          <span
+            className="sm:hidden inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: `${accountMap[bill.account_id].color}22`,
+              color: accountMap[bill.account_id].color,
+            }}
+          >
+            {accountMap[bill.account_id].account_alias}
+          </span>
         )}
-      >
-        {formatCurrency(bill.amount, currency)}
-      </p>
+        <p
+          className={cn(
+            "text-sm font-semibold tabular-nums",
+            isPaid && "text-muted-foreground line-through",
+          )}
+        >
+          {formatCurrency(bill.amount, currency)}
+        </p>
+      </div>
 
       {/* Actions */}
       <Button
@@ -950,10 +998,11 @@ export function BillsBoard() {
     today.setHours(0, 0, 0, 0);
 
     function statusRank(bill: BillRow): number {
-      if (paidIds.has(bill.id)) return 2;
+      if (paidIds.has(bill.id)) return 3;
       const eff = effectiveBillDueDate(bill, today, paidMonth);
-      if (eff && eff < today) return 0; // outstanding
-      return 1; // unpaid
+      if (eff && eff < today) return 0; // overdue
+      if (eff && eff > today) return 2; // upcoming
+      return 1; // unpaid (due today or no due date)
     }
 
     function dueTime(bill: BillRow): number {
@@ -1189,12 +1238,14 @@ export function BillsBoard() {
               const today = new Date(); today.setHours(0, 0, 0, 0);
               const eff = effectiveBillDueDate(bill, today, paidMonth);
               const isOverdue = !paidIds.has(bill.id) && !!eff && eff < today;
+              const isUpcoming = !paidIds.has(bill.id) && !!eff && eff > today;
               return (
                 <BillRow
                   key={bill.id}
                   bill={bill}
                   isPaid={paidIds.has(bill.id)}
                   isOverdue={isOverdue}
+                  isUpcoming={isUpcoming}
                   isPending={pendingIds.has(bill.id)}
                   currency={currency}
                   paidMonth={paidMonth}
