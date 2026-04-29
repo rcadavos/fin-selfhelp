@@ -14,12 +14,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.10",
+    date: "2026-04-29",
+    summary: "Fixed expense edit dialog not saving changes.",
+    changes: [
+      { type: "fix", description: "Expense edit modal Save button was outside the form element, preventing any edits from being submitted." },
+    ],
+  },
+  {
     version: "1.4.9",
     date: "2026-04-29",
-    summary: "Fixed quarterly and yearly bill reminders firing in wrong months.",
+    summary: "Fixed quarterly and yearly bill reminders firing in wrong months; improved savings calculation.",
     changes: [
       { type: "fix", description: "Yearly bills now only trigger reminders in their configured due month — no longer fires every month near the due day." },
       { type: "fix", description: "Quarterly bills now only trigger reminders in the correct calendar quarter months (Jan/Apr/Jul/Oct), not every month." },
+      { type: "improvement", description: "Savings in Bills vs Expenses vs Savings chart now counts expense entries categorized as savings created this month, plus bills with savings category marked paid this month." },
     ],
   },
   {

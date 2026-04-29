@@ -254,20 +254,25 @@ export async function getMonthlyBreakdown(
   const { error: authErr, profileId } = await getProfileId(supabase);
   if (authErr || !profileId) return { error: authErr ?? "Not logged in." };
 
-  const [{ data: expenseRows, error }, { data: billRows }] = await Promise.all([
+  const [{ data: expenseRows, error }, { data: billRows }, { data: billPaymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
       .select("amount, due_date, category_id, billing_period, created_at")
       .eq("profile_id", profileId),
     supabase
       .from("bills")
-      .select("amount, billing_period, created_at")
+      .select("id, amount, billing_period, category_id, created_at")
+      .eq("profile_id", profileId),
+    supabase
+      .from("bill_payments")
+      .select("bill_id, paid_month")
       .eq("profile_id", profileId),
   ]);
   if (error) return { error: error.message };
 
   const allEntries = expenseRows ?? [];
   const allBills = billRows ?? [];
+  const allBillPayments = billPaymentRows ?? [];
   const monthKeys = getRecentPaidMonths(months);
 
   const stats: MonthlyBreakdownPoint[] = monthKeys.map((month) => {
@@ -294,20 +299,24 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, e) => s + Number(e.amount), 0);
 
-    // Savings: one-off entries (no due_date) created this month, plus recurring
-    // monthly savings entries (due_date set, billing_period monthly) that existed by month-end.
-    const savings = allEntries
-      .filter((e) => {
-        if (e.category_id !== "savings") return false;
-        if (e.due_date) {
-          return (
-            (e.billing_period ?? "monthly") === "monthly" &&
-            (e.created_at ?? "") < monthEndIso
-          );
-        }
-        return (e.created_at ?? "").startsWith(month);
-      })
-      .reduce((s, e) => s + Number(e.amount), 0);
+    // Savings: expense_entries with category savings created this month
+    //        + bills with category savings paid this month (via bill_payments)
+    const paidSavingsBillIds = new Set(
+      allBillPayments
+        .filter((p) => p.paid_month === month)
+        .map((p) => p.bill_id)
+    );
+    const savings =
+      allEntries
+        .filter(
+          (e) =>
+            e.category_id === "savings" &&
+            (e.created_at ?? "").startsWith(month)
+        )
+        .reduce((s, e) => s + Number(e.amount), 0) +
+      allBills
+        .filter((b) => b.category_id === "savings" && paidSavingsBillIds.has(b.id))
+        .reduce((s, b) => s + Number(b.amount), 0);
 
     return { month, bills, expenses, savings };
   });
