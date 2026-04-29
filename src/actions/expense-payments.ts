@@ -280,11 +280,12 @@ export async function getMonthlyBreakdown(
     const nextYear = m === 12 ? y + 1 : y;
     const monthEndIso = `${nextYear}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00`;
 
-    // Bills: monthly bills from the new bills table that existed by end of this month
+    // Bills: monthly bills (excluding savings category) that existed by end of this month
     const bills = allBills
       .filter(
         (b) =>
           b.billing_period === "monthly" &&
+          b.category_id !== "savings" &&
           (b.created_at ?? "") < monthEndIso
       )
       .reduce((s, b) => s + Number(b.amount), 0);
