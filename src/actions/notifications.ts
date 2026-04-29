@@ -141,7 +141,7 @@ export async function syncGeneratedProNotificationsForToday(
     if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
       continue;
     }
-    const candidates = getCandidateDueDatesForBill(bill, today);
+    const candidates = getCandidateDueDatesForBill(bill as typeof bill & { due_date: string }, today);
     const billLabel = (bill.note ?? "Bill").trim() || "Bill";
     const channel = bill.reminder_channel || "both";
 
@@ -363,7 +363,7 @@ export async function sendGeneratedProReminderEmailsForToday(
       if (lockedFreeBillId !== null && bill.id !== lockedFreeBillId) continue;
       if (lockedFreeBillId === null && freeTierBillFired) continue;
     }
-    const candidates = getCandidateDueDatesForBill(bill, today);
+    const candidates = getCandidateDueDatesForBill(bill as typeof bill & { due_date: string }, today);
     const billLabel = (bill.note ?? "Bill").trim() || "Bill";
     const channel = bill.reminder_channel || "both";
 
