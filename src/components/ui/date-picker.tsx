@@ -37,6 +37,10 @@ export type DatePickerProps = {
   triggerClassName?: string;
   /** Popover content z-index (e.g. inside dialogs). */
   contentZIndexClass?: string;
+  /** Hide dates that bleed in from adjacent months (default true). */
+  showOutsideDays?: boolean;
+  /** Lock the calendar to a single month — hides prev/next navigation. */
+  disableNavigation?: boolean;
 };
 
 export function DatePicker({
@@ -50,6 +54,8 @@ export function DatePicker({
   className,
   triggerClassName,
   contentZIndexClass = "z-[100]",
+  showOutsideDays = true,
+  disableNavigation = false,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selected = React.useMemo(() => (value.trim() ? parseYmdToLocalDate(value) : undefined), [value]);
@@ -92,6 +98,8 @@ export function DatePicker({
             setOpen(false);
           }}
           defaultMonth={selected ?? new Date()}
+          showOutsideDays={showOutsideDays}
+          disableNavigation={disableNavigation}
         />
       </PopoverContent>
     </Popover>

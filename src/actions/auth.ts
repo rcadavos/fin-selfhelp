@@ -67,9 +67,10 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/dashboard")}`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/setup")}`,
       data: {
         full_name: fullName || undefined,
+        welcome_email_pending: true,
       },
     },
   });
@@ -78,12 +79,11 @@ export async function signUp(formData: FormData) {
     return { error: error.message };
   }
 
-  // Fire welcome email — errors are swallowed so they never break signup.
-  sendWelcomeEmail({ to: email, name: fullName || undefined }).catch(() => {});
-
-  // If email confirmation is disabled, Supabase returns a session immediately.
+  // If email confirmation is disabled, Supabase returns a session immediately —
+  // send welcome email now since there's no confirmation step.
   if (data.session) {
-    return { next: "/dashboard", message: "Account created! Logging you in..." };
+    sendWelcomeEmail({ to: email, name: fullName || undefined }).catch(() => {});
+    return { next: "/setup", message: "Account created! Logging you in..." };
   }
 
   return { message: "Check your email to confirm your account." };

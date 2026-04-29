@@ -66,6 +66,51 @@ export function normalizeDueDateForStorage(pickerYmd: string): string | null {
 }
 
 /**
+ * Returns candidate due dates for a bill, respecting its billing_period:
+ * - monthly (default): checks prev/curr/next month (same as getCandidateDueDates)
+ * - quarterly: checks prev/curr/next calendar quarter start (Jan/Apr/Jul/Oct)
+ * - yearly: checks prev/curr/next year at the bill's specific due_month
+ */
+export function getCandidateDueDatesForBill(
+  bill: { due_date: string; billing_period?: string | null; due_month?: number | null },
+  referenceDate: Date
+): Date[] {
+  const day = getDueDayOfMonthFromYmd(bill.due_date);
+  if (!day) return [];
+
+  const ref = new Date(referenceDate);
+  const refYear = ref.getFullYear();
+  const refMonth0 = ref.getMonth();
+
+  if (bill.billing_period === "yearly") {
+    const month0 = Math.max(0, Math.min(11, (bill.due_month ?? 1) - 1));
+    const candidates: Date[] = [];
+    for (const y of [refYear - 1, refYear, refYear + 1]) {
+      const lastDay = lastDayOfMonth(y, month0 + 1);
+      candidates.push(new Date(y, month0, Math.min(day, lastDay)));
+    }
+    return candidates;
+  }
+
+  if (bill.billing_period === "quarterly") {
+    // Calendar quarters: Q1=Jan(0), Q2=Apr(3), Q3=Jul(6), Q4=Oct(9)
+    const qStart0 = Math.floor(refMonth0 / 3) * 3;
+    const candidates: Date[] = [];
+    for (let i = -1; i <= 1; i++) {
+      let qMonth0 = qStart0 + i * 3;
+      let y = refYear;
+      if (qMonth0 < 0) { qMonth0 += 12; y--; }
+      if (qMonth0 >= 12) { qMonth0 -= 12; y++; }
+      const lastDay = lastDayOfMonth(y, qMonth0 + 1);
+      candidates.push(new Date(y, qMonth0, Math.min(day, lastDay)));
+    }
+    return candidates;
+  }
+
+  return getCandidateDueDates(bill.due_date, referenceDate);
+}
+
+/**
  * Returns candidate "actual" due dates for a repeating monthly expense with day `dueDay`.
  * Checks the current month, the month before, and the month after to ensure reminders
  * that cross month boundaries are caught (e.g., a 3-day reminder for the 1st of next month).

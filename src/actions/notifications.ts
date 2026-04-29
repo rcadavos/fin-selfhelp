@@ -2,7 +2,7 @@
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { sendReminderEmail } from "@/lib/email";
-import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
+import { getDueDayOfMonthFromYmd, getCandidateDueDates, getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import type { AppNotification } from "@/types/notifications";
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
@@ -28,6 +28,8 @@ type BillReminderRow = {
   id: string;
   note: string | null;
   due_date: string | null;
+  billing_period: string | null;
+  due_month: number | null;
   reminder_days_before: number[] | null;
   reminder_channel: string | null;
 };
@@ -107,11 +109,9 @@ export async function syncGeneratedProNotificationsForToday(
   }
   const todayYmd = formatYmdLocal(today);
 
-  const { getCandidateDueDates } = await import("@/lib/expense-due-date");
-
   const billsQueryResult = await supabase
     .from("bills")
-    .select("id, note, due_date, reminder_days_before, reminder_channel")
+    .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
     .eq("profile_id", profile.id)
     .not("reminder_days_before", "is", null);
 
@@ -141,7 +141,7 @@ export async function syncGeneratedProNotificationsForToday(
     if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
       continue;
     }
-    const candidates = getCandidateDueDates(bill.due_date, today);
+    const candidates = getCandidateDueDatesForBill(bill, today);
     const billLabel = (bill.note ?? "Bill").trim() || "Bill";
     const channel = bill.reminder_channel || "both";
 
@@ -299,12 +299,11 @@ export async function sendGeneratedProReminderEmailsForToday(
   }
 
   const todayYmd = formatYmdLocal(today);
-  const { getCandidateDueDates } = await import("@/lib/expense-due-date");
 
   const [billsQueryResult, authUserResult, lockRow] = await Promise.all([
     supabase
       .from("bills")
-      .select("id, note, due_date, reminder_days_before, reminder_channel")
+      .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
       .eq("profile_id", profile.id)
       .not("reminder_days_before", "is", null),
     supabase.auth.admin.getUserById(userId),
@@ -364,7 +363,7 @@ export async function sendGeneratedProReminderEmailsForToday(
       if (lockedFreeBillId !== null && bill.id !== lockedFreeBillId) continue;
       if (lockedFreeBillId === null && freeTierBillFired) continue;
     }
-    const candidates = getCandidateDueDates(bill.due_date, today);
+    const candidates = getCandidateDueDatesForBill(bill, today);
     const billLabel = (bill.note ?? "Bill").trim() || "Bill";
     const channel = bill.reminder_channel || "both";
 

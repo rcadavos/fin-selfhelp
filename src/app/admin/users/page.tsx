@@ -191,8 +191,8 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-5xl px-4 py-8">
-      <Card>
+    <main className="w-full px-4 py-8">
+      <Card className="border-none shadow-none">
         <CardHeader>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -231,7 +231,7 @@ export default function AdminUsersPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
-                  <TableHead className="text-right">Last login</TableHead>
+                  <TableHead className="text-right">Last activity</TableHead>
                   <TableHead className="text-right">Confirmed</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
@@ -249,7 +249,7 @@ export default function AdminUsersPage() {
                         {formatDate(u.created_at)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {formatDate(u.last_login_at)}
+                        {formatDate(u.last_activity_at)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {formatDate(u.email_confirmed_at)}

@@ -14,6 +14,35 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.9",
+    date: "2026-04-29",
+    summary: "Fixed quarterly and yearly bill reminders firing in wrong months.",
+    changes: [
+      { type: "fix", description: "Yearly bills now only trigger reminders in their configured due month — no longer fires every month near the due day." },
+      { type: "fix", description: "Quarterly bills now only trigger reminders in the correct calendar quarter months (Jan/Apr/Jul/Oct), not every month." },
+    ],
+  },
+  {
+    version: "1.4.8",
+    date: "2026-04-29",
+    summary: "New user onboarding setup wizard after email confirmation.",
+    changes: [
+      { type: "feature", description: "New signup onboarding wizard guides users through setting their name, goals, first expense, and first bill to track — all skippable." },
+      { type: "improvement", description: "After confirming their email, new users land on the /setup page instead of jumping straight to the dashboard." },
+      { type: "improvement", description: "Returning users who already completed setup are automatically redirected to the dashboard." },
+    ],
+  },
+  {
+    version: "1.4.7",
+    date: "2026-04-29",
+    summary: "Minor bug fixes and performance improvements.",
+    changes: [
+      { type: "fix", description: "Fixed a bug where the dashboard insight popup could reappear after being closed if the user navigated away and back to the dashboard within the same session." },
+      { type: "fix", description: "Resolved an issue where the built-in Cash and Borrowed accounts could sometimes fail to load on initial login, causing them not to appear on the Accounts page." },
+      { type: "improvement", description: "Optimized the loading of the changelog page by lazy-loading older entries and only rendering the most recent 5 entries on initial load." },
+    ],
+  },
+  {
     version: "1.4.6",
     date: "2026-04-28",
     summary: "Pro/Premium users can now create custom expense categories.",

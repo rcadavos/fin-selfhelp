@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendReminderEmail } from "@/lib/email";
-import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
+import { getDueDayOfMonthFromYmd, getCandidateDueDates, getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 
@@ -26,6 +26,8 @@ type BillReminderRow = {
   id: string;
   note: string | null;
   due_date: string | null;
+  billing_period: string | null;
+  due_month: number | null;
   reminder_days_before: number[] | null;
   reminder_channel: string | null;
 };
@@ -99,7 +101,7 @@ export async function GET(request: Request) {
     let sentEmails = 0;
     const errors: string[] = [];
 
-    const { getCandidateDueDates } = await import("@/lib/expense-due-date");
+
 
     for (const profile of (profiles ?? []) as ProfileRow[]) {
       const tier = normalizeDbTier(profile.subscription_tier);
@@ -113,7 +115,7 @@ export async function GET(request: Request) {
 
       const billsQuery = supabase
         .from("bills")
-        .select("id, note, due_date, reminder_days_before, reminder_channel")
+        .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
         .eq("profile_id", profile.id)
         .not("reminder_days_before", "is", null);
 
@@ -173,7 +175,7 @@ export async function GET(request: Request) {
           if (lockedFreeBillId !== null && bill.id !== lockedFreeBillId) continue;
           if (lockedFreeBillId === null && freeTierBillFired) continue;
         }
-        const candidates = getCandidateDueDates(bill.due_date, now);
+        const candidates = getCandidateDueDatesForBill(bill, now);
         const billLabel = (bill.note ?? "Bill").trim() || "Bill";
         const channel = bill.reminder_channel || "both";
 
