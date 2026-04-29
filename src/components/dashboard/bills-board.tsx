@@ -527,7 +527,7 @@ function BillDialog({
             );
           })()}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-4">
             <div className="flex w-full gap-2">
               {editingBillId && onDelete && (
                 <Button type="button" variant="ghost" size="icon" className="flex-none text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={isPending}>
@@ -682,7 +682,7 @@ function BillRow({
         isPaid
           ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
           : isOverdue
-            ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
+            ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
             : isUpcoming
               ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
               : "border-border bg-card hover:bg-muted/40",
@@ -700,7 +700,7 @@ function BillRow({
         {isPaid ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
         ) : (
-          <Circle className={cn("h-5 w-5", isOverdue ? "text-amber-500" : isUpcoming ? "text-blue-500" : "")} />
+          <Circle className={cn("h-5 w-5", isOverdue ? "text-red-500" : isUpcoming ? "text-blue-500" : "")} />
         )}
       </button>
 
@@ -738,7 +738,7 @@ function BillRow({
               Paid
             </span>
           ) : isOverdue ? (
-            <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+            <span className="shrink-0 rounded-full border border-red-400/60 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
               Overdue
             </span>
           ) : isUpcoming ? (

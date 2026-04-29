@@ -922,7 +922,7 @@ export function MyExpensesBoard() {
 
             {addError && <p className="text-sm text-destructive">{addError}</p>}
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-4">
               <div className="flex w-full gap-2">
                 <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddOpen(false)} disabled={addSaving}>
                   Cancel
@@ -1039,7 +1039,7 @@ export function MyExpensesBoard() {
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-4">
               <div className="flex w-full gap-2">
                 <Button
                   type="button"

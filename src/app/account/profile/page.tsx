@@ -78,10 +78,10 @@ export default function ProfilePage() {
             Photo, name, and phone. Your email is tied to sign-in and isn&apos;t editable here.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-4">
           <ProfileAvatarUploader user={user} showError={showError} showSuccess={showSuccess} />
 
-          <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 pt-6">
+          <form onSubmit={handleSubmit} className="space-y-4 border-t border-border/60 pt-4">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full name</Label>
               <Input
@@ -118,14 +118,14 @@ export default function ProfilePage() {
                     Saving…
                   </>
                 ) : (
-                  "Save changes"
+                  "Save Changes"
                 )}
               </Button>
               <Link
                 href="/account/security"
                 className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
-                Change password
+                Change Password
               </Link>
             </div>
           </form>
