@@ -22,6 +22,7 @@ import {
   LayoutGrid,
   Lock,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -305,6 +306,11 @@ function BillDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
+          {editingBillId && initial && (
+            <p className="text-xs text-muted-foreground">
+              {initial.note || "—"} · {formatCurrency(parseFloat(initial.amount) || 0)}
+            </p>
+          )}
         </DialogHeader>
 
         <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="grid gap-4">
@@ -1218,26 +1224,34 @@ export function BillsBoard() {
       {/* Tabs + list */}
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5">
+          <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto">
             {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
-              <button
+              <Button
                 key={tab}
+                type="button"
+                size="sm"
+                variant={activeTab === tab ? "secondary" : "ghost"}
+                className="group h-9 flex-1 px-3 text-sm capitalize sm:flex-none"
                 onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
-                  activeTab === tab
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
               >
-                {tab}
-                {tabCounts[tab] > 0 && (
-                  <span className="ml-1 opacity-60">{tabCounts[tab]}</span>
-                )}
-              </button>
+                <span className="inline-flex items-center gap-1">
+                  <span>{tab}</span>
+                  <Badge
+                    variant={activeTab === tab ? "default" : "secondary"}
+                    className={cn(
+                      "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
+                      activeTab === tab
+                        ? "bg-background text-foreground border-border group-hover:bg-background group-hover:text-foreground"
+                        : "group-hover:bg-background group-hover:text-foreground group-hover:border-border"
+                    )}
+                  >
+                    {tabCounts[tab]}
+                  </Badge>
+                </span>
+              </Button>
             ))}
           </div>
-          <Button onClick={() => setAddOpen(true)} size="sm" className="gap-1.5">
+          <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5">
             <Plus className="h-4 w-4" />
             Add Bill
           </Button>

@@ -269,7 +269,7 @@ export function MyGoalsPage() {
     try {
       const saved = localStorage.getItem(LS_GOAL_ORDER);
       if (saved) setGoalOrder(JSON.parse(saved) as string[]);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -352,7 +352,7 @@ export function MyGoalsPage() {
     setGoalOrder(newOrder);
     try {
       localStorage.setItem(LS_GOAL_ORDER, JSON.stringify(newOrder));
-    } catch {}
+    } catch { }
   }
 
   useEffect(() => {
@@ -792,7 +792,7 @@ export function MyGoalsPage() {
             </div>
             <fieldset className="space-y-2 border-0 p-0">
               <legend className="mb-2 text-sm font-medium leading-none">
-                Date set <span className="text-destructive">*</span>
+                Date Set <span className="text-destructive">*</span>
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Select
@@ -828,7 +828,7 @@ export function MyGoalsPage() {
               </div>
             </fieldset>
             <fieldset className="space-y-2 border-0 p-0">
-              <legend className="mb-2 text-sm font-medium leading-none">Date achieved</legend>
+              <legend className="mb-2 text-sm font-medium leading-none">Date Achieved</legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Select
                   value={form.achieved_month}
@@ -885,7 +885,7 @@ export function MyGoalsPage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 flex-shrink-0 rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
+                    className="h-9 w-9 flex-none rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
                     aria-label="Remove"
                     disabled={saving || deletingId !== null}
                     onClick={() => {
@@ -902,14 +902,12 @@ export function MyGoalsPage() {
                 ) : (
                   <div />
                 )}
-                <div className="flex flex-1 gap-2">
-                  <Button type="button" variant="outline" className="w-1/2" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="w-1/2" disabled={saving}>
-                    {saving ? "Saving…" : editingId ? "Save" : "Add Goal"}
-                  </Button>
-                </div>
+                <Button type="button" variant="outline" className="flex-1 w-1/2" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1 w-1/2" disabled={saving}>
+                  {saving ? "Saving…" : editingId ? "Save" : "Add Goal"}
+                </Button>
               </div>
             </DialogFooter>
           </form>

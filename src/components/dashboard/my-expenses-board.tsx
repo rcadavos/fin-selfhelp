@@ -941,6 +941,11 @@ export function MyExpensesBoard() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
+            {editingEntry && (
+              <p className="text-xs text-muted-foreground">
+                {editingEntry.note?.trim() || editingEntry.notes?.trim() || "—"} · {formatCurrency(editingEntry.amount)}
+              </p>
+            )}
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="grid gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
