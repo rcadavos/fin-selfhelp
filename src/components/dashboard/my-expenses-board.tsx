@@ -696,7 +696,7 @@ export function MyExpensesBoard() {
       {/* Month selector + Add Expense button */}
       <div className="flex items-center justify-between my-2">
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="h-8 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="start">
@@ -707,7 +707,7 @@ export function MyExpensesBoard() {
             ))}
           </SelectContent>
         </Select>
-        <Button size="sm" onClick={() => { setAddOpen(true); setAddError(null); }} className="gap-1.5">
+        <Button size="lg" onClick={() => { setAddOpen(true); setAddError(null); }} className="gap-1.5">
           <Plus className="h-4 w-4" aria-hidden />
           Add Expense
         </Button>

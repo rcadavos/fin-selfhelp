@@ -493,7 +493,7 @@ export function VehiclesBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
       <ContentHeader
         title="Fuel & Vehicles"
-        subtitle="Register your vehicles and track transport spending from linked bills and expenses."
+        subtitle="Register your vehicles and track linked bills and expenses with Transportation category."
         icon={Fuel}
         actions={
           <Button size="sm" onClick={() => { setSaveError(null); setAddOpen(true); }}>
