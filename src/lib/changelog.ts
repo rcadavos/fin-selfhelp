@@ -14,6 +14,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.12",
+    date: "2026-04-30",
+    summary: "Mobile responsiveness improvements across the bottom navbar, insight popup, and expense form.",
+    changes: [
+      { type: "improvement", description: "Bottom navbar now shows Fuel and Accounts instead of To Buy and To Do, reflecting the most-used top-level destinations." },
+      { type: "improvement", description: "Insight popup repositioned above the mobile bottom navbar and scaled down with smaller text and padding on small screens." },
+      { type: "improvement", description: "Expense name and amount inputs on the expenses board now use a larger base font size on mobile to match native input styling." },
+    ],
+  },
+  {
+    version: "1.4.11",
+    date: "2026-04-30",
+    summary: "Expanded bill reminder day options and fixed setup wizard user refresh.",
+    changes: [
+      { type: "improvement", description: "Bill reminders now support all days 1–5 before the due date (previously only 3 days, 1 day, and on due date were available). UI labels updated to compact format (5d, 4d, etc.)." },
+      { type: "fix", description: "Setup wizard now refreshes the user session after saving the profile step, preventing stale user data when continuing to the next step." },
+      { type: "fix", description: "Select dropdowns now cap their height to the available viewport space instead of a fixed 384px, preventing overflow on small screens." },
+    ],
+  },
+  {
     version: "1.4.10",
     date: "2026-04-30",
     summary: "Fixed expense edit dialog not saving; category selects now default to blank placeholder.",

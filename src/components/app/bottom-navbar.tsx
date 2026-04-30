@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
-  ShoppingCart,
-  ClipboardList,
   Receipt,
   House,
+  Wallet,
+  Fuel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +15,8 @@ const bottomNavItems = [
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false },
   { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
   { href: "/dashboard", label: "Home", icon: House, exact: true },
-  { href: "/dashboard/to-buy", label: "To Buy", icon: ShoppingCart, exact: false },
-  { href: "/dashboard/to-do", label: "To Do", icon: ClipboardList, exact: false },
+  { href: "/dashboard/fuel", label: "Fuel", icon: Fuel, exact: false },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, exact: false },
 ];
 
 export function BottomNavbar() {

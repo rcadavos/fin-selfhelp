@@ -732,7 +732,7 @@ export function MyExpensesBoard() {
           value={expName}
           onChange={(e) => setExpName(e.target.value)}
           placeholder="Expense name"
-          className="h-9 flex-1 min-w-0 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-sm shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0"
+          className="h-9 flex-1 min-w-0 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-base sm:text-sm shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0"
           disabled={expSaving}
           aria-label="Expense name"
         />
@@ -743,7 +743,7 @@ export function MyExpensesBoard() {
           type="number"
           min="0.01"
           step="any"
-          className="w-16 sm:w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-sm tabular-nums shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="w-16 sm:w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-base sm:text-sm tabular-nums shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           disabled={expSaving}
           aria-label="Amount"
         />
