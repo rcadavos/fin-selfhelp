@@ -15,10 +15,11 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.4.10",
-    date: "2026-04-29",
-    summary: "Fixed expense edit dialog not saving changes.",
+    date: "2026-04-30",
+    summary: "Fixed expense edit dialog not saving; category selects now default to blank placeholder.",
     changes: [
       { type: "fix", description: "Expense edit modal Save button was outside the form element, preventing any edits from being submitted." },
+      { type: "improvement", description: "Add and edit category dropdowns for expenses and bills now show 'Select category' placeholder instead of defaulting to a category. Expenses previously set to 'Other' also open with the placeholder." },
     ],
   },
   {

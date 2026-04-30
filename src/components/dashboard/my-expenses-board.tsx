@@ -436,7 +436,7 @@ export function MyExpensesBoard() {
   const [editingEntry, setEditingEntry] = useState<ExpenseEntryRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editAmount, setEditAmount] = useState("");
-  const [editCategory, setEditCategory] = useState("other");
+  const [editCategory, setEditCategory] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editExpenseDate, setEditExpenseDate] = useState("");
   const [editAccountId, setEditAccountId] = useState("");
@@ -544,7 +544,7 @@ export function MyExpensesBoard() {
     setEditingEntry(entry);
     setEditName(entry.note?.trim() || "");
     setEditAmount(String(entry.amount));
-    setEditCategory(entry.category_id);
+    setEditCategory(entry.category_id === "other" || !entry.category_id ? "" : entry.category_id);
     setEditNote(entry.notes?.trim() || "");
     setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
     setEditAccountId(entry.account_id ?? "");
@@ -595,7 +595,7 @@ export function MyExpensesBoard() {
     setEditError(null);
     const res = await updateExpense(
       editingEntry.id,
-      editCategory,
+      editCategory || "other",
       amt,
       name,
       editNote.trim() || null,
@@ -868,7 +868,7 @@ export function MyExpensesBoard() {
                 <Label htmlFor="add-category">Category</Label>
                 <Select value={addCategory} onValueChange={setAddCategory}>
                   <SelectTrigger id="add-category">
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
@@ -985,7 +985,7 @@ export function MyExpensesBoard() {
                 <Label htmlFor="edit-category">Category</Label>
                 <Select value={editCategory} onValueChange={setEditCategory}>
                   <SelectTrigger id="edit-category">
-                    <SelectValue />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
@@ -1058,7 +1058,7 @@ export function MyExpensesBoard() {
                 <Button
                   type="submit"
                   className="flex-1 w-1/2"
-                  disabled={editSaving || !editName.trim() || !editAmount}
+                  disabled={editSaving || !editName.trim() || !editAmount || !editCategory}
                 >
                   {editSaving ? "Saving…" : "Save"}
                 </Button>

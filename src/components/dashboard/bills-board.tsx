@@ -162,7 +162,7 @@ type BillFormState = {
 };
 
 const EMPTY_FORM: BillFormState = {
-  categoryId: "utilities",
+  categoryId: "",
   note: "",
   amount: "",
   dueDate: "",
@@ -339,7 +339,7 @@ function BillDialog({
               <Label>Category</Label>
               <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Category" />
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
