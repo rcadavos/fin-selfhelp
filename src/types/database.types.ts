@@ -187,12 +187,15 @@ export type DbProfile = {
   updated_at: string;
 };
 
-/** Days before due date to send a reminder. 3 = 3 days before, 1 = 1 day before, 0 = on due date. */
-export type ReminderDay = 3 | 1 | 0;
+/** Days before due date to send a reminder. 5–1 = days before, 0 = on due date. */
+export type ReminderDay = 5 | 4 | 3 | 2 | 1 | 0;
 
 export const REMINDER_OPTIONS: { value: ReminderDay; label: string }[] = [
-  { value: 3, label: "3 days before" },
-  { value: 1, label: "1 day before" },
+  { value: 5, label: "5d" },
+  { value: 4, label: "4d" },
+  { value: 3, label: "3d" },
+  { value: 2, label: "2d" },
+  { value: 1, label: "1d" },
   { value: 0, label: "On due date" },
 ];
 

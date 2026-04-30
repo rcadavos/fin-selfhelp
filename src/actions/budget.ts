@@ -10,7 +10,7 @@ import {
   type SubscriptionTierId,
 } from "@/lib/subscription-tier";
 
-const VALID_REMINDER_DAYS: ReminderDay[] = [3, 1, 0];
+const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
 
 function normalizeReminderDaysBefore(
   raw: unknown

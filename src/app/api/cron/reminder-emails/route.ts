@@ -181,7 +181,7 @@ export async function GET(request: Request) {
 
         for (const dueThisMonth of candidates) {
           for (const reminderDay of bill.reminder_days_before) {
-            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+            if (reminderDay < 0 || reminderDay > 5) continue;
             const reminderDate = addDays(dueThisMonth, -reminderDay);
             if (formatYmdLocal(reminderDate) !== todayYmd) continue;
 
@@ -219,7 +219,7 @@ export async function GET(request: Request) {
 
         for (const dueThisMonth of candidates) {
           for (const reminderDay of entry.reminder_days_before) {
-            if (reminderDay !== 0 && reminderDay !== 1 && reminderDay !== 3) continue;
+            if (reminderDay < 0 || reminderDay > 5) continue;
             const reminderDate = addDays(dueThisMonth, -reminderDay);
             if (formatYmdLocal(reminderDate) !== todayYmd) continue;
 

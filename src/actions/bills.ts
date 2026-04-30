@@ -13,7 +13,7 @@ import {
 import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
-const VALID_REMINDER_DAYS: ReminderDay[] = [3, 1, 0];
+const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
 
 function extractBillIdFromDedupeKey(key: string): string | null {
   const m = key.match(/^bill:([^:]+):/);

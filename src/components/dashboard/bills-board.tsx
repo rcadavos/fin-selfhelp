@@ -191,8 +191,11 @@ function billToForm(bill: BillRow): BillFormState {
 }
 
 const REMINDER_OPTIONS = [
-  { value: 3, label: "3 days before" },
-  { value: 1, label: "1 day before" },
+  { value: 5, label: "5d" },
+  { value: 4, label: "4d" },
+  { value: 3, label: "3d" },
+  { value: 2, label: "2d" },
+  { value: 1, label: "1d" },
   { value: 0, label: "On due date" },
 ] as const;
 
@@ -493,15 +496,16 @@ function BillDialog({
             return (
               <div className="grid gap-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Reminders</Label>
+                  <Label>Reminder (Days before)</Label>
                   <span className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", badgeClass)}>
                     {(isThisTheLocked || slotLockedByOther) && <Lock className="h-2.5 w-2.5" />}
                     {badgeLabel}
                   </span>
                 </div>
-                <div className={cn("flex gap-2", !reminderEnabled && "pointer-events-none opacity-40")}>
+                <div className={cn("flex flex-wrap gap-1.5", !reminderEnabled && "pointer-events-none opacity-40")}>
                   {REMINDER_OPTIONS.map(({ value, label }) => {
                     const active = form.reminderDays.includes(value);
+                    const isOnDueDate = value === 0;
                     return (
                       <button
                         key={value}
@@ -509,7 +513,8 @@ function BillDialog({
                         onClick={() => reminderEnabled && toggleReminder(value)}
                         disabled={!reminderEnabled}
                         className={cn(
-                          "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
+                          "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
+                          isOnDueDate ? "flex-none" : "flex-1",
                           active
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
