@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { useUser } from "@/hooks/use-user";
 import { completeOnboarding } from "@/actions/onboarding";
 import { addExpense } from "@/actions/budget";
 import { addBill } from "@/actions/bills";
@@ -47,6 +48,7 @@ interface Props {
 
 export function SetupWizard({ initialName }: Props) {
   const router = useRouter();
+  const { refreshUser } = useUser();
   const [step, setStep] = useState<Step>("profile");
   const [isPending, startTransition] = useTransition();
 
@@ -83,6 +85,7 @@ export function SetupWizard({ initialName }: Props) {
   function handleProfileNext() {
     startTransition(async () => {
       await completeOnboarding({ fullName: name, goals, fixes });
+      await refreshUser();
       setStep("expense");
     });
   }
@@ -90,6 +93,7 @@ export function SetupWizard({ initialName }: Props) {
   function handleProfileSkip() {
     startTransition(async () => {
       await completeOnboarding({});
+      await refreshUser();
       setStep("expense");
     });
   }
