@@ -14,6 +14,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.13",
+    date: "2026-05-01",
+    summary: "Dashboard expense stat cards now reflect paid entries for the active month.",
+    changes: [
+      { type: "fix", description: "Dashboard 'Expenses' and 'Bills + Expenses' cards now total only paid daily expenses for the current paid month, preventing prior-month carryover." },
+    ],
+  },
+  {
     version: "1.4.12",
     date: "2026-04-30",
     summary: "Mobile responsiveness improvements across the bottom navbar, insight popup, and expense form.",

@@ -1721,7 +1721,9 @@ export function ExpenseCashflowPage({
 
           {/* ════════════════════ STAT CARDS ════════════════════ */}
           {(() => {
-            const dailyAmt = entries.filter((e) => !e.due_date && e.category_id !== "savings").reduce((s, e) => s + e.amount, 0);
+            const dailyAmt = entries
+              .filter((e) => !e.due_date && e.category_id !== "savings" && paidIds.has(e.id))
+              .reduce((s, e) => s + e.amount, 0);
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
             const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
@@ -1736,7 +1738,7 @@ export function ExpenseCashflowPage({
                   </div>
                   <p className="text-xs text-muted-foreground">Expenses</p>
                   <p className="text-lg font-bold">{formatCurrency(dailyAmt)}</p>
-                  <p className="text-[10px] text-muted-foreground">Daily spending this month</p>
+                  <p className="text-[10px] text-muted-foreground">Paid daily spending this month</p>
                 </Link>
 
                 <Link href="/dashboard/bills" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
