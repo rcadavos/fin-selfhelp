@@ -14,6 +14,23 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.17",
+    date: "2026-05-01",
+    summary: "Dashboard Bills stat now counts only bills applicable to the active month.",
+    changes: [
+      { type: "fix", description: "Dashboard Bills, Bills paid, and Bills + Expenses cards now exclude bills outside the current paid month context (including quarterly/yearly off-month and inactive date ranges)." },
+    ],
+  },
+  {
+    version: "1.4.16",
+    date: "2026-05-01",
+    summary: "Bills page now supports month-based review like the Expenses page.",
+    changes: [
+      { type: "improvement", description: "Added a month selector on /dashboard/bills with the current month as default and recent-month options, matching the Expenses page flow." },
+      { type: "fix", description: "Bill due-date/status calculations for yearly and quarterly bills now follow the selected paid month context instead of always using the current month." },
+    ],
+  },
+  {
     version: "1.4.15",
     date: "2026-05-01",
     summary: "Dashboard Bills Paid bar now refreshes correctly after chart data shape update.",

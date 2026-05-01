@@ -109,17 +109,20 @@ function getCategoryDotColor(bgClass: string): string {
 function effectiveBillDueDate(bill: BillRow, today: Date, paidMonthYm: string): Date | null {
   const dueDay = getDueDayOfMonthFromYmd(bill.due_date);
   if (!dueDay) return null;
+  const ym = parseYmToYearMonth(paidMonthYm);
 
   if (bill.billing_period === "yearly") {
     const dueMonth1 = bill.due_month ?? 1;
-    const year = today.getFullYear();
+    const year = ym?.year ?? today.getFullYear();
     const lastDay = new Date(year, dueMonth1, 0).getDate();
     return new Date(year, dueMonth1 - 1, Math.min(dueDay, lastDay));
   }
 
   if (bill.billing_period === "quarterly") {
-    const qStartMonth = Math.floor(today.getMonth() / 3) * 3; // 0, 3, 6, or 9
-    const year = today.getFullYear();
+    const qStartMonth = ym
+      ? Math.floor((ym.month1to12 - 1) / 3) * 3
+      : Math.floor(today.getMonth() / 3) * 3; // 0, 3, 6, or 9
+    const year = ym?.year ?? today.getFullYear();
     const lastDay = new Date(year, qStartMonth + 1, 0).getDate();
     return new Date(year, qStartMonth, Math.min(dueDay, lastDay));
   }
@@ -972,7 +975,21 @@ export function BillsBoard() {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const paidMonth = getCurrentPaidMonth();
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentPaidMonth());
+  const paidMonth = selectedMonth;
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const opts: { value: string; label: string }[] = [];
+    for (let i = 0; i < 13; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      opts.push({
+        value: ym,
+        label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      });
+    }
+    return opts;
+  }, []);
   const [activeTab, setActiveTab] = useState<PeriodTab>("monthly");
   const [addOpen, setAddOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -1226,6 +1243,26 @@ export function BillsBoard() {
         </div>
       </div>
 
+      {/* Month selector + Add Bill */}
+      <div className="mb-2 flex items-center justify-between">
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {monthOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          Add Bill
+        </Button>
+      </div>
+
       {/* Tabs + list */}
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -1256,10 +1293,6 @@ export function BillsBoard() {
               </Button>
             ))}
           </div>
-          <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Add Bill
-          </Button>
         </div>
 
         <div className="space-y-2">

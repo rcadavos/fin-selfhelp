@@ -42,6 +42,7 @@ import {
   effectiveDueDateInPaidMonth,
   formatReminderDateList,
   formatYmdLocal,
+  parseYmToYearMonth,
 } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { categoriesQueryOptions } from "@/lib/query/categories";
@@ -318,6 +319,14 @@ function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 type ExpensePayStatus = "paid" | "outstanding" | "unpaid";
+type DashboardBillStatRow = {
+  id: string;
+  amount: number;
+  billing_period: "monthly" | "quarterly" | "yearly";
+  due_month?: number | null;
+  created_at?: string;
+  end_date?: string | null;
+};
 type DesktopExpenseRow = {
   entry: ExpenseEntryRow;
   displayName: string;
@@ -342,6 +351,25 @@ function getExpensePayStatus(
   if (!due) return "unpaid";
   if (due < startOfTodayLocal()) return "outstanding";
   return "unpaid";
+}
+
+function isBillApplicableInMonth(bill: DashboardBillStatRow, paidMonthYm: string): boolean {
+  const ym = parseYmToYearMonth(paidMonthYm);
+  if (!ym) return false;
+
+  const createdYm = bill.created_at?.slice(0, 7);
+  if (createdYm && createdYm > paidMonthYm) return false;
+
+  const endYm = bill.end_date?.slice(0, 7);
+  if (endYm && endYm < paidMonthYm) return false;
+
+  if (bill.billing_period === "yearly") {
+    return (bill.due_month ?? 1) === ym.month1to12;
+  }
+  if (bill.billing_period === "quarterly") {
+    return [1, 4, 7, 10].includes(ym.month1to12);
+  }
+  return true;
 }
 
 export type ExpenseCashflowPageVariant = "dashboard" | "expenses";
@@ -1657,8 +1685,9 @@ export function ExpenseCashflowPage({
           {(() => {
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
-            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
-            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+            const monthBills = billsList.filter((b) => isBillApplicableInMonth(b, paidMonthYm));
+            const billsTotal = monthBills.reduce((s, b) => s + b.amount, 0);
+            const billsPaid = monthBills.filter((b) => paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsUnpaid = Math.max(0, billsTotal - billsPaid);
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
             const showRing = billsTotal > 0;
@@ -1726,9 +1755,10 @@ export function ExpenseCashflowPage({
               .reduce((s, e) => s + e.amount, 0);
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
-            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
-            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
-            const billsPaidCount = billsList.filter((b) => paidBillIds.has(b.id)).length;
+            const monthBills = billsList.filter((b) => isBillApplicableInMonth(b, paidMonthYm));
+            const billsTotal = monthBills.reduce((s, b) => s + b.amount, 0);
+            const billsPaid = monthBills.filter((b) => paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+            const billsPaidCount = monthBills.filter((b) => paidBillIds.has(b.id)).length;
             return (
               <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Link href="/dashboard/expenses" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
@@ -1759,7 +1789,7 @@ export function ExpenseCashflowPage({
                   <p className="text-xs text-muted-foreground">Bills paid</p>
                   <p className="text-lg font-bold">{formatCurrency(billsPaid)}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {billsPaidCount}/{billsList.length} Bills paid this month
+                    {billsPaidCount}/{monthBills.length} Bills paid this month
                   </p>
                 </Link>
 
@@ -1868,8 +1898,9 @@ export function ExpenseCashflowPage({
             const streak = streakQuery.data?.streak_count ?? 1;
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
-            const billsTotal = billsList.filter((b) => b.billing_period === "monthly").reduce((s, b) => s + b.amount, 0);
-            const billsPaid = billsList.filter((b) => b.billing_period === "monthly" && paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+            const monthBills = billsList.filter((b) => isBillApplicableInMonth(b, paidMonthYm));
+            const billsTotal = monthBills.reduce((s, b) => s + b.amount, 0);
+            const billsPaid = monthBills.filter((b) => paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
             const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : undefined;
             return (
               <InsightPopup
