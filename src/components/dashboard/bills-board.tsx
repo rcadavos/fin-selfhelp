@@ -1243,30 +1243,29 @@ export function BillsBoard() {
         </div>
       </div>
 
-      {/* Month selector + Add Bill */}
-      <div className="mb-2 flex items-center justify-between">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {monthOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          Add Bill
-        </Button>
-      </div>
-
-      {/* Tabs + list */}
+      {/* Month selector + Tabs + list */}
       <div>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto">
+        <div className="mb-3 space-y-2 sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-2 sm:space-y-0">
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                {monthOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5 sm:hidden">
+              <Plus className="h-4 w-4" />
+              Add Bill
+            </Button>
+          </div>
+
+          <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto sm:justify-self-center">
             {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
               <Button
                 key={tab}
@@ -1293,6 +1292,11 @@ export function BillsBoard() {
               </Button>
             ))}
           </div>
+
+          <Button onClick={() => setAddOpen(true)} size="lg" className="hidden gap-1.5 sm:inline-flex">
+            <Plus className="h-4 w-4" />
+            Add Bill
+          </Button>
         </div>
 
         <div className="space-y-2">
