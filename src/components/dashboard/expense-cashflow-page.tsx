@@ -1779,26 +1779,30 @@ export function ExpenseCashflowPage({
             );
           })()}
 
-          {/* ════════════════════ BILLS VS EXPENSES VS SAVINGS (MONTHLY) ════════════════════ */}
+          {/* ════════════════════ BILLS VS BILLS PAID VS EXPENSES VS SAVINGS (MONTHLY) ════════════════════ */}
           {(() => {
             const breakdown = monthlyBreakdownQuery.data ?? [];
             if (!breakdown.length) return null;
-            const hasData = breakdown.some((r) => r.bills > 0 || r.expenses > 0 || r.savings > 0);
+            const hasData = breakdown.some(
+              (r) => r.bills > 0 || r.billsPaid > 0 || r.expenses > 0 || r.savings > 0
+            );
             if (!hasData) return null;
             const chartData = breakdown.map((r) => ({
               month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
               Bills: r.bills,
+              "Bills Paid": r.billsPaid ?? 0,
               Expenses: r.expenses,
               Savings: r.savings,
             }));
             const BILL_COLOR = "hsl(199 89% 48%)";
+            const BILL_PAID_COLOR = "hsl(221 83% 53%)";
             const EXP_COLOR = "hsl(38 92% 50%)";
             const SAV_COLOR = "hsl(142 71% 45%)";
             const fmtY = (v: number) => v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
             return (
               <Card className="mb-6">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Bills vs Expenses vs Savings</CardTitle>
+                  <CardTitle className="text-base">Bills vs Bills Paid vs Expenses vs Savings</CardTitle>
                   <CardDescription>Last 6 months breakdown by type</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1829,6 +1833,7 @@ export function ExpenseCashflowPage({
                         wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                       />
                       <Bar dataKey="Bills" fill={BILL_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Bills Paid" fill={BILL_PAID_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                       <Bar dataKey="Expenses" fill={EXP_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                       <Bar dataKey="Savings" fill={SAV_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                     </BarChart>

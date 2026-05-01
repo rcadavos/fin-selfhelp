@@ -14,6 +14,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.15",
+    date: "2026-05-01",
+    summary: "Dashboard Bills Paid bar now refreshes correctly after chart data shape update.",
+    changes: [
+      { type: "fix", description: "Versioned the monthly breakdown React Query key to invalidate stale cached chart rows and ensure the new Bills Paid series is fetched and displayed." },
+    ],
+  },
+  {
+    version: "1.4.14",
+    date: "2026-05-01",
+    summary: "Dashboard monthly bar chart now includes a Bills Paid series.",
+    changes: [
+      { type: "improvement", description: "Dashboard chart updated to Bills vs Bills Paid vs Expenses vs Savings, with Bills Paid computed from monthly non-savings bills marked paid per month." },
+    ],
+  },
+  {
     version: "1.4.13",
     date: "2026-05-01",
     summary: "Dashboard expense stat cards now reflect paid entries for the active month.",

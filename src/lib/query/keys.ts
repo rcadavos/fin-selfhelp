@@ -36,8 +36,8 @@ export const queryKeys = {
   userStreak: () => [...queryKeys.all, "user", "streak"] as const,
   /** Current user's registered vehicles (see `vehiclesQueryOptions`). */
   vehicles: () => [...queryKeys.all, "vehicles"] as const,
-  /** Monthly expense totals for the bar chart (see `monthlyBreakdownQueryOptions`). */
-  monthlyBreakdown: (months: number) => [...queryKeys.all, "monthly-breakdown", months] as const,
+  /** Monthly totals for dashboard bars (versioned to bust stale cached shapes). */
+  monthlyBreakdown: (months: number) => [...queryKeys.all, "monthly-breakdown", "v2", months] as const,
   /** Current user's own custom expense categories (see `userCategoriesQueryOptions`). */
   userCategories: () => [...queryKeys.all, "user-categories"] as const,
 };

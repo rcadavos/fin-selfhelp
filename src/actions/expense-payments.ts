@@ -242,11 +242,12 @@ export async function granteeSharedToggleExpensePayment(
 export type MonthlyBreakdownPoint = {
   month: string;
   bills: number;
+  billsPaid: number;
   expenses: number;
   savings: number;
 };
 
-/** Last N months of Bills / Expenses / Savings totals. Single DB round-trip. */
+/** Last N months of Bills / Bills Paid / Expenses / Savings totals. Single DB round-trip. */
 export async function getMonthlyBreakdown(
   months = 6
 ): Promise<{ error?: string; stats?: MonthlyBreakdownPoint[] }> {
@@ -290,6 +291,21 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, b) => s + Number(b.amount), 0);
 
+    // Bills Paid: monthly non-savings bills marked paid in this month
+    const paidBillIds = new Set(
+      allBillPayments
+        .filter((p) => p.paid_month === month)
+        .map((p) => p.bill_id)
+    );
+    const billsPaid = allBills
+      .filter(
+        (b) =>
+          b.billing_period === "monthly" &&
+          b.category_id !== "savings" &&
+          paidBillIds.has(b.id)
+      )
+      .reduce((s, b) => s + Number(b.amount), 0);
+
     // Expenses: daily entries (no due_date, not savings) created in this month
     const expenses = allEntries
       .filter(
@@ -319,7 +335,7 @@ export async function getMonthlyBreakdown(
         .filter((b) => b.category_id === "savings" && paidSavingsBillIds.has(b.id))
         .reduce((s, b) => s + Number(b.amount), 0);
 
-    return { month, bills, expenses, savings };
+    return { month, bills, billsPaid, expenses, savings };
   });
 
   return { stats };
