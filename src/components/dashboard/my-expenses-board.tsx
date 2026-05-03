@@ -764,11 +764,13 @@ export function MyExpensesBoard() {
             No expenses yet — add one above or use the form below.
           </p>
         ) : (
-          expenses.map((exp) => (
+          expenses.map((exp) => {
+            const isPending = exp.id.startsWith("optimistic-");
+            return (
             <div
               key={exp.id}
-              onClick={() => handleOpenEdit(exp)}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md hover:border-primary/30"
+              onClick={() => { if (!isPending) handleOpenEdit(exp); }}
+              className={`flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:border-primary/30"}`}
             >
               <span
                 className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -812,14 +814,16 @@ export function MyExpensesBoard() {
                 {formatCurrency(exp.amount)}
               </span>
               <button
-                onClick={(e) => { e.stopPropagation(); handleDelete(exp.id); }}
-                className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                disabled={isPending}
+                onClick={(e) => { e.stopPropagation(); if (!isPending) handleDelete(exp.id); }}
+                className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50"
                 title="Delete"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
-          ))
+            );
+          })
         )}
 
       </div>
