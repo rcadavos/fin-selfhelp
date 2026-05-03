@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const bottomNavItems = [
-  { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false },
+  { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false, excludes: ["/dashboard/expenses/categories"] },
   { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
   { href: "/dashboard", label: "Home", icon: House, exact: true },
   { href: "/dashboard/expenses/categories", label: "Category", icon: LayoutGrid, exact: false },
@@ -27,8 +27,10 @@ export function BottomNavbar() {
       className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0.5rem)" }}
     >
-      {bottomNavItems.map(({ href, label, icon: Icon, exact }) => {
-        const isActive = exact ? pathname === href : pathname === href || pathname?.startsWith(`${href}/`);
+      {bottomNavItems.map(({ href, label, icon: Icon, exact, excludes }) => {
+        const isActive =
+          (exact ? pathname === href : pathname === href || pathname?.startsWith(`${href}/`)) &&
+          !excludes?.some((e) => pathname?.startsWith(e));
         return (
           <Link
             key={href}
