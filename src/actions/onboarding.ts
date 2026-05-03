@@ -46,6 +46,7 @@ export async function completeOnboarding(params: {
           date_achieved_year: null,
           goal_type: def.type,
           notes: null,
+          target_amount: null,
         });
       }),
     );

@@ -15,6 +15,8 @@ export const queryKeys = {
   toDoItems: () => [...queryKeys.all, "to-do", "items"] as const,
   /** Personal goals (see `goalsQueryOptions`). */
   goals: () => [...queryKeys.all, "goals", "items"] as const,
+  /** Deposits for a single goal (see `goalDepositsQueryOptions`). */
+  goalDeposits: (goalId: string) => [...queryKeys.all, "goals", "deposits", goalId] as const,
   /** `getIsAdmin()` — shared by header + sidebar (dedupe via one query). */
   userIsAdmin: () => [...queryKeys.all, "user", "is-admin"] as const,
   /** `fetchUserPreferencesFromDb()` — keyed by user id for account switches. */

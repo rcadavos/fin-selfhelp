@@ -14,6 +14,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.21",
+    date: "2026-05-03",
+    summary: "Goals now support savings targets and deposit tracking.",
+    changes: [
+      { type: "feature", description: "Goals can now have an optional target amount so you can set a savings objective." },
+      { type: "feature", description: "Added deposit tracking — log individual contributions towards any goal with an amount, date, and optional note." },
+      { type: "feature", description: "Progress bar on each goal card shows how much has been saved vs. the target, with a 'Funded!' badge when the goal is fully reached." },
+      { type: "feature", description: "Deposit history is viewable and manageable inside the goal edit dialog, including individual deposit deletion." },
+      { type: "feature", description: "Quick 'Add Deposit' action available from the goal card dropdown menu." },
+    ],
+  },
+  {
     version: "1.4.20",
     date: "2026-05-03",
     summary: "Mobile bottom navbar now shows Category instead of Fuel.",

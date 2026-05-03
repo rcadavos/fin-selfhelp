@@ -34,29 +34,34 @@ import { StatusFilterDropdown } from "@/components/ui/status-filter-dropdown";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { goalsQueryOptions } from "@/lib/query/my-goals";
+import { goalsQueryOptions, goalDepositsQueryOptions } from "@/lib/query/my-goals";
 import {
   readGoalsCategorizedPreference,
   writeGoalsCategorizedPreference,
 } from "@/lib/goals-categorized-preference";
 import { queryKeys } from "@/lib/query/keys";
 import {
+  addGoalDeposit,
   createGoal,
   deleteGoal,
+  deleteGoalDeposit,
   updateGoal,
+  type GoalDepositRow,
   type GoalEntryRow,
   type GoalType,
 } from "@/actions/goals";
+import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
-  Loader2,
   CircleOff,
+  GripVertical,
+  Loader2,
   MoreHorizontal,
+  PartyPopper,
+  PiggyBank,
   Plus,
   Target,
   Trash2,
-  PartyPopper,
-  GripVertical,
 } from "lucide-react";
 import {
   DndContext,
@@ -134,6 +139,9 @@ const MONTH_OPTIONS = [
 
 const ACHIEVED_NONE = "__none__";
 
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
 
 function yearOptions(): number[] {
   const y = new Date().getFullYear();
@@ -154,16 +162,26 @@ function isGoalAchieved(g: GoalEntryRow): boolean {
   return g.date_achieved_month != null && g.date_achieved_year != null;
 }
 
+function isGoalFullyFunded(g: GoalEntryRow): boolean {
+  return g.target_amount != null && g.target_amount > 0 && g.total_deposited >= g.target_amount;
+}
+
 function goalTypeBadgeClass(t: GoalType): string {
   if (t === "lifetime") return "border-violet-400/60 bg-violet-500/15 text-violet-800 dark:text-violet-200";
   if (t === "long_term") return "border-sky-400/60 bg-sky-500/15 text-sky-900 dark:text-sky-100";
   return "border-emerald-400/60 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100";
 }
 
-/** Display like "Jan 2023" */
 function formatMonthYearShort(month: number, year: number): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(
     new Date(year, month - 1, 1)
+  );
+}
+
+function formatDepositDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
+    new Date(y, m - 1, d)
   );
 }
 
@@ -176,6 +194,7 @@ function goalRowToInput(g: GoalEntryRow) {
     date_achieved_year: g.date_achieved_year,
     goal_type: g.goal_type,
     notes: g.notes?.trim() ? g.notes.trim() : null,
+    target_amount: g.target_amount,
   };
 }
 
@@ -187,6 +206,13 @@ type FormState = {
   achieved_year: string;
   goal_type: GoalType;
   notes: string;
+  target_amount: string;
+};
+
+type DepositFormState = {
+  amount: string;
+  note: string;
+  date: string;
 };
 
 function emptyForm(): FormState {
@@ -199,7 +225,12 @@ function emptyForm(): FormState {
     achieved_year: ACHIEVED_NONE,
     goal_type: "short_term",
     notes: "",
+    target_amount: "",
   };
+}
+
+function emptyDepositForm(): DepositFormState {
+  return { amount: "", note: "", date: todayISO() };
 }
 
 function rowToForm(g: GoalEntryRow): FormState {
@@ -215,16 +246,17 @@ function rowToForm(g: GoalEntryRow): FormState {
     achieved_year: ay === ACHIEVED_NONE ? ACHIEVED_NONE : ay,
     goal_type: g.goal_type,
     notes: g.notes ?? "",
+    target_amount: g.target_amount != null ? String(g.target_amount) : "",
   };
 }
 
 function formToPayload(f: FormState) {
   const achievedM =
-    f.achieved_month === ACHIEVED_NONE || f.achieved_month === ""
-      ? null
-      : Number(f.achieved_month);
+    f.achieved_month === ACHIEVED_NONE || f.achieved_month === "" ? null : Number(f.achieved_month);
   const achievedY =
     f.achieved_year === ACHIEVED_NONE || f.achieved_year === "" ? null : Number(f.achieved_year);
+  const rawTarget = f.target_amount.trim();
+  const targetNum = rawTarget ? Number(rawTarget) : NaN;
   return {
     name: f.name,
     date_set_month: Number(f.set_month),
@@ -233,6 +265,7 @@ function formToPayload(f: FormState) {
     date_achieved_year: achievedY,
     goal_type: f.goal_type,
     notes: f.notes.trim() ? f.notes.trim() : null,
+    target_amount: !isNaN(targetNum) && targetNum > 0 ? targetNum : null,
   };
 }
 
@@ -241,18 +274,36 @@ export function MyGoalsPage() {
   const { user, loading } = useUser();
   const queryClient = useQueryClient();
   const { showError } = useSnackbar();
+
   const goalsQuery = useQuery({
     ...goalsQueryOptions(),
     enabled: !!user && !loading,
   });
   const goals = goalsQuery.data ?? [];
 
+  // --- Goal form dialog ---
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // --- Deposit dialog ---
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [depositTargetId, setDepositTargetId] = useState<string | null>(null);
+  const [depositTargetName, setDepositTargetName] = useState("");
+  const [depositForm, setDepositForm] = useState<DepositFormState>(emptyDepositForm);
+  const [depositSaving, setDepositSaving] = useState(false);
+  const [deletingDepositId, setDeletingDepositId] = useState<string | null>(null);
+
+  // Deposits list (for edit dialog)
+  const depositsQuery = useQuery({
+    ...goalDepositsQueryOptions(editingId ?? ""),
+    enabled: !!editingId && dialogOpen,
+  });
+  const deposits = depositsQuery.data ?? [];
+
+  // --- Ordering / filtering ---
   const [goalOrder, setGoalOrder] = useState<string[]>([]);
   const goalOrderLoaded = useRef(false);
 
@@ -345,6 +396,13 @@ export function MyGoalsPage() {
     void queryClient.invalidateQueries({ queryKey: queryKeys.goals() });
   }, [queryClient]);
 
+  const invalidateDeposits = useCallback(
+    (goalId: string) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.goalDeposits(goalId) });
+    },
+    [queryClient]
+  );
+
   function handleGoalDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
     const ids = orderedGoals.map((g) => g.id);
@@ -359,6 +417,7 @@ export function MyGoalsPage() {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
 
+  // --- Goal form handlers ---
   const openAdd = () => {
     setEditingId(null);
     setForm(emptyForm());
@@ -461,6 +520,57 @@ export function MyGoalsPage() {
     [showError, invalidateGoals, queryClient]
   );
 
+  // --- Deposit handlers ---
+  function openAddDeposit(goalId: string, goalName: string, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    setDepositTargetId(goalId);
+    setDepositTargetName(goalName);
+    setDepositForm(emptyDepositForm());
+    setDepositDialogOpen(true);
+  }
+
+  async function handleDepositSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!depositTargetId) return;
+    const amount = Number(depositForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showError("Enter a valid positive amount.");
+      return;
+    }
+    setDepositSaving(true);
+    try {
+      const res = await addGoalDeposit(depositTargetId, {
+        amount,
+        note: depositForm.note.trim() || null,
+        deposited_at: depositForm.date,
+      });
+      if (res.error) {
+        showError(res.error);
+        return;
+      }
+      setDepositDialogOpen(false);
+      invalidateGoals();
+      if (editingId === depositTargetId) {
+        invalidateDeposits(depositTargetId);
+      }
+    } finally {
+      setDepositSaving(false);
+    }
+  }
+
+  async function handleDeleteDeposit(deposit: GoalDepositRow) {
+    if (!confirm("Remove this deposit?")) return;
+    setDeletingDepositId(deposit.id);
+    const res = await deleteGoalDeposit(deposit.id);
+    setDeletingDepositId(null);
+    if (res.error) {
+      showError(res.error);
+      return;
+    }
+    invalidateGoals();
+    if (editingId) invalidateDeposits(editingId);
+  }
+
   const years = useMemo(() => yearOptions(), []);
 
   const fetchErr = goalsQuery.isError
@@ -469,13 +579,19 @@ export function MyGoalsPage() {
       : "Could not load goals."
     : null;
 
-  const renderGoalListItem = (g: GoalEntryRow, sortable?: SortableItemProps) => {
+  // --- Render helpers ---
+  const renderGoalCard = (g: GoalEntryRow, sortable?: SortableItemProps) => {
     const achieved = isGoalAchieved(g);
+    const fullyFunded = isGoalFullyFunded(g);
     const typeLabel = GOAL_TYPES.find((t) => t.value === g.goal_type)?.label ?? g.goal_type;
     const achievedShort =
       achieved && g.date_achieved_month != null && g.date_achieved_year != null
         ? formatMonthYearShort(g.date_achieved_month, g.date_achieved_year)
         : null;
+    const hasTarget = g.target_amount != null && g.target_amount > 0;
+    const pct = hasTarget ? Math.min(100, (g.total_deposited / g.target_amount!) * 100) : 0;
+    const hasDeposits = g.total_deposited > 0;
+
     return (
       <li
         key={g.id}
@@ -486,8 +602,9 @@ export function MyGoalsPage() {
         <div
           onClick={() => openEdit(g)}
           className={cn(
-            "flex cursor-pointer select-none items-center gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-shadow",
-            achieved ? "border-emerald-400/50 bg-emerald-500/5 dark:bg-emerald-900/20" : "",
+            "flex cursor-pointer select-none items-start gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-shadow",
+            achieved ? "border-emerald-400/50 bg-emerald-500/5 dark:bg-emerald-900/20" :
+              fullyFunded ? "border-emerald-400/40 bg-emerald-500/5 dark:bg-emerald-900/15" : "",
             sortable?.isDragging
               ? "z-50 opacity-50 shadow-lg ring-2 ring-primary/30"
               : "hover:border-primary/30 hover:shadow-md"
@@ -498,7 +615,7 @@ export function MyGoalsPage() {
             <button
               {...sortable.listeners}
               onClick={(e) => e.stopPropagation()}
-              className="flex-shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+              className="mt-0.5 flex-shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
               tabIndex={-1}
               aria-label="Reorder goal"
             >
@@ -507,7 +624,7 @@ export function MyGoalsPage() {
           )}
 
           {/* Type dot */}
-          <span className={cn("h-2.5 w-2.5 flex-shrink-0 rounded-full", goalTypeDotClass(g.goal_type))} />
+          <span className={cn("mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full", goalTypeDotClass(g.goal_type))} />
 
           {/* Name + meta */}
           <div className="min-w-0 flex-1">
@@ -536,18 +653,56 @@ export function MyGoalsPage() {
                 {g.notes.trim()}
               </p>
             )}
+
+            {/* Progress section */}
+            {(hasTarget || hasDeposits) && (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium text-foreground/80">
+                    {formatCurrency(g.total_deposited)} saved
+                  </span>
+                  {hasTarget && (
+                    <span className="text-muted-foreground">
+                      of {formatCurrency(g.target_amount!)} {pct > 0 && `(${Math.round(pct)}%)`}
+                    </span>
+                  )}
+                </div>
+                {hasTarget && (
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        fullyFunded ? "bg-emerald-500" : "bg-primary"
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Achieved badge */}
-          {achieved && (
-            <Badge
-              variant="outline"
-              className="flex-shrink-0 border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
-            >
-              <PartyPopper className="mr-1 h-2.5 w-2.5" aria-hidden />
-              Done
-            </Badge>
-          )}
+          {/* Status badges */}
+          <div className="flex flex-shrink-0 flex-col items-end gap-1">
+            {achieved && (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
+              >
+                <PartyPopper className="mr-1 h-2.5 w-2.5" aria-hidden />
+                Done
+              </Badge>
+            )}
+            {fullyFunded && !achieved && (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
+              >
+                <PiggyBank className="mr-1 h-2.5 w-2.5" aria-hidden />
+                Funded!
+              </Badge>
+            )}
+          </div>
 
           {/* Actions menu */}
           <DropdownMenu>
@@ -569,6 +724,13 @@ export function MyGoalsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="z-[100] w-48">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => openAddDeposit(g.id, g.name)}
+              >
+                <PiggyBank className="text-primary" aria-hidden />
+                Add Deposit
+              </DropdownMenuItem>
               {!achieved ? (
                 <DropdownMenuItem
                   className="cursor-pointer"
@@ -604,19 +766,14 @@ export function MyGoalsPage() {
     );
   };
 
-  if (loading || !user) {
-    return <DashboardSkeleton variant="page" />;
-  }
-
-  if (goalsQuery.isPending) {
-    return <DashboardSkeleton variant="page" />;
-  }
+  if (loading || !user) return <DashboardSkeleton variant="page" />;
+  if (goalsQuery.isPending) return <DashboardSkeleton variant="page" />;
 
   return (
     <div className="container mx-auto max-w-3xl px-4 pb-10 pt-4">
       <ContentHeader
         title="Goals"
-        subtitle="Track what you&#39;re working toward — we&#39;ll celebrate with you."
+        subtitle="Set savings targets, log deposits, and track your progress."
         icon={Target}
         className="mb-4"
       />
@@ -721,7 +878,7 @@ export function MyGoalsPage() {
                         {groupGoals.length} goal{groupGoals.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <ul className="space-y-4">{groupGoals.map((g) => renderGoalListItem(g))}</ul>
+                    <ul className="space-y-4">{groupGoals.map((g) => renderGoalCard(g))}</ul>
                     <hr className="border-border/60" />
                   </section>
                 )
@@ -733,7 +890,7 @@ export function MyGoalsPage() {
                 <ul className="space-y-4">
                   {orderedGoals.map((g) => (
                     <SortableGoalWrapper key={g.id} id={g.id}>
-                      {(sortable) => renderGoalListItem(g, sortable)}
+                      {(sortable) => renderGoalCard(g, sortable)}
                     </SortableGoalWrapper>
                   ))}
                 </ul>
@@ -743,6 +900,7 @@ export function MyGoalsPage() {
         </>
       )}
 
+      {/* ── Goal add / edit dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
           className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
@@ -751,8 +909,7 @@ export function MyGoalsPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Goal" : "Add Goal"}</DialogTitle>
             <DialogDescription className="hidden sm:block">
-              Name what you’re aiming for, when you started, and optionally when you completed it—short-term,
-              long-term, or lifetime.
+              Name your goal, set a savings target, and track your deposits over time.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -790,6 +947,24 @@ export function MyGoalsPage() {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="goal-target-amount">
+                Target Amount{" "}
+                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="goal-target-amount"
+                type="number"
+                min="0.01"
+                step="any"
+                value={form.target_amount}
+                onChange={(e) => setForm((f) => ({ ...f, target_amount: e.target.value }))}
+                placeholder="e.g. 50000"
+                className="h-9"
+              />
+            </div>
+
             <fieldset className="space-y-2 border-0 p-0">
               <legend className="mb-2 text-sm font-medium leading-none">
                 Date Set <span className="text-destructive">*</span>
@@ -827,6 +1002,7 @@ export function MyGoalsPage() {
                 </Select>
               </div>
             </fieldset>
+
             <fieldset className="space-y-2 border-0 p-0">
               <legend className="mb-2 text-sm font-medium leading-none">Date Achieved</legend>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -867,17 +1043,90 @@ export function MyGoalsPage() {
             <p className="text-xs text-muted-foreground">
               For Date achieved, pick both month and year together, or leave both as Not set.
             </p>
+
             <div className="space-y-2">
               <Label htmlFor="goal-notes">Notes</Label>
               <textarea
                 id="goal-notes"
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                placeholder="Add notes e.g. Reasons, Motivations, Steps to achieve it"
+                placeholder="Reasons, motivations, steps to achieve it…"
                 rows={3}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
+
+            {/* Deposits section — only visible when editing */}
+            {editingId && (
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold">Deposits</h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={() => openAddDeposit(editingId, form.name)}
+                  >
+                    <Plus className="h-3 w-3" aria-hidden />
+                    Add Deposit
+                  </Button>
+                </div>
+
+                {depositsQuery.isPending ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />
+                  </div>
+                ) : deposits.length === 0 ? (
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    No deposits yet. Add one to start tracking your progress.
+                  </p>
+                ) : (
+                  <>
+                    <ul className="max-h-52 space-y-1.5 overflow-y-auto">
+                      {deposits.map((d) => (
+                        <li
+                          key={d.id}
+                          className="flex items-center gap-2 rounded-lg border bg-muted/30 px-2.5 py-2 text-xs"
+                        >
+                          <span className="w-[90px] flex-shrink-0 text-muted-foreground">
+                            {formatDepositDate(d.deposited_at)}
+                          </span>
+                          <span className="flex-shrink-0 font-semibold">
+                            {formatCurrency(d.amount)}
+                          </span>
+                          {d.note && (
+                            <span className="flex-1 truncate italic text-muted-foreground">
+                              {d.note}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="ml-auto flex-shrink-0 text-muted-foreground/50 hover:text-destructive"
+                            onClick={() => void handleDeleteDeposit(d)}
+                            disabled={deletingDepositId === d.id}
+                            aria-label="Remove deposit"
+                          >
+                            {deletingDepositId === d.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                            ) : (
+                              <Trash2 className="h-3 w-3" aria-hidden />
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-right text-xs text-muted-foreground">
+                      Total:{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(deposits.reduce((s, d) => s + d.amount, 0))}
+                      </span>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
             <DialogFooter className="pt-2">
               <div className="flex w-full items-center gap-2">
                 {editingId ? (
@@ -902,11 +1151,87 @@ export function MyGoalsPage() {
                 ) : (
                   <div />
                 )}
-                <Button type="button" variant="outline" className="flex-1 w-1/2" onClick={() => setDialogOpen(false)}>
+                <Button type="button" variant="outline" className="w-1/2 flex-1" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 w-1/2" disabled={saving}>
+                <Button type="submit" className="w-1/2 flex-1" disabled={saving}>
                   {saving ? "Saving…" : editingId ? "Save" : "Add Goal"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add deposit dialog ── */}
+      <Dialog open={depositDialogOpen} onOpenChange={setDepositDialogOpen}>
+        <DialogContent
+          className="max-w-[min(24rem,calc(100vw-2rem))]"
+          showClose
+        >
+          <DialogHeader>
+            <DialogTitle>Add Deposit</DialogTitle>
+            <DialogDescription className="truncate text-sm">
+              {depositTargetName}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleDepositSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="deposit-amount">
+                Amount <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="deposit-amount"
+                type="number"
+                min="0.01"
+                step="any"
+                value={depositForm.amount}
+                onChange={(e) => setDepositForm((f) => ({ ...f, amount: e.target.value }))}
+                placeholder="e.g. 1000"
+                className="h-9"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deposit-date">
+                Date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="deposit-date"
+                type="date"
+                value={depositForm.date}
+                max={todayISO()}
+                onChange={(e) => setDepositForm((f) => ({ ...f, date: e.target.value }))}
+                className="h-9"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deposit-note">
+                Note{" "}
+                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="deposit-note"
+                value={depositForm.note}
+                onChange={(e) => setDepositForm((f) => ({ ...f, note: e.target.value }))}
+                placeholder="e.g. Monthly savings"
+                className="h-9"
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <div className="flex w-full gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDepositDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={depositSaving}>
+                  {depositSaving ? "Saving…" : "Add Deposit"}
                 </Button>
               </div>
             </DialogFooter>
