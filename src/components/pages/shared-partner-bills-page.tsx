@@ -70,7 +70,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
     setErr(null);
     const res = await loadSharedBillsData(grantorUserId, paidMonth);
     setLoading(false);
-    if (!res) { setErr("No shared access to this account's bills."); return; }
+    if (!res) { setErr("No shared access to this account's planned expenses."); return; }
     setData(res);
   }, [grantorUserId, paidMonth]);
 
@@ -142,7 +142,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 text-center text-sm text-muted-foreground">
-        Loading bills…
+        Loading planned expenses…
       </div>
     );
   }
@@ -150,7 +150,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
   if (err || !data) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 text-center">
-        <p className="text-sm text-destructive">{err ?? "Could not load bills."}</p>
+        <p className="text-sm text-destructive">{err ?? "Could not load planned expenses."}</p>
         <Button variant="outline" asChild className="mt-4">
           <Link href="/account/shared">Back</Link>
         </Button>
@@ -161,21 +161,21 @@ export function SharedPartnerBillsPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
-        title="Partner's Bills"
-        subtitle="Read-only view. You can mark bills paid or unpaid for this month."
+        title="Partner's Planned Expenses"
+        subtitle="Read-only view. You can mark planned expenses paid or unpaid for this month."
         icon={Receipt}
       />
 
       <p className="text-xs text-muted-foreground rounded-lg border border-muted/80 bg-muted/20 px-3 py-2">
-        Read-only access — you can toggle paid status but cannot add, edit, or delete bills.
+        Read-only access — you can toggle paid status but cannot add, edit, or delete planned expenses.
       </p>
 
       {/* Summary */}
       <div className="flex flex-row gap-3">
         <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Bills – {activeTab}</p>
+          <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned – {activeTab}</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(total, "USD")}</p>
-          <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} bill{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
+          <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
         </div>
         <div className="flex-1 rounded-xl border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Remaining</p>
@@ -209,7 +209,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
         <div className="space-y-2">
           {sortedBills.length === 0 ? (
             <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-              No {activeTab} bills.
+              No {activeTab} planned expenses.
             </div>
           ) : (
             sortedBills.map((bill) => {

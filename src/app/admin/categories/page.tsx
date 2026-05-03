@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   closestCenter,
@@ -342,9 +343,9 @@ function CategoryFormFields({
 
 const EMPTY_FORM: CatFormState = { label: "", bgClass: BG_OPTIONS[0], description: "", lists: [] };
 
-export default function AdminCategoriesPage() {
+function AdminCategoriesContent() {
   const queryClient = useQueryClient();
-  const { data: dbCategories, isLoading, error } = useQuery(adminCategoriesQueryOptions());
+  const { data: dbCategories } = useSuspenseQuery(adminCategoriesQueryOptions());
 
   // Local ordered list for optimistic drag-and-drop.
   // Only sync when the query returns a stable reference (never sync undefined).
@@ -477,14 +478,6 @@ export default function AdminCategoriesPage() {
     deleteMutation.mutate(id);
   }
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
   return (
     <main className="container mx-auto max-w-5xl py-8">
       <Card>
@@ -503,10 +496,8 @@ export default function AdminCategoriesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {(error || actionError) && (
-            <p className="mb-4 text-sm text-destructive">
-              {actionError ?? (error as Error).message}
-            </p>
+          {actionError && (
+            <p className="mb-4 text-sm text-destructive">{actionError}</p>
           )}
           {reorderMutation.isPending && (
             <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -514,7 +505,7 @@ export default function AdminCategoriesPage() {
             </p>
           )}
 
-          {orderedCats.length === 0 && !error ? (
+          {orderedCats.length === 0 ? (
             <p className="text-muted-foreground">No categories. Run migration 009_expense_categories.sql to seed.</p>
           ) : (
             <DndContext
@@ -633,5 +624,17 @@ export default function AdminCategoriesPage() {
         </Button>
       </div>
     </main>
+  );
+}
+
+export default function AdminCategoriesPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminCategoriesContent />
+    </Suspense>
   );
 }

@@ -20,9 +20,9 @@ const features: {
     iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    title: "Bills & payment tracking",
+    title: "Planned Expenses & payment tracking",
     description:
-      "Add monthly, quarterly, or yearly recurring bills with due dates. Mark them paid as you go — status badges show Paid, Outstanding, or Unpaid at a glance, with a monthly summary of what's left.",
+      "Add monthly, quarterly, or yearly recurring planned expenses with due dates. Mark them paid as you go — status badges show Paid, Outstanding, or Unpaid at a glance, with a monthly summary of what's left.",
     icon: LayoutDashboard,
     iconBg: "bg-sky-500/10",
     iconColor: "text-sky-600 dark:text-sky-400",
@@ -76,7 +76,7 @@ export function FeaturesSection({ className }: { className?: string }) {
         <div className="text-center">
           <AnimatedTextLoop />
           <p className="mt-4 text-lg text-muted-foreground">
-            Daily expenses, recurring bills, lists, goals, and calculators — the essentials you expect from a modern
+            Daily expenses, planned expenses, lists, goals, and calculators — the essentials you expect from a modern
             finance app, tuned for everyday Filipino household use.
           </p>
         </div>

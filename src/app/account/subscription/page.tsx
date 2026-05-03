@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -129,7 +129,7 @@ function PaymentForm({
   queryClient: ReturnType<typeof useQueryClient>;
   router: ReturnType<typeof useRouter>;
 }) {
-  const { data: plans } = useQuery(subscriptionPlansQueryOptions());
+  const { data: plans } = useSuspenseQuery(subscriptionPlansQueryOptions());
   const [method, setMethod] = useState<"card" | "ewallet" | "qrph">("card");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -262,9 +262,9 @@ function SubscriptionPageInner() {
   const justPaid = searchParams.get("paid") === "1";
   const planParam = searchParams.get("plan");
 
-  const { data: plans } = useQuery(subscriptionPlansQueryOptions());
-  const statusQuery = useQuery({ ...subscriptionStatusQueryOptions(), enabled: !!user && !userLoading });
-  const paymentsQuery = useQuery({ ...subscriptionPaymentsQueryOptions(), enabled: !!user && !userLoading });
+  const { data: plans } = useSuspenseQuery(subscriptionPlansQueryOptions());
+  const statusQuery = useSuspenseQuery(subscriptionStatusQueryOptions());
+  const paymentsQuery = useSuspenseQuery(subscriptionPaymentsQueryOptions());
 
   const [unsubmitting, setUnsubmitting] = useState(false);
   const [unsubError, setUnsubError] = useState<string | null>(null);
@@ -418,7 +418,7 @@ function SubscriptionPageInner() {
           <Card className="flex flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-base">Free</CardTitle>
-              <CardDescription>Track bills and cashflow, no card required.</CardDescription>
+              <CardDescription>Track planned expenses and cashflow, no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               {freeBenefits.map((f) => (
@@ -604,7 +604,11 @@ function SubscriptionPageInner() {
 
 export default function SubscriptionPage() {
   return (
-    <Suspense>
+    <Suspense fallback={
+      <main className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
       <SubscriptionPageInner />
     </Suspense>
   );

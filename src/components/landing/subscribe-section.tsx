@@ -7,14 +7,14 @@ import { Check, Gem, Sparkles } from "lucide-react";
 
 
 export const freeBenefits = [
-  "Unlimited expense & bill rows",
+  "Unlimited expense & planned expense rows",
   "To-buy & to-do (up to 5 items each)",
-  "1 bill reminder (in-app & email)",
+  "1 planned expense reminder (in-app & email)",
   "Unlimited reminders — upgrade to Pro",
 ];
 
 export const proBenefits = [
-  "Email reminders for bills and to-do lists",
+  "Email reminders for planned expenses and to-do lists",
   "Unlimited to-buy & to-do",
   "Partner sharing (invite by email)",
   "Custom expense categories",
@@ -45,7 +45,7 @@ export function SubscribeSection({
           <Card className="flex flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-base">Free</CardTitle>
-              <CardDescription>Track bills and cashflow, no card required.</CardDescription>
+              <CardDescription>Track planned expenses and cashflow, no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               {freeBenefits.map((f) => (

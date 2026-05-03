@@ -28,22 +28,22 @@ export const SUBSCRIPTION_PREMIUM_FALLBACK: SubscriptionPlanRow = {
 export const subscriptionPlanQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.subscriptionPlan(),
-    queryFn: async () => {
+    queryFn: () => Promise.resolve().then(async () => {
       const plan = await getSubscriptionPlan();
       return plan ?? SUBSCRIPTION_PLAN_FALLBACK;
-    },
+    }),
     staleTime: Infinity,
   });
 
 export const subscriptionPlansQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.subscriptionPlans(),
-    queryFn: async () => {
+    queryFn: () => Promise.resolve().then(async () => {
       const { pro, premium } = await getSubscriptionPlans();
       return {
         pro: pro ?? SUBSCRIPTION_PLAN_FALLBACK,
         premium: premium ?? SUBSCRIPTION_PREMIUM_FALLBACK,
       };
-    },
+    }),
     staleTime: Infinity,
   });

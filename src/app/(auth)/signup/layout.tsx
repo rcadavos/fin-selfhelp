@@ -2,7 +2,7 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: "Sign up",
-  description: "Create your OmniTrak account — your all-in-one personal tracker for bills, cashflow, lists, and more.",
+  description: "Create your OmniTrak account — your all-in-one personal tracker for planned expenses, cashflow, lists, and more.",
   path: "/signup",
 });
 

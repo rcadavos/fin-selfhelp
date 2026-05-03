@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -61,7 +61,6 @@ import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
-import { DashboardSkeleton } from "./dashboard-skeleton";
 import { ContentHeader } from "../app/content-header";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -363,13 +362,10 @@ export function MyExpensesBoard() {
     return opts;
   }, []);
 
-  const { data: expenseData, isLoading } = useQuery({
-    ...expenseDataQueryOptions(selectedMonth),
-    enabled: !!user && !userLoading,
-  });
-  const { data: dbCategories = [] } = useQuery(categoriesQueryOptions());
-  const { data: accounts = [] } = useQuery(accountsQueryOptions());
-  const { data: vehicles = [] } = useQuery({ ...vehiclesQueryOptions(), enabled: !!user });
+  const { data: expenseData } = useSuspenseQuery(expenseDataQueryOptions(selectedMonth));
+  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
@@ -614,10 +610,6 @@ export function MyExpensesBoard() {
       setEditingEntry(null);
       invalidate();
     }
-  }
-
-  if (userLoading || isLoading) {
-    return <DashboardSkeleton />;
   }
 
   // ── Render ──

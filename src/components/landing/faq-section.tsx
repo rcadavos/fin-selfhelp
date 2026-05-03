@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 const faqs: { q: string; a: string }[] = [
   {
     q: "What is OmniTrak?",
-    a: "A personal finance hub focused on bills and cashflow: track expenses by category, mark what you paid each month, manage Goals (short-term, long-term, and lifetime), use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
+    a: "A personal finance hub focused on planned expenses and cashflow: track expenses by category, mark what you paid each month, manage goals, use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
   },
   {
     q: "What does the free plan include?",
@@ -15,19 +15,19 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Can my partner see my data?",
-    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your Bills and/or your to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your bill amounts.",
+    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your Planned Expenses and/or your to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your planned expense amounts.",
   },
   {
     q: "What currencies and formats are supported?",
     a: "You can pick currency and how dates and numbers display in Settings. Amounts work well with PHP and other major currencies.",
   },
   {
-    q: "How do bill reminders work?",
-    a: "All plans can attach due dates to expenses. With Pro or Premium (and an active subscription), you can also enable email reminder windows for each bill. Reminders are sent by email according to the options you pick. The free plan does not include email reminders.",
+    q: "How do planned expense reminders work?",
+    a: "All plans can attach due dates to planned expenses. With Pro or Premium (and an active subscription), you can also enable email reminder windows for each planned expense. Reminders are sent by email according to the options you pick. The free plan does not include email reminders.",
   },
   {
     q: "Do I need to link a bank?",
-    a: "No. You enter bills and amounts yourself. That keeps setup simple and puts you in control of what appears on your dashboard.",
+    a: "No. You enter planned expenses and amounts yourself. That keeps setup simple and puts you in control of what appears on your dashboard.",
   },
 ];
 

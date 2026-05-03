@@ -16,11 +16,11 @@ export function buildVehicleColorMap(vehicles: VehicleRow[]): Record<string, str
 export const vehiclesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.vehicles(),
-    queryFn: async (): Promise<VehicleRow[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<VehicleRow[]> => {
       const res = await loadVehicles();
       if (res.error) throw new Error(res.error);
       return res.vehicles;
-    },
+    }),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -29,11 +29,11 @@ export const vehiclesQueryOptions = () =>
 export const vehicleSpendingQueryOptions = () =>
   queryOptions({
     queryKey: [...queryKeys.vehicles(), "spending"] as const,
-    queryFn: async (): Promise<VehicleSpendSummary[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<VehicleSpendSummary[]> => {
       const res = await loadVehicleSpending();
       if (res.error) throw new Error(res.error);
       return res.summaries;
-    },
+    }),
   });
 
 export function invalidateVehicleQueries(queryClient: QueryClient) {

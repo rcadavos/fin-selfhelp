@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -45,7 +46,7 @@ function isActiveSubscriber(u: AdminUserRow): boolean {
   return false;
 }
 
-export default function AdminNotificationsPage() {
+function AdminNotificationsContent() {
   const [target, setTarget] = useState<Target>("all");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -55,7 +56,7 @@ export default function AdminNotificationsPage() {
   const [lastResult, setLastResult] = useState<{ sent: number } | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  const { data: users = [], isLoading } = useQuery(adminUsersQueryOptions());
+  const { data: users } = useSuspenseQuery(adminUsersQueryOptions());
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
@@ -198,11 +199,7 @@ export default function AdminNotificationsPage() {
                   className="pl-8"
                 />
               </div>
-              {isLoading ? (
-                <div className="flex justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredUsers.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">No users match.</p>
               ) : (
                 <div className="max-h-64 overflow-y-auto">
@@ -342,5 +339,17 @@ export default function AdminNotificationsPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+export default function AdminNotificationsPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminNotificationsContent />
+    </Suspense>
   );
 }

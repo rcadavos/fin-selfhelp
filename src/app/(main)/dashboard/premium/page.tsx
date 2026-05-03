@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { 
-  Gem, 
-  Building2, 
-  Wallet, 
+import {
+  Gem,
+  Building2,
+  Wallet,
   ChevronRight,
   Sparkles,
   ArrowRight,
@@ -13,37 +14,32 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
-import { useUser } from "@/hooks/use-user";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
-export default function PremiumPage() {
-  const { user } = useUser();
-  const { data: subscriptionStatus } = useQuery({
-    ...subscriptionStatusQueryOptions(),
-    enabled: !!user,
-  });
+const premiumFeatures = [
+  {
+    title: "Rent Tracker",
+    description: "Manage your properties, tenants and track rent payments with ease.",
+    icon: Building2,
+    href: "/dashboard/rent-tracker",
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    title: "Payment Tracker",
+    description: "Track all your miscellaneous payments and bills in one place.",
+    icon: Wallet,
+    href: "/dashboard/payment-tracker",
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+];
 
+function PremiumPageContent() {
+  const { data: subscriptionStatus } = useSuspenseQuery(subscriptionStatusQueryOptions());
   const isPremium = subscriptionStatus?.hasPremiumAccess || subscriptionStatus?.hasProAccess;
-
-  const premiumFeatures = [
-    {
-      title: "Rent Tracker",
-      description: "Manage your properties, tenants and track rent payments with ease.",
-      icon: Building2,
-      href: "/dashboard/rent-tracker",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-    },
-    {
-      title: "Payment Tracker",
-      description: "Track all your miscellaneous payments and bills in one place.",
-      icon: Wallet,
-      href: "/dashboard/payment-tracker",
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
-    },
-  ];
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-20 pt-4">
@@ -111,5 +107,13 @@ export default function PremiumPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function PremiumPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton variant="page" />}>
+      <PremiumPageContent />
+    </Suspense>
   );
 }

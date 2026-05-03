@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,8 @@ import {
 import { getBaseUrl } from "@/lib/seo";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
-import { UsersRound, Link2, Trash2, Ban, ExternalLink } from "lucide-react";
+import { UsersRound, Link2, Trash2, Ban, ExternalLink, Loader2 } from "lucide-react";
+
 
 function permBadges(s: AccountShareRow) {
   const parts: string[] = [];
@@ -33,13 +34,10 @@ function permBadges(s: AccountShareRow) {
   return parts.length ? parts.join(" • ") : "—";
 }
 
-export default function SharingSettingsPage() {
+function SharingSettingsContent() {
   const router = useRouter();
   const { user, loading } = useUser();
-  const { data: subscriptionStatus, isPending: subscriptionLoading } = useQuery({
-    ...subscriptionStatusQueryOptions(),
-    enabled: !!user && !loading,
-  });
+  const { data: subscriptionStatus } = useSuspenseQuery(subscriptionStatusQueryOptions());
   const canShare = subscriptionStatus?.hasProAccess ?? false;
   const { showError, showSuccess } = useSnackbar();
   const [outgoing, setOutgoing] = useState<AccountShareRow[]>([]);
@@ -112,14 +110,6 @@ export default function SharingSettingsPage() {
     setBusy(false);
     if (res.error) showError(res.error);
     else await refresh();
-  }
-
-  if (loading || !user || subscriptionLoading) {
-    return (
-      <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
-      </main>
-    );
   }
 
   const base = getBaseUrl();
@@ -320,5 +310,17 @@ export default function SharingSettingsPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function SharingSettingsPage() {
+  return (
+    <Suspense fallback={
+      <main className="app-main-centered">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <SharingSettingsContent />
+    </Suspense>
   );
 }

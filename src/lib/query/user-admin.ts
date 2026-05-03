@@ -6,7 +6,7 @@ import { queryKeys } from "./keys";
 export function userIsAdminQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.userIsAdmin(),
-    queryFn: () => getIsAdmin(),
+    queryFn: () => Promise.resolve().then(() => getIsAdmin()),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

@@ -3,21 +3,21 @@ import { cn } from "@/lib/utils";
 const steps = [
   {
     step: 1,
-    title: "Log expenses & bills",
+    title: "Log expenses & planned expenses",
     description:
-      "Record daily expenses with a date, category, and note. Add recurring bills — monthly, quarterly, or yearly — and set due dates so nothing catches you off guard.",
+      "Record daily expenses with a date, category, and note. Add recurring planned expenses — monthly, quarterly, or yearly — and set due dates so nothing catches you off guard.",
   },
   {
     step: 2,
     title: "Get reminded, then mark paid",
     description:
-      "Receive reminders before bills are due. When you've settled one, tap to mark it paid — status badges update instantly to show Paid, Outstanding, or Unpaid.",
+      "Receive reminders before planned expenses are due. When you've settled one, tap to mark it paid — status badges update instantly to show Paid, Outstanding, or Unpaid.",
   },
   {
     step: 3,
     title: "Review your monthly summary",
     description:
-      "Your dashboard shows total expenses, total bills, what's still owed, and payment history across recent months — so you always know exactly where you stand.",
+      "Your dashboard shows total expenses, total planned expenses, what's still owed, and payment history across recent months — so you always know exactly where you stand.",
   },
 ];
 

@@ -5,13 +5,13 @@ import { queryKeys } from "./keys";
 export const categoriesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.categories(),
-    queryFn: getExpenseCategories,
+    queryFn: () => Promise.resolve().then(getExpenseCategories),
     staleTime: Infinity,
   });
 
 export const userCategoriesQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.userCategories(),
-    queryFn: getUserCustomCategories,
+    queryFn: () => Promise.resolve().then(getUserCustomCategories),
     staleTime: Infinity,
   });

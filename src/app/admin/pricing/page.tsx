@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -158,21 +159,13 @@ function PlanEditor({ planId, title, description, plan }: PlanEditorProps) {
   );
 }
 
-export default function AdminPricingPage() {
-  const { data: plans, isLoading, error } = useQuery(adminPricingQueryOptions());
+function AdminPricingContent() {
+  const { data: plans } = useSuspenseQuery(adminPricingQueryOptions());
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
-  if (error || !plans?.pro || !plans?.premium) {
+  if (!plans?.pro || !plans?.premium) {
     return (
       <main className="container mx-auto max-w-lg py-8">
-        <p className="text-destructive">{(error as Error)?.message ?? "Plans not found."}</p>
+        <p className="text-destructive">Plans not found.</p>
         <Button variant="outline" asChild className="mt-4">
           <Link href="/admin">Back to Admin</Link>
         </Button>
@@ -205,5 +198,17 @@ export default function AdminPricingPage() {
         <Link href="/admin">Back to dashboard</Link>
       </Button>
     </main>
+  );
+}
+
+export default function AdminPricingPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminPricingContent />
+    </Suspense>
   );
 }

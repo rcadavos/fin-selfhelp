@@ -11,7 +11,7 @@ export function expenseDataQueryOptions(paidMonth?: string) {
     paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
   return queryOptions({
     queryKey: queryKeys.expenseData(month),
-    queryFn: (): Promise<ExpenseData | null> => loadExpenseData(month),
+    queryFn: () => Promise.resolve().then((): Promise<ExpenseData | null> => loadExpenseData(month)),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -23,7 +23,7 @@ export function expenseSummaryQueryOptions(paidMonth?: string) {
     paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
   return queryOptions({
     queryKey: [...queryKeys.expenseData(month), "summary"],
-    queryFn: (): Promise<DashboardSummary | null> => loadExpenseSummary(month),
+    queryFn: () => Promise.resolve().then((): Promise<DashboardSummary | null> => loadExpenseSummary(month)),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -33,11 +33,11 @@ export function expenseSummaryQueryOptions(paidMonth?: string) {
 export function expensePaymentHistoryQueryOptions(months: number = EXPENSE_PAYMENT_HISTORY_MONTHS) {
   return queryOptions({
     queryKey: queryKeys.expensePaymentHistory(months),
-    queryFn: async (): Promise<PaymentMonthStats[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<PaymentMonthStats[]> => {
       const res = await getPaymentHistoryMonths(months);
       if (res.error) throw new Error(res.error);
       return res.stats ?? [];
-    },
+    }),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -47,11 +47,11 @@ export function expensePaymentHistoryQueryOptions(months: number = EXPENSE_PAYME
 export function monthlyBreakdownQueryOptions(months: number = EXPENSE_PAYMENT_HISTORY_MONTHS) {
   return queryOptions({
     queryKey: queryKeys.monthlyBreakdown(months),
-    queryFn: async (): Promise<MonthlyBreakdownPoint[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<MonthlyBreakdownPoint[]> => {
       const res = await getMonthlyBreakdown(months);
       if (res.error) throw new Error(res.error);
       return res.stats ?? [];
-    },
+    }),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

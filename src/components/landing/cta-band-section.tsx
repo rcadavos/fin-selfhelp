@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 export function CtaBandSection({ className }: { className?: string }) {
   const { user, loading } = useUser();
+  const [navigating, setNavigating] = useState(false);
 
   return (
     <section
@@ -22,7 +24,7 @@ export function CtaBandSection({ className }: { className?: string }) {
       <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to track it all?</h2>
         <p className="max-w-xl text-lg text-primary-foreground/90">
-          Track bills, lists, and tasks in one place — open your dashboard in seconds, no bank linking required.
+          Track planned expenses, lists, and tasks in one place — open your dashboard in seconds, no bank linking required.
         </p>
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
           {loading ? (
@@ -30,11 +32,21 @@ export function CtaBandSection({ className }: { className?: string }) {
               …
             </Button>
           ) : user ? (
-            <Button size="lg" variant="secondary" className="min-w-[200px] gap-2 font-semibold shadow-lg" asChild>
-              <Link href="/dashboard">
-                Go to Dashboard
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="min-w-[200px] gap-2 font-semibold shadow-lg"
+              asChild={!navigating}
+              disabled={navigating}
+            >
+              {navigating ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Link href="/dashboard" onClick={() => setNavigating(true)}>
+                  Go to Dashboard
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              )}
             </Button>
           ) : (
             <>

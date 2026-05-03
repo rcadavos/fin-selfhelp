@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Suspense, useState } from "react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -69,9 +69,9 @@ function subscriptionStatus(row: AdminUserRow): {
   return { label: "Pro", variant: "default" };
 }
 
-export default function AdminUsersPage() {
+function AdminUsersContent() {
   const queryClient = useQueryClient();
-  const { data: users = [], isLoading, error } = useQuery(adminUsersQueryOptions());
+  const { data: users } = useSuspenseQuery(adminUsersQueryOptions());
   const [paidUser, setPaidUser] = useState<AdminUserRow | null>(null);
   const [paidTier, setPaidTier] = useState<"pro" | "premium">("pro");
   const [expiresAt, setExpiresAt] = useState("");
@@ -182,14 +182,6 @@ export default function AdminUsersPage() {
     setPaidMutation.mutate({ userId: paidUser.id, expiresAt: expiresAt.trim(), tier: paidTier });
   }
 
-  if (isLoading) {
-    return (
-      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
   return (
     <main className="w-full px-4 py-8">
       <Card className="border-none shadow-none">
@@ -217,10 +209,7 @@ export default function AdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {error && (
-            <p className="mb-4 text-sm text-destructive">{(error as Error).message}</p>
-          )}
-          {users.length === 0 && !error ? (
+          {users.length === 0 ? (
             <p className="text-muted-foreground">No users yet.</p>
           ) : filteredUsers.length === 0 ? (
             <p className="text-muted-foreground">No users match &ldquo;{search}&rdquo;.</p>
@@ -420,5 +409,17 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminUsersContent />
+    </Suspense>
   );
 }

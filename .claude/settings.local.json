@@ -24,7 +24,8 @@
       "Bash(node scripts/build-favicon.mjs)",
       "Bash(grep -E '\\\\.\\(tsx|ts\\)$')",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(xargs basename *)"
+      "Bash(xargs basename *)",
+      "Bash(awk '{print $2}')"
     ]
   }
 }

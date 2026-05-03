@@ -42,7 +42,7 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
-  { href: "/dashboard/bills", label: "Bills", icon: Receipt, premium: false },
+  { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false },
   { href: "/dashboard/fuel", label: "Fuel & Vehicles", icon: Fuel, premium: false },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },

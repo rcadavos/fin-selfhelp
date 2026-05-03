@@ -7,7 +7,7 @@ import { queryKeys } from "./keys";
 export function subscriptionStatusQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.subscriptionStatus(),
-    queryFn: (): Promise<Awaited<ReturnType<typeof getSubscriptionStatus>>> => getSubscriptionStatus(),
+    queryFn: () => Promise.resolve().then((): Promise<Awaited<ReturnType<typeof getSubscriptionStatus>>> => getSubscriptionStatus()),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -17,8 +17,8 @@ export function subscriptionStatusQueryOptions() {
 export function subscriptionCapabilitiesQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.subscriptionCapabilities(),
-    queryFn: (): Promise<Awaited<ReturnType<typeof getSubscriptionCapabilities>>> =>
-      getSubscriptionCapabilities(),
+    queryFn: () => Promise.resolve().then((): Promise<Awaited<ReturnType<typeof getSubscriptionCapabilities>>> =>
+      getSubscriptionCapabilities()),
     staleTime: Infinity,
   });
 }
@@ -26,11 +26,11 @@ export function subscriptionCapabilitiesQueryOptions() {
 export function subscriptionPaymentsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.subscriptionPayments(),
-    queryFn: async (): Promise<SubscriptionPaymentRow[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<SubscriptionPaymentRow[]> => {
       const res = await getMyPaymentHistory();
       if (res.error) throw new Error(res.error);
       return res.payments ?? [];
-    },
+    }),
   });
 }
 

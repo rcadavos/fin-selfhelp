@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -16,8 +17,8 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
-export default function AdminSuggestionsPage() {
-  const { data: suggestions = [], isLoading, error } = useQuery({
+function AdminSuggestionsContent() {
+  const { data: suggestions } = useSuspenseQuery({
     queryKey: ["omni-trak", "admin", "suggestions"],
     queryFn: async () => {
       const res = await getSuggestionsForAdmin();
@@ -25,14 +26,6 @@ export default function AdminSuggestionsPage() {
       return res.suggestions;
     },
   });
-
-  if (isLoading) {
-    return (
-      <main className="container mx-auto max-w-4xl flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
 
   return (
     <main className="container mx-auto max-w-4xl py-8">
@@ -52,12 +45,7 @@ export default function AdminSuggestionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <p className="text-sm text-destructive mb-4">
-              {(error as Error).message}
-            </p>
-          )}
-          {suggestions.length === 0 && !error ? (
+          {suggestions.length === 0 ? (
             <p className="text-muted-foreground">No suggestions yet.</p>
           ) : (
             <ul className="space-y-4">
@@ -80,5 +68,17 @@ export default function AdminSuggestionsPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function AdminSuggestionsPage() {
+  return (
+    <Suspense fallback={
+      <main className="container mx-auto max-w-4xl flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminSuggestionsContent />
+    </Suspense>
   );
 }

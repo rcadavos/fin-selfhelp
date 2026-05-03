@@ -5,9 +5,9 @@ import { queryKeys } from "./keys";
 export const adminPricingQueryOptions = () =>
   queryOptions({
     queryKey: [...queryKeys.all, "admin", "pricing", "plans"] as const,
-    queryFn: async () => {
+    queryFn: () => Promise.resolve().then(async () => {
       const { plans, error } = await getSubscriptionPlansForAdmin();
       if (error) throw new Error(error);
       return plans;
-    },
+    }),
   });

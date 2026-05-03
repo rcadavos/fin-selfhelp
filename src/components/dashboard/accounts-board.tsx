@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContentHeader } from "@/components/app/content-header";
+import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency, cn } from "@/lib/utils";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
@@ -49,7 +50,6 @@ import { STATIC_ACCOUNT_IDS } from "@/lib/static-accounts";
 import {
   PHILIPPINE_BANKS,
 } from "@/lib/constants/account-institutions";
-import DashboardLoading from "@/app/(main)/dashboard/loading";
 
 const STATIC_IDS = new Set(Object.values(STATIC_ACCOUNT_IDS));
 
@@ -335,12 +335,12 @@ function AccountFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>{initial ? "Edit Account" : "Add Account"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <ScrollFadeBody className="space-y-4 px-6 py-4">
           {/* Alias */}
           <div className="space-y-1.5">
             <Label htmlFor="acc-alias">Account Alias</Label>
@@ -459,14 +459,14 @@ function AccountFormDialog({
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
+        </ScrollFadeBody>
 
-        <DialogFooter>
-          <div className="flex w-full gap-2 pt-1">
-            <Button variant="outline" className="w-1/2" onClick={onClose} disabled={isPending}>
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <div className="flex w-full gap-2">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
               Cancel
             </Button>
-            <Button className="w-1/2" onClick={() => onSave(form)} disabled={!isValid || isPending}>
+            <Button className="flex-1" onClick={() => onSave(form)} disabled={!isValid || isPending}>
               {isPending ? "Saving…" : initial ? "Save changes" : "Add account"}
             </Button>
           </div>
@@ -484,14 +484,8 @@ export function AccountsBoard() {
   const paidMonth = getCurrentPaidMonth();
   const [isPending, startTransition] = useTransition();
 
-  const { data: accounts = [], isLoading } = useQuery({
-    ...accountsQueryOptions(),
-    enabled: !!user,
-  });
-  const { data: totals } = useQuery({
-    ...accountTotalsQueryOptions(paidMonth),
-    enabled: !!user,
-  });
+  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: totals } = useSuspenseQuery(accountTotalsQueryOptions(paidMonth));
 
   const expenseTotals = totals?.expenseTotals ?? {};
   const billTotals = totals?.billTotals ?? {};
@@ -600,12 +594,7 @@ export function AccountsBoard() {
 
       {/* Accounts list */}
       <div className="space-y-2">
-        {isLoading ? (
-          <div className="flex justify-center">
-            <DashboardLoading />
-          </div>
-        ) : (
-          <>
+        <>
             {accounts.map((acc) => (
               <AccountRow
                 key={acc.id}
@@ -627,7 +616,6 @@ export function AccountsBoard() {
               </div>
             )}
           </>
-        )}
       </div>
 
       {/* Add dialog */}

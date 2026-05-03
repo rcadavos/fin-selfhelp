@@ -5,7 +5,7 @@ import { queryKeys } from "./keys";
 export function userStreakQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.userStreak(),
-    queryFn: (): Promise<UserStreakData> => touchAndGetStreak(),
+    queryFn: () => Promise.resolve().then((): Promise<UserStreakData> => touchAndGetStreak()),
     staleTime: 1000 * 60 * 30,
   });
 }

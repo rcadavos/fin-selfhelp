@@ -42,7 +42,7 @@ function SignupBrandPanel({ showFooter }: { showFooter?: boolean }) {
           {showFooter ? (
             <>
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Start tracking your expenses, bills, savings, and goals — all in one place.
+                Start tracking your expenses, planned expenses, savings, and goals — all in one place.
               </p>
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background/60 px-2.5 py-1">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useTransition } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -78,7 +78,6 @@ import { accountsQueryOptions } from "@/lib/query/accounts";
 import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
 import { type VehicleRow } from "@/actions/vehicles";
 import Link from "next/link";
-import DashboardLoading from "@/app/(main)/dashboard/loading";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 
@@ -275,8 +274,8 @@ function BillDialog({
   freeReminderUsed: number;
   lockedFreeReminderBillId?: string;
 }) {
-  const { data: dbCategories } = useQuery(categoriesQueryOptions());
-  const { data: capabilities } = useQuery(subscriptionCapabilitiesQueryOptions());
+  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: capabilities } = useSuspenseQuery(subscriptionCapabilitiesQueryOptions());
   const hasProAccess = capabilities?.hasProLevelAccess ?? false;
   const categories = dbCategories ?? [];
 
@@ -312,7 +311,7 @@ function BillDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-          <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
+          <DialogTitle>{editingBillId ? "Edit Planned Expense" : "Add Planned Expense"}</DialogTitle>
           {editingBillId && initial && (
             <p className="text-xs text-muted-foreground">
               {initial.note || "—"} · {formatCurrency(parseFloat(initial.amount) || 0)}
@@ -482,20 +481,20 @@ function BillDialog({
               reminderEnabled = false;
               badgeLabel = "Slot locked";
               badgeClass = "bg-destructive/10 text-destructive";
-              hintText = "Your free reminder slot is permanently assigned to another bill. Upgrade to Pro for unlimited reminders.";
+              hintText = "Your free reminder slot is permanently assigned to another planned expense. Upgrade to Pro for unlimited reminders.";
             } else if (isThisTheLocked) {
               reminderEnabled = true;
               badgeLabel = "Permanent";
               badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
-              hintText = "This bill permanently holds your free reminder slot.";
+              hintText = "This planned expense permanently holds your free reminder slot.";
             } else {
               const canHaveFree = (initial?.reminderDays?.length ?? 0) > 0 || freeReminderUsed === 0;
               reminderEnabled = canHaveFree;
               badgeLabel = freeReminderUsed >= 1 && !canHaveFree ? "1/1 used" : freeReminderUsed >= 1 ? "1/1 free" : "0/1 free";
               badgeClass = freeReminderUsed >= 1 && !canHaveFree ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground";
               hintText = canHaveFree
-                ? "Free plan: 1 bill reminder. Once a reminder fires, this slot is permanently assigned to that bill."
-                : "Free reminder slot used by another bill. Upgrade to Pro for unlimited reminders.";
+                ? "Free plan: 1 planned expense reminder. Once a reminder fires, this slot is permanently assigned to that planned expense."
+                : "Free reminder slot used by another planned expense. Upgrade to Pro for unlimited reminders.";
             }
 
             return (
@@ -550,7 +549,7 @@ function BillDialog({
                   Cancel
                 </Button>
                 <Button type="submit" className={editingBillId ? "flex-1" : "w-1/2"} disabled={!isValid || isPending}>
-                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add bill"}
+                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add planned expense"}
                 </Button>
               </div>
             </div>
@@ -868,7 +867,7 @@ function exportBillsToCSV(bills: BillRow[], paidIds: Set<string>, currency: stri
   const csv = [headers.join(","), ...rows].join("\n");
   const link = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })),
-    download: `bills-${new Date().toISOString().slice(0, 10)}.csv`,
+    download: `planned-expenses-${new Date().toISOString().slice(0, 10)}.csv`,
     style: "display:none",
   });
   document.body.appendChild(link);
@@ -893,7 +892,7 @@ function exportBillsToExcel(bills: BillRow[], paidIds: Set<string>, currency: st
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr>${headerRow}</tr>${dataRows}</table></body></html>`;
   const link = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" })),
-    download: `bills-${new Date().toISOString().slice(0, 10)}.xls`,
+    download: `planned-expenses-${new Date().toISOString().slice(0, 10)}.xls`,
     style: "display:none",
   });
   document.body.appendChild(link);
@@ -936,10 +935,10 @@ function CategoriesDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Bills by Category</DialogTitle>
+          <DialogTitle>Planned Expenses by Category</DialogTitle>
         </DialogHeader>
         {grouped.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No bills yet.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No planned expenses yet.</p>
         ) : (
           <div className="divide-y">
             {grouped.map(({ id, label, total, paid, count }) => {
@@ -958,7 +957,7 @@ function CategoriesDialog({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold tabular-nums">{formatCurrency(total, currency)}</p>
-                    <p className="text-[11px] text-muted-foreground">{count} bill{count !== 1 ? "s" : ""}</p>
+                    <p className="text-[11px] text-muted-foreground">{count} planned expense{count !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
               );
@@ -1001,17 +1000,10 @@ export function BillsBoard() {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  const { data, isLoading } = useQuery({
-    ...billsDataQueryOptions(paidMonth),
-    enabled: !!user,
-  });
-
-  const { data: prefs } = useQuery({
-    ...userPreferencesQueryOptions(user?.id),
-    enabled: !!user,
-  });
-  const { data: accounts = [] } = useQuery(accountsQueryOptions());
-  const { data: vehicles = [] } = useQuery({ ...vehiclesQueryOptions(), enabled: !!user });
+  const { data } = useSuspenseQuery(billsDataQueryOptions(paidMonth));
+  const { data: prefs } = useSuspenseQuery(userPreferencesQueryOptions(user?.id));
+  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
@@ -1021,7 +1013,7 @@ export function BillsBoard() {
     [vehicles]
   );
   const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
-  const { data: dbCategories } = useQuery(categoriesQueryOptions());
+  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
   const categories: CatList = useMemo(
     () => (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass })),
     [dbCategories]
@@ -1176,8 +1168,8 @@ export function BillsBoard() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
-        title="Bills"
-        subtitle="Manage your bills, due dates, and mark them as paid when you settle up."
+        title="Planned Expenses"
+        subtitle="Manage your planned expenses, due dates, and mark them as paid when you settle up."
         icon={Receipt}
         actions={
           <div className="flex items-center gap-2">
@@ -1212,12 +1204,12 @@ export function BillsBoard() {
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Bills - {activeTab}</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalFiltered, currency)}</p>
-            <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} bill{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Bills - Remaining</p>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
             <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
               {formatCurrency(totalRemaining, currency)}
             </p>
@@ -1240,7 +1232,7 @@ export function BillsBoard() {
             </Card>
           ) : (
             <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-              Add a bill to see the chart
+              Add a planned expense to see the chart
             </div>
           )}
         </div>
@@ -1264,7 +1256,7 @@ export function BillsBoard() {
             </Select>
             <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5 sm:hidden">
               <Plus className="h-4 w-4" />
-              Add Bill
+              Add Planned Expense
             </Button>
           </div>
 
@@ -1303,12 +1295,10 @@ export function BillsBoard() {
         </div>
 
         <div className="space-y-2">
-          {isLoading ? (
-            <DashboardSkeleton variant="form" />
-          ) : sortedFilteredBills.length === 0 ? (
+          {sortedFilteredBills.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <Receipt className="h-8 w-8 opacity-30" />
-              <p className="text-sm">No {activeTab} bills yet.</p>
+              <p className="text-sm">No {activeTab} planned expenses yet.</p>
             </div>
           ) : (
             sortedFilteredBills.map((bill) => {
@@ -1387,10 +1377,10 @@ export function BillsBoard() {
       <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete bill?</DialogTitle>
+            <DialogTitle>Delete planned expense?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will permanently delete the bill and all its payment history.
+            This will permanently delete the planned expense and all its payment history.
           </p>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="w-1/2" onClick={() => setDeletingId(null)} disabled={isPending}>

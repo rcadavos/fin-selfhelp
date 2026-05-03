@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContentHeader } from "@/components/app/content-header";
 import { Loader2, Bell, Mail } from "lucide-react";
@@ -29,9 +30,9 @@ function notificationsQueryOptions() {
   });
 }
 
-export default function AdminLogsPage() {
-  const { data: logs = [], isLoading: logsLoading, error: logsError } = useQuery(logsQueryOptions());
-  const { data: notifications = [], isLoading: notifsLoading, error: notifsError } = useQuery(notificationsQueryOptions());
+function AdminLogsInner() {
+  const { data: logs } = useSuspenseQuery(logsQueryOptions());
+  const { data: notifications } = useSuspenseQuery(notificationsQueryOptions());
 
   return (
     <main className="container mx-auto max-w-6xl space-y-8 px-4 py-8">
@@ -53,13 +54,7 @@ export default function AdminLogsPage() {
             <CardDescription>Sent reminder emails (dedupe log)</CardDescription>
           </CardHeader>
           <CardContent>
-            {logsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : logsError ? (
-              <p className="text-sm text-destructive">{logsError.message}</p>
-            ) : logs.length === 0 ? (
+            {logs.length === 0 ? (
               <p className="text-sm text-muted-foreground">No reminder logs yet.</p>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
@@ -87,13 +82,7 @@ export default function AdminLogsPage() {
             <CardDescription>User notifications from all users</CardDescription>
           </CardHeader>
           <CardContent>
-            {notifsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : notifsError ? (
-              <p className="text-sm text-destructive">{notifsError.message}</p>
-            ) : notifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <p className="text-sm text-muted-foreground">No notifications yet.</p>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
@@ -115,5 +104,19 @@ export default function AdminLogsPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+export default function AdminLogsPage() {
+  return (
+    <Suspense fallback={
+      <main className="container mx-auto max-w-6xl px-4 py-8">
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </main>
+    }>
+      <AdminLogsInner />
+    </Suspense>
   );
 }

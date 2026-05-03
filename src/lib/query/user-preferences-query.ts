@@ -5,7 +5,7 @@ import { queryKeys } from "./keys";
 export function userPreferencesQueryOptions(userId: string | undefined) {
   return queryOptions({
     queryKey: queryKeys.userPreferences(userId),
-    queryFn: () => fetchUserPreferencesFromDb(),
+    queryFn: () => Promise.resolve().then(() => fetchUserPreferencesFromDb()),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

@@ -5,9 +5,9 @@ import { queryKeys } from "./keys";
 export const adminUsersQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.adminUsers(),
-    queryFn: async () => {
+    queryFn: () => Promise.resolve().then(async () => {
       const { users, error } = await getUsersForAdmin();
       if (error) throw new Error(error);
       return users;
-    },
+    }),
   });

@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { SiteLogo } from "@/components/app/site-logo";
+import { Loader2 } from "lucide-react";
 
 type HeaderProps = {
   className?: string;
@@ -13,6 +15,7 @@ type HeaderProps = {
 
 export function Header({ className }: HeaderProps) {
   const { user, loading } = useUser();
+  const [navigating, setNavigating] = useState(false);
 
   return (
     <header
@@ -39,8 +42,19 @@ export function Header({ className }: HeaderProps) {
               <span className="inline-block h-9 w-[4.75rem] shrink-0 rounded-md bg-muted/80 sm:w-[5.25rem]" />
             </div>
           ) : user ? (
-            <Button size="sm" asChild className="shrink-0">
-              <Link href="/dashboard">Go to Dashboard</Link>
+            <Button
+              size="sm"
+              asChild={!navigating}
+              disabled={navigating}
+              className="shrink-0"
+            >
+              {navigating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Link href="/dashboard" onClick={() => setNavigating(true)}>
+                  Go to Dashboard
+                </Link>
+              )}
             </Button>
           ) : (
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

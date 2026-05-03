@@ -45,25 +45,25 @@ async function resolveListAfterServerLoad(
 export function toBuyItemsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.toBuyItems(),
-    queryFn: () =>
+    queryFn: () => Promise.resolve().then(() =>
       resolveListAfterServerLoad(
         loadMyToBuyFromServer,
         replaceMyToBuyOnServer,
         getToBuyItems,
         clearToBuyLocalStorage
-      ),
+      )),
   });
 }
 
 export function toDoItemsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.toDoItems(),
-    queryFn: () =>
+    queryFn: () => Promise.resolve().then(() =>
       resolveListAfterServerLoad(
         loadMyToDoFromServer,
         replaceMyToDoOnServer,
         getToDoItems,
         clearToDoLocalStorage
-      ),
+      )),
   });
 }

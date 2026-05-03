@@ -27,10 +27,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Add Deposit button now appears inline next to Target Amount in the Edit Goal dialog for quicker access." },
       { type: "improvement", description: "Edit Goal dialog header now shows the goal name and target amount as a subtitle for quick context." },
       { type: "improvement", description: "Replaced the Fuel shortcut in the mobile bottom navbar with Category, linking to the expense categories page." },
-      { type: "improvement", description: "In /admin/reviews, anonymous reviews now display the submitter's profile name in parentheses so admins can identify who sent it." },
       { type: "improvement", description: "Bank / E-Wallet options in the account add/edit dialog are now sorted alphabetically for faster scanning." },
       { type: "improvement", description: "Added a search input inside the bank dropdown so users can filter institutions while selecting." },
-      { type: "improvement", description: "Integrated simple-icons for supported institutions with the existing badge fallback for unsupported banks/e-wallets." },
     ],
   },
   {

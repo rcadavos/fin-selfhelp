@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, skipToken, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type SortingState,
@@ -82,7 +82,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
@@ -402,31 +401,25 @@ export function ExpenseCashflowPage({
   const searchParams = useSearchParams();
   const { user, loading } = useUser();
   const queryClient = useQueryClient();
-  const { data: categoriesFromDb = [] } = useQuery(categoriesQueryOptions());
-  const { data: subscriptionPlan } = useQuery({
-    ...subscriptionPlanQueryOptions(),
-    enabled: !!user && !loading,
-  });
+  const { data: categoriesFromDb } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: subscriptionPlan } = useSuspenseQuery(subscriptionPlanQueryOptions());
   const paidMonthQueryKey = getCurrentPaidMonth();
-  const expenseDataQuery = useQuery({
-    ...expenseDataQueryOptions(paidMonthQueryKey),
-    enabled: !!user && !loading,
-  });
-  const expensePaymentHistoryQuery = useQuery({
-    ...expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
-    enabled: !!user && !loading,
-  });
-  const monthlyBreakdownQuery = useQuery({
+  const expenseDataQuery = useSuspenseQuery(expenseDataQueryOptions(paidMonthQueryKey));
+  const expensePaymentHistoryQuery = useSuspenseQuery(
+    expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
+  );
+  const isDashboard = pageVariant === "dashboard";
+  const monthlyBreakdownQuery = useSuspenseQuery({
     ...monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
-    enabled: !!user && !loading && pageVariant === "dashboard",
+    queryFn: isDashboard ? monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS).queryFn : skipToken,
   });
-  const billsDataQuery = useQuery({
+  const billsDataQuery = useSuspenseQuery({
     ...billsDataQueryOptions(paidMonthQueryKey),
-    enabled: !!user && !loading && pageVariant === "dashboard",
+    queryFn: isDashboard ? billsDataQueryOptions(paidMonthQueryKey).queryFn : skipToken,
   });
-  const streakQuery = useQuery({
+  const streakQuery = useSuspenseQuery({
     ...userStreakQueryOptions(),
-    enabled: !!user && !loading && pageVariant === "dashboard",
+    queryFn: isDashboard ? userStreakQueryOptions().queryFn : skipToken,
   });
   const invalidateExpenseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
@@ -1297,18 +1290,6 @@ export function ExpenseCashflowPage({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (loading || !user) {
-    return (
-      <DashboardSkeleton variant="page" />
-    );
-  }
-
-  if (expenseDataQuery.isPending || expensePaymentHistoryQuery.isPending) {
-    return (
-      <DashboardSkeleton variant="page" />
-    );
-  }
-
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8">
       <Dialog
@@ -1561,7 +1542,7 @@ export function ExpenseCashflowPage({
         <>
           <ContentHeader
             title="My Expenses"
-            subtitle="This can be shared with your partner to mark bills as paid. Just go to Shared with me and give them access."
+            subtitle="This can be shared with your partner to mark planned expenses as paid. Just go to Shared with me and give them access."
             icon={Banknote}
             className="mb-3 mt-4"
             actions={
@@ -1702,7 +1683,7 @@ export function ExpenseCashflowPage({
                       <CalendarRange className="h-4 w-4" />
                       {paidMonthDisplay}
                     </p>
-                    <p className="mt-2 text-sm opacity-80">Bills still to pay</p>
+                    <p className="mt-2 text-sm opacity-80">Planned expenses still to pay</p>
                     <p className="text-4xl font-bold tracking-tight sm:text-5xl">
                       {formatCurrency(billsUnpaid)}
                     </p>
@@ -1721,7 +1702,7 @@ export function ExpenseCashflowPage({
 
                       {/* Text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[10px] font-medium leading-tight text-primary-foreground">
-                        <span className="opacity-80">Bills paid</span>
+                        <span className="opacity-80">Planned paid</span>
                         <span className="text-xl font-bold sm:text-2xl">
                           {billsPaidPct}%
                         </span>

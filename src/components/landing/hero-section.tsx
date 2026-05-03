@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 type HeroSectionProps = {
   className?: string;
@@ -33,7 +35,7 @@ function HeroCreditCard() {
               OmniTrak
             </p>
             <p className="mt-1 text-lg font-semibold tracking-tight">
-              Bills &amp; budget
+              Planned Expenses &amp; budget
             </p>
           </div>
           <div
@@ -63,6 +65,7 @@ function HeroCreditCard() {
 
 export function HeroSection({ className }: HeroSectionProps) {
   const { user, loading } = useUser();
+  const [navigating, setNavigating] = useState(false);
 
   return (
     <section
@@ -94,26 +97,34 @@ export function HeroSection({ className }: HeroSectionProps) {
             Your all-in-one personal tracker for everything
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
-            Track your expenses, bills, goals, and more in one simple
+            Track your expenses, planned expenses, goals, and more in one simple
             app. <br /> No clutter. No confusion. Just clarity.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
-              asChild
+              asChild={!navigating}
+              disabled={navigating}
               className="min-w-[15.5rem] whitespace-nowrap shadow-md sm:min-w-[16rem]"
             >
-              <Link href={!loading && user ? "/dashboard" : "/signup"}>
-                {loading ? (
-                  <span className="inline-block min-w-[11ch] text-center opacity-60">
-                    Loading…
-                  </span>
-                ) : user ? (
-                  "Go to Dashboard"
-                ) : (
-                  "Try It Now"
-                )}
-              </Link>
+              {navigating ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Link
+                  href={!loading && user ? "/dashboard" : "/signup"}
+                  onClick={() => setNavigating(true)}
+                >
+                  {loading ? (
+                    <span className="inline-block min-w-[11ch] text-center opacity-60">
+                      Loading…
+                    </span>
+                  ) : user ? (
+                    "Go to Dashboard"
+                  ) : (
+                    "Try It Now"
+                  )}
+                </Link>
+              )}
             </Button>
             <Button
               size="lg"

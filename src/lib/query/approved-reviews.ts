@@ -5,9 +5,9 @@ import { queryKeys } from "./keys";
 export const approvedReviewsQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.approvedReviews(),
-    queryFn: async () => {
+    queryFn: () => Promise.resolve().then(async () => {
       const result = await getApprovedReviews();
       if (result.error) throw new Error(result.error);
       return result.reviews;
-    },
+    }),
   });

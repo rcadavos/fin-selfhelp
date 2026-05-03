@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -50,14 +51,14 @@ function statusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 }
 
-export default function AdminReviewsPage() {
+function AdminReviewsContent() {
   const queryClient = useQueryClient();
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editRating, setEditRating] = useState<number | null>(null);
 
-  const { data: reviews = [], isLoading, error } = useQuery({
+  const { data: reviews } = useSuspenseQuery({
     queryKey: ["omni-trak", "admin", "reviews"],
     queryFn: async () => {
       const res = await getReviewsForAdmin();
@@ -101,14 +102,6 @@ export default function AdminReviewsPage() {
     setEditName(r.author_name ?? "");
     setEditContent(r.content);
     setEditRating(r.rating ?? null);
-  }
-
-  if (isLoading) {
-    return (
-      <main className="container mx-auto max-w-4xl flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
   }
 
   return (
@@ -315,5 +308,17 @@ export default function AdminReviewsPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function AdminReviewsPage() {
+  return (
+    <Suspense fallback={
+      <main className="container mx-auto max-w-4xl flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    }>
+      <AdminReviewsContent />
+    </Suspense>
   );
 }

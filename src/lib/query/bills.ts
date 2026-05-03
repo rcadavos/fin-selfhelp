@@ -8,7 +8,7 @@ export function billsDataQueryOptions(paidMonth?: string) {
     paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
   return queryOptions({
     queryKey: queryKeys.billData(month),
-    queryFn: (): Promise<BillsData | null> => loadBillsData(month),
+    queryFn: () => Promise.resolve().then((): Promise<BillsData | null> => loadBillsData(month)),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

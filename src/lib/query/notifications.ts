@@ -6,11 +6,11 @@ import { queryKeys } from "./keys";
 export function notificationsQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.notifications(),
-    queryFn: async (): Promise<AppNotification[]> => {
+    queryFn: () => Promise.resolve().then(async (): Promise<AppNotification[]> => {
       const res = await loadMyNotifications();
       if (res.error) throw new Error(res.error);
       return res.items;
-    },
+    }),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

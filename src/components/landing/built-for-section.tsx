@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const audiences = [
   {
     title: "Households & couples",
-    copy: "On Pro or Premium, share read-only views with a partner so you both see bills and lists — without juggling spreadsheets.",
+    copy: "On Pro or Premium, share read-only views with a partner so you both see planned expenses and lists — without juggling spreadsheets.",
     icon: Home,
   },
   {
@@ -29,7 +29,7 @@ export function BuiltForSection({ className }: { className?: string }) {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Built for real routines</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            For anyone who wants to track bills, lists, and routines in daily life—without turning finance into a second
+            For anyone who wants to track planned expenses, lists, and routines in daily life—without turning finance into a second
             job.
           </p>
         </div>

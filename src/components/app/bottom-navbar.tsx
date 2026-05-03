@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const bottomNavItems = [
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false, excludes: ["/dashboard/expenses/categories"] },
-  { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
+  { href: "/dashboard/planned-expenses", label: "Planned", icon: Receipt, exact: false },
   { href: "/dashboard", label: "Home", icon: House, exact: true },
   { href: "/dashboard/expenses/categories", label: "Category", icon: LayoutGrid, exact: false },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, exact: false },

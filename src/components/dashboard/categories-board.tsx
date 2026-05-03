@@ -2,7 +2,7 @@
 
 import { useState, KeyboardEvent } from "react";
 import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
   Plus,
@@ -27,7 +27,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useUser } from "@/hooks/use-user";
 import { categoriesQueryOptions, userCategoriesQueryOptions } from "@/lib/query/categories";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
 import { queryKeys } from "@/lib/query/keys";
@@ -199,20 +198,11 @@ function UpgradeBanner() {
 /* ── main board ──────────────────────────────────────────────── */
 
 export function CategoriesBoard() {
-  const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const { data: subscriptionStatus } = useQuery({
-    ...subscriptionStatusQueryOptions(),
-    enabled: !!user,
-  });
-  const { data: userCategories = [], isLoading: userCatsLoading } = useQuery({
-    ...userCategoriesQueryOptions(),
-    enabled: !!user,
-  });
-  const { data: allCategories = [], isLoading: globalLoading } = useQuery(
-    categoriesQueryOptions()
-  );
+  const { data: subscriptionStatus } = useSuspenseQuery(subscriptionStatusQueryOptions());
+  const { data: userCategories } = useSuspenseQuery(userCategoriesQueryOptions());
+  const { data: allCategories } = useSuspenseQuery(categoriesQueryOptions());
 
   const canCustomize =
     (subscriptionStatus?.hasProAccess || subscriptionStatus?.hasPremiumAccess) ?? false;
@@ -339,12 +329,7 @@ export function CategoriesBoard() {
             </Button>
           </div>
 
-          {userCatsLoading ? (
-            <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading your categories…
-            </div>
-          ) : userCategories.length === 0 ? (
+          {userCategories.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/20 py-10 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <Tag className="h-5 w-5 text-muted-foreground" />
@@ -382,24 +367,15 @@ export function CategoriesBoard() {
         <div className="mb-4">
           <h2 className="text-base font-semibold">Standard Categories</h2>
           <p className="text-sm text-muted-foreground">
-            {globalLoading
-              ? "Loading…"
-              : `${globalCategories.length} built-in categories available to all users.`}
+            {`${globalCategories.length} built-in categories available to all users.`}
           </p>
         </div>
 
-        {globalLoading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading categories…
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {globalCategories.map((cat, index) => (
-              <GlobalCategoryCard key={cat.id} index={index} cat={cat} />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {globalCategories.map((cat, index) => (
+            <GlobalCategoryCard key={cat.id} index={index} cat={cat} />
+          ))}
+        </div>
       </section>
 
       {/* ── add / edit dialog ── */}

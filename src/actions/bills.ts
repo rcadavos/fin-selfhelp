@@ -348,7 +348,7 @@ export async function toggleBillPayment(
 
   if (existing) {
     await supabase.from("bill_payments").delete().eq("id", existing.id);
-    revalidatePath("/dashboard/bills");
+    revalidatePath("/dashboard/planned-expenses");
     return { paid: false };
   }
 
@@ -357,7 +357,7 @@ export async function toggleBillPayment(
     .insert({ bill_id: billId, profile_id: profile.id, paid_month: paidMonth });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/planned-expenses");
   return { paid: true };
 }
 
@@ -428,7 +428,7 @@ export async function addBill(
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/fuel");
   return {};
 }
@@ -509,7 +509,7 @@ export async function updateBill(
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/fuel");
   return {};
 }
@@ -533,6 +533,6 @@ export async function deleteBill(billId: string): Promise<{ error?: string }> {
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/bills");
+  revalidatePath("/dashboard/planned-expenses");
   return {};
 }

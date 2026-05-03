@@ -69,6 +69,8 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 - Always use `useUser()` hook for the current user — never read Supabase session directly in components.
 - Query options live in `src/lib/query/`. Add new ones there.
 - `staleTime: Infinity` is used for subscription status — the cache is cleared by `user-context.tsx` on auth change, so this is intentional.
+- Always use `useSuspenseQuery` (from `@tanstack/react-query`) instead of `useQuery` for data fetching in components — it eliminates `isLoading`/`isPending` branching and guarantees data is defined.
+- Wrap any component that uses `useSuspenseQuery` in a `<Suspense fallback={…}>` boundary (from `react`) so loading states are handled declaratively at the page or section level, not inline.
 
 ### Routing
 - App pages live under `src/app/(main)/dashboard/` and are wrapped by `AppShell`.

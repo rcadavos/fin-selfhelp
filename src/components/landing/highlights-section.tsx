@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const highlights = [
   {
-    title: "Stay ahead of your bills",
+    title: "Stay ahead of your planned expenses",
     description: "Never miss a due date again.",
     icon: CalendarClock,
     iconBg: "bg-emerald-500/10",

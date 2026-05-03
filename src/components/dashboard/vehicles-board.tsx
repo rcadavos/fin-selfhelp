@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/select";
 import { ContentHeader } from "@/components/app/content-header";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
-import { useUser } from "@/hooks/use-user";
 import { formatCurrency, cn } from "@/lib/utils";
 import {
   vehiclesQueryOptions,
@@ -53,7 +52,6 @@ import {
   deleteVehicle,
   type VehicleRow,
 } from "@/actions/vehicles";
-import DashboardLoading from "@/app/(main)/dashboard/loading";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -379,19 +377,11 @@ function VehicleRow({
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function VehiclesBoard() {
-  const { user } = useUser();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
 
-  const { data: vehicles, isLoading } = useQuery({
-    ...vehiclesQueryOptions(),
-    enabled: !!user,
-  });
-
-  const { data: spending } = useQuery({
-    ...vehicleSpendingQueryOptions(),
-    enabled: !!user,
-  });
+  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
+  const { data: spending } = useSuspenseQuery(vehicleSpendingQueryOptions());
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleRow | null>(null);
@@ -471,7 +461,6 @@ export function VehiclesBoard() {
 
   // Chart data — vehicles sorted by total spend desc
   const chartData = useMemo(() => {
-    if (!vehicles) return [];
     return vehicles
       .map((v, i) => {
         const s = vehicleSpendMap.get(v.id) ?? { bills: 0, expenses: 0 };
@@ -487,9 +476,7 @@ export function VehiclesBoard() {
       .sort((a, b) => b.total - a.total);
   }, [vehicles, vehicleSpendMap]);
 
-  if (isLoading) return <DashboardLoading />;
-
-  const hasVehicles = vehicles && vehicles.length > 0;
+  const hasVehicles = vehicles.length > 0;
   const hasSpend = totalSpend > 0;
 
   return (
