@@ -204,7 +204,7 @@ export async function loadVehicleSpending(): Promise<{ summaries: VehicleSpendSu
     summary.entries.push({
       id: String(row.id),
       source: "bill",
-      label: String(row.note ?? row.notes ?? "Bill"),
+      label: String(row.note ?? row.notes ?? "Planned Expense"),
       amount,
       date: String(row.created_at),
     });

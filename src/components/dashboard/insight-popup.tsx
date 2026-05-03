@@ -92,14 +92,14 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
           <>
             <p className="text-3xl mb-1.5 md:text-4xl md:mb-2">💰</p>
             <p className="text-base font-bold text-foreground md:text-xl">
-              {billsPaidPct}% bills paid
+              {billsPaidPct}% planned expenses paid
             </p>
             <p className="mt-1 text-xs text-muted-foreground leading-snug md:mt-1.5 md:text-sm">
               {billsPaidPct! >= 80
                 ? "You're crushing it this month!"
                 : billsPaidPct! >= 50
                 ? "Halfway there — keep it up, " + firstName + "!"
-                : "Don't forget to settle your remaining bills."}
+                : "Don't forget to settle your remaining planned expenses."}
             </p>
           </>
         ) : (

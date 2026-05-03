@@ -160,7 +160,7 @@ export function AccountDropdownMenu({
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
-            <Link href="/legal" className="flex cursor-pointer items-center gap-2.5">
+            <Link href="/account/privacy" className="flex cursor-pointer items-center gap-2.5">
               <Lock className="h-4 w-4 shrink-0" aria-hidden />
               Privacy
             </Link>

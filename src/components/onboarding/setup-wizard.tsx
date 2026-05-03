@@ -27,7 +27,7 @@ type Step = (typeof STEPS)[number];
 
 const FIX_OPTIONS = [
   { id: "overspending", label: "Overspending every month" },
-  { id: "missing_bills", label: "Missing bill payments" },
+  { id: "missing_bills", label: "Missing planned expense payments" },
   { id: "no_savings", label: "Not saving enough" },
   { id: "losing_track", label: "Losing track of finances" },
 ];
@@ -114,7 +114,7 @@ export function SetupWizard({ initialName }: Props) {
   function handleBillNext() {
     setBillError("");
     const amount = parseFloat(billAmount);
-    if (!billNote.trim()) { setBillError("Enter a bill name."); return; }
+    if (!billNote.trim()) { setBillError("Enter a name."); return; }
     if (!billCategoryId) { setBillError("Please select a category."); return; }
     if (!amount || amount <= 0) { setBillError("Enter a valid amount."); return; }
     if (!billDueDate) { setBillError("Select a due date."); return; }
@@ -373,18 +373,18 @@ function BillStep({ categories, categoryId, setCategoryId, amount, setAmount, no
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Add your first bill</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Add your first planned expense</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set up a bill to track — like electricity, internet, or a loan payment.
+          Set up a planned expense to track — like electricity, internet, or a loan payment.
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="bill-name">Bill name</Label>
+          <Label htmlFor="bill-name">Name</Label>
           <Input
             id="bill-name"
-            placeholder="e.g. Electric bill"
+            placeholder="e.g. Electricity"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             autoFocus
@@ -459,7 +459,7 @@ function DoneStep({ name, onFinish }: { name: string; onFinish: () => void }) {
           Your financial journey starts today.
         </p>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          Every expense tracked, every bill remembered, every goal set — it all adds up.
+          Every expense tracked, every planned expense remembered, every goal set — it all adds up.
           Small consistent actions are what build real financial freedom over time.
         </p>
       </div>
@@ -469,11 +469,11 @@ function DoneStep({ name, onFinish }: { name: string; onFinish: () => void }) {
         <ul className="space-y-1.5 text-sm text-foreground">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Check your dashboard — your expenses and bills are already there.
+            Check your dashboard — your expenses and planned expenses are already there.
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Mark bills as paid when you settle them each month.
+            Mark planned expenses as paid when you settle them each month.
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

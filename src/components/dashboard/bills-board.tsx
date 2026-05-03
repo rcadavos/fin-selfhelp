@@ -393,7 +393,7 @@ function BillDialog({
           {/* Row 3 — Billing Period (+ Due Month if yearly) */}
           <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
             <div className="grid gap-1.5">
-              <Label>Billing Period</Label>
+              <Label>Recurrence</Label>
               <Select
                 value={form.billingPeriod}
                 onValueChange={(v) => set("billingPeriod", v as BillFormState["billingPeriod"])}

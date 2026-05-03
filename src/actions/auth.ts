@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { redirect } from "next/navigation";
 import { sendWelcomeEmail, sendPhoneChangedEmail } from "@/lib/email";
@@ -166,4 +166,39 @@ export async function signOut() {
     return { error: error.message };
   }
   return { error: null as string | null };
+}
+
+export async function updatePrivacySettings(params: {
+  profileVisible: boolean;
+  phoneVisible: boolean;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return { error: "Not authenticated." };
+
+  const { error } = await supabase.auth.updateUser({
+    data: {
+      profile_visible: params.profileVisible,
+      phone_visible: params.phoneVisible,
+    },
+  });
+
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+export async function deleteSelfAccount(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return { error: "Not authenticated." };
+
+  try {
+    const admin = createServiceRoleClient();
+    const { error } = await admin.auth.admin.deleteUser(user.id);
+    if (error) return { error: error.message };
+    await supabase.auth.signOut({ scope: "local" });
+    return { error: null };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to delete account." };
+  }
 }

@@ -14,6 +14,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.20",
+    date: "2026-05-03",
+    summary: "Privacy settings page and Bills renamed to Planned Expenses.",
+    changes: [
+      { type: "feature", description: "Added /account/privacy page with profile visibility settings — toggle whether other subdivision members can see your name/avatar or phone number." },
+      { type: "feature", description: "Added account self-deletion from the Privacy danger zone with a confirmation dialog." },
+      { type: "improvement", description: "Privacy link in the account dropdown menu now navigates to the dedicated /account/privacy settings page instead of the legal hub." },
+      { type: "improvement", description: "Renamed the Bills feature to Planned Expenses app-wide — navigation, page titles, form dialogs, stat labels, search index, and all marketing copy updated." },
+      { type: "improvement", description: "Route changed from /dashboard/bills to /dashboard/planned-expenses." },
+      { type: "improvement", description: "Form field 'Billing Period' renamed to 'Recurrence' for clarity." },
+    ],
+  },
+  {
     version: "1.4.19",
     date: "2026-05-03",
     summary: "Goals savings targets, deposit tracking, confirmation dialog, and mobile navbar update.",

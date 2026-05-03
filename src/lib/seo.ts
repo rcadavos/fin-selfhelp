@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 const SITE_NAME = "OmniTrak";
 const DEFAULT_TITLE = "OmniTrak — Your all-in-one personal tracker for everything";
 const DEFAULT_DESCRIPTION =
-  "Bill payment tracker and expense dashboard: track bills by category, mark paid each month, to-buy and to-do lists, and calculators — see at a glance where you stand.";
+  "Planned expense tracker and expense dashboard: track planned expenses by category, mark paid each month, to-buy and to-do lists, and calculators — see at a glance where you stand.";
 const TWITTER_HANDLE = ""; // e.g. "@omnitrak" if you have one
 
 /** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in production. Must be HTTPS for Open Graph. */

@@ -29,7 +29,7 @@ const premiumFeatures = [
   },
   {
     title: "Payment Tracker",
-    description: "Track all your miscellaneous payments and bills in one place.",
+    description: "Track all your miscellaneous payments and planned expenses in one place.",
     icon: Wallet,
     href: "/dashboard/payment-tracker",
     color: "text-emerald-500",

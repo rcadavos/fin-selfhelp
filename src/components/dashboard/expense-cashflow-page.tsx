@@ -1706,7 +1706,7 @@ export function ExpenseCashflowPage({
                   billsTotal > 0 && (
                     <div className="mt-6">
                       <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
-                        <span>Bills paid vs total</span>
+                        <span>Planned expenses paid vs total</span>
                         <span>{formatCurrency(billsPaid)} / {formatCurrency(billsTotal)}</span>
                       </div>
                       <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
@@ -1723,7 +1723,13 @@ export function ExpenseCashflowPage({
           {/* ════════════════════ STAT CARDS ════════════════════ */}
           {(() => {
             const dailyAmt = entries
-              .filter((e) => !e.due_date && e.category_id !== "savings" && paidIds.has(e.id))
+              .filter((e) => {
+                if (e.category_id === "savings") return false;
+                // Recurring expense (has due_date): count only if marked paid this month
+                if (e.due_date) return paidIds.has(e.id);
+                // One-time expense (no due_date): count if created in the current paid month
+                return e.created_at?.slice(0, 7) === paidMonthYm;
+              })
               .reduce((s, e) => s + e.amount, 0);
             const billsList = billsDataQuery.data?.bills ?? [];
             const paidBillIds = new Set(billsDataQuery.data?.paidBillIds ?? []);
@@ -1740,28 +1746,28 @@ export function ExpenseCashflowPage({
                   </div>
                   <p className="text-xs text-muted-foreground">Expenses</p>
                   <p className="text-lg font-bold">{formatCurrency(dailyAmt)}</p>
-                  <p className="text-[10px] text-muted-foreground">Paid daily spending this month</p>
+                  <p className="text-[10px] text-muted-foreground">Spending this month</p>
                 </Link>
 
-                <Link href="/dashboard/bills" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/planned-expenses" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <ArrowUpRight className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground/50" />
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
                     <Receipt className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Bills</p>
+                  <p className="text-xs text-muted-foreground">Planned Expenses</p>
                   <p className="text-lg font-bold">{formatCurrency(billsTotal)}</p>
-                  <p className="text-[10px] text-muted-foreground">Recurring bills this month</p>
+                  <p className="text-[10px] text-muted-foreground">Recurring planned expenses this month</p>
                 </Link>
 
-                <Link href="/dashboard/bills" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
+                <Link href="/dashboard/planned-expenses" className="relative rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md hover:border-primary/40 cursor-pointer">
                   <ArrowUpRight className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground/50" />
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Bills paid</p>
+                  <p className="text-xs text-muted-foreground">Planned paid</p>
                   <p className="text-lg font-bold">{formatCurrency(billsPaid)}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {billsPaidCount}/{monthBills.length} Bills paid this month
+                    {billsPaidCount}/{monthBills.length} planned expenses paid this month
                   </p>
                 </Link>
 
@@ -1769,7 +1775,7 @@ export function ExpenseCashflowPage({
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
                     <CircleDollarSign className="h-4 w-4" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Bills + Expenses</p>
+                  <p className="text-xs text-muted-foreground">Planned + Expenses</p>
                   <p className="text-lg font-bold">
                     {formatCurrency(billsTotal + dailyAmt)}
                   </p>
@@ -1791,8 +1797,8 @@ export function ExpenseCashflowPage({
             if (!hasData) return null;
             const chartData = breakdown.map((r) => ({
               month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
-              Bills: r.bills,
-              "Bills Paid": r.billsPaid ?? 0,
+              Planned: r.bills,
+              "Planned Paid": r.billsPaid ?? 0,
               Expenses: r.expenses,
               Savings: r.savings,
             }));
@@ -1804,7 +1810,7 @@ export function ExpenseCashflowPage({
             return (
               <Card className="mb-6">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Bills vs Bills Paid vs Expenses vs Savings</CardTitle>
+                  <CardTitle className="text-base">Planned Expenses vs Planned Paid vs Expenses vs Savings</CardTitle>
                   <CardDescription>Last 6 months breakdown by type</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1834,8 +1840,8 @@ export function ExpenseCashflowPage({
                         iconSize={10}
                         wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                       />
-                      <Bar dataKey="Bills" fill={BILL_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
-                      <Bar dataKey="Bills Paid" fill={BILL_PAID_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Planned" fill={BILL_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="Planned Paid" fill={BILL_PAID_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                       <Bar dataKey="Expenses" fill={EXP_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                       <Bar dataKey="Savings" fill={SAV_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
                     </BarChart>
@@ -1848,9 +1854,9 @@ export function ExpenseCashflowPage({
           <Card className="mb-6 border-primary/25 bg-muted/20">
             <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <p className="font-medium">Expenses & Bills</p>
+                <p className="font-medium">Expenses & Planned Expenses</p>
                 <p className="text-sm text-muted-foreground">
-                  Track daily spending in Expenses, manage recurring bills in Bills.
+                  Track daily spending in Expenses, manage recurring planned expenses in Planned Expenses.
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
@@ -1858,7 +1864,7 @@ export function ExpenseCashflowPage({
                   <Link href="/dashboard/expenses">Expenses</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/dashboard/bills">Bills</Link>
+                  <Link href="/dashboard/planned-expenses">Planned Expenses</Link>
                 </Button>
               </div>
             </CardContent>

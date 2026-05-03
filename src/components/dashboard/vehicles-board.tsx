@@ -483,7 +483,7 @@ export function VehiclesBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
       <ContentHeader
         title="Fuel & Vehicles"
-        subtitle="Register your vehicles and track linked bills and expenses with Transportation category."
+        subtitle="Register your vehicles and track linked planned expenses and expenses with Transportation category."
         icon={Fuel}
         actions={
           <Button size="sm" onClick={() => { setSaveError(null); setAddOpen(true); }}>
@@ -566,7 +566,7 @@ export function VehiclesBoard() {
               </Card>
             ) : (
               <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-                Link bills or expenses to a vehicle to see the chart
+                Link planned expenses or expenses to a vehicle to see the chart
               </div>
             )}
           </div>
@@ -613,7 +613,7 @@ export function VehiclesBoard() {
       {hasVehicles && !hasSpend && (
         <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           <strong className="font-medium text-foreground">Tip:</strong>{" "}
-          When adding a Bill or Expense under the{" "}
+          When adding a Planned Expense or Expense under the{" "}
           <em>Transport &amp; Commute</em> category, you can link it to one of your
           vehicles to see per-vehicle spending here.
         </div>
@@ -642,7 +642,7 @@ export function VehiclesBoard() {
             <DialogTitle>Delete vehicle?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This removes the vehicle from your list. Linked bills and expenses will keep their
+            This removes the vehicle from your list. Linked planned expenses and expenses will keep their
             data but will no longer be associated with this vehicle.
           </p>
           <div className="flex gap-2 pt-2">
