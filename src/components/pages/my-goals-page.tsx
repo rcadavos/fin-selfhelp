@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ContentHeader } from "@/components/app/content-header";
+import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -903,16 +904,29 @@ export function MyGoalsPage() {
       {/* ── Goal add / edit dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
-          className="max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto"
+          className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))]"
           showClose
         >
-          <DialogHeader>
+          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
             <DialogTitle>{editingId ? "Edit Goal" : "Add Goal"}</DialogTitle>
-            <DialogDescription className="hidden sm:block">
-              Name your goal, set a savings target, and track your deposits over time.
+            <DialogDescription>
+              {editingId && form.name ? (
+                <span className="flex flex-wrap items-center gap-x-1.5">
+                  <span className="text-xs text-muted-foreground/50">{form.name}</span>
+                  {form.target_amount && (
+                    <>
+                      <span className="text-muted-foreground/50">•</span>
+                      <span className="text-xs text-muted-foreground/50">{formatCurrency(Number(form.target_amount))}</span>
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span className="hidden sm:inline">Name your goal, set a savings target, and track your deposits over time.</span>
+              )}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ScrollFadeBody className="space-y-4 px-6 pb-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-1">
                 <Label htmlFor="goal-name">
@@ -948,21 +962,38 @@ export function MyGoalsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="goal-target-amount">
-                Target Amount{" "}
-                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="goal-target-amount"
-                type="number"
-                min="0.01"
-                step="any"
-                value={form.target_amount}
-                onChange={(e) => setForm((f) => ({ ...f, target_amount: e.target.value }))}
-                placeholder="e.g. 50000"
-                className="h-9"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="goal-target-amount">
+                  Target Amount{" "}
+                  <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="goal-target-amount"
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  value={form.target_amount}
+                  onChange={(e) => setForm((f) => ({ ...f, target_amount: e.target.value }))}
+                  placeholder="e.g. 50000"
+                  className="h-9"
+                />
+              </div>
+              {editingId && (
+                <div className="space-y-2">
+                  <Label>Deposit</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full gap-1.5"
+                    onClick={() => openAddDeposit(editingId, form.name)}
+                  >
+                    <Plus className="h-3 w-3" aria-hidden />
+                    Add Deposit
+                  </Button>
+                </div>
+              )}
             </div>
 
             <fieldset className="space-y-2 border-0 p-0">
@@ -1059,19 +1090,7 @@ export function MyGoalsPage() {
             {/* Deposits section — only visible when editing */}
             {editingId && (
               <div className="space-y-3 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold">Deposits</h4>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1.5 text-xs"
-                    onClick={() => openAddDeposit(editingId, form.name)}
-                  >
-                    <Plus className="h-3 w-3" aria-hidden />
-                    Add Deposit
-                  </Button>
-                </div>
+                <h4 className="text-sm font-semibold">Deposits</h4>
 
                 {depositsQuery.isPending ? (
                   <div className="flex items-center justify-center py-4">
@@ -1126,8 +1145,8 @@ export function MyGoalsPage() {
                 )}
               </div>
             )}
-
-            <DialogFooter className="pt-2">
+            </ScrollFadeBody>
+            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
               <div className="flex w-full items-center gap-2">
                 {editingId ? (
                   <Button

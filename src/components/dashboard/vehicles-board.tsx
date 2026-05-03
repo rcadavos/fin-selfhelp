@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ContentHeader } from "@/components/app/content-header";
+import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { useUser } from "@/hooks/use-user";
 import { formatCurrency, cn } from "@/lib/utils";
 import {
@@ -162,12 +163,12 @@ function VehicleDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-full max-w-lg max-h-[90dvh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex flex-col overflow-hidden p-0 max-w-[min(32rem,calc(100vw-2rem))] max-h-[90dvh]">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6">
           <DialogTitle>{editingId ? "Edit Vehicle" : "Add Vehicle"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <ScrollFadeBody className="space-y-4 px-6 py-2">
           {/* Name */}
           <div className="space-y-1.5">
             <Label>
@@ -282,15 +283,17 @@ function VehicleDialog({
               className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
           </div>
-        </div>
+        </ScrollFadeBody>
 
-        <DialogFooter className="gap-2 w-full justify-end">
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button onClick={() => onSave(form)} disabled={!isValid || isPending}>
-            {isPending ? "Saving…" : editingId ? "Save Changes" : "Add Vehicle"}
-          </Button>
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <div className="flex w-full gap-2">
+            <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={() => onSave(form)} disabled={!isValid || isPending}>
+              {isPending ? "Saving…" : editingId ? "Save Changes" : "Add Vehicle"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

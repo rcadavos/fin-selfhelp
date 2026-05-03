@@ -63,6 +63,7 @@ import {
 } from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ContentHeader } from "@/components/app/content-header";
+import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
   toggleBillPayment,
@@ -309,8 +310,8 @@ function BillDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
           {editingBillId && initial && (
             <p className="text-xs text-muted-foreground">
@@ -319,7 +320,8 @@ function BillDialog({
           )}
         </DialogHeader>
 
-        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="grid gap-4">
+        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ScrollFadeBody className="space-y-4 px-6 pb-4">
           {/* Row 1 — Name */}
           <div className="grid gap-1.5">
             <Label htmlFor="bill-name">Name</Label>
@@ -535,7 +537,8 @@ function BillDialog({
             );
           })()}
 
-          <DialogFooter className="pt-4">
+          </ScrollFadeBody>
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
             <div className="flex w-full gap-2">
               {editingBillId && onDelete && (
                 <Button type="button" variant="ghost" size="icon" className="flex-none text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={isPending}>

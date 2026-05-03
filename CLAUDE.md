@@ -115,5 +115,14 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 - Keep bundle size lean: import only what you need from libraries (e.g. named imports from `lucide-react`, not the whole package).
 - Images should use `next/image` with explicit `width`/`height` or `fill` for automatic optimization.
 
+### Confirmation dialogs
+Never use the native browser `confirm()`. Whenever an action needs user confirmation, use a reusable confirmation modal built on top of `src/components/ui/dialog.tsx`. If one does not exist yet, create `src/components/app/confirm-dialog.tsx` and use it everywhere.
+
+### Calendar / date picker
+Always use the shared `src/components/ui/calendar.tsx` component whenever a calendar or date picker is needed. Never reach for a third-party date picker or build a custom one.
+
+### Text separators
+Use `•` as the separator character whenever inline text items need to be separated (e.g. meta info lines, tag lists, stat labels). Never use `/`, `|`, or `-` as inline text separators in the UI.
+
 ### Compact instructions
 When you are using compact, please focus on test output and code changes

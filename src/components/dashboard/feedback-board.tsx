@@ -292,7 +292,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       {/* Header */}
       <div className="mb-6">
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <MessageSquarePlus className="h-6 w-6 shrink-0" aria-hidden />
+          <MessageSquarePlus className="h-6 w-6 shrink-0 text-primary" aria-hidden />
           Review &amp; Feedback
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -301,7 +301,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5 w-fit">
+      <div className="mb-6 flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5 w-full sm:w-fit">
         {([
           { key: "review", label: "Leave a Review" },
           { key: "suggestion", label: "Feedback" },
@@ -311,7 +311,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
             type="button"
             onClick={() => setTab(key)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              "flex-1 sm:flex-none rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
               tab === key
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",

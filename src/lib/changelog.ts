@@ -14,30 +14,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.4.21",
+    version: "1.4.19",
     date: "2026-05-03",
-    summary: "Goals now support savings targets and deposit tracking.",
+    summary: "Goals savings targets, deposit tracking, confirmation dialog, and mobile navbar update.",
     changes: [
       { type: "feature", description: "Goals can now have an optional target amount so you can set a savings objective." },
       { type: "feature", description: "Added deposit tracking — log individual contributions towards any goal with an amount, date, and optional note." },
       { type: "feature", description: "Progress bar on each goal card shows how much has been saved vs. the target, with a 'Funded!' badge when the goal is fully reached." },
       { type: "feature", description: "Deposit history is viewable and manageable inside the goal edit dialog, including individual deposit deletion." },
       { type: "feature", description: "Quick 'Add Deposit' action available from the goal card dropdown menu." },
-    ],
-  },
-  {
-    version: "1.4.20",
-    date: "2026-05-03",
-    summary: "Mobile bottom navbar now shows Category instead of Fuel.",
-    changes: [
+      { type: "feature", description: "New ConfirmDialog component replaces all native browser confirm() calls with a consistent modal." },
+      { type: "improvement", description: "Add Deposit button now appears inline next to Target Amount in the Edit Goal dialog for quicker access." },
+      { type: "improvement", description: "Edit Goal dialog header now shows the goal name and target amount as a subtitle for quick context." },
       { type: "improvement", description: "Replaced the Fuel shortcut in the mobile bottom navbar with Category, linking to the expense categories page." },
-    ],
-  },
-  {
-    version: "1.4.19",
-    date: "2026-05-01",
-    summary: "Account bank selection now supports searchable, alphabetical options with logo support fallback.",
-    changes: [
+      { type: "improvement", description: "In /admin/reviews, anonymous reviews now display the submitter's profile name in parentheses so admins can identify who sent it." },
       { type: "improvement", description: "Bank / E-Wallet options in the account add/edit dialog are now sorted alphabetically for faster scanning." },
       { type: "improvement", description: "Added a search input inside the bank dropdown so users can filter institutions while selecting." },
       { type: "improvement", description: "Integrated simple-icons for supported institutions with the existing badge fallback for unsupported banks/e-wallets." },
