@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Landmark, Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,44 +46,14 @@ import {
   type AccountRow,
 } from "@/actions/accounts";
 import { STATIC_ACCOUNT_IDS } from "@/lib/static-accounts";
+import {
+  PHILIPPINE_BANKS,
+} from "@/lib/constants/account-institutions";
 import DashboardLoading from "@/app/(main)/dashboard/loading";
 
 const STATIC_IDS = new Set(Object.values(STATIC_ACCOUNT_IDS));
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const PHILIPPINE_BANKS = [
-  "BDO Unibank",
-  "Bank of the Philippine Islands (BPI)",
-  "Metrobank",
-  "Philippine National Bank (PNB)",
-  "Security Bank",
-  "Landbank of the Philippines",
-  "Development Bank of the Philippines (DBP)",
-  "UnionBank",
-  "China Banking Corporation (Chinabank)",
-  "RCBC",
-  "EastWest Bank",
-  "Maybank Philippines",
-  "Asia United Bank (AUB)",
-  "Philippine Savings Bank (PSBank)",
-  "Robinsons Bank",
-  "CTBC Bank Philippines",
-  "ING Bank Philippines",
-  "HSBC Philippines",
-  "Citibank Philippines",
-  "Standard Chartered Philippines",
-  "BDO Network Bank",
-  "Overseas Filipino Bank (OFBank)",
-  "GCash",
-  "Maya (PayMaya)",
-  "SeaBank Philippines",
-  "CIMB Bank Philippines",
-  "Tonik Digital Bank",
-  "GoTyme Bank",
-  "OwnBank",
-  "Other",
-];
 
 const TAG_PRESETS = [
   "Cash",
@@ -220,6 +190,7 @@ function AccountRow({
   isStatic?: boolean;
 }) {
   const total = expenseTotal + billTotal;
+
   return (
     <div
       onClick={isStatic ? undefined : onEdit}
@@ -333,6 +304,17 @@ function AccountFormDialog({
 }) {
   const [form, setForm] = useState<AccountFormState>(initial ?? EMPTY_FORM);
   const [customTag, setCustomTag] = useState("");
+  const [bankSearch, setBankSearch] = useState("");
+
+  const sortedBanks = useMemo(
+    () => [...PHILIPPINE_BANKS].sort((a, b) => a.localeCompare(b)),
+    []
+  );
+  const filteredBanks = useMemo(() => {
+    const query = bankSearch.trim().toLowerCase();
+    if (!query) return sortedBanks;
+    return sortedBanks.filter((bank) => bank.toLowerCase().includes(query));
+  }, [bankSearch, sortedBanks]);
 
   function toggleTag(tag: string) {
     setForm((prev) => ({
@@ -376,17 +358,33 @@ function AccountFormDialog({
             <Label htmlFor="acc-bank">Bank / E-Wallet</Label>
             <Select
               value={form.bank_name}
-              onValueChange={(v) => setForm((p) => ({ ...p, bank_name: v }))}
+              onValueChange={(v) => {
+                setForm((p) => ({ ...p, bank_name: v }));
+                setBankSearch("");
+              }}
             >
               <SelectTrigger id="acc-bank">
                 <SelectValue placeholder="Select bank or e-wallet" />
               </SelectTrigger>
               <SelectContent className="max-h-64">
-                {PHILIPPINE_BANKS.map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {b}
-                  </SelectItem>
-                ))}
+                <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
+                  <Input
+                    value={bankSearch}
+                    onChange={(e) => setBankSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Search bank or e-wallet..."
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {filteredBanks.length > 0 ? (
+                  filteredBanks.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">No banks found.</p>
+                )}
               </SelectContent>
             </Select>
           </div>

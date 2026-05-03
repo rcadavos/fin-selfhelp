@@ -7,7 +7,7 @@ import {
   Receipt,
   House,
   Wallet,
-  Fuel,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ const bottomNavItems = [
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false },
   { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
   { href: "/dashboard", label: "Home", icon: House, exact: true },
-  { href: "/dashboard/fuel", label: "Fuel", icon: Fuel, exact: false },
+  { href: "/dashboard/expenses/categories", label: "Category", icon: LayoutGrid, exact: false },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, exact: false },
 ];
 

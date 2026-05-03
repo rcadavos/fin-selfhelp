@@ -14,6 +14,33 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.20",
+    date: "2026-05-03",
+    summary: "Mobile bottom navbar now shows Category instead of Fuel.",
+    changes: [
+      { type: "improvement", description: "Replaced the Fuel shortcut in the mobile bottom navbar with Category, linking to the expense categories page." },
+    ],
+  },
+  {
+    version: "1.4.19",
+    date: "2026-05-01",
+    summary: "Account bank selection now supports searchable, alphabetical options with logo support fallback.",
+    changes: [
+      { type: "improvement", description: "Bank / E-Wallet options in the account add/edit dialog are now sorted alphabetically for faster scanning." },
+      { type: "improvement", description: "Added a search input inside the bank dropdown so users can filter institutions while selecting." },
+      { type: "improvement", description: "Integrated simple-icons for supported institutions with the existing badge fallback for unsupported banks/e-wallets." },
+    ],
+  },
+  {
+    version: "1.4.18",
+    date: "2026-05-01",
+    summary: "Accounts now show institution logo badges and include Maribank in bank options.",
+    changes: [
+      { type: "improvement", description: "Added institution logo badges before each account name in the Accounts list for quicker visual scanning." },
+      { type: "improvement", description: "Added Maribank to the Bank / E-Wallet dropdown options in the account add/edit dialog." },
+    ],
+  },
+  {
     version: "1.4.17",
     date: "2026-05-01",
     summary: "Dashboard Bills stat now counts only bills applicable to the active month.",
