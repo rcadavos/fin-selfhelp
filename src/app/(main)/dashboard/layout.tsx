@@ -7,6 +7,8 @@ import { categoriesQueryOptions } from "@/lib/query/categories";
 import { buildPageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = buildPageMetadata({
   noIndex: false,
 });

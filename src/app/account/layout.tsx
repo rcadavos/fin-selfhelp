@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app/app-shell";
 import { buildPageMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = buildPageMetadata({
   noIndex: false,
 });

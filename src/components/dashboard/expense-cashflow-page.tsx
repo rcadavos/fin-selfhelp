@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useSuspenseQuery, skipToken, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type SortingState,
@@ -409,18 +409,9 @@ export function ExpenseCashflowPage({
     expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
   );
   const isDashboard = pageVariant === "dashboard";
-  const monthlyBreakdownQuery = useSuspenseQuery({
-    ...monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
-    queryFn: isDashboard ? monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS).queryFn : skipToken,
-  });
-  const billsDataQuery = useSuspenseQuery({
-    ...billsDataQueryOptions(paidMonthQueryKey),
-    queryFn: isDashboard ? billsDataQueryOptions(paidMonthQueryKey).queryFn : skipToken,
-  });
-  const streakQuery = useSuspenseQuery({
-    ...userStreakQueryOptions(),
-    queryFn: isDashboard ? userStreakQueryOptions().queryFn : skipToken,
-  });
+  const monthlyBreakdownQuery = useSuspenseQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
+  const billsDataQuery = useSuspenseQuery(billsDataQueryOptions(paidMonthQueryKey));
+  const streakQuery = useSuspenseQuery(userStreakQueryOptions());
   const invalidateExpenseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
   }, [queryClient]);

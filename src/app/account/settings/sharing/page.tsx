@@ -280,7 +280,7 @@ function SharingSettingsContent() {
         </CardHeader>
         <CardContent className="space-y-3">
           {incoming.filter((s) => s.status === "pending").length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pending invites for {user.email}.</p>
+            <p className="text-sm text-muted-foreground">No pending invites for {user?.email}.</p>
           ) : (
             incoming
               .filter((s) => s.status === "pending")
@@ -290,7 +290,7 @@ function SharingSettingsContent() {
                   <p className="text-muted-foreground">Access: {permBadges(s)}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Open the invite link from your partner, or paste it in the browser where you are logged in as{" "}
-                    <span className="font-medium text-foreground">{user.email}</span>.
+                    <span className="font-medium text-foreground">{user?.email}</span>.
                   </p>
                 </div>
               ))

@@ -122,12 +122,7 @@ function AdminReviewsContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <p className="text-sm text-destructive mb-4">
-              {(error as Error).message}
-            </p>
-          )}
-          {reviews.length === 0 && !error ? (
+          {reviews.length === 0 ? (
             <p className="text-muted-foreground">No reviews yet.</p>
           ) : (
             <ul className="space-y-4">
