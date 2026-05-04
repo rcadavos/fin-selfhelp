@@ -55,6 +55,7 @@ import {
 } from "@/lib/query/expenses";
 import { queryKeys } from "@/lib/query/keys";
 import { userStreakQueryOptions } from "@/lib/query/streaks";
+import { invalidateVehicleQueriesIfTransportAffected } from "@/lib/query/vehicles";
 import { InsightPopup } from "@/components/dashboard/insight-popup";
 import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -762,6 +763,7 @@ export function ExpenseCashflowPage({
     } else {
       resetAddExpenseForm();
       invalidateExpenseQueries();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, addCategory || undefined);
       refreshBudget();
       setAddExpenseModalOpen(false);
     }
@@ -819,6 +821,7 @@ export function ExpenseCashflowPage({
     if (!editingId || !editName.trim() || !editAmount) return;
     const amount = parseInt(editAmount.replace(/\D/g, ""), 10) || 0;
     if (amount <= 0) return;
+    const prevCategory = entries.find((entry) => entry.id === editingId)?.category_id;
     setEditStatus("saving");
     const result = await updateExpense(
       editingId,
@@ -846,6 +849,7 @@ export function ExpenseCashflowPage({
         }
       }
       invalidateExpenseQueries();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, prevCategory, editCategory);
       refreshBudget();
       cancelEdit();
     }
@@ -853,12 +857,14 @@ export function ExpenseCashflowPage({
 
   async function handleDeleteExpense(entryId: string) {
     setDeletingId(entryId);
+    const entry = entries.find((row) => row.id === entryId);
     const result = await deleteExpense(entryId);
     if (result.error) {
       showSnackbar(result.error);
     } else {
       if (editingId === entryId) cancelEdit();
       invalidateExpenseQueries();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, entry?.category_id);
       refreshBudget();
     }
     setDeletingId(null);

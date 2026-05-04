@@ -23,15 +23,16 @@ else
   BUMP="patch"
 fi
 
-# Remember whether changelog was already staged before the bump runs
-CHANGELOG_STAGED=$(git diff --cached --name-only | grep -c "src/lib/changelog.ts" || true)
+# Detect whether this commit adds a new changelog entry (a + line with version).
+# If yes, the bump script will stamp the new entry's version, so we re-stage it.
+NEW_ENTRY=$(git diff --cached -- src/lib/changelog.ts | grep -cE '^\+[[:space:]]*version:[[:space:]]*"[0-9.]+"' || true)
 
 node scripts/bump-version.mjs "$BUMP"
 
 # Always stage the two version files
 git add package.json src/lib/version.ts
 
-# Only re-stage changelog if it was part of this commit to begin with
-if [ "$CHANGELOG_STAGED" -gt "0" ]; then
+# Only re-stage changelog when a new entry was added
+if [ "$NEW_ENTRY" -gt "0" ]; then
   git add src/lib/changelog.ts
 fi

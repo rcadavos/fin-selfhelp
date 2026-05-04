@@ -183,7 +183,7 @@ export async function loadVehicleSpending(month?: string): Promise<{ summaries: 
 
   let billsQuery = supabase
     .from("bills")
-    .select("id, note, notes, amount, vehicle_id, created_at")
+    .select("id, note, notes, amount, vehicle_id, vehicle_category, created_at")
     .eq("profile_id", profile.id)
     .not("vehicle_id", "is", null);
   if (monthStart && monthEnd) {
@@ -221,6 +221,7 @@ export async function loadVehicleSpending(month?: string): Promise<{ summaries: 
       label: String(row.note ?? row.notes ?? "Planned Expense"),
       amount,
       date: String(row.created_at),
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
     });
   }
 

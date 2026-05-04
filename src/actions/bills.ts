@@ -12,6 +12,8 @@ import {
 } from "@/lib/subscription-tier";
 import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
+import { isVehicleExpenseCategoryValue } from "@/lib/constants/vehicle-categories";
 
 const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
 
@@ -47,6 +49,27 @@ function normalizeReminderDaysBefore(raw: unknown): ReminderDay[] | undefined {
   return [...new Set(filtered)].sort((a, b) => b - a) as ReminderDay[];
 }
 
+function resolveBillVehicleFields(
+  categoryId: string,
+  vehicleId: string | null | undefined,
+  vehicleCategory: string | null | undefined,
+):
+  | { error: string }
+  | { vehicle_id: string | null; vehicle_category: string | null } {
+  if (categoryId !== TRANSPORT_EXPENSE_CATEGORY_ID) {
+    return { vehicle_id: null, vehicle_category: null };
+  }
+  const vid = vehicleId?.trim() || null;
+  if (!vid) {
+    return { vehicle_id: null, vehicle_category: null };
+  }
+  const raw = vehicleCategory?.trim() || null;
+  if (!raw || !isVehicleExpenseCategoryValue(raw)) {
+    return { error: "Select a vehicle category when linking this planned expense to a vehicle." };
+  }
+  return { vehicle_id: vid, vehicle_category: raw };
+}
+
 export type BillRow = {
   id: string;
   category_id: string;
@@ -61,6 +84,7 @@ export type BillRow = {
   reminder_channel?: "email" | "in-app" | "both";
   account_id?: string | null;
   vehicle_id?: string | null;
+  vehicle_category?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -104,7 +128,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
   const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }] = await Promise.all([
     supabase
       .from("bills")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, created_at, updated_at")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -181,6 +205,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
       account_id: row.account_id ?? undefined,
       vehicle_id: (row.vehicle_id as string | null) ?? null,
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     })),
@@ -374,6 +399,7 @@ export async function addBill(
   endDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
+  vehicleCategory?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -392,6 +418,9 @@ export async function addBill(
 
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
+
+  const resolvedVehicle = resolveBillVehicleFields(categoryId, vehicleId, vehicleCategory);
+  if ("error" in resolvedVehicle) return { error: resolvedVehicle.error };
 
   let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
   if (hasProAccess) {
@@ -424,12 +453,14 @@ export async function addBill(
     reminder_days_before: reminders ?? null,
     reminder_channel: reminders ? reminderChannel : "both",
     account_id: accountId ?? null,
-    vehicle_id: vehicleId ?? null,
+    vehicle_id: resolvedVehicle.vehicle_id,
+    vehicle_category: resolvedVehicle.vehicle_category,
   });
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
 
@@ -447,6 +478,7 @@ export async function updateBill(
   endDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
+  vehicleCategory?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -465,6 +497,9 @@ export async function updateBill(
 
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
+
+  const resolvedVehicle = resolveBillVehicleFields(categoryId, vehicleId, vehicleCategory);
+  if ("error" in resolvedVehicle) return { error: resolvedVehicle.error };
 
   let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
   if (hasProAccess) {
@@ -503,7 +538,8 @@ export async function updateBill(
       reminder_days_before: reminders ?? null,
       reminder_channel: reminders ? reminderChannel : "both",
       account_id: accountId ?? null,
-      vehicle_id: vehicleId ?? null,
+      vehicle_id: resolvedVehicle.vehicle_id,
+      vehicle_category: resolvedVehicle.vehicle_category,
     })
     .eq("id", billId)
     .eq("profile_id", profile.id);
@@ -511,6 +547,7 @@ export async function updateBill(
   if (error) return { error: error.message };
   revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
 
@@ -534,5 +571,6 @@ export async function deleteBill(billId: string): Promise<{ error?: string }> {
 
   if (error) return { error: error.message };
   revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }

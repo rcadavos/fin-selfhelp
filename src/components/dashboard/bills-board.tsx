@@ -75,12 +75,18 @@ import {
 } from "@/actions/bills";
 import { type AccountRow } from "@/actions/accounts";
 import { accountsQueryOptions } from "@/lib/query/accounts";
-import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
+import {
+  vehiclesQueryOptions,
+  buildVehicleColorMap,
+  invalidateVehicleQueriesIfTransportAffected,
+} from "@/lib/query/vehicles";
 import { type VehicleRow } from "@/actions/vehicles";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
+import { VEHICLE_EXPENSE_CATEGORIES, labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -164,6 +170,7 @@ type BillFormState = {
   reminderDays: number[];
   accountId: string;
   vehicleId: string;
+  vehicleCategory: string;
 };
 
 const EMPTY_FORM: BillFormState = {
@@ -177,6 +184,7 @@ const EMPTY_FORM: BillFormState = {
   reminderDays: [],
   accountId: "",
   vehicleId: "",
+  vehicleCategory: "",
 };
 
 function billToForm(bill: BillRow): BillFormState {
@@ -192,6 +200,7 @@ function billToForm(bill: BillRow): BillFormState {
     reminderDays: bill.reminder_days_before ?? [],
     accountId: bill.account_id ?? "",
     vehicleId: bill.vehicle_id ?? "",
+    vehicleCategory: bill.vehicle_category ?? "",
   };
 }
 
@@ -302,12 +311,18 @@ function BillDialog({
   }
 
   const amountNum = parseFloat(form.amount);
+  const needsVehicleCategory =
+    form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID &&
+    Boolean(form.vehicleId) &&
+    vehicles.length > 0;
+  const hasVehicleCategoryWhenNeeded = !needsVehicleCategory || Boolean(form.vehicleCategory);
   const isValid =
     form.categoryId &&
     form.note.trim() &&
     !isNaN(amountNum) &&
     amountNum > 0 &&
-    form.dueDate;
+    form.dueDate &&
+    hasVehicleCategoryWhenNeeded;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -346,7 +361,18 @@ function BillDialog({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Category</Label>
-              <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
+              <Select
+                value={form.categoryId}
+                onValueChange={(v) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    categoryId: v,
+                    ...(v !== TRANSPORT_EXPENSE_CATEGORY_ID
+                      ? { vehicleId: "", vehicleCategory: "" }
+                      : {}),
+                  }));
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -372,23 +398,54 @@ function BillDialog({
             </div>
           </div>
 
-          {/* Vehicle selector — only when category is transport */}
-          {form.categoryId === "transport" && vehicles.length > 0 && (
-            <div className="grid gap-1.5">
-              <Label>Vehicle (optional)</Label>
-              <Select value={form.vehicleId} onValueChange={(v) => set("vehicleId", v === "_none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Link to a vehicle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">— None —</SelectItem>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Vehicle + vehicle category — Transport & Commute only */}
+          {form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID && vehicles.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label>Vehicle (optional)</Label>
+                <Select
+                  value={form.vehicleId}
+                  onValueChange={(v) => {
+                    const id = v === "_none" ? "" : v;
+                    setForm((prev) => ({
+                      ...prev,
+                      vehicleId: id,
+                      vehicleCategory: id ? prev.vehicleCategory : "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Link to a vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— None —</SelectItem>
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.vehicleId ? (
+                <div className="grid gap-1.5">
+                  <Label>
+                    Vehicle category <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={form.vehicleCategory} onValueChange={(c) => set("vehicleCategory", c)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -735,13 +792,21 @@ function BillRow({
           </p>
           {bill.vehicle_id && vehicleMap[bill.vehicle_id] && (() => {
             const color = vehicleColorMap[bill.vehicle_id!] ?? "#6b7280";
+            const vCatFull = labelForVehicleExpenseCategory(bill.vehicle_category);
+            const vCatShort = vCatFull
+              ? (vCatFull.includes(" (") ? vCatFull.slice(0, vCatFull.indexOf(" (")) : vCatFull)
+              : null;
+            const vehicleLine =
+              vCatShort != null
+                ? `${vehicleMap[bill.vehicle_id!].name} • ${vCatShort}`
+                : vehicleMap[bill.vehicle_id!].name;
             return (
               <span
                 className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                 style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
               >
                 <Car className="h-2.5 w-2.5" />
-                {vehicleMap[bill.vehicle_id!].name}
+                {vehicleLine}
               </span>
             );
           })()}
@@ -1126,10 +1191,12 @@ export function BillsBoard() {
         form.endDate || undefined,
         form.accountId || null,
         form.vehicleId || null,
+        form.vehicleCategory || null,
       );
       if (!res.error) {
         setAddOpen(false);
         invalidate();
+        invalidateVehicleQueriesIfTransportAffected(queryClient, form.categoryId);
       }
     });
   }
@@ -1152,10 +1219,12 @@ export function BillsBoard() {
         form.endDate || undefined,
         form.accountId || null,
         form.vehicleId || null,
+        form.vehicleCategory || null,
       );
       if (!res.error) {
         setEditingBill(null);
         invalidate();
+        invalidateVehicleQueriesIfTransportAffected(queryClient, form.categoryId);
       }
     });
   }
@@ -1163,9 +1232,11 @@ export function BillsBoard() {
   async function handleDelete() {
     if (!deletingId) return;
     startTransition(async () => {
+      const bill = bills.find((b) => b.id === deletingId);
       await deleteBill(deletingId);
       setDeletingId(null);
       invalidate();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, bill?.category_id);
     });
   }
 

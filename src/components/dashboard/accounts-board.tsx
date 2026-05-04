@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Plus, Trash2, X } from "lucide-react";
+import { Wallet, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -544,7 +544,8 @@ export function AccountsBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
       <ContentHeader
         title="Accounts"
-        subtitle="This isn&apos;t linked to your real bank or e-wallet account—it's simply for labeling."
+        icon={Wallet}
+        subtitle="Your accounts hub — record expenses, income, transfers, and adjustments here. This isn&apos;t linked to your real bank or e-wallet; it&apos;s simply for labeling."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddOpen(true); }}>
             <Plus className="h-4 w-4" />

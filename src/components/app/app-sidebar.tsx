@@ -16,7 +16,7 @@ import {
   Target,
   Receipt,
   MessageSquarePlus,
-  Landmark,
+  Wallet,
   Car,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false },
   { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false },
@@ -120,21 +121,6 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           );
         })}
       </nav>
-      <div className="shrink-0 px-3 py-2">
-        <Link
-          href="/dashboard/accounts"
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            isSidebarNavActive(pathname, "/dashboard/accounts")
-              ? "bg-primary/15 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <Landmark className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1 truncate">Accounts</span>
-        </Link>
-      </div>
       <div className="w-full shrink-0 border-t bg-white p-3 dark:bg-muted/30">
         <AccountDropdownMenu
           user={user}

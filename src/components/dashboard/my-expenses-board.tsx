@@ -56,13 +56,18 @@ import { useUser } from "@/hooks/use-user";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { accountsQueryOptions } from "@/lib/query/accounts";
-import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
+import {
+  vehiclesQueryOptions,
+  buildVehicleColorMap,
+  invalidateVehicleQueriesIfTransportAffected,
+} from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
 import { ContentHeader } from "../app/content-header";
+import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
@@ -526,6 +531,7 @@ export function MyExpensesBoard() {
       setExpDate(savedDate);
     } else {
       invalidate();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, savedCategory || "other");
       expNameRef.current?.focus();
     }
   }
@@ -537,10 +543,14 @@ export function MyExpensesBoard() {
   async function handleDeleteConfirm() {
     if (!deletingId) return;
     startTransition(async () => {
+      const entry = allEntries.find((e) => e.id === deletingId);
       const res = await deleteExpense(deletingId);
       setDeletingId(null);
       if (res.error) setError(res.error);
-      else invalidate();
+      else {
+        invalidate();
+        invalidateVehicleQueriesIfTransportAffected(queryClient, entry?.category_id);
+      }
     });
   }
 
@@ -590,6 +600,7 @@ export function MyExpensesBoard() {
       setAddVehicleId("");
       setAddVehicleCategory("");
       invalidate();
+      invalidateVehicleQueriesIfTransportAffected(queryClient, addCategory || "other");
     }
   }
 
@@ -629,6 +640,11 @@ export function MyExpensesBoard() {
     } else {
       setEditingEntry(null);
       invalidate();
+      invalidateVehicleQueriesIfTransportAffected(
+        queryClient,
+        editingEntry.category_id,
+        editCategory || "other",
+      );
     }
   }
 
@@ -859,121 +875,123 @@ export function MyExpensesBoard() {
 
       {/* ── Add modal ── */}
       <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); setAddVehicleId(""); setAddVehicleCategory(""); } }}>
-        <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddFromDialog} className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-name">Name</Label>
-                <Input
-                  id="add-name"
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  placeholder="Name"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-amount">Amount</Label>
-                <Input
-                  id="add-amount"
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  value={addAmount}
-                  onChange={(e) => setAddAmount(e.target.value)}
-                  placeholder="₱0"
-                  className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-            </div>
-
-            {accounts.length > 0 && (
-              <div className="grid gap-1.5">
-                <AccountTagSelector accounts={accounts} value={addAccountId} onChange={setAddAccountId} />
-              </div>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-category">Category</Label>
-                <Select value={addCategory} onValueChange={setAddCategory}>
-                  <SelectTrigger id="add-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-date">Date</Label>
-                <DatePicker
-                  id="add-date"
-                  value={addDate}
-                  onChange={setAddDate}
-                  formatDisplay={formatShortDate}
-                />
-              </div>
-            </div>
-
-            {/* Vehicle selector — transport category only */}
-            {addCategory === "transport" && vehicles.length > 0 && (
+          <form onSubmit={handleAddFromDialog} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ScrollFadeBody className="space-y-4 px-6 pb-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
-                  <Select value={addVehicleId} onValueChange={(v) => { setAddVehicleId(v === "_none" ? "" : v); setAddVehicleCategory(""); }}>
-                    <SelectTrigger id="add-vehicle">
-                      <SelectValue placeholder="Link to a vehicle" />
+                  <Label htmlFor="add-name">Name</Label>
+                  <Input
+                    id="add-name"
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    placeholder="Name"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="add-amount">Amount</Label>
+                  <Input
+                    id="add-amount"
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    value={addAmount}
+                    onChange={(e) => setAddAmount(e.target.value)}
+                    placeholder="₱0"
+                    className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+
+              {accounts.length > 0 && (
+                <div className="grid gap-1.5">
+                  <AccountTagSelector accounts={accounts} value={addAccountId} onChange={setAddAccountId} />
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="add-category">Category</Label>
+                  <Select value={addCategory} onValueChange={setAddCategory}>
+                    <SelectTrigger id="add-category">
+                      <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— None —</SelectItem>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                        </SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {addVehicleId && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="add-date">Date</Label>
+                  <DatePicker
+                    id="add-date"
+                    value={addDate}
+                    onChange={setAddDate}
+                    formatDisplay={formatShortDate}
+                  />
+                </div>
+              </div>
+
+              {/* Vehicle selector — transport category only */}
+              {addCategory === "transport" && vehicles.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="grid gap-1.5">
-                    <Label htmlFor="add-vehicle-category">
-                      Vehicle Category <span className="text-destructive">*</span>
-                    </Label>
-                    <Select value={addVehicleCategory} onValueChange={setAddVehicleCategory}>
-                      <SelectTrigger id="add-vehicle-category">
-                        <SelectValue placeholder="Select category" />
+                    <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
+                    <Select value={addVehicleId} onValueChange={(v) => { setAddVehicleId(v === "_none" ? "" : v); setAddVehicleCategory(""); }}>
+                      <SelectTrigger id="add-vehicle">
+                        <SelectValue placeholder="Link to a vehicle" />
                       </SelectTrigger>
                       <SelectContent>
-                        {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        <SelectItem value="_none">— None —</SelectItem>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
+                  {addVehicleId && (
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="add-vehicle-category">
+                        Vehicle Category <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={addVehicleCategory} onValueChange={setAddVehicleCategory}>
+                        <SelectTrigger id="add-vehicle-category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="add-note">Note</Label>
+                <textarea
+                  id="add-note"
+                  value={addNote}
+                  onChange={(e) => setAddNote(e.target.value)}
+                  placeholder="Optional note…"
+                  rows={2}
+                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
-            )}
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="add-note">Note</Label>
-              <textarea
-                id="add-note"
-                value={addNote}
-                onChange={(e) => setAddNote(e.target.value)}
-                placeholder="Optional note…"
-                rows={2}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+              {addError && <p className="text-sm text-destructive">{addError}</p>}
+            </ScrollFadeBody>
 
-            {addError && <p className="text-sm text-destructive">{addError}</p>}
-
-            <DialogFooter className="pt-4 sticky bottom-0 bg-background">
+            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
               <div className="flex w-full gap-2">
                 <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddOpen(false)} disabled={addSaving}>
                   Cancel
@@ -989,8 +1007,8 @@ export function MyExpensesBoard() {
 
       {/* ── Edit modal ── */}
       <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
-        <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
             <DialogTitle>Edit Expense</DialogTitle>
             {editingEntry && (
               <p className="text-xs text-muted-foreground">
@@ -998,117 +1016,119 @@ export function MyExpensesBoard() {
               </p>
             )}
           </DialogHeader>
-          <form onSubmit={handleSaveEdit} className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-name">Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Name"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-amount">Amount</Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                  placeholder="₱0"
-                  className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-            </div>
-
-            {accounts.length > 0 && (
-              <div className="grid gap-1.5">
-                <AccountTagSelector accounts={accounts} value={editAccountId} onChange={setEditAccountId} />
-              </div>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-category">Category</Label>
-                <Select value={editCategory} onValueChange={setEditCategory}>
-                  <SelectTrigger id="edit-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-date">Date</Label>
-                <DatePicker
-                  id="edit-date"
-                  value={editExpenseDate}
-                  onChange={setEditExpenseDate}
-                  formatDisplay={formatShortDate}
-                />
-              </div>
-            </div>
-
-            {/* Vehicle selector — transport category only */}
-            {editCategory === "transport" && vehicles.length > 0 && (
+          <form onSubmit={handleSaveEdit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ScrollFadeBody className="space-y-4 px-6 pb-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
-                  <Select value={editVehicleId} onValueChange={(v) => { setEditVehicleId(v === "_none" ? "" : v); setEditVehicleCategory(""); }}>
-                    <SelectTrigger id="edit-vehicle">
-                      <SelectValue placeholder="Link to a vehicle" />
+                  <Label htmlFor="edit-name">Name</Label>
+                  <Input
+                    id="edit-name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Name"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-amount">Amount</Label>
+                  <Input
+                    id="edit-amount"
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    placeholder="₱0"
+                    className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+
+              {accounts.length > 0 && (
+                <div className="grid gap-1.5">
+                  <AccountTagSelector accounts={accounts} value={editAccountId} onChange={setEditAccountId} />
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select value={editCategory} onValueChange={setEditCategory}>
+                    <SelectTrigger id="edit-category">
+                      <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— None —</SelectItem>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                        </SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {editVehicleId && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-date">Date</Label>
+                  <DatePicker
+                    id="edit-date"
+                    value={editExpenseDate}
+                    onChange={setEditExpenseDate}
+                    formatDisplay={formatShortDate}
+                  />
+                </div>
+              </div>
+
+              {/* Vehicle selector — transport category only */}
+              {editCategory === "transport" && vehicles.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="grid gap-1.5">
-                    <Label htmlFor="edit-vehicle-category">
-                      Vehicle Category <span className="text-destructive">*</span>
-                    </Label>
-                    <Select value={editVehicleCategory} onValueChange={setEditVehicleCategory}>
-                      <SelectTrigger id="edit-vehicle-category">
-                        <SelectValue placeholder="Select category" />
+                    <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
+                    <Select value={editVehicleId} onValueChange={(v) => { setEditVehicleId(v === "_none" ? "" : v); setEditVehicleCategory(""); }}>
+                      <SelectTrigger id="edit-vehicle">
+                        <SelectValue placeholder="Link to a vehicle" />
                       </SelectTrigger>
                       <SelectContent>
-                        {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        <SelectItem value="_none">— None —</SelectItem>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
+                  {editVehicleId && (
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="edit-vehicle-category">
+                        Vehicle Category <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={editVehicleCategory} onValueChange={setEditVehicleCategory}>
+                        <SelectTrigger id="edit-vehicle-category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-note">Note</Label>
+                <textarea
+                  id="edit-note"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  placeholder="Optional note…"
+                  rows={2}
+                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
-            )}
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-note">Note</Label>
-              <textarea
-                id="edit-note"
-                value={editNote}
-                onChange={(e) => setEditNote(e.target.value)}
-                placeholder="Optional note…"
-                rows={2}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+              {editError && <p className="text-sm text-destructive">{editError}</p>}
+            </ScrollFadeBody>
 
-            {editError && <p className="text-sm text-destructive">{editError}</p>}
-
-            <DialogFooter className="pt-4 sticky bottom-0 bg-background">
+            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
               <div className="flex w-full gap-2">
                 <Button
                   type="button"
@@ -1134,7 +1154,6 @@ export function MyExpensesBoard() {
               </div>
             </DialogFooter>
           </form>
-
         </DialogContent>
       </Dialog>
 

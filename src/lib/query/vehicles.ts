@@ -1,5 +1,6 @@
 import { queryOptions, QueryClient } from "@tanstack/react-query";
 import { loadVehicles, loadVehicleSpending, type VehicleRow, type VehicleSpendSummary } from "@/actions/vehicles";
+import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { queryKeys } from "./keys";
 
 export const VEHICLE_CHART_COLORS = [
@@ -38,4 +39,16 @@ export const vehicleSpendingQueryOptions = (month?: string) =>
 
 export function invalidateVehicleQueries(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: queryKeys.vehicles() });
+}
+
+/** When an expense used to be or is now Transport & Commute, refresh vehicle list + per-month spending queries. */
+export function invalidateVehicleQueriesIfTransportAffected(
+  queryClient: QueryClient,
+  ...categoryIds: (string | null | undefined)[]
+) {
+  for (const id of categoryIds) {
+    if (id === TRANSPORT_EXPENSE_CATEGORY_ID) {
+      return invalidateVehicleQueries(queryClient);
+    }
+  }
 }

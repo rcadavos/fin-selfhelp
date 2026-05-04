@@ -497,14 +497,20 @@ export function VehiclesBoard() {
     for (const s of spendingData) {
       const cats: Cats = { fuel: 0, fees: 0, maintenance: 0, insurance: 0, other: 0, planned: 0 };
       for (const e of s.entries) {
+        const cat = e.vehicle_category ?? null;
         if (e.source === "bill") {
-          cats.planned += e.amount;
-        } else {
-          const cat = e.vehicle_category ?? "other";
           if (cat === "fuel") cats.fuel += e.amount;
           else if (cat === "fees") cats.fees += e.amount;
           else if (cat === "maintenance") cats.maintenance += e.amount;
           else if (cat === "insurance") cats.insurance += e.amount;
+          else if (cat) cats.other += e.amount;
+          else cats.planned += e.amount;
+        } else {
+          const expCat = cat ?? "other";
+          if (expCat === "fuel") cats.fuel += e.amount;
+          else if (expCat === "fees") cats.fees += e.amount;
+          else if (expCat === "maintenance") cats.maintenance += e.amount;
+          else if (expCat === "insurance") cats.insurance += e.amount;
           else cats.other += e.amount;
         }
       }
@@ -612,14 +618,14 @@ export function VehiclesBoard() {
                         iconType="circle"
                         wrapperStyle={{ fontSize: 10, paddingTop: 4 }}
                       />
-                      {CATEGORY_BARS.map((cat, idx) => (
+                      {CATEGORY_BARS.map((cat) => (
                         <Bar
                           key={cat.key}
                           dataKey={cat.key}
                           name={cat.label}
-                          stackId="a"
                           fill={cat.color}
-                          radius={idx === CATEGORY_BARS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={28}
                         />
                       ))}
                     </BarChart>

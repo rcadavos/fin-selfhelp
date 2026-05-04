@@ -37,28 +37,27 @@ writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 const versionTsPath = join(root, "src", "lib", "version.ts");
 writeFileSync(versionTsPath, `export const APP_VERSION = "${next}";\n`);
 
-// ── Update top changelog entry — only if changelog.ts was staged ───────────
-// Only stamp the version when the user/Claude explicitly staged new changelog
-// entries for this commit. If changelog wasn't touched, leave it alone so we
-// don't mutate a previously-committed entry.
-let changelogStaged = false;
+// ── Update top changelog entry — only if a NEW entry was added ─────────────
+// Only stamp the version when this commit's staged diff actually adds a new
+// changelog entry block. Modifications to existing entries (or no changelog
+// changes at all) leave the changelog untouched.
+let newEntryAdded = false;
 try {
-  const stagedFiles = execSync("git diff --cached --name-only", { encoding: "utf8" });
-  changelogStaged = stagedFiles.includes("src/lib/changelog.ts");
+  const stagedDiff = execSync(
+    "git diff --cached -- src/lib/changelog.ts",
+    { encoding: "utf8" },
+  );
+  newEntryAdded = /^\+\s*version:\s*"[\d.]+"/m.test(stagedDiff);
 } catch { /* outside a git repo or git unavailable — skip */ }
 
-if (changelogStaged) {
+if (newEntryAdded) {
   const changelogPath = join(root, "src", "lib", "changelog.ts");
   const changelog = readFileSync(changelogPath, "utf8");
-  // Only stamp the entry whose version matches the current (pre-bump) version.
-  // This targets the placeholder Claude writes and never touches older entries.
   const escapedPrev = prev.replace(/\./g, "\\.");
   const placeholder = new RegExp(`version:\\s*"${escapedPrev}"`);
   if (placeholder.test(changelog)) {
     const updated = changelog.replace(placeholder, `version: "${next}"`);
     writeFileSync(changelogPath, updated);
-  } else {
-    console.warn(`[bump] warning: no changelog entry found for ${prev} — skipping changelog update`);
   }
 }
 

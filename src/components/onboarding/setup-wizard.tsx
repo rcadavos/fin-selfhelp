@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { invalidateVehicleQueriesIfTransportAffected } from "@/lib/query/vehicles";
 import { useUser } from "@/hooks/use-user";
 import { completeOnboarding } from "@/actions/onboarding";
 import { addExpense } from "@/actions/budget";
@@ -48,6 +49,7 @@ interface Props {
 
 export function SetupWizard({ initialName }: Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { refreshUser } = useUser();
   const [step, setStep] = useState<Step>("profile");
   const [isPending, startTransition] = useTransition();
@@ -107,6 +109,7 @@ export function SetupWizard({ initialName }: Props) {
     startTransition(async () => {
       const res = await addExpense(expenseCategoryId, amount, expenseNote || null);
       if (res.error) { setExpenseError(res.error); return; }
+      invalidateVehicleQueriesIfTransportAffected(queryClient, expenseCategoryId);
       setStep("bill");
     });
   }

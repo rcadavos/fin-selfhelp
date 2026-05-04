@@ -14,6 +14,44 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.23",
+    date: "2026-05-04",
+    summary: "Vehicles spend chart uses grouped category bars. Planned transport expenses linked to a vehicle require a vehicle category.",
+    changes: [
+      {
+        type: "improvement",
+        description:
+          "On /dashboard/vehicles, the spend-by-vehicle bar chart now draws Fuel, Fees, Maintenance, Insurance, Other, and Planned as side-by-side bars per vehicle instead of a single stacked column.",
+      },
+      {
+        type: "fix",
+        description:
+          "Logging, editing, or deleting an expense in the Transport & Commute category now invalidates React Query caches for the Vehicles page so linked per-vehicle spending refreshes without a full reload.",
+      },
+      {
+        type: "feature",
+        description:
+          "Planned Expenses in Transport & Commute now mirror Expenses: when you link a vehicle, choosing a vehicle category (Fuel, Fees, Maintenance & Repairs, Insurance & Registration) is required before saving.",
+      },
+      {
+        type: "improvement",
+        description:
+          "Vehicle spending charts treat categorized transport planned expenses like categorized expenses (legacy planned rows without a vehicle category still roll into Planned).",
+      },
+    ],
+  },
+  {
+    version: "1.4.22",
+    date: "2026-05-04",
+    summary: "Promote Accounts in the sidebar and refresh the Accounts page header.",
+    changes: [
+      { type: "improvement", description: "Moved Accounts from the sidebar footer into the main nav, right after Dashboard, so it sits with the other primary destinations." },
+      { type: "improvement", description: "Aligned the Accounts icon to the wallet icon used by the mobile bottom navbar, both in the sidebar and on the Accounts page header." },
+      { type: "improvement", description: "Clarified the Accounts page subtitle to explain that this is the hub for recording expenses, income, transfers, and adjustments." },
+      { type: "fix", description: "Fixed recoverable SSR error on /dashboard/accounts caused by accountsQueryOptions and accountTotalsQueryOptions calling Server Actions during initial render — the page now prefetches and dehydrates both queries on the server so useSuspenseQuery reads from the hydrated cache instead of firing the queryFn during SSR." },
+    ],
+  },
+  {
     version: "1.4.22",
     date: "2026-05-04",
     summary: "Fix expense modals on mobile; category selects now default to blank placeholder.",
