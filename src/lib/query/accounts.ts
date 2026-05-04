@@ -1,8 +1,6 @@
 import { queryOptions, QueryClient } from "@tanstack/react-query";
-import { loadAccounts, loadAccountTotals } from "@/actions/accounts";
-import { STATIC_ACCOUNTS } from "@/lib/static-accounts";
+import { loadAccounts, loadAccountBalances, loadNetBalanceHistory } from "@/actions/accounts";
 import { queryKeys } from "./keys";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 export const accountsQueryOptions = () =>
   queryOptions({
@@ -10,24 +8,34 @@ export const accountsQueryOptions = () =>
     queryFn: () => Promise.resolve().then(async () => {
       const res = await loadAccounts();
       if (res.error) throw new Error(res.error);
-      return [...STATIC_ACCOUNTS, ...res.accounts];
+      return res.accounts;
     }),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
-export const accountTotalsQueryOptions = (paidMonth?: string) => {
-  const month = paidMonth ?? getCurrentPaidMonth();
-  return queryOptions({
-    queryKey: [...queryKeys.accounts(), "totals", month] as const,
+export const accountBalancesQueryOptions = () =>
+  queryOptions({
+    queryKey: [...queryKeys.accounts(), "balances"] as const,
     queryFn: () => Promise.resolve().then(async () => {
-      const res = await loadAccountTotals(month);
+      const res = await loadAccountBalances();
       if (res.error) throw new Error(res.error);
-      return res;
+      return res.balances;
     }),
+    refetchOnWindowFocus: false,
   });
-};
+
+export const netBalanceHistoryQueryOptions = (days = 7) =>
+  queryOptions({
+    queryKey: queryKeys.netBalanceHistory(days),
+    queryFn: () => Promise.resolve().then(async () => {
+      const res = await loadNetBalanceHistory(days);
+      if (res.error) throw new Error(res.error);
+      return res.series;
+    }),
+    refetchOnWindowFocus: false,
+  });
 
 export function invalidateAccountQueries(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: queryKeys.accounts() });

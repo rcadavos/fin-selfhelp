@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
+
+export type AccountType = "debit" | "credit" | "stocks" | "crypto";
+export type InterestFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "annually";
 
 export type AccountRow = {
   id: string;
@@ -9,8 +11,58 @@ export type AccountRow = {
   bank_name: string;
   tags: string[];
   color: string;
+  account_type: AccountType;
+  starting_balance: number;
+  interest_frequency: InterestFrequency | null;
+  include_in_net_balance: boolean;
 };
 
+const ACCOUNT_SELECT =
+  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, include_in_net_balance";
+
+function mapAccountRow(r: Record<string, unknown>): AccountRow {
+  const type = String(r.account_type ?? "debit") as AccountType;
+  const freqRaw = r.interest_frequency == null ? null : String(r.interest_frequency);
+  return {
+    id: String(r.id),
+    account_alias: String(r.account_alias ?? ""),
+    bank_name: String(r.bank_name ?? ""),
+    tags: Array.isArray(r.tags) ? (r.tags as unknown[]).map(String) : [],
+    color: String(r.color ?? "#6366f1"),
+    account_type: (["debit", "credit", "stocks", "crypto"].includes(type) ? type : "debit") as AccountType,
+    starting_balance: Number(r.starting_balance ?? 0),
+    interest_frequency:
+      freqRaw && ["daily", "weekly", "monthly", "quarterly", "annually"].includes(freqRaw)
+        ? (freqRaw as InterestFrequency)
+        : null,
+    include_in_net_balance: r.include_in_net_balance !== false,
+  };
+}
+
+export async function loadAccount(accountId: string): Promise<{ account: AccountRow | null; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { account: null, error: "Not logged in." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile) return { account: null };
+
+  const { data: row, error } = await supabase
+    .from("accounts")
+    .select(ACCOUNT_SELECT)
+    .eq("id", accountId)
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+
+  if (error) return { account: null, error: error.message };
+  if (!row) return { account: null };
+
+  return { account: mapAccountRow(row) };
+}
 
 export async function loadAccounts(): Promise<{ accounts: AccountRow[]; error?: string }> {
   const supabase = await createClient();
@@ -26,75 +78,127 @@ export async function loadAccounts(): Promise<{ accounts: AccountRow[]; error?: 
 
   const { data: rows, error } = await supabase
     .from("accounts")
-    .select("id, account_alias, bank_name, tags, color")
+    .select(ACCOUNT_SELECT)
     .eq("profile_id", profile.id)
     .order("created_at", { ascending: true });
 
   if (error) return { accounts: [], error: error.message };
 
-  return {
-    accounts: (rows ?? []).map((r) => ({
-      id: String(r.id),
-      account_alias: String(r.account_alias ?? ""),
-      bank_name: String(r.bank_name ?? ""),
-      tags: Array.isArray(r.tags) ? (r.tags as unknown[]).map(String) : [],
-      color: String(r.color ?? "#6366f1"),
-    })),
-  };
+  return { accounts: (rows ?? []).map(mapAccountRow) };
 }
 
-export async function loadAccountTotals(paidMonth?: string): Promise<{
-  expenseTotals: Record<string, number>;
-  billTotals: Record<string, number>;
+/**
+ * Per-account live balance = starting_balance + SUM(account_transactions.amount).
+ * Intentionally ignores expense_entries / bills that merely tag an account.
+ */
+export async function loadAccountBalances(): Promise<{
+  balances: Record<string, number>;
   error?: string;
 }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { expenseTotals: {}, billTotals: {}, error: "Not logged in." };
+  if (!user) return { balances: {}, error: "Not logged in." };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!profile) return { expenseTotals: {}, billTotals: {} };
+  if (!profile) return { balances: {} };
 
-  const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
-  const [year, mon] = month.split("-").map(Number);
-  const monthStart = `${month}-01T00:00:00`;
-  const nextYear = mon === 12 ? year + 1 : year;
-  const nextMon = mon === 12 ? 1 : mon + 1;
-  const monthEnd = `${nextYear}-${String(nextMon).padStart(2, "0")}-01T00:00:00`;
-
-  const [{ data: expRows }, { data: billRows }] = await Promise.all([
+  const [{ data: accountRows, error: accErr }, { data: txRows, error: txErr }] = await Promise.all([
     supabase
-      .from("expense_entries")
-      .select("account_id, amount")
-      .eq("profile_id", profile.id)
-      .not("account_id", "is", null)
-      .gte("created_at", monthStart)
-      .lt("created_at", monthEnd),
+      .from("accounts")
+      .select("id, starting_balance")
+      .eq("profile_id", profile.id),
     supabase
-      .from("bills")
+      .from("account_transactions")
       .select("account_id, amount")
-      .eq("profile_id", profile.id)
-      .not("account_id", "is", null)
-      .eq("billing_period", "monthly"),
+      .eq("profile_id", profile.id),
   ]);
 
-  const expenseTotals: Record<string, number> = {};
-  for (const e of expRows ?? []) {
-    const id = e.account_id as string | null;
-    if (id) expenseTotals[id] = (expenseTotals[id] ?? 0) + Number(e.amount);
+  if (accErr) return { balances: {}, error: accErr.message };
+  if (txErr) return { balances: {}, error: txErr.message };
+
+  const balances: Record<string, number> = {};
+  for (const a of accountRows ?? []) {
+    balances[String(a.id)] = Number(a.starting_balance ?? 0);
+  }
+  for (const r of txRows ?? []) {
+    const id = r.account_id as string | null;
+    if (!id) continue;
+    balances[id] = (balances[id] ?? 0) + Number(r.amount);
+  }
+  return { balances };
+}
+
+/**
+ * Daily Net Balance series for the last `days` days (inclusive of today).
+ * Net Balance = sum of (starting_balance + cumulative tx amounts) for accounts where
+ * include_in_net_balance is true, evaluated at end-of-day.
+ */
+export async function loadNetBalanceHistory(days = 7): Promise<{
+  series: { date: string; balance: number }[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { series: [], error: "Not logged in." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile) return { series: [] };
+
+  const { data: netAccounts, error: accErr } = await supabase
+    .from("accounts")
+    .select("id, starting_balance")
+    .eq("profile_id", profile.id)
+    .eq("include_in_net_balance", true);
+  if (accErr) return { series: [], error: accErr.message };
+
+  const netIds = new Set((netAccounts ?? []).map((a) => String(a.id)));
+  const startingTotal = (netAccounts ?? []).reduce(
+    (s, a) => s + Number(a.starting_balance ?? 0),
+    0,
+  );
+
+  let txRows: { account_id: string; amount: number; occurred_at: string }[] = [];
+  if (netIds.size > 0) {
+    const { data, error } = await supabase
+      .from("account_transactions")
+      .select("account_id, amount, occurred_at")
+      .eq("profile_id", profile.id)
+      .in("account_id", Array.from(netIds));
+    if (error) return { series: [], error: error.message };
+    txRows = (data ?? []).map((r) => ({
+      account_id: String(r.account_id),
+      amount: Number(r.amount),
+      occurred_at: String(r.occurred_at),
+    }));
   }
 
-  const billTotals: Record<string, number> = {};
-  for (const b of billRows ?? []) {
-    const id = b.account_id as string | null;
-    if (id) billTotals[id] = (billTotals[id] ?? 0) + Number(b.amount);
+  const series: { date: string; balance: number }[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - i);
+    const endOfDay = new Date(day);
+    endOfDay.setHours(23, 59, 59, 999);
+    const cumulative = txRows
+      .filter((t) => new Date(t.occurred_at).getTime() <= endOfDay.getTime())
+      .reduce((s, t) => s + t.amount, 0);
+    series.push({
+      date: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
+      balance: startingTotal + cumulative,
+    });
   }
 
-  return { expenseTotals, billTotals };
+  return { series };
 }
 
 type AccountInput = {
@@ -102,11 +206,27 @@ type AccountInput = {
   bank_name: string;
   tags: string[];
   color: string;
+  account_type: AccountType;
+  starting_balance: number;
+  interest_frequency: InterestFrequency | null;
+  include_in_net_balance: boolean;
 };
 
 function validateInput(input: AccountInput): string | null {
   if (!input.account_alias.trim()) return "Account alias is required.";
   if (!input.bank_name.trim()) return "Bank name is required.";
+  if (!["debit", "credit", "stocks", "crypto"].includes(input.account_type)) {
+    return "Invalid account type.";
+  }
+  if (!Number.isFinite(input.starting_balance)) {
+    return "Starting balance must be a number.";
+  }
+  if (
+    input.interest_frequency != null &&
+    !["daily", "weekly", "monthly", "quarterly", "annually"].includes(input.interest_frequency)
+  ) {
+    return "Invalid interest frequency.";
+  }
   return null;
 }
 
@@ -139,6 +259,10 @@ export async function createAccount(input: AccountInput): Promise<{ error?: stri
     bank_name: input.bank_name.trim(),
     tags: input.tags,
     color: input.color,
+    account_type: input.account_type,
+    starting_balance: input.starting_balance,
+    interest_frequency: input.interest_frequency,
+    include_in_net_balance: input.include_in_net_balance,
   });
 
   if (error) return { error: error.message };
@@ -167,6 +291,10 @@ export async function updateAccount(accountId: string, input: AccountInput): Pro
       bank_name: input.bank_name.trim(),
       tags: input.tags,
       color: input.color,
+      account_type: input.account_type,
+      starting_balance: input.starting_balance,
+      interest_frequency: input.interest_frequency,
+      include_in_net_balance: input.include_in_net_balance,
       updated_at: new Date().toISOString(),
     })
     .eq("id", accountId)

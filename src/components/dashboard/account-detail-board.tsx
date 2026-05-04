@@ -1,0 +1,354 @@
+"use client";
+
+import { useCallback, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowDownCircle,
+  ArrowLeft,
+  ArrowLeftRight,
+  ArrowUpCircle,
+  Edit,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentHeader } from "@/components/app/content-header";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import {
+  AccountFormDialog,
+  accountToForm,
+  accountFormToInput,
+  type AccountFormState,
+} from "@/components/dashboard/account-form-dialog";
+import {
+  AccountTransactionDialog,
+  AccountTransferDialog,
+  type SimpleEntryMode,
+} from "@/components/dashboard/account-transaction-dialog";
+import {
+  updateAccount,
+  deleteAccount,
+  type AccountRow,
+} from "@/actions/accounts";
+import {
+  createAccountAdjustment,
+  createAccountExpense,
+  createAccountIncome,
+  createAccountTransfer,
+  deleteAccountTransaction,
+  type AccountTransactionRow,
+} from "@/actions/account-transactions";
+import {
+  accountTransactionsQueryOptions,
+  invalidateAccountTransactions,
+} from "@/lib/query/account-transactions";
+import {
+  accountsQueryOptions,
+  invalidateAccountQueries,
+} from "@/lib/query/accounts";
+import { formatCurrency, cn } from "@/lib/utils";
+
+function formatTxDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function txMeta(
+  tx: AccountTransactionRow,
+): { label: string; iconClass: string; sign: 1 | -1 | 0 } {
+  if (tx.type === "expense") return { label: "Expense", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+  if (tx.type === "income") return { label: "Income", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 };
+  if (tx.type === "transfer") {
+    return tx.amount >= 0
+      ? { label: "Transfer in", iconClass: "text-sky-600 dark:text-sky-400", sign: 1 }
+      : { label: "Transfer out", iconClass: "text-sky-600 dark:text-sky-400", sign: -1 };
+  }
+  // adjustment
+  return tx.amount >= 0
+    ? { label: "Adjustment +", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 }
+    : { label: "Adjustment −", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+}
+
+export function AccountDetailBoard({ account: initialAccount }: { account: AccountRow }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [isPending, startTransition] = useTransition();
+
+  const [account, setAccount] = useState<AccountRow>(initialAccount);
+  const [activeMode, setActiveMode] = useState<SimpleEntryMode | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
+
+  const { data: txData } = useSuspenseQuery(accountTransactionsQueryOptions(account.id));
+  const { data: allAccounts } = useSuspenseQuery(accountsQueryOptions());
+
+  const otherAccounts = useMemo(
+    () => allAccounts.filter((a) => a.id !== account.id),
+    [allAccounts, account.id],
+  );
+
+  const invalidateTx = useCallback(() => {
+    invalidateAccountTransactions(queryClient, account.id);
+    invalidateAccountQueries(queryClient);
+  }, [queryClient, account.id]);
+
+  function handleSimpleSave({ amount, description, direction }: { amount: number; description: string; direction: 1 | -1 }) {
+    if (!activeMode) return;
+    setTxError(null);
+    startTransition(async () => {
+      const res =
+        activeMode === "expense"
+          ? await createAccountExpense({ accountId: account.id, amount, description })
+          : activeMode === "income"
+            ? await createAccountIncome({ accountId: account.id, amount, description })
+            : await createAccountAdjustment({
+              accountId: account.id,
+              amount: direction === 1 ? amount : -amount,
+              description,
+            });
+      if (res.error) {
+        setTxError(res.error);
+        return;
+      }
+      setActiveMode(null);
+      invalidateTx();
+    });
+  }
+
+  function handleTransferSave({ toAccountId, amount, description }: { toAccountId: string; amount: number; description: string }) {
+    setTxError(null);
+    startTransition(async () => {
+      const res = await createAccountTransfer({
+        fromAccountId: account.id,
+        toAccountId,
+        amount,
+        description,
+      });
+      if (res.error) {
+        setTxError(res.error);
+        return;
+      }
+      setTransferOpen(false);
+      invalidateTx();
+    });
+  }
+
+  function handleDeleteTransaction() {
+    if (!deletingTxId) return;
+    startTransition(async () => {
+      await deleteAccountTransaction(deletingTxId);
+      setDeletingTxId(null);
+      invalidateTx();
+    });
+  }
+
+  function handleEditAccount(form: AccountFormState) {
+    setFormError(null);
+    startTransition(async () => {
+      const input = accountFormToInput(form);
+      const res = await updateAccount(account.id, input);
+      if (res.error) {
+        setFormError(res.error);
+        return;
+      }
+      setAccount({ ...account, ...input });
+      setEditOpen(false);
+      invalidateAccountQueries(queryClient);
+    });
+  }
+
+  function handleDeleteAccount() {
+    startTransition(async () => {
+      await deleteAccount(account.id);
+      invalidateAccountQueries(queryClient);
+      router.push("/dashboard/accounts");
+    });
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
+        <Link href="/dashboard/accounts">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Accounts
+        </Link>
+      </Button>
+
+      <ContentHeader
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: account.color }}
+              aria-hidden
+            />
+            <span className="min-w-0 truncate">{account.account_alias}</span>
+          </span>
+        }
+        subtitle={`${account.bank_name} • Record expenses, income, transfers, and adjustments tied to this account.`}
+        actions={
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setFormError(null); setEditOpen(true); }} aria-label="Edit account">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} aria-label="Delete account">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Balance card */}
+      <div className="rounded-2xl border bg-card px-5 py-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current balance</p>
+        <p className={cn("mt-1 text-3xl font-bold tabular-nums", txData.balance < 0 && "text-rose-600 dark:text-rose-400")}>
+          {formatCurrency(txData.balance)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Computed from {txData.transactions.length} {txData.transactions.length === 1 ? "entry" : "entries"} on this account.
+        </p>
+
+        {/* Action buttons */}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("expense"); }}>
+            <ArrowDownCircle className="h-4 w-4 text-rose-500" />
+            Add Expense
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("income"); }}>
+            <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+            Add Income
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("adjustment"); }}>
+            <Edit className="h-4 w-4 text-amber-500" />
+            Adjustment
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setTransferOpen(true); }}>
+            <ArrowLeftRight className="h-4 w-4 text-sky-500" />
+            Transfer
+          </Button>
+        </div>
+      </div>
+
+      {/* History */}
+      <div className="space-y-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">History</h2>
+        {txData.transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center text-muted-foreground">
+            <p className="text-sm">No entries yet.</p>
+            <p className="max-w-md text-xs">Add an expense, income, adjustment, or transfer to start tracking the balance on this account.</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {txData.transactions.map((tx) => {
+              const meta = txMeta(tx);
+              const counterpartName = tx.transfer_counterpart?.account_alias ?? "another account";
+              return (
+                <li
+                  key={tx.id}
+                  className="group flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={cn("text-xs font-semibold uppercase tracking-wide", meta.iconClass)}>
+                        {meta.label}
+                      </span>
+                      {tx.type === "transfer" && (
+                        <span className="text-[11px] text-muted-foreground">
+                          {tx.amount >= 0 ? `from ${counterpartName}` : `to ${counterpartName}`}
+                        </span>
+                      )}
+                    </div>
+                    {tx.description && (
+                      <p className="mt-0.5 truncate text-sm">{tx.description}</p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">{formatTxDate(tx.occurred_at)}</p>
+                  </div>
+                  <p className={cn(
+                    "flex-shrink-0 text-sm font-semibold tabular-nums",
+                    tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
+                    tx.amount < 0 && "text-rose-600 dark:text-rose-400",
+                  )}>
+                    {tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}
+                    {formatCurrency(Math.abs(tx.amount))}
+                  </p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => setDeletingTxId(tx.id)}
+                    aria-label="Delete entry"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* Simple entry dialog (expense / income / adjustment) */}
+      {activeMode && (
+        <AccountTransactionDialog
+          open
+          mode={activeMode}
+          onClose={() => setActiveMode(null)}
+          onSave={handleSimpleSave}
+          isPending={isPending}
+          error={txError}
+        />
+      )}
+
+      {/* Transfer dialog */}
+      <AccountTransferDialog
+        open={transferOpen}
+        fromAccountId={account.id}
+        otherAccounts={otherAccounts}
+        onClose={() => setTransferOpen(false)}
+        onSave={handleTransferSave}
+        isPending={isPending}
+        error={txError}
+      />
+
+      {/* Edit account dialog */}
+      {editOpen && (
+        <AccountFormDialog
+          open
+          onClose={() => setEditOpen(false)}
+          onSave={handleEditAccount}
+          initial={accountToForm(account)}
+          isPending={isPending}
+          error={formError}
+        />
+      )}
+
+      {/* Confirm delete account */}
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete account?"
+        description="The account and all its expense, income, transfer, and adjustment entries will be removed. Expenses and bills tagged to it will be unlinked but not deleted."
+        confirmLabel={isPending ? "Deleting…" : "Delete"}
+        variant="destructive"
+        onConfirm={handleDeleteAccount}
+      />
+
+      {/* Confirm delete transaction */}
+      <ConfirmDialog
+        open={!!deletingTxId}
+        onOpenChange={(v) => !v && setDeletingTxId(null)}
+        title="Delete entry?"
+        description="This entry will be removed and the balance recalculated. Transfers will remove both legs."
+        confirmLabel={isPending ? "Deleting…" : "Delete"}
+        variant="destructive"
+        onConfirm={handleDeleteTransaction}
+      />
+    </div>
+  );
+}

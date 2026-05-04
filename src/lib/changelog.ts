@@ -14,6 +14,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.1",
+    date: "2026-05-04",
+    summary: "Cash is now a real per-user account; click an account to open its detail page. Per-account ledger: log expense, income, adjustment, and transfer entries on each account with a running balance and history.",
+    changes: [
+      { type: "feature", description: "Every new user now starts with a real 'Cash' account auto-created alongside their profile. Existing users have a Cash account backfilled, and prior references to the static Cash UUID are migrated to the real per-user account." },
+      { type: "improvement", description: "Removed the built-in Cash and Borrowed placeholder accounts from /dashboard/accounts. Every account on the list is now a real DB row that can be edited, tagged, recolored, or deleted." },
+      { type: "feature", description: "Clicking an account on /dashboard/accounts now opens a per-account detail page at /dashboard/accounts/[accountId] — the future home for that account's expense, income, transfer, and adjustment entries. A separate edit (pencil) icon keeps editing one click away from the list." },
+      { type: "feature", description: "Each account at /dashboard/accounts/[accountId] now has its own ledger. Add Expense, Add Income, Adjustment, and Transfer to another account directly on the wallet page. The current balance is computed from these entries (independent of expenses or planned expenses that merely tag the account)." },
+      { type: "feature", description: "Transfers create a paired entry on both accounts so balances stay in sync. Deleting one leg of a transfer deletes the other automatically." },
+      { type: "feature", description: "Account history list with per-entry delete. Adjustments support both 'add to balance' and 'subtract from balance' directions." },
+      { type: "improvement", description: "Edit and Delete buttons for the account itself now live in the top-right of the account detail page. Confirm dialogs replace inline prompts." },
+      { type: "improvement", description: "Extracted the Account form dialog into a shared component reused by /dashboard/accounts and the account detail page." },
+      { type: "improvement", description: "Accounts list now shows each account's live balance computed from its own ledger entries instead of summed expense/bill totals tagged to it. The 'This Month' card became 'Total Balance', the chart shows balance distribution across accounts, and balances reset to zero until you add ledger entries." },
+      { type: "feature", description: "Add/Edit Account dialog now captures Account Type (Debit, Credit, Stocks, Crypto), Starting Balance, Interest Frequency (none / daily / weekly / monthly / quarterly / annually), and an 'Include in Net Balance' toggle." },
+      { type: "improvement", description: "Account balances now use Starting Balance as the seed value: balance = starting_balance + sum(account_transactions). Visible on both the accounts list and the per-account detail page." },
+      { type: "feature", description: "Replaced the 'Total Balance' stat on /dashboard/accounts with 'Net Balance', summed across only the accounts where 'Include in Net Balance' is enabled. The card shows how many accounts are counted." },
+      { type: "feature", description: "Replaced the per-account distribution donut chart with a 7-day Net Balance line chart driven by a new server-side loader that reconstructs end-of-day net balance for each of the last 7 days." },
+    ],
+  },
+  {
     version: "1.5.0",
     date: "2026-05-04",
     summary: "New Receivables tracker — track money owed to you with account linking and email confirmations.",

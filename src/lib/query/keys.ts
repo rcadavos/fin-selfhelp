@@ -34,6 +34,12 @@ export const queryKeys = {
   notifications: () => [...queryKeys.all, "notifications"] as const,
   /** User's named bank/e-wallet accounts (see `accountsQueryOptions`). */
   accounts: () => [...queryKeys.all, "accounts"] as const,
+  /** Per-account ledger entries (see `accountTransactionsQueryOptions`). */
+  accountTransactions: (accountId: string) =>
+    [...queryKeys.all, "accounts", "transactions", accountId] as const,
+  /** Net Balance daily series (see `netBalanceHistoryQueryOptions`). */
+  netBalanceHistory: (days: number) =>
+    [...queryKeys.all, "accounts", "net-balance-history", days] as const,
   /** Current user's daily login streak (see `userStreakQueryOptions`). */
   userStreak: () => [...queryKeys.all, "user", "streak"] as const,
   /** Current user's registered vehicles (see `vehiclesQueryOptions`). */

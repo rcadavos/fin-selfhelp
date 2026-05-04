@@ -6,16 +6,16 @@ import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { getQueryClient } from "@/lib/query/query-client";
 import {
   accountsQueryOptions,
-  accountTotalsQueryOptions,
+  accountBalancesQueryOptions,
+  netBalanceHistoryQueryOptions,
 } from "@/lib/query/accounts";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 export default async function AccountsPage() {
   const queryClient = getQueryClient();
-  const paidMonth = getCurrentPaidMonth();
   await Promise.all([
     queryClient.prefetchQuery(accountsQueryOptions()),
-    queryClient.prefetchQuery(accountTotalsQueryOptions(paidMonth)),
+    queryClient.prefetchQuery(accountBalancesQueryOptions()),
+    queryClient.prefetchQuery(netBalanceHistoryQueryOptions(7)),
   ]);
 
   return (
