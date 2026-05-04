@@ -227,7 +227,7 @@ export async function inviteDebtorToReceivable(input: {
   debtorEmail: string;
   notes?: string;
   ownerName?: string;
-}): Promise<{ error?: string; link?: ReceivableLinkRow }> {
+}): Promise<{ error?: string; link?: ReceivableLinkRow; deliveredVia?: "in-app" | "email" }> {
   const email = input.debtorEmail.trim().toLowerCase();
   if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
 
@@ -236,22 +236,26 @@ export async function inviteDebtorToReceivable(input: {
   if (!user || !profile) return { error: "Not logged in." };
   if (email === (user.email ?? "").toLowerCase()) return { error: "You cannot invite yourself." };
 
-  const { data: rec } = await supabase
+  const { data: rec, error: recError } = await supabase
     .from("receivables")
     .select("id, debtor_name, amount, description")
     .eq("id", input.receivableId)
     .eq("profile_id", profile.id)
     .single();
-  if (!rec) return { error: "Receivable not found." };
+  if (recError || !rec) {
+    console.error("[inviteDebtor] Receivable lookup failed:", recError);
+    return { error: recError?.message ?? "Receivable not found." };
+  }
 
   // Remove any prior cancelled/rejected link so unique constraint allows re-invite
-  await supabase
+  const { error: cleanupError } = await supabase
     .from("receivable_links")
     .delete()
     .eq("receivable_id", input.receivableId)
     .in("status", ["cancelled", "rejected"]);
+  if (cleanupError) console.error("[inviteDebtor] Cleanup of stale links failed:", cleanupError);
 
-  const { data: link, error } = await supabase
+  const { data: link, error: insertError } = await supabase
     .from("receivable_links")
     .insert({
       receivable_id:    input.receivableId,
@@ -262,9 +266,10 @@ export async function inviteDebtorToReceivable(input: {
     .select("*")
     .single();
 
-  if (error) {
-    if (error.code === "23505") return { error: "An invitation for this item already exists." };
-    return { error: error.message };
+  if (insertError) {
+    console.error("[inviteDebtor] Link insert failed:", insertError);
+    if (insertError.code === "23505") return { error: "An invitation for this item already exists." };
+    return { error: `Could not save link: ${insertError.message}` };
   }
 
   const typedLink = link as ReceivableLinkRow;
@@ -273,41 +278,52 @@ export async function inviteDebtorToReceivable(input: {
   const r         = rec as { debtor_name: string; amount: number; description: string };
   const ownerName = input.ownerName ?? "Someone";
 
-  // Check if the debtor email belongs to an existing OmniTrak account.
-  // Use service role so we can query auth.users by email.
-  const service = createServiceRoleClient();
-  const { data: debtorUsers } = await service.auth.admin.listUsers();
-  const debtorUser = (debtorUsers?.users ?? []).find(
-    (u) => u.email?.toLowerCase() === email
-  );
+  const amountFormatted = r.amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-  if (debtorUser) {
-    // Existing user — send an in-app notification instead of email
-    const amountFormatted = r.amount.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    await service.from("user_notifications").insert({
-      user_id:    debtorUser.id,
-      title:      `${ownerName} says you owe them money`,
-      body:       `They recorded a receivable of ${amountFormatted} for: "${r.description}". Go to your Receivables page to confirm or decline.`,
-      kind:       "receivable_invite",
-      dedupe_key: `receivable_link:${typedLink.id}`,
-    });
-  } else {
-    // Unknown email — send the invite email
-    await sendReceivableInviteEmail({
-      to:          email,
-      ownerName,
-      debtorName:  r.debtor_name,
-      description: r.description,
-      amount:      r.amount,
-      inviteUrl,
-      notes:       input.notes,
-    });
+  // Try in-app notification first (debtor is an OmniTrak user); fall back to email.
+  // The link itself is already saved at this point — delivery failure won't undo it.
+  let deliveredVia: "in-app" | "email" = "email";
+  try {
+    const service = createServiceRoleClient();
+    const { data: notifyResult, error: notifyError } = await service.rpc(
+      "notify_receivable_invite",
+      {
+        p_debtor_email: email,
+        p_title:        `${ownerName} says you owe them money`,
+        p_body:         `They recorded a receivable of ${amountFormatted} for: "${r.description}". Go to your Receivables page to confirm or decline.`,
+        p_dedupe_key:   `receivable_link:${typedLink.id}`,
+      }
+    );
+
+    if (notifyError) {
+      console.error("[inviteDebtor] notify_receivable_invite RPC failed:", notifyError);
+    } else if ((notifyResult as { found?: boolean } | null)?.found === true) {
+      deliveredVia = "in-app";
+    }
+  } catch (err) {
+    console.error("[inviteDebtor] Service role / RPC threw:", err);
   }
 
-  return { link: typedLink };
+  if (deliveredVia === "email") {
+    try {
+      await sendReceivableInviteEmail({
+        to:          email,
+        ownerName,
+        debtorName:  r.debtor_name,
+        description: r.description,
+        amount:      r.amount,
+        inviteUrl,
+        notes:       input.notes,
+      });
+    } catch (err) {
+      console.error("[inviteDebtor] sendReceivableInviteEmail threw:", err);
+    }
+  }
+
+  return { link: typedLink, deliveredVia };
 }
 
 export async function cancelReceivableLink(linkId: string): Promise<{ error?: string }> {

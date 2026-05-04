@@ -163,6 +163,7 @@ function ReceivableDialog({
   onInvite,
   onCancelInvite,
   userEmail,
+  inviteFeedback,
 }: {
   open: boolean;
   onClose: () => void;
@@ -175,6 +176,7 @@ function ReceivableDialog({
   onInvite?: (email: string, notes: string) => void;
   onCancelInvite?: () => void;
   userEmail?: string;
+  inviteFeedback?: { kind: "success" | "error"; message: string } | null;
 }) {
   const [form, setForm] = useState<ReceivableForm>(initial ?? EMPTY_FORM);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -378,6 +380,17 @@ function ReceivableDialog({
                       </Button>
                     </div>
                   )
+                )}
+
+                {inviteFeedback && (
+                  <p className={cn(
+                    "text-xs",
+                    inviteFeedback.kind === "success"
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  )}>
+                    {inviteFeedback.message}
+                  </p>
                 )}
               </div>
             )}
@@ -599,6 +612,7 @@ export function ReceivablesBoard() {
   const [addOpen, setAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ReceivableRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [inviteFeedback, setInviteFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
   const receivablesQuery  = useQuery(receivablesQueryOptions());
   const pendingLinksQuery = useQuery({ ...pendingReceivableLinksQueryOptions(), enabled: !!user });
@@ -701,14 +715,28 @@ export function ReceivablesBoard() {
   }
 
   async function handleInvite(receivableId: string, email: string, notes: string) {
+    setInviteFeedback(null);
     startTransition(async () => {
       const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "Someone";
-      await inviteDebtorToReceivable({ receivableId, debtorEmail: email, notes: notes || undefined, ownerName: displayName });
+      const res = await inviteDebtorToReceivable({
+        receivableId,
+        debtorEmail: email,
+        notes: notes || undefined,
+        ownerName: displayName,
+      });
+      if (res.error) {
+        setInviteFeedback({ kind: "error", message: res.error });
+      } else if (res.deliveredVia === "in-app") {
+        setInviteFeedback({ kind: "success", message: `Sent in-app notification to ${email}.` });
+      } else {
+        setInviteFeedback({ kind: "success", message: `Sent email invitation to ${email}.` });
+      }
       invalidate();
     });
   }
 
   async function handleCancelLink(linkId: string) {
+    setInviteFeedback(null);
     startTransition(async () => {
       await cancelReceivableLink(linkId);
       invalidate();
@@ -778,7 +806,7 @@ export function ReceivablesBoard() {
       {/* Tabs + list */}
       <div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full items-center gap-0.5 rounded-md border bg-background p-1 sm:w-auto">
+          <div className="flex w-full items-center rounded-md border bg-background p-1 sm:w-auto">
             {TABS.map((tab) => (
               <Button
                 key={tab.value}
@@ -791,7 +819,7 @@ export function ReceivablesBoard() {
                 {tab.label}
                 <Badge
                   variant={activeTab === tab.value ? "default" : "secondary"}
-                  className="ml-1.5 h-5 min-w-5 px-1.5 text-[11px]"
+                  className="ml-0.5 h-5 min-w-5 px-1.5 text-[11px]"
                 >
                   {tabCounts[tab.value]}
                 </Badge>
@@ -857,6 +885,7 @@ export function ReceivablesBoard() {
             if (l) handleCancelLink(l.id);
           }}
           userEmail={user?.email}
+          inviteFeedback={inviteFeedback}
         />
       )}
 
