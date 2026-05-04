@@ -14,6 +14,37 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.0",
+    date: "2026-05-04",
+    summary: "New Receivables tracker — track money owed to you with account linking and email confirmations.",
+    changes: [
+      {
+        type: "feature",
+        description: "New Receivables page (/dashboard/receivables): track money owed to you (IOUs, cash loans, shared bills) with debtor name, description, total amount, amount paid back, category, date lent, and due date.",
+      },
+      {
+        type: "feature",
+        description: "Status tabs on Receivables: Unpaid, Partial, and Collected — with a quick-toggle checkmark on each row to mark fully paid or reset to unpaid.",
+      },
+      {
+        type: "feature",
+        description: "Summary stat cards: Total Owed, Collected, and Outstanding balance across all receivables.",
+      },
+      {
+        type: "feature",
+        description: "Account linking: invite the debtor by email from inside the edit dialog. They receive an email showing the amount claimed and a Confirm / Decline button.",
+      },
+      {
+        type: "feature",
+        description: "Invite accept page (/dashboard/receivables/invite/[token]): the invited user can confirm they owe the amount or decline. Email mismatch is enforced so only the invited address can respond.",
+      },
+      {
+        type: "feature",
+        description: "Pending confirmation banner: if another user has invited you to confirm a debt, a yellow banner appears at the top of your Receivables page with a direct Review link.",
+      },
+    ],
+  },
+  {
     version: "1.4.24",
     date: "2026-05-04",
     summary: "Expenses and Planned Expenses: collapsible spending-by-category chart on small screens.",

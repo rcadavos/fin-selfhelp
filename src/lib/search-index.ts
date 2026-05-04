@@ -10,6 +10,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Dashboard", href: "/dashboard", group: "Navigation", keywords: ["home", "overview", "cashflow", "summary", "monthly", "main"] },
   { title: "Expenses", href: "/dashboard/expenses", group: "Navigation", keywords: ["spending", "cost", "money", "track", "my expenses", "expense list"] },
   { title: "Planned Expenses", href: "/dashboard/planned-expenses", group: "Navigation", keywords: ["due date", "payment", "monthly", "recurring", "utility", "bills", "planned expenses"] },
+  { title: "Receivables", href: "/dashboard/receivables", group: "Navigation", keywords: ["owed", "iou", "lent", "debt", "borrow", "loan", "collect", "money owed", "receivable", "payable", "owes me"] },
   { title: "Accounts", href: "/dashboard/accounts", group: "Navigation", keywords: ["bank", "wallet", "bdo", "bpi", "gcash", "maya", "account", "label", "tag", "fund"] },
   { title: "Goals", href: "/dashboard/goals", group: "Navigation", keywords: ["savings", "target", "milestone", "financial goal", "my goals", "short term", "long term"] },
   { title: "To-Buy List", href: "/dashboard/to-buy", group: "Navigation", keywords: ["shopping", "purchase", "wishlist", "buy", "grocery", "items"] },

@@ -18,6 +18,7 @@ import {
   MessageSquarePlus,
   Wallet,
   Car,
+  HandCoins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -44,6 +45,7 @@ const navItems = [
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false },
+  { href: "/dashboard/receivables", label: "Receivables", icon: HandCoins, premium: false },
   { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },

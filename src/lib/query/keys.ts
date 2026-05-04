@@ -42,4 +42,8 @@ export const queryKeys = {
   monthlyBreakdown: (months: number) => [...queryKeys.all, "monthly-breakdown", "v2", months] as const,
   /** Current user's own custom expense categories (see `userCategoriesQueryOptions`). */
   userCategories: () => [...queryKeys.all, "user-categories"] as const,
+  /** Current user's receivables + links (see `receivablesQueryOptions`). */
+  receivables: () => [...queryKeys.all, "receivables"] as const,
+  /** Pending receivable links where current user is the debtor (see `pendingReceivableLinksQueryOptions`). */
+  pendingReceivableLinks: () => [...queryKeys.all, "receivables", "links", "pending"] as const,
 };

@@ -453,3 +453,147 @@ export async function sendReminderEmail(params: {
     return { ok: false, error: `Reminder email failed: ${message}` };
   }
 }
+
+export async function sendReceivableInviteEmail(params: {
+  to: string;
+  ownerName: string;
+  debtorName: string;
+  description: string;
+  amount: number;
+  inviteUrl: string;
+  notes?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const siteUrl = getBaseUrl();
+  const subject = `${params.ownerName} says you owe them money — confirm on OmniTrak`;
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const formattedAmount = params.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const notesRow = params.notes
+    ? `<tr>
+        <td style="padding:16px 24px 0 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="padding:12px 16px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;">
+                <p style="margin:0;font-size:13px;font-weight:600;color:#92400e;">Note from ${esc(params.ownerName)}</p>
+                <p style="margin:4px 0 0 0;font-size:13px;line-height:1.6;color:#78350f;">${esc(params.notes)}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`
+    : "";
+
+  const text = [
+    "Hi,",
+    "",
+    `${params.ownerName} has recorded a receivable on OmniTrak and says you owe them:`,
+    `  For:    ${params.description}`,
+    `  Amount: ${formattedAmount}`,
+    params.notes ? `  Note:   ${params.notes}` : "",
+    "",
+    "Please log in to confirm or decline this:",
+    params.inviteUrl,
+    "",
+    "— The OmniTrak Team",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receivable confirmation request</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+
+            <tr>
+              <td align="center" style="padding:32px 24px 16px 24px;">
+                <img src="${siteUrl}/omnitrak-logo.png" alt="OmniTrak" width="160" style="display:block;width:160px;max-width:100%;height:auto;border:0;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#0f172a;">
+                  You have a pending debt confirmation
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+                  <strong>${esc(params.ownerName)}</strong> has recorded a receivable on OmniTrak and is asking you to confirm that you owe them.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">For</p>
+                      <p style="margin:4px 0 8px 0;font-size:15px;font-weight:600;color:#0f172a;">${esc(params.description)}</p>
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Amount</p>
+                      <p style="margin:4px 0 0 0;font-size:22px;font-weight:700;color:#dc2626;">${formattedAmount}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            ${notesRow}
+
+            <tr>
+              <td align="center" style="padding:28px 24px 8px 24px;">
+                <a href="${params.inviteUrl}" style="display:inline-block;background:#16A34A;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;line-height:20px;padding:14px 32px;border-radius:8px;">
+                  Confirm or Decline →
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;text-align:center;">
+                  You'll need to log in to OmniTrak (or create a free account) to respond.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 24px 28px 24px;">
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">
+                  OmniTrak &bull; Your all-in-one personal tracker
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to: params.to,
+      subject,
+      text,
+      html,
+    });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Receivable invite email failed: ${message}` };
+  }
+}
