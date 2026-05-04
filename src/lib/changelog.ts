@@ -14,6 +14,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.24",
+    date: "2026-05-04",
+    summary: "Expenses and Planned Expenses: collapsible spending-by-category chart on small screens.",
+    changes: [
+      {
+        type: "improvement",
+        description:
+          "On /dashboard/expenses, the Spending by category card is collapsed by default below the sm breakpoint; tap the card header (chevron on the right) to expand and show the chart or empty state. Tablet and desktop keep the chart visible with a static header.",
+      },
+      {
+        type: "improvement",
+        description:
+          "On /dashboard/planned-expenses, the same Spending by category header + chevron collapse behavior applies on mobile, with the shared collapsible card component used by both pages.",
+      },
+      {
+        type: "improvement",
+        description:
+          "Restructured the Add/Edit Expense modals so the title and close (X) button stay pinned at the top and Cancel/Save stay pinned at the bottom while the form body scrolls — matches the Planned Expense modal layout. Mobile users can no longer lose access to the title or action buttons when the on-screen keyboard opens.",
+      },
+    ],
+  },
+  {
     version: "1.4.23",
     date: "2026-05-04",
     summary: "Vehicles spend chart uses grouped category bars. Planned transport expenses linked to a vehicle require a vehicle category.",
@@ -43,22 +65,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.4.22",
     date: "2026-05-04",
-    summary: "Promote Accounts in the sidebar and refresh the Accounts page header.",
-    changes: [
-      { type: "improvement", description: "Moved Accounts from the sidebar footer into the main nav, right after Dashboard, so it sits with the other primary destinations." },
-      { type: "improvement", description: "Aligned the Accounts icon to the wallet icon used by the mobile bottom navbar, both in the sidebar and on the Accounts page header." },
-      { type: "improvement", description: "Clarified the Accounts page subtitle to explain that this is the hub for recording expenses, income, transfers, and adjustments." },
-      { type: "fix", description: "Fixed recoverable SSR error on /dashboard/accounts caused by accountsQueryOptions and accountTotalsQueryOptions calling Server Actions during initial render — the page now prefetches and dehydrates both queries on the server so useSuspenseQuery reads from the hydrated cache instead of firing the queryFn during SSR." },
-    ],
-  },
-  {
-    version: "1.4.22",
-    date: "2026-05-04",
     summary: "Fix expense modals on mobile; category selects now default to blank placeholder.",
     changes: [
       { type: "fix", description: "Add and edit expense modals on mobile no longer push the name input off-screen or hide the Cancel/Save buttons when the keyboard opens. Dialogs are now scrollable with a sticky footer." },
       { type: "fix", description: "Category dropdowns on mobile no longer clip options outside the viewport; the list now respects available screen height." },
       { type: "improvement", description: "Add and edit category dropdowns for expenses and bills now show 'Select category' placeholder instead of defaulting to a category." },
+      { type: "improvement", description: "Moved Accounts from the sidebar footer into the main nav, right after Dashboard, so it sits with the other primary destinations." },
+      { type: "improvement", description: "Aligned the Accounts icon to the wallet icon used by the mobile bottom navbar, both in the sidebar and on the Accounts page header." },
+      { type: "improvement", description: "Clarified the Accounts page subtitle to explain that this is the hub for recording expenses, income, transfers, and adjustments." },
+      { type: "fix", description: "Fixed recoverable SSR error on /dashboard/accounts caused by accountsQueryOptions and accountTotalsQueryOptions calling Server Actions during initial render — the page now prefetches and dehydrates both queries on the server so useSuspenseQuery reads from the hydrated cache instead of firing the queryFn during SSR." },
     ],
   },
   {

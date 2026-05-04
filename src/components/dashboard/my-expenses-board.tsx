@@ -21,7 +21,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -71,6 +70,7 @@ import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { SpendingByCategoryCollapsibleCard } from "@/components/dashboard/spending-by-category-collapsible-card";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -427,6 +427,9 @@ export function MyExpensesBoard() {
   // ── Error banner ──
   const [error, setError] = useState<string | null>(null);
 
+  /** Mobile: chart body starts collapsed; tap the card header to expand. Desktop always shows the chart. */
+  const [showMobileCategoryChart, setShowMobileCategoryChart] = useState(false);
+
   // ── Add dialog state ──
   const [addOpen, setAddOpen] = useState(false);
   const [addName, setAddName] = useState("");
@@ -704,34 +707,35 @@ export function MyExpensesBoard() {
           </div>
         </div>
 
-        {/* Pie chart */}
+        {/* Pie chart (mobile: tap section header to expand; desktop: always visible) */}
         <div className="sm:w-2/3">
           {expenseDataQuery.isPending ? (
-            <Card className="h-full">
-              <CardHeader className="pb-0 pt-4">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Spending by category
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-1 pb-3">
-                <Skeleton className="h-[150px] w-full" />
-              </CardContent>
-            </Card>
+            <SpendingByCategoryCollapsibleCard
+              expanded={showMobileCategoryChart}
+              onToggle={() => setShowMobileCategoryChart((v) => !v)}
+              panelId="expenses-spending-by-category-body"
+            >
+              <Skeleton className="h-[150px] w-full" />
+            </SpendingByCategoryCollapsibleCard>
           ) : expenses.length > 0 ? (
-            <Card className="h-full">
-              <CardHeader className="pb-0 pt-4">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Spending by category
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-1 pb-3">
-                <ExpensePieChart entries={expenses} categories={categories} />
-              </CardContent>
-            </Card>
+            <SpendingByCategoryCollapsibleCard
+              expanded={showMobileCategoryChart}
+              onToggle={() => setShowMobileCategoryChart((v) => !v)}
+              panelId="expenses-spending-by-category-body"
+            >
+              <ExpensePieChart entries={expenses} categories={categories} />
+            </SpendingByCategoryCollapsibleCard>
           ) : (
-            <div className="flex h-full min-h-[150px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-              Add an expense to see the chart
-            </div>
+            <SpendingByCategoryCollapsibleCard
+              expanded={showMobileCategoryChart}
+              onToggle={() => setShowMobileCategoryChart((v) => !v)}
+              dashed
+              panelId="expenses-spending-by-category-body"
+            >
+              <div className="flex min-h-[150px] items-center justify-center text-sm text-muted-foreground">
+                Add an expense to see the chart
+              </div>
+            </SpendingByCategoryCollapsibleCard>
           )}
         </div>
       </div>
