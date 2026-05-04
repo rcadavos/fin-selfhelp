@@ -14,6 +14,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.21",
+    date: "2026-05-04",
+    summary: "Vehicles page redesign with expense categories, animated stat cards, and SSR fixes.",
+    changes: [
+      { type: "improvement", description: "Renamed 'Fuel & Vehicles' to 'Vehicles' and moved to /dashboard/vehicles; old /dashboard/fuel redirects automatically." },
+      { type: "feature", description: "Added month/year selector on the Vehicles page to filter spending by selected month." },
+      { type: "feature", description: "Added vehicle expense categories — Fuel, Fees (Parking, Toll, etc.), Maintenance & Repairs, and Insurance & Registration." },
+      { type: "improvement", description: "When a transport expense is linked to a vehicle, a Vehicle Category is now required to better classify the spend." },
+      { type: "improvement", description: "Dashboard, Expenses, and Planned Expenses pages now render stat cards and charts immediately — currency amounts animate from ₱0 to their real values as data loads, and the list shows the OmniTrak breathing logo until ready." },
+      { type: "fix", description: "Fixed recoverable SSR waterfall error on /dashboard/planned-expenses caused by billsDataQueryOptions and userPreferencesQueryOptions calling Server Actions during initial render — switched to useQuery so the queryFn only runs client-side in effects." },
+      { type: "improvement", description: "Extracted AnimatedAmount (with optional currency prop) and useCountUp into a shared ui component for reuse across pages." },
+      { type: "fix", description: "Prefetch the subscription plan in the dashboard layout so the client cache is hydrated before render — eliminates the 'Server Functions cannot be called during initial render' recoverable error." },
+    ],
+  },
+  {
     version: "1.4.20",
     date: "2026-05-03",
     summary: "Privacy settings page and Bills renamed to Planned Expenses.",

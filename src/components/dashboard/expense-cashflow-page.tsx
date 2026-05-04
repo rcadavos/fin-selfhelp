@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type SortingState,
@@ -130,6 +130,8 @@ import {
   Share,
 } from "lucide-react";
 import { HoverPopover } from "@/components/ui/hover-popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedAmount, useCountUp } from "@/components/ui/animated-amount";
 
 const REMINDER_DAY_SORT_ORDER: ReminderDay[] = [3, 1, 0];
 const STATUS_SORT_ORDER: ExpensePayStatus[] = ["unpaid", "outstanding", "paid"];
@@ -307,6 +309,7 @@ function RandomGreeting() {
   return <>{greeting}</>;
 }
 
+
 function SortLinesIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -404,14 +407,14 @@ export function ExpenseCashflowPage({
   const { data: categoriesFromDb } = useSuspenseQuery(categoriesQueryOptions());
   const { data: subscriptionPlan } = useSuspenseQuery(subscriptionPlanQueryOptions());
   const paidMonthQueryKey = getCurrentPaidMonth();
-  const expenseDataQuery = useSuspenseQuery(expenseDataQueryOptions(paidMonthQueryKey));
-  const expensePaymentHistoryQuery = useSuspenseQuery(
+  const expenseDataQuery = useQuery(expenseDataQueryOptions(paidMonthQueryKey));
+  const expensePaymentHistoryQuery = useQuery(
     expensePaymentHistoryQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
   );
   const isDashboard = pageVariant === "dashboard";
-  const monthlyBreakdownQuery = useSuspenseQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
-  const billsDataQuery = useSuspenseQuery(billsDataQueryOptions(paidMonthQueryKey));
-  const streakQuery = useSuspenseQuery(userStreakQueryOptions());
+  const monthlyBreakdownQuery = useQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
+  const billsDataQuery = useQuery(billsDataQueryOptions(paidMonthQueryKey));
+  const streakQuery = useQuery(userStreakQueryOptions());
   const invalidateExpenseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
   }, [queryClient]);
@@ -1558,7 +1561,8 @@ export function ExpenseCashflowPage({
               ) : null
             }
           />
-          {entries.length > 0 && (() => {
+          {(expenseDataQuery.isPending || entries.length > 0) && (() => {
+            const isExpPending = expenseDataQuery.isPending;
             const pieData = [
               { name: "Paid", value: totalPaidThisMonth, color: "#10b981" },
               { name: "Unpaid", value: unpaidThisMonth, color: "#f97316" },
@@ -1571,7 +1575,9 @@ export function ExpenseCashflowPage({
                     <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                       {expenseCadenceTab === "yearly" ? "Total this year" : "Total this month"}
                     </p>
-                    <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalExpenses)}</p>
+                    <p className="mt-0.5 text-lg font-bold tabular-nums">
+                      <AnimatedAmount value={totalExpenses} />
+                    </p>
                     <p className="text-[11px] text-muted-foreground">
                       {expenseCadenceTab === "yearly" ? paidYearDisplay : paidMonthDisplay}
                     </p>
@@ -1579,7 +1585,7 @@ export function ExpenseCashflowPage({
                   <div className="flex-1 rounded-xl border bg-card px-4 py-3">
                     <p className="text-xs font-semibold tracking-wide text-muted-foreground">Unpaid</p>
                     <p className={cn("mt-0.5 text-lg font-bold tabular-nums", unpaidThisMonth > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
-                      {formatCurrency(unpaidThisMonth)}
+                      <AnimatedAmount value={unpaidThisMonth} />
                     </p>
                     <p className="text-[11px] text-muted-foreground">{paidPct}% paid</p>
                   </div>
@@ -1587,7 +1593,18 @@ export function ExpenseCashflowPage({
 
                 {/* Pie chart */}
                 <div className="sm:w-2/3">
-                  {pieData.length > 0 ? (
+                  {isExpPending ? (
+                    <Card className="h-full">
+                      <CardHeader className="pb-0 pt-4">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Paid vs unpaid
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-3 pt-1">
+                        <Skeleton className="mx-auto h-[200px] w-full" />
+                      </CardContent>
+                    </Card>
+                  ) : pieData.length > 0 ? (
                     <Card className="h-full">
                       <CardHeader className="pb-0 pt-4">
                         <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1676,12 +1693,11 @@ export function ExpenseCashflowPage({
                     </p>
                     <p className="mt-2 text-sm opacity-80">Planned expenses still to pay</p>
                     <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-                      {formatCurrency(billsUnpaid)}
+                      <AnimatedAmount value={billsUnpaid} />
                     </p>
                   </div>
                   {showRing && (
                     <div className="absolute right-6 top-6 h-28 w-28">
-                      {/* Ring */}
                       <div
                         className="absolute inset-0 rounded-full"
                         style={{
@@ -1690,32 +1706,26 @@ export function ExpenseCashflowPage({
                           mask: "radial-gradient(circle, transparent 55%, black 56%)",
                         }}
                       />
-
-                      {/* Text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[10px] font-medium leading-tight text-primary-foreground">
                         <span className="opacity-80">Planned paid</span>
-                        <span className="text-xl font-bold sm:text-2xl">
-                          {billsPaidPct}%
-                        </span>
+                        <span className="text-xl font-bold sm:text-2xl">{billsPaidPct}%</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {
-                  billsTotal > 0 && (
-                    <div className="mt-6">
-                      <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
-                        <span>Planned expenses paid vs total</span>
-                        <span>{formatCurrency(billsPaid)} / {formatCurrency(billsTotal)}</span>
-                      </div>
-                      <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
-                        <div className="bg-emerald-300 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
-                        <div className="flex-1 bg-white/10" />
-                      </div>
+                {billsTotal > 0 && (
+                  <div className="mt-6">
+                    <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
+                      <span>Planned expenses paid vs total</span>
+                      <span><AnimatedAmount value={billsPaid} /> / <AnimatedAmount value={billsTotal} /></span>
                     </div>
-                  )
-                }
+                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
+                      <div className="bg-emerald-300 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
+                      <div className="flex-1 bg-white/10" />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -1725,9 +1735,7 @@ export function ExpenseCashflowPage({
             const dailyAmt = entries
               .filter((e) => {
                 if (e.category_id === "savings") return false;
-                // Recurring expense (has due_date): count only if marked paid this month
                 if (e.due_date) return paidIds.has(e.id);
-                // One-time expense (no due_date): count if created in the current paid month
                 return e.created_at?.slice(0, 7) === paidMonthYm;
               })
               .reduce((s, e) => s + e.amount, 0);
@@ -1745,7 +1753,7 @@ export function ExpenseCashflowPage({
                     <Banknote className="h-4 w-4" />
                   </div>
                   <p className="text-xs text-muted-foreground">Expenses</p>
-                  <p className="text-lg font-bold">{formatCurrency(dailyAmt)}</p>
+                  <p className="text-lg font-bold"><AnimatedAmount value={dailyAmt} /></p>
                   <p className="text-[10px] text-muted-foreground">Spending this month</p>
                 </Link>
 
@@ -1755,7 +1763,7 @@ export function ExpenseCashflowPage({
                     <Receipt className="h-4 w-4" />
                   </div>
                   <p className="text-xs text-muted-foreground">Planned Expenses</p>
-                  <p className="text-lg font-bold">{formatCurrency(billsTotal)}</p>
+                  <p className="text-lg font-bold"><AnimatedAmount value={billsTotal} /></p>
                   <p className="text-[10px] text-muted-foreground">Recurring planned expenses this month</p>
                 </Link>
 
@@ -1765,7 +1773,7 @@ export function ExpenseCashflowPage({
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
                   <p className="text-xs text-muted-foreground">Planned paid</p>
-                  <p className="text-lg font-bold">{formatCurrency(billsPaid)}</p>
+                  <p className="text-lg font-bold"><AnimatedAmount value={billsPaid} /></p>
                   <p className="text-[10px] text-muted-foreground">
                     {billsPaidCount}/{monthBills.length} planned expenses paid this month
                   </p>
@@ -1776,9 +1784,7 @@ export function ExpenseCashflowPage({
                     <CircleDollarSign className="h-4 w-4" />
                   </div>
                   <p className="text-xs text-muted-foreground">Planned + Expenses</p>
-                  <p className="text-lg font-bold">
-                    {formatCurrency(billsTotal + dailyAmt)}
-                  </p>
+                  <p className="text-lg font-bold"><AnimatedAmount value={billsTotal + dailyAmt} /></p>
                   <p className="text-[10px] text-muted-foreground">
                     Combined total this month
                   </p>
@@ -1790,6 +1796,19 @@ export function ExpenseCashflowPage({
           {/* ════════════════════ BILLS VS BILLS PAID VS EXPENSES VS SAVINGS (MONTHLY) ════════════════════ */}
           {(() => {
             const breakdown = monthlyBreakdownQuery.data ?? [];
+            if (monthlyBreakdownQuery.isPending) {
+              return (
+                <Card className="mb-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Planned Expenses vs Planned Paid vs Expenses vs Savings</CardTitle>
+                    <CardDescription>Last 6 months breakdown by type</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-[200px] w-full" />
+                  </CardContent>
+                </Card>
+              );
+            }
             if (!breakdown.length) return null;
             const hasData = breakdown.some(
               (r) => r.bills > 0 || r.billsPaid > 0 || r.expenses > 0 || r.savings > 0

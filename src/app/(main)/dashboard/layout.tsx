@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { getQueryClient } from "@/lib/query/query-client";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { subscriptionPlanQueryOptions } from "@/lib/query/subscription-plan";
 import { buildPageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +26,10 @@ export default async function DashboardLayout({
   }
 
   const queryClient = getQueryClient();
-  await queryClient.prefetchQuery(categoriesQueryOptions());
+  await Promise.all([
+    queryClient.prefetchQuery(categoriesQueryOptions()),
+    queryClient.prefetchQuery(subscriptionPlanQueryOptions()),
+  ]);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

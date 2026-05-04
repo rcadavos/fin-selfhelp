@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useTransition } from "react";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -78,6 +78,8 @@ import { accountsQueryOptions } from "@/lib/query/accounts";
 import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
 import { type VehicleRow } from "@/actions/vehicles";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 
@@ -1000,10 +1002,12 @@ export function BillsBoard() {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  const { data } = useSuspenseQuery(billsDataQueryOptions(paidMonth));
-  const { data: prefs } = useSuspenseQuery(userPreferencesQueryOptions(user?.id));
-  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
-  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
+  const billsDataQuery = useQuery(billsDataQueryOptions(paidMonth));
+  const prefsQuery = useQuery(userPreferencesQueryOptions(user?.id));
+  const accountsQuery = useQuery(accountsQueryOptions());
+  const vehiclesQuery = useQuery(vehiclesQueryOptions());
+  const accounts = accountsQuery.data ?? [];
+  const vehicles = vehiclesQuery.data ?? [];
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
@@ -1018,10 +1022,10 @@ export function BillsBoard() {
     () => (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass })),
     [dbCategories]
   );
-  const currency = prefs?.currency ?? DEFAULT_USER_PREFERENCES.currency;
-  const bills = data?.bills ?? [];
-  const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data?.paidBillIds]);
-  const lockedFreeReminderBillId = data?.lockedFreeReminderBillId;
+  const currency = prefsQuery.data?.currency ?? DEFAULT_USER_PREFERENCES.currency;
+  const bills = billsDataQuery.data?.bills ?? [];
+  const paidIds = useMemo(() => new Set(billsDataQuery.data?.paidBillIds ?? []), [billsDataQuery.data?.paidBillIds]);
+  const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
     [bills],
@@ -1205,13 +1209,15 @@ export function BillsBoard() {
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalFiltered, currency)}</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums">
+              <AnimatedAmount value={totalFiltered} currency={currency} />
+            </p>
             <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
             <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
-              {formatCurrency(totalRemaining, currency)}
+              <AnimatedAmount value={totalRemaining} currency={currency} />
             </p>
             <p className="text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>
           </div>
@@ -1219,7 +1225,18 @@ export function BillsBoard() {
 
         {/* Pie chart */}
         <div className="sm:w-2/3">
-          {bills.length > 0 ? (
+          {billsDataQuery.isPending ? (
+            <Card className="h-full">
+              <CardHeader className="pb-0 pt-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Spending by category
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-1 pb-3">
+                <Skeleton className="h-[160px] w-full" />
+              </CardContent>
+            </Card>
+          ) : bills.length > 0 ? (
             <Card className="h-full">
               <CardHeader className="pb-0 pt-4">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1295,7 +1312,9 @@ export function BillsBoard() {
         </div>
 
         <div className="space-y-2">
-          {sortedFilteredBills.length === 0 ? (
+          {billsDataQuery.isPending ? (
+            <DashboardSkeleton variant="form" />
+          ) : sortedFilteredBills.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <Receipt className="h-8 w-8 opacity-30" />
               <p className="text-sm">No {activeTab} planned expenses yet.</p>

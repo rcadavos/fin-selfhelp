@@ -1,11 +1,5 @@
-import { Suspense } from "react";
-import { VehiclesBoard } from "@/components/dashboard/vehicles-board";
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { redirect } from "next/navigation";
 
 export default function GasPage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton variant="page" />}>
-      <VehiclesBoard />
-    </Suspense>
-  );
+  redirect("/dashboard/vehicles");
 }

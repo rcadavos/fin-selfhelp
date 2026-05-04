@@ -1,21 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
   Car,
   Plus,
   Trash2,
-  Fuel,
   Receipt,
   Banknote,
 } from "lucide-react";
@@ -112,6 +111,18 @@ function vehicleToForm(v: VehicleRow): VehicleFormState {
   };
 }
 
+// ─── Category chart config ────────────────────────────────────────────────────
+
+const CATEGORY_BARS = [
+  { key: "fuel",        label: "Fuel",                  color: "#f59e0b" },
+  { key: "fees",        label: "Fees",                  color: "#3b82f6" },
+  { key: "maintenance", label: "Maintenance & Repairs", color: "#10b981" },
+  { key: "insurance",   label: "Insurance & Reg.",      color: "#8b5cf6" },
+  { key: "other",       label: "Other",                 color: "#94a3b8" },
+  { key: "planned",     label: "Planned",               color: "#64748b" },
+] as const;
+
+
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
 function ChartTooltip({
@@ -119,13 +130,29 @@ function ChartTooltip({
   payload,
 }: {
   active?: boolean;
-  payload?: { value: number; payload: { name: string } }[];
+  payload?: { value: number; name: string; fill: string; payload: { name: string } }[];
 }) {
   if (!active || !payload?.length) return null;
+  const items = payload.filter((p) => p.value > 0);
+  const total = items.reduce((s, p) => s + p.value, 0);
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-md">
-      <p className="font-medium">{payload[0].payload.name}</p>
-      <p className="text-muted-foreground">{formatCurrency(payload[0].value)}</p>
+    <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-md min-w-[160px]">
+      <p className="mb-1 font-medium">{payload[0].payload.name}</p>
+      {items.map((p) => (
+        <div key={p.name} className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: p.fill }} />
+            {p.name}
+          </span>
+          <span className="tabular-nums">{formatCurrency(p.value)}</span>
+        </div>
+      ))}
+      {items.length > 1 && (
+        <div className="mt-1 flex justify-between border-t pt-1 font-medium">
+          <span>Total</span>
+          <span className="tabular-nums">{formatCurrency(total)}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -376,12 +403,33 @@ function VehicleRow({
 
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
+const CURRENT_MONTH_YM = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+})();
+
 export function VehiclesBoard() {
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
 
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH_YM);
+
+  const monthOptions = useMemo(() => {
+    const now = new Date();
+    const opts: { value: string; label: string }[] = [];
+    for (let i = 0; i < 13; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      opts.push({
+        value: ym,
+        label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      });
+    }
+    return opts;
+  }, []);
+
   const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
-  const { data: spending } = useSuspenseQuery(vehicleSpendingQueryOptions());
+  const { data: spending } = useQuery(vehicleSpendingQueryOptions(selectedMonth));
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleRow | null>(null);
@@ -391,6 +439,8 @@ export function VehiclesBoard() {
   function invalidate() {
     invalidateVehicleQueries(queryClient);
   }
+
+  const spendingData = spending ?? [];
 
   async function handleAdd(form: VehicleFormState) {
     setSaveError(null);
@@ -440,38 +490,46 @@ export function VehiclesBoard() {
     });
   }
 
-  // Derived spending data
+  // Derived spending data — per-vehicle category breakdown
   const vehicleSpendMap = useMemo(() => {
-    const map = new Map<string, { bills: number; expenses: number }>();
-    for (const s of spending ?? []) {
-      map.set(s.vehicleId, { bills: s.totalBills, expenses: s.totalExpenses });
+    type Cats = { fuel: number; fees: number; maintenance: number; insurance: number; other: number; planned: number };
+    const map = new Map<string, Cats>();
+    for (const s of spendingData) {
+      const cats: Cats = { fuel: 0, fees: 0, maintenance: 0, insurance: 0, other: 0, planned: 0 };
+      for (const e of s.entries) {
+        if (e.source === "bill") {
+          cats.planned += e.amount;
+        } else {
+          const cat = e.vehicle_category ?? "other";
+          if (cat === "fuel") cats.fuel += e.amount;
+          else if (cat === "fees") cats.fees += e.amount;
+          else if (cat === "maintenance") cats.maintenance += e.amount;
+          else if (cat === "insurance") cats.insurance += e.amount;
+          else cats.other += e.amount;
+        }
+      }
+      map.set(s.vehicleId, cats);
     }
     return map;
-  }, [spending]);
+  }, [spendingData]);
 
   const totalSpend = useMemo(
-    () => (spending ?? []).reduce((s, v) => s + v.totalBills + v.totalExpenses, 0),
-    [spending],
+    () => spendingData.reduce((s, v) => s + v.totalBills + v.totalExpenses, 0),
+    [spendingData],
   );
 
   const totalLinked = useMemo(
-    () => (spending ?? []).reduce((s, v) => s + v.entries.length, 0),
-    [spending],
+    () => spendingData.reduce((s, v) => s + v.entries.length, 0),
+    [spendingData],
   );
 
   // Chart data — vehicles sorted by total spend desc
   const chartData = useMemo(() => {
     return vehicles
-      .map((v, i) => {
-        const s = vehicleSpendMap.get(v.id) ?? { bills: 0, expenses: 0 };
-        return {
-          id: v.id,
-          name: v.name,
-          total: s.bills + s.expenses,
-          bills: s.bills,
-          expenses: s.expenses,
-          color: VEHICLE_CHART_COLORS[i % VEHICLE_CHART_COLORS.length],
-        };
+      .map((v) => {
+        const c = vehicleSpendMap.get(v.id) ?? { fuel: 0, fees: 0, maintenance: 0, insurance: 0, other: 0, planned: 0 };
+        const total = c.fuel + c.fees + c.maintenance + c.insurance + c.other + c.planned;
+        return { id: v.id, name: v.name, total, ...c };
       })
       .sort((a, b) => b.total - a.total);
   }, [vehicles, vehicleSpendMap]);
@@ -480,17 +538,11 @@ export function VehiclesBoard() {
   const hasSpend = totalSpend > 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
-        title="Fuel & Vehicles"
+        title="Vehicles"
         subtitle="Register your vehicles and track linked planned expenses and expenses with Transportation category."
-        icon={Fuel}
-        actions={
-          <Button size="sm" onClick={() => { setSaveError(null); setAddOpen(true); }}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add Vehicle
-          </Button>
-        }
+        icon={Car}
       />
 
       {saveError && (
@@ -536,7 +588,7 @@ export function VehiclesBoard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4 pt-2">
-                  <ResponsiveContainer width="100%" height={160}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <BarChart
                       data={chartData}
                       margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
@@ -555,37 +607,67 @@ export function VehiclesBoard() {
                         width={72}
                       />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                        {chartData.map((entry, i) => (
-                          <Cell key={entry.id} fill={VEHICLE_CHART_COLORS[i % VEHICLE_CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
+                      <Legend
+                        iconSize={8}
+                        iconType="circle"
+                        wrapperStyle={{ fontSize: 10, paddingTop: 4 }}
+                      />
+                      {CATEGORY_BARS.map((cat, idx) => (
+                        <Bar
+                          key={cat.key}
+                          dataKey={cat.key}
+                          name={cat.label}
+                          stackId="a"
+                          fill={cat.color}
+                          radius={idx === CATEGORY_BARS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                        />
+                      ))}
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
             ) : (
               <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-                Link planned expenses or expenses to a vehicle to see the chart
+                No spending recorded for this month
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* Month selector + Add Vehicle button */}
+      <div className="flex items-center justify-between my-2">
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {monthOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="lg" onClick={() => { setSaveError(null); setAddOpen(true); }} className="gap-1.5">
+          <Plus className="h-4 w-4" aria-hidden />
+          Add Vehicle
+        </Button>
+      </div>
+
       {/* Vehicle list */}
       {hasVehicles ? (
         <div className="flex flex-col gap-2">
           {vehicles.map((vehicle, i) => {
-            const s = vehicleSpendMap.get(vehicle.id) ?? { bills: 0, expenses: 0 };
+            const c = vehicleSpendMap.get(vehicle.id) ?? { fuel: 0, fees: 0, maintenance: 0, insurance: 0, other: 0, planned: 0 };
+            const expenseSpend = c.fuel + c.fees + c.maintenance + c.insurance + c.other;
+            const billSpend = c.planned;
             const color = VEHICLE_CHART_COLORS[i % VEHICLE_CHART_COLORS.length];
             return (
               <VehicleRow
                 key={vehicle.id}
                 vehicle={vehicle}
-                totalSpend={s.bills + s.expenses}
-                billSpend={s.bills}
-                expenseSpend={s.expenses}
+                totalSpend={billSpend + expenseSpend}
+                billSpend={billSpend}
+                expenseSpend={expenseSpend}
                 color={color}
                 onEdit={() => { setSaveError(null); setEditingVehicle(vehicle); }}
                 onDelete={() => setDeletingId(vehicle.id)}
@@ -609,8 +691,8 @@ export function VehiclesBoard() {
         </div>
       )}
 
-      {/* Tip banner — vehicles exist but nothing linked */}
-      {hasVehicles && !hasSpend && (
+      {/* Tip banner — only on current month with no spend (likely nothing linked yet) */}
+      {hasVehicles && !hasSpend && selectedMonth === CURRENT_MONTH_YM && (
         <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           <strong className="font-medium text-foreground">Tip:</strong>{" "}
           When adding a Planned Expense or Expense under the{" "}

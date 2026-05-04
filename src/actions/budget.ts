@@ -54,6 +54,7 @@ export type ExpenseEntryRow = {
   reminder_channel?: "email" | "in-app" | "both";
   account_id?: string | null;
   vehicle_id?: string | null;
+  vehicle_category?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -132,7 +133,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, account_id, vehicle_id, created_at, updated_at")
+      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -197,6 +198,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
       account_id: (row.account_id as string | null) ?? null,
       vehicle_id: (row.vehicle_id as string | null) ?? null,
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
       created_at: row.created_at ?? undefined,
       updated_at: row.updated_at ?? undefined,
     })),
@@ -508,6 +510,7 @@ export async function addExpense(
   expenseDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
+  vehicleCategory?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -555,13 +558,14 @@ export async function addExpense(
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
       account_id: accountId || null,
       vehicle_id: vehicleId || null,
+      vehicle_category: vehicleCategory || null,
     })
     .select("id")
     .single();
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/expenses");
-  revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   revalidatePath("/");
   return {};
 }
@@ -579,6 +583,7 @@ export async function updateExpense(
   expenseDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
+  vehicleCategory?: string | null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -631,13 +636,14 @@ export async function updateExpense(
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
       ...(accountId !== undefined && { account_id: accountId || null }),
       ...(vehicleId !== undefined && { vehicle_id: vehicleId || null }),
+      ...(vehicleCategory !== undefined && { vehicle_category: vehicleCategory || null }),
     })
     .eq("id", entryId)
     .eq("profile_id", profile.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/expenses");
-  revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   revalidatePath("/");
   return {};
 }

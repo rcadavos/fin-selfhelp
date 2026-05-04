@@ -36,4 +36,12 @@ writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 const versionTsPath = join(root, "src", "lib", "version.ts");
 writeFileSync(versionTsPath, `export const APP_VERSION = "${next}";\n`);
 
+// ── Update top changelog entry to the bumped version ───────────────────────
+// The top entry is written by Claude with an estimated version; the hook is
+// the authoritative source so it overwrites whatever version was pre-assigned.
+const changelogPath = join(root, "src", "lib", "changelog.ts");
+const changelog = readFileSync(changelogPath, "utf8");
+const updated = changelog.replace(/version:\s*"[\d.]+"/, `version: "${next}"`);
+writeFileSync(changelogPath, updated);
+
 console.log(`[bump] ${prev} → ${next}  (${type})`);

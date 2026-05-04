@@ -14,7 +14,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Goals", href: "/dashboard/goals", group: "Navigation", keywords: ["savings", "target", "milestone", "financial goal", "my goals", "short term", "long term"] },
   { title: "To-Buy List", href: "/dashboard/to-buy", group: "Navigation", keywords: ["shopping", "purchase", "wishlist", "buy", "grocery", "items"] },
   { title: "To-Do List", href: "/dashboard/to-do", group: "Navigation", keywords: ["tasks", "checklist", "todo", "task list"] },
-  { title: "Fuel", href: "/dashboard/fuel", group: "Navigation", keywords: ["fuel", "gas", "vehicle", "car", "motorcycle", "transport", "gasoline", "diesel", "plate", "mileage", "vehicle tracker"] },
+  { title: "Vehicles", href: "/dashboard/vehicles", group: "Navigation", keywords: ["vehicle", "car", "motorcycle", "fuel", "gas", "transport", "gasoline", "diesel", "plate", "mileage", "vehicle tracker", "maintenance", "parking", "toll", "insurance", "registration"] },
   { title: "Calculators", href: "/dashboard/calculators", group: "Navigation", keywords: ["math", "compute", "calculate", "financial calculator", "tools"] },
   { title: "Review & Feedback", href: "/dashboard/feedback", group: "Navigation", keywords: ["review", "feedback", "suggestions", "rate", "report", "suggest"] },
   { title: "What's New", href: "/changelog", group: "Navigation", keywords: ["changelog", "release notes", "updates", "version", "bugfix", "hotfix", "new features", "whats new"] },

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PieChart,
   Pie,
@@ -61,7 +61,11 @@ import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
 import { ContentHeader } from "../app/content-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedAmount } from "@/components/ui/animated-amount";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -362,10 +366,12 @@ export function MyExpensesBoard() {
     return opts;
   }, []);
 
-  const { data: expenseData } = useSuspenseQuery(expenseDataQueryOptions(selectedMonth));
+  const expenseDataQuery = useQuery(expenseDataQueryOptions(selectedMonth));
   const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
-  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
-  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
+  const accountsQuery = useQuery(accountsQueryOptions());
+  const vehiclesQuery = useQuery(vehiclesQueryOptions());
+  const accounts = accountsQuery.data ?? [];
+  const vehicles = vehiclesQuery.data ?? [];
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
@@ -377,7 +383,7 @@ export function MyExpensesBoard() {
   const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
   const categories = dbCategories;
   const paidMonth = selectedMonth;
-  const allEntries: ExpenseEntryRow[] = expenseData?.entries ?? [];
+  const allEntries: ExpenseEntryRow[] = expenseDataQuery.data?.entries ?? [];
 
   const expenses = useMemo(
     () =>
@@ -425,6 +431,7 @@ export function MyExpensesBoard() {
   const [addDate, setAddDate] = useState(todayYmd);
   const [addAccountId, setAddAccountId] = useState("");
   const [addVehicleId, setAddVehicleId] = useState("");
+  const [addVehicleCategory, setAddVehicleCategory] = useState("");
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -437,6 +444,7 @@ export function MyExpensesBoard() {
   const [editExpenseDate, setEditExpenseDate] = useState("");
   const [editAccountId, setEditAccountId] = useState("");
   const [editVehicleId, setEditVehicleId] = useState("");
+  const [editVehicleCategory, setEditVehicleCategory] = useState("");
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -545,6 +553,7 @@ export function MyExpensesBoard() {
     setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
     setEditAccountId(entry.account_id ?? "");
     setEditVehicleId(entry.vehicle_id ?? "");
+    setEditVehicleCategory(entry.vehicle_category ?? "");
     setEditError(null);
   }
 
@@ -558,9 +567,14 @@ export function MyExpensesBoard() {
     }
     setAddSaving(true);
     setAddError(null);
+    if (addVehicleId && !addVehicleCategory) {
+      setAddError("Please select a vehicle category.");
+      setAddSaving(false);
+      return;
+    }
     const res = await addExpense(
       addCategory || "other", amt, name,
-      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null, addVehicleId || null
+      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null, addVehicleId || null, addVehicleCategory || null
     );
     setAddSaving(false);
     if (res.error) {
@@ -574,6 +588,7 @@ export function MyExpensesBoard() {
       setAddDate(todayYmd());
       setAddAccountId("");
       setAddVehicleId("");
+      setAddVehicleCategory("");
       invalidate();
     }
   }
@@ -585,6 +600,10 @@ export function MyExpensesBoard() {
     const amt = parseFloat(editAmount);
     if (!name || isNaN(amt) || amt <= 0) {
       setEditError("Please enter a name and a valid amount.");
+      return;
+    }
+    if (editVehicleId && !editVehicleCategory) {
+      setEditError("Please select a vehicle category.");
       return;
     }
     setEditSaving(true);
@@ -602,6 +621,7 @@ export function MyExpensesBoard() {
       editExpenseDate,
       editAccountId || null,
       editVehicleId || null,
+      editVehicleCategory || null,
     );
     setEditSaving(false);
     if (res.error) {
@@ -654,19 +674,34 @@ export function MyExpensesBoard() {
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - Today</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totalToday)}</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+              <AnimatedAmount value={totalToday} />
+            </p>
             <p className="text-[11px] text-muted-foreground">{expensesToday.length} item{expensesToday.length !== 1 ? "s" : ""} today</p>
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - This Month</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(totalExpenses)}</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums">
+              <AnimatedAmount value={totalExpenses} />
+            </p>
             <p className="text-[11px] text-muted-foreground">{expenses.length} item{expenses.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
 
         {/* Pie chart */}
         <div className="sm:w-2/3">
-          {expenses.length > 0 ? (
+          {expenseDataQuery.isPending ? (
+            <Card className="h-full">
+              <CardHeader className="pb-0 pt-4">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Spending by category
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-1 pb-3">
+                <Skeleton className="h-[150px] w-full" />
+              </CardContent>
+            </Card>
+          ) : expenses.length > 0 ? (
             <Card className="h-full">
               <CardHeader className="pb-0 pt-4">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -751,7 +786,9 @@ export function MyExpensesBoard() {
 
       {/* Expenses board */}
       <div className="flex flex-col gap-2">
-        {expenses.length === 0 ? (
+        {expenseDataQuery.isPending ? (
+          <DashboardSkeleton variant="form" />
+        ) : expenses.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             No expenses yet — add one above or use the form below.
           </p>
@@ -821,7 +858,7 @@ export function MyExpensesBoard() {
       </div>
 
       {/* ── Add modal ── */}
-      <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); } }}>
+      <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); setAddVehicleId(""); setAddVehicleCategory(""); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
@@ -886,21 +923,40 @@ export function MyExpensesBoard() {
 
             {/* Vehicle selector — transport category only */}
             {addCategory === "transport" && vehicles.length > 0 && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
-                <Select value={addVehicleId} onValueChange={(v) => setAddVehicleId(v === "_none" ? "" : v)}>
-                  <SelectTrigger id="add-vehicle">
-                    <SelectValue placeholder="Link to a vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">— None —</SelectItem>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
+                  <Select value={addVehicleId} onValueChange={(v) => { setAddVehicleId(v === "_none" ? "" : v); setAddVehicleCategory(""); }}>
+                    <SelectTrigger id="add-vehicle">
+                      <SelectValue placeholder="Link to a vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">— None —</SelectItem>
+                      {vehicles.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {addVehicleId && (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="add-vehicle-category">
+                      Vehicle Category <span className="text-destructive">*</span>
+                    </Label>
+                    <Select value={addVehicleCategory} onValueChange={setAddVehicleCategory}>
+                      <SelectTrigger id="add-vehicle-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1003,21 +1059,40 @@ export function MyExpensesBoard() {
 
             {/* Vehicle selector — transport category only */}
             {editCategory === "transport" && vehicles.length > 0 && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
-                <Select value={editVehicleId} onValueChange={(v) => setEditVehicleId(v === "_none" ? "" : v)}>
-                  <SelectTrigger id="edit-vehicle">
-                    <SelectValue placeholder="Link to a vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">— None —</SelectItem>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
+                  <Select value={editVehicleId} onValueChange={(v) => { setEditVehicleId(v === "_none" ? "" : v); setEditVehicleCategory(""); }}>
+                    <SelectTrigger id="edit-vehicle">
+                      <SelectValue placeholder="Link to a vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">— None —</SelectItem>
+                      {vehicles.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editVehicleId && (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-vehicle-category">
+                      Vehicle Category <span className="text-destructive">*</span>
+                    </Label>
+                    <Select value={editVehicleCategory} onValueChange={setEditVehicleCategory}>
+                      <SelectTrigger id="edit-vehicle-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 

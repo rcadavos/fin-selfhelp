@@ -25,5 +25,5 @@ fi
 
 node scripts/bump-version.mjs "$BUMP"
 
-# Stage the two version files so they're included in this commit
-git add package.json src/lib/version.ts
+# Stage the version files and changelog so they're included in this commit
+git add package.json src/lib/version.ts src/lib/changelog.ts

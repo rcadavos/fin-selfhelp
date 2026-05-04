@@ -26,11 +26,11 @@ export const vehiclesQueryOptions = () =>
     refetchOnReconnect: false,
   });
 
-export const vehicleSpendingQueryOptions = () =>
+export const vehicleSpendingQueryOptions = (month?: string) =>
   queryOptions({
-    queryKey: [...queryKeys.vehicles(), "spending"] as const,
+    queryKey: [...queryKeys.vehicles(), "spending", month ?? "all"] as const,
     queryFn: () => Promise.resolve().then(async (): Promise<VehicleSpendSummary[]> => {
-      const res = await loadVehicleSpending();
+      const res = await loadVehicleSpending(month);
       if (res.error) throw new Error(res.error);
       return res.summaries;
     }),

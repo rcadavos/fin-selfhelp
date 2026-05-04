@@ -93,7 +93,7 @@ export async function addVehicle(input: {
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
 
@@ -143,7 +143,7 @@ export async function updateVehicle(
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
 
@@ -153,6 +153,7 @@ export type VehicleSpendEntry = {
   label: string;
   amount: number;
   date: string;
+  vehicle_category?: string | null;
 };
 
 export type VehicleSpendSummary = {
@@ -162,7 +163,7 @@ export type VehicleSpendSummary = {
   entries: VehicleSpendEntry[];
 };
 
-export async function loadVehicleSpending(): Promise<{ summaries: VehicleSpendSummary[]; error?: string }> {
+export async function loadVehicleSpending(month?: string): Promise<{ summaries: VehicleSpendSummary[]; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { summaries: [], error: "not_authenticated" };
@@ -174,18 +175,31 @@ export async function loadVehicleSpending(): Promise<{ summaries: VehicleSpendSu
     .maybeSingle();
   if (!profile) return { summaries: [] };
 
-  const [billsRes, expensesRes] = await Promise.all([
-    supabase
-      .from("bills")
-      .select("id, note, notes, amount, vehicle_id, created_at")
-      .eq("profile_id", profile.id)
-      .not("vehicle_id", "is", null),
-    supabase
-      .from("expense_entries")
-      .select("id, note, notes, amount, vehicle_id, created_at")
-      .eq("profile_id", profile.id)
-      .not("vehicle_id", "is", null),
-  ]);
+  const validMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : null;
+  const monthStart = validMonth ? `${validMonth}-01` : null;
+  const monthEnd = validMonth
+    ? `${validMonth}-${new Date(Number(validMonth.slice(0, 4)), Number(validMonth.slice(5, 7)), 0).getDate()}`
+    : null;
+
+  let billsQuery = supabase
+    .from("bills")
+    .select("id, note, notes, amount, vehicle_id, created_at")
+    .eq("profile_id", profile.id)
+    .not("vehicle_id", "is", null);
+  if (monthStart && monthEnd) {
+    billsQuery = billsQuery.gte("created_at", monthStart).lte("created_at", `${monthEnd}T23:59:59`);
+  }
+
+  let expensesQuery = supabase
+    .from("expense_entries")
+    .select("id, note, notes, amount, vehicle_id, vehicle_category, created_at")
+    .eq("profile_id", profile.id)
+    .not("vehicle_id", "is", null);
+  if (monthStart && monthEnd) {
+    expensesQuery = expensesQuery.gte("created_at", monthStart).lte("created_at", `${monthEnd}T23:59:59`);
+  }
+
+  const [billsRes, expensesRes] = await Promise.all([billsQuery, expensesQuery]);
 
   const map = new Map<string, VehicleSpendSummary>();
 
@@ -221,6 +235,7 @@ export async function loadVehicleSpending(): Promise<{ summaries: VehicleSpendSu
       label: String(row.note ?? row.notes ?? "Expense"),
       amount,
       date: String(row.created_at),
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
     });
   }
 
@@ -246,6 +261,6 @@ export async function deleteVehicle(vehicleId: string): Promise<{ error?: string
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/fuel");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
