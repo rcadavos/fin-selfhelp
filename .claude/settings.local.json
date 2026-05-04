@@ -25,7 +25,8 @@
       "Bash(grep -E '\\\\.\\(tsx|ts\\)$')",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(xargs basename *)",
-      "Bash(awk '{print $2}')"
+      "Bash(awk '{print $2}')",
+      "Bash(git status *)"
     ]
   }
 }

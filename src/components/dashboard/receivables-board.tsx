@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   HandCoins,
@@ -184,14 +184,15 @@ function ReceivableDialog({
   const [showLinkSection, setShowLinkSection] = useState(false);
 
   // Reset on open
-  useState(() => {
+  useEffect(() => {
     if (open) {
       setForm(initial ?? EMPTY_FORM);
       setInviteEmail("");
       setInviteNote("");
       setShowLinkSection(false);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function set<K extends keyof ReceivableForm>(key: K, val: ReceivableForm[K]) {
     setForm((p) => ({ ...p, [key]: val }));
