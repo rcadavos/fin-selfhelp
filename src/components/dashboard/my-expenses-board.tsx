@@ -859,7 +859,7 @@ export function MyExpensesBoard() {
 
       {/* ── Add modal ── */}
       <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); setAddVehicleId(""); setAddVehicleCategory(""); } }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
@@ -872,7 +872,6 @@ export function MyExpensesBoard() {
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
                   placeholder="Name"
-                  autoFocus
                 />
               </div>
               <div className="grid gap-1.5">
@@ -974,7 +973,7 @@ export function MyExpensesBoard() {
 
             {addError && <p className="text-sm text-destructive">{addError}</p>}
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 sticky bottom-0 bg-background">
               <div className="flex w-full gap-2">
                 <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddOpen(false)} disabled={addSaving}>
                   Cancel
@@ -990,7 +989,7 @@ export function MyExpensesBoard() {
 
       {/* ── Edit modal ── */}
       <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90svh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
             {editingEntry && (
@@ -1008,7 +1007,6 @@ export function MyExpensesBoard() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="Name"
-                  autoFocus
                 />
               </div>
               <div className="grid gap-1.5">
@@ -1110,7 +1108,7 @@ export function MyExpensesBoard() {
 
             {editError && <p className="text-sm text-destructive">{editError}</p>}
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 sticky bottom-0 bg-background">
               <div className="flex w-full gap-2">
                 <Button
                   type="button"

@@ -14,6 +14,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.4.22",
+    date: "2026-05-04",
+    summary: "Fix expense modals on mobile; category selects now default to blank placeholder.",
+    changes: [
+      { type: "fix", description: "Add and edit expense modals on mobile no longer push the name input off-screen or hide the Cancel/Save buttons when the keyboard opens. Dialogs are now scrollable with a sticky footer." },
+      { type: "fix", description: "Category dropdowns on mobile no longer clip options outside the viewport; the list now respects available screen height." },
+      { type: "improvement", description: "Add and edit category dropdowns for expenses and bills now show 'Select category' placeholder instead of defaulting to a category." },
+    ],
+  },
+  {
     version: "1.4.21",
     date: "2026-05-04",
     summary: "Vehicles page redesign with expense categories, animated stat cards, and SSR fixes.",
