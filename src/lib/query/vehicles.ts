@@ -1,5 +1,5 @@
 import { queryOptions, QueryClient } from "@tanstack/react-query";
-import { loadVehicles, loadVehicleSpending, type VehicleRow, type VehicleSpendSummary } from "@/actions/vehicles";
+import { loadVehicles, loadVehicleSpending, loadVehicleLinkedBills, type VehicleRow, type VehicleSpendSummary, type VehicleLinkedBill } from "@/actions/vehicles";
 import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { queryKeys } from "./keys";
 
@@ -34,6 +34,17 @@ export const vehicleSpendingQueryOptions = (month?: string) =>
       const res = await loadVehicleSpending(month);
       if (res.error) throw new Error(res.error);
       return res.summaries;
+    }),
+  });
+
+export const vehicleLinkedBillsQueryOptions = (vehicleId: string | null | undefined) =>
+  queryOptions({
+    queryKey: [...queryKeys.vehicles(), "linked-bills", vehicleId ?? ""] as const,
+    queryFn: () => Promise.resolve().then(async (): Promise<VehicleLinkedBill[]> => {
+      if (!vehicleId) return [];
+      const res = await loadVehicleLinkedBills(vehicleId);
+      if (res.error) throw new Error(res.error);
+      return res.bills;
     }),
   });
 

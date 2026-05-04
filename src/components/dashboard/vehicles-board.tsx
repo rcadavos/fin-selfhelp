@@ -42,9 +42,12 @@ import { formatCurrency, cn } from "@/lib/utils";
 import {
   vehiclesQueryOptions,
   vehicleSpendingQueryOptions,
+  vehicleLinkedBillsQueryOptions,
   invalidateVehicleQueries,
   VEHICLE_CHART_COLORS,
 } from "@/lib/query/vehicles";
+import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import Link from "next/link";
 import {
   addVehicle,
   updateVehicle,
@@ -153,6 +156,62 @@ function ChartTooltip({
           <span className="tabular-nums">{formatCurrency(total)}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Linked Planned Expenses (vehicle edit modal) ────────────────────────────
+
+function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
+  const { data: bills, isPending } = useQuery(vehicleLinkedBillsQueryOptions(vehicleId));
+
+  if (isPending) {
+    return (
+      <div className="space-y-1.5">
+        <Label>Linked Planned Expenses</Label>
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!bills || bills.length === 0) {
+    return (
+      <div className="space-y-1.5">
+        <Label>Linked Planned Expenses</Label>
+        <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          No planned expenses linked to this vehicle yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label>Linked Planned Expenses</Label>
+      <div className="flex flex-col gap-1.5">
+        {bills.map((b) => {
+          const catLabel = labelForVehicleExpenseCategory(b.vehicle_category);
+          return (
+            <Link
+              key={b.id}
+              href="/dashboard/planned-expenses"
+              className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
+            >
+              <Receipt className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium">{b.label}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {b.billing_period}
+                  {catLabel ? ` • ${catLabel}` : ""}
+                </p>
+              </div>
+              <span className="flex-shrink-0 text-xs font-semibold tabular-nums">
+                {formatCurrency(b.amount)}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -308,6 +367,9 @@ function VehicleDialog({
               className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
           </div>
+
+          {/* Linked planned expenses (edit mode only) */}
+          {editingId && <LinkedPlannedExpenses vehicleId={editingId} />}
         </ScrollFadeBody>
 
         <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">

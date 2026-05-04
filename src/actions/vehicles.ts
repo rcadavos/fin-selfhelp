@@ -243,6 +243,55 @@ export async function loadVehicleSpending(month?: string): Promise<{ summaries: 
   return { summaries: Array.from(map.values()) };
 }
 
+export type VehicleLinkedBill = {
+  id: string;
+  label: string;
+  amount: number;
+  billing_period: "monthly" | "quarterly" | "yearly";
+  due_date: string | null;
+  vehicle_category: string | null;
+};
+
+export async function loadVehicleLinkedBills(
+  vehicleId: string,
+): Promise<{ bills: VehicleLinkedBill[]; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { bills: [], error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile) return { bills: [] };
+
+  const { data, error } = await supabase
+    .from("bills")
+    .select("id, note, notes, amount, billing_period, due_date, vehicle_category, created_at")
+    .eq("profile_id", profile.id)
+    .eq("vehicle_id", vehicleId)
+    .order("created_at", { ascending: true });
+
+  if (error) return { bills: [], error: error.message };
+
+  return {
+    bills: (data ?? []).map((row) => ({
+      id: String(row.id),
+      label: String(row.note ?? row.notes ?? "Planned Expense"),
+      amount: Number(row.amount),
+      billing_period:
+        row.billing_period === "yearly"
+          ? "yearly"
+          : row.billing_period === "quarterly"
+            ? "quarterly"
+            : "monthly",
+      due_date: (row.due_date as string | null) ?? null,
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
+    })),
+  };
+}
+
 export async function deleteVehicle(vehicleId: string): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
