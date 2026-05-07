@@ -15,15 +15,6 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.5.4",
-    date: "2026-05-07",
-    summary: "Switched all transactional email delivery from Hostinger SMTP to Resend for reliable reminder sending.",
-    changes: [
-      { type: "fix", description: "Planned expenses reminder emails now send reliably via Resend instead of Hostinger SMTP, which was silently failing." },
-      { type: "improvement", description: "All transactional emails (welcome, phone-changed, reminders, receivable invites) now go through Resend for better deliverability and error visibility." },
-    ],
-  },
-  {
-    version: "1.5.3",
     date: "2026-05-05",
     summary: "Net Balance chart on /dashboard/accounts rebuilt on visx for crisper rendering, smoother hover interactions, and a richer themed tooltip.",
     changes: [

@@ -36,7 +36,8 @@
       "Bash(curl -s \"https://visx.airbnb.tech/bars\")",
       "Bash(curl -s -H \"User-Agent: Mozilla/5.0\" \"https://visx.airbnb.tech/bars\")",
       "Read(//tmp/**)",
-      "Bash(grep -E \"\\\\.ts$\")"
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(git add *)"
     ]
   }
 }

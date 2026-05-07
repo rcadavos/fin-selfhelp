@@ -8,7 +8,9 @@ function getResendClient() {
 }
 
 function getFromAddress() {
-  return process.env.REMINDER_FROM_EMAIL?.trim() ?? "OmniTrak <info@omnitrak.cloud>";
+  const raw = process.env.REMINDER_FROM_EMAIL?.trim() ?? "OmniTrak <info@omnitrak.cloud>";
+  // Strip surrounding quotes that some env var editors add (e.g. Vercel dashboard)
+  return raw.replace(/^["']|["']$/g, "");
 }
 
 export async function sendWelcomeEmail(params: {
