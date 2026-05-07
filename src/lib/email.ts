@@ -1,37 +1,14 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
 
-function getSmtpConfig() {
-  const host = process.env.SMTP_HOST?.trim();
-  const portRaw = process.env.SMTP_PORT?.trim();
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.trim();
-
-  if (!host || !portRaw || !user || !pass) {
-    throw new Error("SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS must all be set");
-  }
-
-  const port = Number(portRaw);
-  if (!Number.isFinite(port) || port <= 0) {
-    throw new Error("SMTP_PORT must be a valid positive number");
-  }
-
-  const secure = String(process.env.SMTP_SECURE ?? "").toLowerCase() === "true";
-  return { host, port, secure, user, pass };
-}
-
-function createTransporter() {
-  const { host, port, secure, user, pass } = getSmtpConfig();
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass },
-  });
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) throw new Error("RESEND_API_KEY must be set");
+  return new Resend(apiKey);
 }
 
 function getFromAddress() {
-  return process.env.REMINDER_FROM_EMAIL?.trim() ?? "OmniTrak <hello@omnitrak.cloud>";
+  return process.env.REMINDER_FROM_EMAIL?.trim() ?? "OmniTrak <info@omnitrak.cloud>";
 }
 
 export async function sendWelcomeEmail(params: {
@@ -188,14 +165,15 @@ export async function sendWelcomeEmail(params: {
 </html>`;
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
       from: getFromAddress(),
       to: params.to,
       subject,
       text,
       html,
     });
+    if (error) return { ok: false, error: `Welcome email failed: ${error.message}` };
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -308,14 +286,15 @@ export async function sendPhoneChangedEmail(params: {
 </html>`;
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
       from: getFromAddress(),
       to: params.to,
       subject,
       text,
       html,
     });
+    if (error) return { ok: false, error: `Phone changed email failed: ${error.message}` };
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -439,14 +418,15 @@ export async function sendReminderEmail(params: {
 </html>`;
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
       from: getFromAddress(),
       to: params.to,
       subject,
       text,
       html,
     });
+    if (error) return { ok: false, error: `Reminder email failed: ${error.message}` };
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -583,14 +563,15 @@ export async function sendReceivableInviteEmail(params: {
 </html>`;
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
       from: getFromAddress(),
       to: params.to,
       subject,
       text,
       html,
     });
+    if (error) return { ok: false, error: `Receivable invite email failed: ${error.message}` };
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

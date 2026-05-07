@@ -3,15 +3,21 @@
 import { useState, useTransition, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { ParentSize } from "@visx/responsive";
+import { scaleLinear, scaleTime } from "@visx/scale";
+import { LinePath, AreaClosed, Bar, Line as VisxLine, Circle } from "@visx/shape";
+import { AxisBottom, AxisLeft } from "@visx/axis";
+import { GridRows } from "@visx/grid";
+import { Group } from "@visx/group";
+import { curveMonotoneX } from "@visx/curve";
+import { LinearGradient } from "@visx/gradient";
 import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+  useTooltip,
+  useTooltipInPortal,
+  defaultStyles as defaultTooltipStyles,
+} from "@visx/tooltip";
+import { localPoint } from "@visx/event";
+import { bisector, extent, max, min } from "d3-array";
 import { Wallet, Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,50 +49,227 @@ import {
   type AccountFormState,
 } from "@/components/dashboard/account-form-dialog";
 
-// ─── Net balance line chart ──────────────────────────────────────────────────
+// ─── Net balance line chart (visx) ───────────────────────────────────────────
 
-function formatChartTick(date: string): string {
-  const [, m, d] = date.split("-");
-  return `${m}/${d}`;
+type NetBalancePoint = { date: string; balance: number };
+
+function parseDate(d: string): Date {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, day ?? 1);
 }
 
-function NetBalanceLineChart({
+function formatChartTick(date: Date): string {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+const getX = (d: NetBalancePoint) => parseDate(d.date);
+const getY = (d: NetBalancePoint) => d.balance;
+const bisectDate = bisector<NetBalancePoint, Date>((d) => parseDate(d.date)).left;
+
+const tooltipStyles = {
+  ...defaultTooltipStyles,
+  background: "hsl(var(--popover))",
+  color: "hsl(var(--popover-foreground))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: 6,
+  padding: "6px 8px",
+  fontSize: 12,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+};
+
+function NetBalanceChartInner({
+  width,
+  height,
   series,
 }: {
-  series: { date: string; balance: number }[];
+  width: number;
+  height: number;
+  series: NetBalancePoint[];
 }) {
+  const margin = { top: 10, right: 16, bottom: 24, left: 56 };
+  const innerWidth = Math.max(0, width - margin.left - margin.right);
+  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+
+  const {
+    showTooltip,
+    hideTooltip,
+    tooltipData,
+    tooltipLeft = 0,
+    tooltipTop = 0,
+  } = useTooltip<NetBalancePoint>();
+
+  const { containerRef, TooltipInPortal } = useTooltipInPortal({
+    detectBounds: true,
+    scroll: true,
+  });
+
+  const xScale = useMemo(() => {
+    const domain = extent(series, getX) as [Date, Date];
+    return scaleTime({
+      domain: domain[0] && domain[1] ? domain : [new Date(), new Date()],
+      range: [0, innerWidth],
+    });
+  }, [series, innerWidth]);
+
+  const yScale = useMemo(() => {
+    const minY = min(series, getY) ?? 0;
+    const maxY = max(series, getY) ?? 0;
+    const pad = Math.max(1, (maxY - minY) * 0.15);
+    return scaleLinear({
+      domain: [minY - pad, maxY + pad],
+      range: [innerHeight, 0],
+      nice: true,
+    });
+  }, [series, innerHeight]);
+
+  const handleTooltip = useCallback(
+    (event: React.MouseEvent<SVGRectElement> | React.TouchEvent<SVGRectElement>) => {
+      const point = localPoint(event) ?? { x: 0, y: 0 };
+      const x0 = xScale.invert(point.x - margin.left);
+      const idx = bisectDate(series, x0, 1);
+      const d0 = series[idx - 1];
+      const d1 = series[idx];
+      let d = d0;
+      if (d0 && d1) {
+        d =
+          x0.valueOf() - getX(d0).valueOf() > getX(d1).valueOf() - x0.valueOf()
+            ? d1
+            : d0;
+      }
+      if (!d) return;
+      showTooltip({
+        tooltipData: d,
+        tooltipLeft: xScale(getX(d)) + margin.left,
+        tooltipTop: yScale(getY(d)) + margin.top,
+      });
+    },
+    [series, xScale, yScale, margin.left, margin.top, showTooltip],
+  );
+
+  if (width < 10 || height < 10) return null;
+
   return (
-    <div style={{ height: 200 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 11 }}
-            tickFormatter={formatChartTick}
-            stroke="hsl(var(--muted-foreground))"
+    <div ref={containerRef} style={{ position: "relative", width, height }}>
+      <svg width={width} height={height}>
+        <LinearGradient
+          id="net-balance-area"
+          from="hsl(var(--primary))"
+          fromOpacity={0.25}
+          to="hsl(var(--primary))"
+          toOpacity={0}
+        />
+        <Group left={margin.left} top={margin.top}>
+          <GridRows
+            scale={yScale}
+            width={innerWidth}
+            stroke="hsl(var(--border))"
+            strokeDasharray="3 3"
           />
-          <YAxis
-            tick={{ fontSize: 11 }}
-            stroke="hsl(var(--muted-foreground))"
-            tickFormatter={(v) => formatCurrency(Number(v))}
-            width={80}
+          <AreaClosed<NetBalancePoint>
+            data={series}
+            x={(d) => xScale(getX(d))}
+            y={(d) => yScale(getY(d))}
+            yScale={yScale}
+            fill="url(#net-balance-area)"
+            curve={curveMonotoneX}
           />
-          <Tooltip
-            contentStyle={{ fontSize: 12 }}
-            labelFormatter={(label) => formatChartTick(String(label))}
-            formatter={(value) => [formatCurrency(Number(value ?? 0)), "Net Balance"]}
-          />
-          <Line
-            type="monotone"
-            dataKey="balance"
+          <LinePath<NetBalancePoint>
+            data={series}
+            x={(d) => xScale(getX(d))}
+            y={(d) => yScale(getY(d))}
             stroke="hsl(var(--primary))"
             strokeWidth={2}
-            dot={{ r: 3 }}
-            activeDot={{ r: 5 }}
+            curve={curveMonotoneX}
           />
-        </LineChart>
-      </ResponsiveContainer>
+          {series.map((d) => (
+            <Circle
+              key={d.date}
+              cx={xScale(getX(d))}
+              cy={yScale(getY(d))}
+              r={3}
+              fill="hsl(var(--primary))"
+            />
+          ))}
+          <AxisBottom
+            top={innerHeight}
+            scale={xScale}
+            numTicks={Math.min(series.length, 7)}
+            tickFormat={(v) => formatChartTick(v as Date)}
+            stroke="hsl(var(--muted-foreground))"
+            tickStroke="hsl(var(--muted-foreground))"
+            tickLabelProps={() => ({
+              fill: "hsl(var(--muted-foreground))",
+              fontSize: 11,
+              textAnchor: "middle",
+              dy: "0.25em",
+            })}
+          />
+          <AxisLeft
+            scale={yScale}
+            numTicks={4}
+            tickFormat={(v) => formatCurrency(Number(v))}
+            stroke="hsl(var(--muted-foreground))"
+            tickStroke="hsl(var(--muted-foreground))"
+            tickLabelProps={() => ({
+              fill: "hsl(var(--muted-foreground))",
+              fontSize: 11,
+              textAnchor: "end",
+              dx: "-0.25em",
+              dy: "0.25em",
+            })}
+          />
+          <Bar
+            x={0}
+            y={0}
+            width={innerWidth}
+            height={innerHeight}
+            fill="transparent"
+            onMouseMove={handleTooltip}
+            onTouchMove={handleTooltip}
+            onTouchStart={handleTooltip}
+            onMouseLeave={hideTooltip}
+          />
+          {tooltipData && (
+            <Group>
+              <VisxLine
+                from={{ x: xScale(getX(tooltipData)), y: 0 }}
+                to={{ x: xScale(getX(tooltipData)), y: innerHeight }}
+                stroke="hsl(var(--primary))"
+                strokeWidth={1}
+                strokeDasharray="3 2"
+                pointerEvents="none"
+              />
+              <Circle
+                cx={xScale(getX(tooltipData))}
+                cy={yScale(getY(tooltipData))}
+                r={5}
+                fill="hsl(var(--primary))"
+                stroke="hsl(var(--background))"
+                strokeWidth={2}
+                pointerEvents="none"
+              />
+            </Group>
+          )}
+        </Group>
+      </svg>
+      {tooltipData && (
+        <TooltipInPortal top={tooltipTop} left={tooltipLeft} style={tooltipStyles}>
+          <div className="font-medium">{formatChartTick(getX(tooltipData))}</div>
+          <div className="tabular-nums">{formatCurrency(getY(tooltipData))}</div>
+        </TooltipInPortal>
+      )}
+    </div>
+  );
+}
+
+function NetBalanceLineChart({ series }: { series: NetBalancePoint[] }) {
+  return (
+    <div style={{ height: 200 }}>
+      <ParentSize>
+        {({ width, height }) => (
+          <NetBalanceChartInner width={width} height={height} series={series} />
+        )}
+      </ParentSize>
     </div>
   );
 }

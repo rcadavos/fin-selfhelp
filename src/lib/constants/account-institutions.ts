@@ -23,7 +23,6 @@ export const PHILIPPINE_BANKS = [
   "Overseas Filipino Bank (OFBank)",
   "GCash",
   "Maya (PayMaya)",
-  "SeaBank Philippines",
   "CIMB Bank Philippines",
   "Tonik Digital Bank",
   "GoTyme Bank",
