@@ -2,23 +2,21 @@
 
 import { useState, useTransition, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ParentSize } from "@visx/responsive";
-import { scaleLinear, scaleTime } from "@visx/scale";
-import { LinePath, AreaClosed, Bar, Line as VisxLine, Circle } from "@visx/shape";
+import { scaleLinear, scaleBand } from "@visx/scale";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { GridRows } from "@visx/grid";
 import { Group } from "@visx/group";
-import { curveMonotoneX } from "@visx/curve";
-import { LinearGradient } from "@visx/gradient";
 import {
   useTooltip,
   useTooltipInPortal,
   defaultStyles as defaultTooltipStyles,
 } from "@visx/tooltip";
-import { localPoint } from "@visx/event";
-import { bisector, extent, max, min } from "d3-array";
+import { max } from "d3-array";
+import Image from "next/image";
 import { Wallet, Plus, Pencil, Trash2 } from "lucide-react";
+import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,8 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContentHeader } from "@/components/app/content-header";
-import { useUser } from "@/hooks/use-user";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import {
   accountsQueryOptions,
   accountBalancesQueryOptions,
@@ -49,7 +46,7 @@ import {
   type AccountFormState,
 } from "@/components/dashboard/account-form-dialog";
 
-// ─── Net balance line chart (visx) ───────────────────────────────────────────
+// ─── Net balance bar chart (visx) ────────────────────────────────────────────
 
 type NetBalancePoint = { date: string; balance: number };
 
@@ -62,9 +59,7 @@ function formatChartTick(date: Date): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-const getX = (d: NetBalancePoint) => parseDate(d.date);
 const getY = (d: NetBalancePoint) => d.balance;
-const bisectDate = bisector<NetBalancePoint, Date>((d) => parseDate(d.date)).left;
 
 const tooltipStyles = {
   ...defaultTooltipStyles,
@@ -77,7 +72,24 @@ const tooltipStyles = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
 };
 
-function NetBalanceChartInner({
+// rounded-top rect path (SVG path string)
+function roundedTopPath(x: number, y: number, w: number, h: number, r: number): string {
+  if (h <= 0) return "";
+  const radius = Math.min(r, w / 2, h);
+  return [
+    `M${x + radius},${y}`,
+    `h${w - radius * 2}`,
+    `a${radius},${radius} 0 0 1 ${radius},${radius}`,
+    `v${h - radius}`,
+    `h${-w}`,
+    `v${-(h - radius)}`,
+    `a${radius},${radius} 0 0 1 ${radius},${-radius}`,
+    "z",
+  ].join(" ");
+}
+
+
+function NetBalanceBarChartInner({
   width,
   height,
   series,
@@ -86,7 +98,7 @@ function NetBalanceChartInner({
   height: number;
   series: NetBalancePoint[];
 }) {
-  const margin = { top: 10, right: 16, bottom: 24, left: 56 };
+  const margin = { top: 10, right: 16, bottom: 28, left: 56 };
   const innerWidth = Math.max(0, width - margin.left - margin.right);
   const innerHeight = Math.max(0, height - margin.top - margin.bottom);
 
@@ -103,113 +115,121 @@ function NetBalanceChartInner({
     scroll: true,
   });
 
-  const xScale = useMemo(() => {
-    const domain = extent(series, getX) as [Date, Date];
-    return scaleTime({
-      domain: domain[0] && domain[1] ? domain : [new Date(), new Date()],
-      range: [0, innerWidth],
-    });
-  }, [series, innerWidth]);
+  const xScale = useMemo(
+    () =>
+      scaleBand<string>({
+        domain: series.map((d) => d.date),
+        range: [0, innerWidth],
+        padding: 0.3,
+      }),
+    [series, innerWidth],
+  );
 
   const yScale = useMemo(() => {
-    const minY = min(series, getY) ?? 0;
     const maxY = max(series, getY) ?? 0;
-    const pad = Math.max(1, (maxY - minY) * 0.15);
+    const pad = Math.max(1, maxY * 0.15);
     return scaleLinear({
-      domain: [minY - pad, maxY + pad],
+      domain: [0, maxY + pad],
       range: [innerHeight, 0],
       nice: true,
     });
   }, [series, innerHeight]);
 
-  const handleTooltip = useCallback(
-    (event: React.MouseEvent<SVGRectElement> | React.TouchEvent<SVGRectElement>) => {
-      const point = localPoint(event) ?? { x: 0, y: 0 };
-      const x0 = xScale.invert(point.x - margin.left);
-      const idx = bisectDate(series, x0, 1);
-      const d0 = series[idx - 1];
-      const d1 = series[idx];
-      let d = d0;
-      if (d0 && d1) {
-        d =
-          x0.valueOf() - getX(d0).valueOf() > getX(d1).valueOf() - x0.valueOf()
-            ? d1
-            : d0;
-      }
-      if (!d) return;
-      showTooltip({
-        tooltipData: d,
-        tooltipLeft: xScale(getX(d)) + margin.left,
-        tooltipTop: yScale(getY(d)) + margin.top,
-      });
-    },
-    [series, xScale, yScale, margin.left, margin.top, showTooltip],
-  );
+  const bw = xScale.bandwidth();
 
   if (width < 10 || height < 10) return null;
 
   return (
     <div ref={containerRef} style={{ position: "relative", width, height }}>
       <svg width={width} height={height}>
-        <LinearGradient
-          id="net-balance-area"
-          from="hsl(var(--primary))"
-          fromOpacity={0.25}
-          to="hsl(var(--primary))"
-          toOpacity={0}
-        />
+        <defs>
+          <linearGradient id="nbg-pos" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.65} />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+          </linearGradient>
+        </defs>
+
         <Group left={margin.left} top={margin.top}>
           <GridRows
             scale={yScale}
             width={innerWidth}
             stroke="hsl(var(--border))"
             strokeDasharray="3 3"
+            numTicks={4}
           />
-          <AreaClosed<NetBalancePoint>
-            data={series}
-            x={(d) => xScale(getX(d))}
-            y={(d) => yScale(getY(d))}
-            yScale={yScale}
-            fill="url(#net-balance-area)"
-            curve={curveMonotoneX}
-          />
-          <LinePath<NetBalancePoint>
-            data={series}
-            x={(d) => xScale(getX(d))}
-            y={(d) => yScale(getY(d))}
-            stroke="hsl(var(--primary))"
-            strokeWidth={2}
-            curve={curveMonotoneX}
-          />
-          {series.map((d) => (
-            <Circle
-              key={d.date}
-              cx={xScale(getX(d))}
-              cy={yScale(getY(d))}
-              r={3}
-              fill="hsl(var(--primary))"
-            />
-          ))}
+
+          {/* bars */}
+          {series.map((d) => {
+            const bx = xScale(d.date) ?? 0;
+            const balance = Math.max(0, d.balance);
+            const barTop = yScale(balance);
+            const barH = innerHeight - barTop;
+            const isHovered = tooltipData?.date === d.date;
+
+            return (
+              <g
+                key={d.date}
+                onMouseEnter={() =>
+                  showTooltip({
+                    tooltipData: d,
+                    tooltipLeft: bx + bw / 2 + margin.left,
+                    tooltipTop: barTop + margin.top - 8,
+                  })
+                }
+                onMouseLeave={hideTooltip}
+                style={{ cursor: "default" }}
+              >
+                {/* column hover highlight */}
+                <rect
+                  x={bx - 3}
+                  y={0}
+                  width={bw + 6}
+                  height={innerHeight}
+                  fill={isHovered ? "hsl(var(--muted))" : "transparent"}
+                  rx={5}
+                  opacity={0.6}
+                />
+
+                {barH > 1 ? (
+                  <path
+                    d={roundedTopPath(bx, barTop, bw, barH, 5)}
+                    fill="url(#nbg-pos)"
+                    opacity={isHovered ? 1 : 0.84}
+                    style={{ transition: "opacity 0.1s ease" }}
+                  />
+                ) : (
+                  <rect
+                    x={bx}
+                    y={innerHeight - 1}
+                    width={bw}
+                    height={2}
+                    fill="hsl(var(--muted-foreground))"
+                    rx={1}
+                  />
+                )}
+              </g>
+            );
+          })}
+
           <AxisBottom
             top={innerHeight}
             scale={xScale}
-            numTicks={Math.min(series.length, 7)}
-            tickFormat={(v) => formatChartTick(v as Date)}
-            stroke="hsl(var(--muted-foreground))"
-            tickStroke="hsl(var(--muted-foreground))"
+            tickFormat={(v) => formatChartTick(parseDate(String(v)))}
+            stroke="transparent"
+            tickStroke="transparent"
             tickLabelProps={() => ({
               fill: "hsl(var(--muted-foreground))",
               fontSize: 11,
               textAnchor: "middle",
-              dy: "0.25em",
+              dy: "0.6em",
             })}
           />
           <AxisLeft
             scale={yScale}
             numTicks={4}
             tickFormat={(v) => formatCurrency(Number(v))}
-            stroke="hsl(var(--muted-foreground))"
-            tickStroke="hsl(var(--muted-foreground))"
+            stroke="transparent"
+            tickStroke="transparent"
             tickLabelProps={() => ({
               fill: "hsl(var(--muted-foreground))",
               fontSize: 11,
@@ -218,43 +238,12 @@ function NetBalanceChartInner({
               dy: "0.25em",
             })}
           />
-          <Bar
-            x={0}
-            y={0}
-            width={innerWidth}
-            height={innerHeight}
-            fill="transparent"
-            onMouseMove={handleTooltip}
-            onTouchMove={handleTooltip}
-            onTouchStart={handleTooltip}
-            onMouseLeave={hideTooltip}
-          />
-          {tooltipData && (
-            <Group>
-              <VisxLine
-                from={{ x: xScale(getX(tooltipData)), y: 0 }}
-                to={{ x: xScale(getX(tooltipData)), y: innerHeight }}
-                stroke="hsl(var(--primary))"
-                strokeWidth={1}
-                strokeDasharray="3 2"
-                pointerEvents="none"
-              />
-              <Circle
-                cx={xScale(getX(tooltipData))}
-                cy={yScale(getY(tooltipData))}
-                r={5}
-                fill="hsl(var(--primary))"
-                stroke="hsl(var(--background))"
-                strokeWidth={2}
-                pointerEvents="none"
-              />
-            </Group>
-          )}
         </Group>
       </svg>
+
       {tooltipData && (
         <TooltipInPortal top={tooltipTop} left={tooltipLeft} style={tooltipStyles}>
-          <div className="font-medium">{formatChartTick(getX(tooltipData))}</div>
+          <div className="font-medium">{formatChartTick(parseDate(tooltipData.date))}</div>
           <div className="tabular-nums">{formatCurrency(getY(tooltipData))}</div>
         </TooltipInPortal>
       )}
@@ -262,21 +251,21 @@ function NetBalanceChartInner({
   );
 }
 
-function NetBalanceLineChart({ series }: { series: NetBalancePoint[] }) {
+function NetBalanceBarChart({ series }: { series: NetBalancePoint[] }) {
   return (
     <div style={{ height: 200 }}>
       <ParentSize>
         {({ width, height }) => (
-          <NetBalanceChartInner width={width} height={height} series={series} />
+          <NetBalanceBarChartInner width={width} height={height} series={series} />
         )}
       </ParentSize>
     </div>
   );
 }
 
-// ─── Account row ─────────────────────────────────────────────────────────────
+// ─── Account card ────────────────────────────────────────────────────────────
 
-function AccountRow({
+function AccountCard({
   account,
   balance,
   onOpen,
@@ -289,73 +278,93 @@ function AccountRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const logoSlug = getBankLogoSlug(account.bank_name);
+
   return (
     <div
       onClick={onOpen}
-      className="group flex cursor-pointer items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/40"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40"
+      style={{ borderColor: `${account.color}66` }}
     >
-      {/* Color dot */}
-      <span
-        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-        style={{ backgroundColor: account.color }}
+      {/* Softer gradient overlay */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(135deg, ${account.color}40 30%, ${account.color}FF 100%)`,
+        }}
       />
 
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <p className="text-sm font-semibold">{account.account_alias}</p>
-          <p className="text-xs text-muted-foreground">{account.bank_name}</p>
-          {account.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-              style={{ backgroundColor: `${account.color}22`, color: account.color }}
-            >
-              {tag}
-            </span>
-          ))}
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Action buttons — hidden for the system Cash account */}
+        {account.bank_name !== "Cash" && (
+          <div className="absolute right-0 top-0 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <Button size="icon" variant="ghost" className="h-6 w-6 text-black hover:text-foreground" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit account" >
+              <Pencil className="h-3 w-3" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-6 w-6 text-red-800 hover:text-red-700" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete account" >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="mb-2 flex min-w-0 items-center gap-2 pr-12">
+          {logoSlug && (
+            <Image
+              src={`/images/bank-logo/${logoSlug}.webp`}
+              alt={account.bank_name}
+              width={24}
+              height={24}
+              className="flex-shrink-0 rounded-md object-contain"
+            />
+          )}
+
+          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
+            {account.account_alias}
+          </p>
         </div>
-        <p className="text-[11px] text-muted-foreground">Balance on this account</p>
+
+        {/* Meta */}
+        <div className="mb-3 flex flex-wrap items-center gap-1 text-xs text-foreground/75">
+          {account.bank_name !== "Cash" && (
+            <>
+              <span className="capitalize">{account.account_type}</span>
+              <span>•</span>
+            </>
+          )}
+          <span>{account.currency}</span>
+
+          {account.tags
+            .filter((tag) => !(account.bank_name === "Cash" && tag === "Cash"))
+            .slice(0, 2)
+            .map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-foreground/80 backdrop-blur-sm"
+                style={{ borderColor: `${account.color}40` }}
+              >
+                {tag}
+              </span>
+            ))}
+        </div>
+
+        {/* Balance */}
+        <div className="mt-auto">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground/60">
+            Balance
+          </p>
+
+          <p
+            className={cn(
+              "text-lg font-bold tabular-nums text-foreground",
+              balance < 0 && "text-rose-600 dark:text-rose-400",
+            )}
+          >
+            {formatCurrency(balance, account.currency)}
+          </p>
+        </div>
       </div>
-
-      {/* Balance */}
-      <p
-        className={
-          balance < 0
-            ? "flex-shrink-0 text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400"
-            : "flex-shrink-0 text-sm font-semibold tabular-nums"
-        }
-      >
-        {formatCurrency(balance)}
-      </p>
-
-      {/* Edit */}
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit();
-        }}
-        aria-label="Edit account"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-
-      {/* Delete */}
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        aria-label="Delete account"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
     </div>
   );
 }
@@ -363,29 +372,40 @@ function AccountRow({
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function AccountsBoard() {
-  const { user } = useUser();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
 
-  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
-  const { data: balances } = useSuspenseQuery(accountBalancesQueryOptions());
-  const { data: netHistory } = useSuspenseQuery(netBalanceHistoryQueryOptions(7));
+  const { data: accounts = [] } = useQuery(accountsQueryOptions());
+  const { data: balances = {} } = useQuery(accountBalancesQueryOptions());
+  const { data: netHistory = [] } = useQuery(netBalanceHistoryQueryOptions(7));
 
   const netBalance = useMemo(
     () =>
       accounts
-        .filter((a) => a.include_in_net_balance)
-        .reduce((s, acc) => s + (balances[acc.id] ?? 0), 0),
+        .filter((a: AccountRow) => a.include_in_net_balance)
+        .reduce((s: number, acc: AccountRow) => s + (balances[acc.id] ?? 0), 0),
     [accounts, balances],
   );
 
   const includedCount = useMemo(
-    () => accounts.filter((a) => a.include_in_net_balance).length,
+    () => accounts.filter((a: AccountRow) => a.include_in_net_balance).length,
     [accounts],
   );
 
   const hasAnyAccount = accounts.length > 0;
+
+  const sortedAccounts = useMemo(
+    () =>
+      [...accounts].sort((a: AccountRow, b: AccountRow) => {
+        const aIsCash = a.account_alias.toLowerCase() === "cash";
+        const bIsCash = b.account_alias.toLowerCase() === "cash";
+        if (aIsCash) return -1;
+        if (bIsCash) return 1;
+        return 0;
+      }),
+    [accounts],
+  );
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null);
@@ -440,7 +460,7 @@ export function AccountsBoard() {
         }
       />
 
-      {/* Summary: stats + pie chart */}
+      {/* Summary: stats + bar chart */}
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
@@ -464,7 +484,7 @@ export function AccountsBoard() {
           </div>
         </div>
 
-        {/* 7-day net balance chart */}
+        {/* 7-day net balance bar chart */}
         <div className="sm:w-2/3">
           {hasAnyAccount ? (
             <Card className="h-full">
@@ -474,7 +494,7 @@ export function AccountsBoard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-1 pb-3">
-                <NetBalanceLineChart series={netHistory} />
+                <NetBalanceBarChart series={netHistory} />
               </CardContent>
             </Card>
           ) : (
@@ -485,30 +505,29 @@ export function AccountsBoard() {
         </div>
       </div>
 
-      {/* Accounts list */}
-      <div className="space-y-2">
-        <>
-            {accounts.map((acc) => (
-              <AccountRow
-                key={acc.id}
-                account={acc}
-                balance={balances[acc.id] ?? 0}
-                onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
-                onEdit={() => { setFormError(null); setEditingAccount(acc); }}
-                onDelete={() => setDeletingId(acc.id)}
-              />
-            ))}
-            {accounts.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-muted-foreground">
-                <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
-                <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddOpen(true); }}>
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  Add Account
-                </Button>
-              </div>
-            )}
-          </>
-      </div>
+      {/* Accounts grid */}
+      {accounts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-muted-foreground">
+          <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
+          <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddOpen(true); }}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Add Account
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {sortedAccounts.map((acc: AccountRow) => (
+            <AccountCard
+              key={acc.id}
+              account={acc}
+              balance={balances[acc.id] ?? 0}
+              onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
+              onEdit={() => { setFormError(null); setEditingAccount(acc); }}
+              onDelete={() => setDeletingId(acc.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Add dialog */}
       <AccountFormDialog

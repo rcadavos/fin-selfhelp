@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -95,13 +96,14 @@ export function ProfileAvatarUploader({ user, showError, showSuccess }: ProfileA
         )}
       >
         {avatarUrl && !avatarBroken ? (
-          <img
+          <Image
             src={avatarUrl}
             alt=""
             width={112}
             height={112}
             className="h-full w-full object-cover"
             referrerPolicy="no-referrer"
+            unoptimized
             onError={() => setAvatarBroken(true)}
           />
         ) : (

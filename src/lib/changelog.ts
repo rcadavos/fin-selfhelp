@@ -14,6 +14,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.5",
+    date: "2026-05-07",
+    summary: "Account list redesigned as cards; currency field added to accounts; bank logos in modal.",
+    changes: [
+      { type: "feature", description: "Added a Currency field to the Add/Edit Account modal (PHP, USD, EUR, and 15 others). Each account balance is now formatted in its own currency." },
+      { type: "improvement", description: "Account list on /dashboard/accounts is now a 3-column card grid on desktop and 1 column on mobile. Each card shows the bank logo, account alias, type • currency, tags, and balance." },
+      { type: "improvement", description: "Bank and e-wallet logos are now displayed in the account form dropdown and trigger for all institutions that have a logo." },
+      { type: "improvement", description: "Moved 'Other' to the last position in the bank/e-wallet dropdown." },
+      { type: "improvement", description: "Account cards now have a color-tinted border and a diagonal gradient overlay derived from each account's color." },
+      { type: "improvement", description: "Cash account default color changed to sky blue (#0ea5e9) — migration updates existing accounts and the new-user trigger." },
+      { type: "fix", description: "Bank logo lookup is now case-insensitive and ignores spaces, fixing Maribank and other edge-case spellings." },
+    ],
+  },
+  {
     version: "1.5.4",
     date: "2026-05-05",
     summary: "Net Balance chart on /dashboard/accounts rebuilt on visx for crisper rendering, smoother hover interactions, and a richer themed tooltip.",

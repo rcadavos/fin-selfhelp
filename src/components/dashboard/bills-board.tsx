@@ -534,8 +534,8 @@ function BillDialog({
             if (hasProAccess) {
               reminderEnabled = true;
               badgeLabel = "Pro / Premium";
-              badgeClass = "bg-muted text-muted-foreground";
-              hintText = "";
+              badgeClass = "bg-primary text-white";
+              hintText = "You have unlocked unlimited reminders with your Pro / Premium subscription.";
             } else if (slotLockedByOther) {
               reminderEnabled = false;
               badgeLabel = "Slot locked";

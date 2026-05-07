@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
@@ -95,7 +96,7 @@ function QRPhPanel({
         </div>
       ) : (
         <div className="flex min-h-[220px] items-center justify-center rounded-lg border bg-white p-4">
-          <img src={paymongoQr.qrImageDataUrl} alt="Scan to pay via QR PH" width={220} height={220} className="object-contain" />
+          <Image src={paymongoQr.qrImageDataUrl} alt="Scan to pay via QR PH" width={220} height={220} className="object-contain" unoptimized />
         </div>
       )}
       <div className="space-y-1 text-center">

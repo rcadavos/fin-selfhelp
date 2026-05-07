@@ -15,10 +15,11 @@ export type AccountRow = {
   starting_balance: number;
   interest_frequency: InterestFrequency | null;
   include_in_net_balance: boolean;
+  currency: string;
 };
 
 const ACCOUNT_SELECT =
-  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, include_in_net_balance";
+  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, include_in_net_balance, currency";
 
 function mapAccountRow(r: Record<string, unknown>): AccountRow {
   const type = String(r.account_type ?? "debit") as AccountType;
@@ -36,6 +37,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
         ? (freqRaw as InterestFrequency)
         : null,
     include_in_net_balance: r.include_in_net_balance !== false,
+    currency: String(r.currency ?? "PHP"),
   };
 }
 
@@ -154,16 +156,17 @@ export async function loadNetBalanceHistory(days = 7): Promise<{
 
   const { data: netAccounts, error: accErr } = await supabase
     .from("accounts")
-    .select("id, starting_balance")
+    .select("id, starting_balance, starting_balance_date")
     .eq("profile_id", profile.id)
     .eq("include_in_net_balance", true);
   if (accErr) return { series: [], error: accErr.message };
 
   const netIds = new Set((netAccounts ?? []).map((a) => String(a.id)));
-  const startingTotal = (netAccounts ?? []).reduce(
-    (s, a) => s + Number(a.starting_balance ?? 0),
-    0,
-  );
+  const accountsWithDates = (netAccounts ?? []).map((a) => ({
+    id: String(a.id),
+    startingBalance: Number(a.starting_balance ?? 0),
+    effectiveDate: new Date(a.starting_balance_date as string),
+  }));
 
   let txRows: { account_id: string; amount: number; occurred_at: string }[] = [];
   if (netIds.size > 0) {
@@ -189,6 +192,9 @@ export async function loadNetBalanceHistory(days = 7): Promise<{
     day.setDate(today.getDate() - i);
     const endOfDay = new Date(day);
     endOfDay.setHours(23, 59, 59, 999);
+    const startingTotal = accountsWithDates
+      .filter((a) => a.effectiveDate.getTime() <= endOfDay.getTime())
+      .reduce((s, a) => s + a.startingBalance, 0);
     const cumulative = txRows
       .filter((t) => new Date(t.occurred_at).getTime() <= endOfDay.getTime())
       .reduce((s, t) => s + t.amount, 0);
@@ -210,6 +216,7 @@ type AccountInput = {
   starting_balance: number;
   interest_frequency: InterestFrequency | null;
   include_in_net_balance: boolean;
+  currency: string;
 };
 
 function validateInput(input: AccountInput): string | null {
@@ -226,6 +233,9 @@ function validateInput(input: AccountInput): string | null {
     !["daily", "weekly", "monthly", "quarterly", "annually"].includes(input.interest_frequency)
   ) {
     return "Invalid interest frequency.";
+  }
+  if (!input.currency || input.currency.trim().length < 3) {
+    return "Currency is required.";
   }
   return null;
 }
@@ -261,8 +271,10 @@ export async function createAccount(input: AccountInput): Promise<{ error?: stri
     color: input.color,
     account_type: input.account_type,
     starting_balance: input.starting_balance,
+    starting_balance_date: new Date().toISOString(),
     interest_frequency: input.interest_frequency,
     include_in_net_balance: input.include_in_net_balance,
+    currency: input.currency.trim().toUpperCase(),
   });
 
   if (error) return { error: error.message };
@@ -293,8 +305,10 @@ export async function updateAccount(accountId: string, input: AccountInput): Pro
       color: input.color,
       account_type: input.account_type,
       starting_balance: input.starting_balance,
+      starting_balance_date: new Date().toISOString(),
       interest_frequency: input.interest_frequency,
       include_in_net_balance: input.include_in_net_balance,
+      currency: input.currency.trim().toUpperCase(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", accountId)

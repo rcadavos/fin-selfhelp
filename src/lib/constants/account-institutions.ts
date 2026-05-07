@@ -1,3 +1,84 @@
+export const BANK_COLOR_MAP: Record<string, string> = {
+  "Cash":                                      "#0ea5e9",
+  "BDO Unibank":                               "#04369B",
+  "Bank of the Philippine Islands (BPI)":      "#C23133",
+  "Metrobank":                                 "#005faa",
+  "Philippine National Bank (PNB)":            "#072269",
+  "Security Bank":                             "#9FD067",
+  "Landbank of the Philippines":               "#74BC44",
+  "Development Bank of the Philippines (DBP)": "#0152AA",
+  "UnionBank":                                 "#FF8000",
+  "China Banking Corporation (Chinabank)":     "#FE0000",
+  "RCBC":                                      "#4C92CD",
+  "EastWest Bank":                             "#D5E04D",
+  "Maybank Philippines":                       "#FEC32F",
+  "Asia United Bank (AUB)":                    "#BF161D",
+  "Philippine Savings Bank (PSBank)":          "#0855A5",
+  "Robinsons Bank":                            "#75C044",
+  "CTBC Bank Philippines":                     "#00A651",
+  "ING Bank Philippines":                      "#FF6201",
+  "HSBC Philippines":                          "#DA0011",
+  "Citibank Philippines":                      "#255BE3",
+  "Standard Chartered Philippines":            "#020B43",
+  "BDO Network Bank":                          "#043673",
+  "Overseas Filipino Bank (OFBank)":           "#0038A8",
+  "GCash":                                     "#1972F9",
+  "Maya (PayMaya)":                            "#75EEA5",
+  "CIMB Bank Philippines":                     "#780000",
+  "Tonik Digital Bank":                        "#785AFF",
+  "GoTyme Bank":                               "#01F3FA",
+  "OwnBank":                                   "#65E294",
+  "Maribank":                                  "#EA5F01",
+};
+
+export function getBankColor(bankName: string): string | null {
+  return BANK_COLOR_MAP[bankName] ?? null;
+}
+
+const BANK_LOGO_MAP: Record<string, string> = {
+  "BDO Unibank": "bdo",
+  "Bank of the Philippine Islands (BPI)": "bpi",
+  "Metrobank": "metrobank",
+  "Philippine National Bank (PNB)": "pnb",
+  "Security Bank": "security",
+  "Landbank of the Philippines": "landbank",
+  "Development Bank of the Philippines (DBP)": "dbp",
+  "UnionBank": "unionbank",
+  "China Banking Corporation (Chinabank)": "chinabank",
+  "RCBC": "rcbc",
+  "EastWest Bank": "eastwest",
+  "Maybank Philippines": "maybank",
+  "Asia United Bank (AUB)": "aub",
+  "Philippine Savings Bank (PSBank)": "psbank",
+  "Robinsons Bank": "robinsons",
+  "CTBC Bank Philippines": "ctbc",
+  "ING Bank Philippines": "ing",
+  "HSBC Philippines": "hsbc",
+  "Citibank Philippines": "citi",
+  "Standard Chartered Philippines": "standard-chartered",
+  "BDO Network Bank": "bdo",
+  "Overseas Filipino Bank (OFBank)": "ofbank",
+  "GCash": "gcash",
+  "Maya (PayMaya)": "maya",
+  "CIMB Bank Philippines": "cimb",
+  "Tonik Digital Bank": "tonik",
+  "GoTyme Bank": "gotyme",
+  "OwnBank": "ownbank",
+  "Maribank": "maribank",
+};
+
+const BANK_LOGO_MAP_LOWER = Object.fromEntries(
+  Object.entries(BANK_LOGO_MAP).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ""), v]),
+);
+
+export function getBankLogoSlug(bankName: string): string | null {
+  return (
+    BANK_LOGO_MAP[bankName] ??
+    BANK_LOGO_MAP_LOWER[bankName.toLowerCase().replace(/\s+/g, "")] ??
+    null
+  );
+}
+
 export const PHILIPPINE_BANKS = [
   "BDO Unibank",
   "Bank of the Philippine Islands (BPI)",

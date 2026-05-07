@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "@/lib/utils";
-import { PHILIPPINE_BANKS } from "@/lib/constants/account-institutions";
+import { PHILIPPINE_BANKS, getBankLogoSlug, getBankColor } from "@/lib/constants/account-institutions";
 import type { AccountRow, AccountType, InterestFrequency } from "@/actions/accounts";
 
 export type AccountFormState = {
@@ -35,6 +36,7 @@ export type AccountFormState = {
   starting_balance: string;
   interest_frequency: InterestFrequency | "";
   include_in_net_balance: boolean;
+  currency: string;
 };
 
 export const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountType; label: string }> = [
@@ -42,6 +44,27 @@ export const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountType; label: string }> 
   { value: "credit", label: "Credit" },
   { value: "stocks", label: "Stocks" },
   { value: "crypto", label: "Crypto" },
+];
+
+export const CURRENCIES: Array<{ value: string; label: string }> = [
+  { value: "PHP", label: "PHP — Philippine Peso" },
+  { value: "USD", label: "USD — US Dollar" },
+  { value: "EUR", label: "EUR — Euro" },
+  { value: "GBP", label: "GBP — British Pound" },
+  { value: "JPY", label: "JPY — Japanese Yen" },
+  { value: "SGD", label: "SGD — Singapore Dollar" },
+  { value: "AUD", label: "AUD — Australian Dollar" },
+  { value: "CAD", label: "CAD — Canadian Dollar" },
+  { value: "HKD", label: "HKD — Hong Kong Dollar" },
+  { value: "CNY", label: "CNY — Chinese Yuan" },
+  { value: "KRW", label: "KRW — Korean Won" },
+  { value: "THB", label: "THB — Thai Baht" },
+  { value: "MYR", label: "MYR — Malaysian Ringgit" },
+  { value: "IDR", label: "IDR — Indonesian Rupiah" },
+  { value: "VND", label: "VND — Vietnamese Dong" },
+  { value: "INR", label: "INR — Indian Rupee" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "SAR", label: "SAR — Saudi Riyal" },
 ];
 
 export const INTEREST_FREQUENCY_OPTIONS: Array<{ value: InterestFrequency; label: string }> = [
@@ -54,21 +77,21 @@ export const INTEREST_FREQUENCY_OPTIONS: Array<{ value: InterestFrequency; label
 
 export const ACCOUNT_TAG_PRESETS = [
   "Cash",
-  "Borrowed",
+  "Payroll",
   "Savings",
-  "Bills & Utilities",
+  "Bills",
+  "Allowance",
   "Daily Expenses",
   "Groceries",
-  "Wants / Leisure",
+  "Wants/Leisure",
   "Emergency Fund",
   "Business",
   "Travel",
   "Healthcare",
   "Education",
   "Investments",
+  "Crypto",
   "Rent & Housing",
-  "Allowance",
-  "Payroll",
 ];
 
 export const ACCOUNT_COLOR_SWATCHES = [
@@ -95,6 +118,7 @@ const EMPTY_FORM: AccountFormState = {
   starting_balance: "0",
   interest_frequency: "",
   include_in_net_balance: true,
+  currency: "PHP",
 };
 
 export function accountToForm(acc: AccountRow): AccountFormState {
@@ -107,6 +131,7 @@ export function accountToForm(acc: AccountRow): AccountFormState {
     starting_balance: String(acc.starting_balance ?? 0),
     interest_frequency: acc.interest_frequency ?? "",
     include_in_net_balance: acc.include_in_net_balance,
+    currency: acc.currency ?? "PHP",
   };
 }
 
@@ -122,6 +147,7 @@ export function accountFormToInput(form: AccountFormState) {
     starting_balance: Number.isFinite(starting) ? starting : 0,
     interest_frequency: form.interest_frequency === "" ? null : form.interest_frequency,
     include_in_net_balance: form.include_in_net_balance,
+    currency: form.currency || "PHP",
   };
 }
 
@@ -145,7 +171,12 @@ export function AccountFormDialog({
   const [bankSearch, setBankSearch] = useState("");
 
   const sortedBanks = useMemo(
-    () => [...PHILIPPINE_BANKS].sort((a, b) => a.localeCompare(b)),
+    () =>
+      [...PHILIPPINE_BANKS].sort((a, b) => {
+        if (a === "Other") return 1;
+        if (b === "Other") return -1;
+        return a.localeCompare(b);
+      }),
     []
   );
   const filteredBanks = useMemo(() => {
@@ -195,12 +226,28 @@ export function AccountFormDialog({
             <Select
               value={form.bank_name}
               onValueChange={(v) => {
-                setForm((p) => ({ ...p, bank_name: v }));
+                const bankColor = getBankColor(v);
+                setForm((p) => ({ ...p, bank_name: v, ...(bankColor ? { color: bankColor } : {}) }));
                 setBankSearch("");
               }}
             >
               <SelectTrigger id="acc-bank">
-                <SelectValue placeholder="Select bank or e-wallet" />
+                <SelectValue placeholder="Select bank or e-wallet">
+                  {form.bank_name ? (
+                    <span className="flex items-center gap-2 min-w-0">
+                      {form.bank_name !== "Other" && getBankLogoSlug(form.bank_name) && (
+                        <Image
+                          src={`/images/bank-logo/${getBankLogoSlug(form.bank_name)}.webp`}
+                          alt=""
+                          width={16}
+                          height={16}
+                          className="flex-shrink-0 object-contain"
+                        />
+                      )}
+                      <span className="truncate">{form.bank_name}</span>
+                    </span>
+                  ) : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-64">
                 <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
@@ -215,7 +262,18 @@ export function AccountFormDialog({
                 {filteredBanks.length > 0 ? (
                   filteredBanks.map((b) => (
                     <SelectItem key={b} value={b}>
-                      {b}
+                      <span className="flex items-center gap-2">
+                        {b !== "Other" && getBankLogoSlug(b) && (
+                          <Image
+                            src={`/images/bank-logo/${getBankLogoSlug(b)}.webp`}
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="flex-shrink-0 object-contain"
+                          />
+                        )}
+                        {b}
+                      </span>
                     </SelectItem>
                   ))
                 ) : (
@@ -248,6 +306,24 @@ export function AccountFormDialog({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
+              <Label htmlFor="acc-currency">Currency</Label>
+              <Select
+                value={form.currency}
+                onValueChange={(v) => setForm((p) => ({ ...p, currency: v }))}
+              >
+                <SelectTrigger id="acc-currency">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="acc-starting-balance">Starting Balance</Label>
               <Input
                 id="acc-starting-balance"
@@ -259,30 +335,31 @@ export function AccountFormDialog({
                 onChange={(e) => setForm((p) => ({ ...p, starting_balance: e.target.value }))}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-interest-freq">Interest Frequency</Label>
-              <Select
-                value={form.interest_frequency === "" ? "none" : form.interest_frequency}
-                onValueChange={(v) =>
-                  setForm((p) => ({
-                    ...p,
-                    interest_frequency: v === "none" ? "" : (v as InterestFrequency),
-                  }))
-                }
-              >
-                <SelectTrigger id="acc-interest-freq">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {INTEREST_FREQUENCY_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-interest-freq">Interest Frequency</Label>
+            <Select
+              value={form.interest_frequency === "" ? "none" : form.interest_frequency}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  interest_frequency: v === "none" ? "" : (v as InterestFrequency),
+                }))
+              }
+            >
+              <SelectTrigger id="acc-interest-freq">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {INTEREST_FREQUENCY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-start justify-between gap-3 rounded-md border px-3 py-2.5">
@@ -347,24 +424,26 @@ export function AccountFormDialog({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {ACCOUNT_COLOR_SWATCHES.map(({ label, value }) => (
-                <button
-                  key={value}
-                  type="button"
-                  title={label}
-                  onClick={() => setForm((p) => ({ ...p, color: value }))}
-                  className={cn(
-                    "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
-                    form.color === value ? "border-foreground scale-110" : "border-transparent"
-                  )}
-                  style={{ backgroundColor: value }}
-                />
-              ))}
+          {(form.bank_name === "" || form.bank_name === "Other") && (
+            <div className="space-y-1.5">
+              <Label>Color</Label>
+              <div className="flex flex-wrap gap-2">
+                {ACCOUNT_COLOR_SWATCHES.map(({ label, value }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    title={label}
+                    onClick={() => setForm((p) => ({ ...p, color: value }))}
+                    className={cn(
+                      "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
+                      form.color === value ? "border-foreground scale-110" : "border-transparent"
+                    )}
+                    style={{ backgroundColor: value }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </ScrollFadeBody>

@@ -115,7 +115,8 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 - Use `React.memo`, `useMemo`, and `useCallback` for expensive renders or stable references — but only when there is a measurable benefit, not by default.
 - Paginate or virtualize any list that can grow unboundedly (transactions, history, etc.).
 - Keep bundle size lean: import only what you need from libraries (e.g. named imports from `lucide-react`, not the whole package).
-- Images should use `next/image` with explicit `width`/`height` or `fill` for automatic optimization.
+- **NEVER use a raw `<img>` tag.** Always use `import Image from "next/image"` with explicit `width`/`height` or `fill`. For dynamic external URLs (e.g. Supabase storage, OAuth avatars) or data URLs, add the `unoptimized` prop. The only exception is `src/app/opengraph-image.tsx`, which runs inside Satori's `ImageResponse` renderer where `next/image` is not supported.
+- **NEVER use a raw `<script>` tag.** Always use `import Script from "next/script"` with an appropriate `strategy` (`afterInteractive`, `lazyOnload`, etc.) for any third-party or inline scripts.
 
 ### Confirmation dialogs
 Never use the native browser `confirm()`. Whenever an action needs user confirmation, use a reusable confirmation modal built on top of `src/components/ui/dialog.tsx`. If one does not exist yet, create `src/components/app/confirm-dialog.tsx` and use it everywhere.
@@ -128,3 +129,6 @@ Use `•` as the separator character whenever inline text items need to be separ
 
 ### Compact instructions
 When you are using compact, please focus on test output and code changes
+
+### Git
+Do not run `git commit` unless the user explicitly asks. The user handles commits.

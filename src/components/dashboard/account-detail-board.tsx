@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownCircle,
   ArrowLeft,
@@ -85,11 +85,11 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   const [formError, setFormError] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
-  const { data: txData } = useSuspenseQuery(accountTransactionsQueryOptions(account.id));
-  const { data: allAccounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: txData = { balance: 0, transactions: [] } } = useQuery(accountTransactionsQueryOptions(account.id));
+  const { data: allAccounts = [] } = useQuery(accountsQueryOptions());
 
   const otherAccounts = useMemo(
-    () => allAccounts.filter((a) => a.id !== account.id),
+    () => allAccounts.filter((a: AccountRow) => a.id !== account.id),
     [allAccounts, account.id],
   );
 
@@ -193,14 +193,16 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
         }
         subtitle={`${account.bank_name} • Record expenses, income, transfers, and adjustments tied to this account.`}
         actions={
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setFormError(null); setEditOpen(true); }} aria-label="Edit account">
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} aria-label="Delete account">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          account.bank_name !== "Cash" ? (
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setFormError(null); setEditOpen(true); }} aria-label="Edit account">
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} aria-label="Delete account">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : null
         }
       />
 
@@ -245,7 +247,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
           </div>
         ) : (
           <ul className="space-y-2">
-            {txData.transactions.map((tx) => {
+            {txData.transactions.map((tx: AccountTransactionRow) => {
               const meta = txMeta(tx);
               const counterpartName = tx.transfer_counterpart?.account_alias ?? "another account";
               return (
