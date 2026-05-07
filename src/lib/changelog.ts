@@ -31,7 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.5.2",
+    version: "1.5.3",
     date: "2026-05-04",
     summary: "Cash is now a real per-user account; click an account to open its detail page. Per-account ledger: log expense, income, adjustment, and transfer entries on each account with a running balance and history.",
     changes: [
