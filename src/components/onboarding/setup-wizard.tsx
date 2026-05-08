@@ -1,45 +1,53 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
+import Image from "next/image";
+import { Check, CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
 import { categoriesQueryOptions } from "@/lib/query/categories";
+import { accountsQueryOptions, invalidateAccountQueries } from "@/lib/query/accounts";
 import { invalidateVehicleQueriesIfTransportAffected } from "@/lib/query/vehicles";
 import { useUser } from "@/hooks/use-user";
 import { completeOnboarding } from "@/actions/onboarding";
 import { addExpense } from "@/actions/budget";
-import { addBill } from "@/actions/bills";
+import { createAccountExpense } from "@/actions/account-transactions";
+import { createAccount } from "@/actions/accounts";
+import type { AccountType } from "@/actions/accounts";
+import { BANK_GROUPS, getBankColor, getBankLogoSlug } from "@/lib/constants/account-institutions";
+import { ACCOUNT_TYPE_OPTIONS, CURRENCIES } from "@/components/dashboard/account-form-dialog";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["profile", "expense", "bill", "done"] as const;
+const STEPS = ["profile", "account", "expense", "done"] as const;
 type Step = (typeof STEPS)[number];
 
 const FIX_OPTIONS = [
   { id: "overspending", label: "Overspending every month" },
-  { id: "missing_bills", label: "Missing planned expense payments" },
+  { id: "missing_bills", label: "Missing bill payments" },
   { id: "no_savings", label: "Not saving enough" },
   { id: "losing_track", label: "Losing track of finances" },
 ];
 
 const GOAL_OPTIONS = [
-  { id: "save_money", label: "Save more money" },
+  { id: "travel_savings", label: "Travel savings goal" },
   { id: "emergency_fund", label: "Build an emergency fund" },
-  { id: "pay_debt", label: "Pay off debt" },
-  { id: "budget", label: "Stick to a budget" },
-  { id: "plan_future", label: "Plan for the future" },
-  { id: "track_expenses", label: "Track all my expenses" },
+  { id: "house_renovation", label: "House renovation fund" },
+  { id: "mp2_savings", label: "Build an MP2 savings" },
+  { id: "solar_panel", label: "Saving for solar panel installation" },
+  { id: "vehicle_maintenance", label: "Vehicle maintenance savings" },
 ];
 
 interface Props {
@@ -59,20 +67,24 @@ export function SetupWizard({ initialName }: Props) {
   const [fixes, setFixes] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
 
-  // Step 2 — expense
+  // Step 2 — account
+  const [bankName, setBankName] = useState("");
+  const [accountAlias, setAccountAlias] = useState("");
+  const [accountType, setAccountType] = useState<AccountType>("debit");
+  const [currency, setCurrency] = useState("PHP");
+  const [startingBalance, setStartingBalance] = useState("");
+  const [maintainingBalance, setMaintainingBalance] = useState("");
+  const [accountError, setAccountError] = useState("");
+
+  // Step 3 — expense
   const [expenseCategoryId, setExpenseCategoryId] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseNote, setExpenseNote] = useState("");
+  const [expenseAccountId, setExpenseAccountId] = useState("");
   const [expenseError, setExpenseError] = useState("");
 
-  // Step 3 — bill
-  const [billCategoryId, setBillCategoryId] = useState("");
-  const [billAmount, setBillAmount] = useState("");
-  const [billNote, setBillNote] = useState("");
-  const [billDueDate, setBillDueDate] = useState("");
-  const [billError, setBillError] = useState("");
-
   const { data: categories = [] } = useQuery(categoriesQueryOptions());
+  const { data: accounts = [] } = useQuery(accountsQueryOptions());
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -88,7 +100,7 @@ export function SetupWizard({ initialName }: Props) {
     startTransition(async () => {
       await completeOnboarding({ fullName: name, goals, fixes });
       await refreshUser();
-      setStep("expense");
+      setStep("account");
     });
   }
 
@@ -96,6 +108,33 @@ export function SetupWizard({ initialName }: Props) {
     startTransition(async () => {
       await completeOnboarding({});
       await refreshUser();
+      setStep("account");
+    });
+  }
+
+  function handleAccountNext() {
+    setAccountError("");
+    startTransition(async () => {
+      if (bankName) {
+        const color = getBankColor(bankName) ?? "#6366f1";
+        const balance = parseFloat(startingBalance);
+        const maintaining = parseFloat(maintainingBalance);
+        const res = await createAccount({
+          account_alias: accountAlias.trim() || bankName,
+          bank_name: bankName,
+          tags: [],
+          color,
+          account_type: accountType,
+          starting_balance: isNaN(balance) || balance < 0 ? 0 : balance,
+          interest_frequency: null,
+          interest_rate: null,
+          maintaining_balance: maintainingBalance.trim() && !isNaN(maintaining) ? maintaining : null,
+          include_in_net_balance: true,
+          currency: currency || "PHP",
+        });
+        if (res.error) { setAccountError(res.error); return; }
+        invalidateAccountQueries(queryClient);
+      }
       setStep("expense");
     });
   }
@@ -106,45 +145,60 @@ export function SetupWizard({ initialName }: Props) {
     if (!expenseNote.trim()) { setExpenseError("Enter a name for this expense."); return; }
     if (!expenseCategoryId) { setExpenseError("Please select a category."); return; }
     if (!amount || amount <= 0) { setExpenseError("Enter a valid amount."); return; }
+    if (!expenseAccountId) { setExpenseError("Please select an account."); return; }
     startTransition(async () => {
-      const res = await addExpense(expenseCategoryId, amount, expenseNote || null);
+      const res = await addExpense(
+        expenseCategoryId, amount, expenseNote || null,
+        null, null, null, "monthly", "both", undefined,
+        expenseAccountId,
+      );
       if (res.error) { setExpenseError(res.error); return; }
+      const selectedAccount = accounts.find((a) => a.id === expenseAccountId);
+      const isCash = selectedAccount?.account_alias.toLowerCase() === "cash";
+      if (!isCash) {
+        await createAccountExpense({ accountId: expenseAccountId, amount, description: expenseNote });
+      }
+      invalidateAccountQueries(queryClient);
       invalidateVehicleQueriesIfTransportAffected(queryClient, expenseCategoryId);
-      setStep("bill");
-    });
-  }
-
-  function handleBillNext() {
-    setBillError("");
-    const amount = parseFloat(billAmount);
-    if (!billNote.trim()) { setBillError("Enter a name."); return; }
-    if (!billCategoryId) { setBillError("Please select a category."); return; }
-    if (!amount || amount <= 0) { setBillError("Enter a valid amount."); return; }
-    if (!billDueDate) { setBillError("Select a due date."); return; }
-    startTransition(async () => {
-      const res = await addBill(billCategoryId, amount, billNote, billDueDate);
-      if (res.error) { setBillError(res.error); return; }
       setStep("done");
     });
   }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-start px-4 py-10 sm:py-16">
-      {/* Progress dots */}
+      {/* Step progress */}
       {step !== "done" && (
-        <div className="mb-8 flex gap-2">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-2 rounded-full transition-all",
-                i < stepIndex
-                  ? "w-6 bg-primary"
-                  : i === stepIndex
-                    ? "w-8 bg-primary"
-                    : "w-2 bg-muted-foreground/30",
+        <div className="mb-8 flex items-start">
+          {[
+            { label: "Profile" },
+            { label: "Account" },
+            { label: "Expense" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-start">
+              {i > 0 && (
+                <div className="flex h-8 items-center">
+                  <div className={cn("h-px w-10 transition-colors sm:w-14", i <= stepIndex ? "bg-primary" : "bg-border")} />
+                </div>
               )}
-            />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-all",
+                  i < stepIndex
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : i === stepIndex
+                      ? "border-primary bg-background text-primary ring-2 ring-primary/20"
+                      : "border-border bg-background text-muted-foreground/40",
+                )}>
+                  {i < stepIndex ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                </div>
+                <span className={cn(
+                  "text-[11px] font-medium",
+                  i < stepIndex ? "text-primary" : i === stepIndex ? "text-foreground" : "text-muted-foreground/40",
+                )}>
+                  {s.label}
+                </span>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -164,35 +218,41 @@ export function SetupWizard({ initialName }: Props) {
           />
         )}
 
+        {step === "account" && (
+          <AccountStep
+            bankName={bankName}
+            setBankName={setBankName}
+            accountAlias={accountAlias}
+            setAccountAlias={setAccountAlias}
+            accountType={accountType}
+            setAccountType={setAccountType}
+            currency={currency}
+            setCurrency={setCurrency}
+            startingBalance={startingBalance}
+            setStartingBalance={setStartingBalance}
+            maintainingBalance={maintainingBalance}
+            setMaintainingBalance={setMaintainingBalance}
+            error={accountError}
+            onNext={handleAccountNext}
+            onSkip={() => setStep("expense")}
+            isPending={isPending}
+          />
+        )}
+
         {step === "expense" && (
           <ExpenseStep
             categories={categories}
+            accounts={accounts}
             categoryId={expenseCategoryId}
             setCategoryId={setExpenseCategoryId}
             amount={expenseAmount}
             setAmount={setExpenseAmount}
             note={expenseNote}
             setNote={setExpenseNote}
+            accountId={expenseAccountId}
+            setAccountId={setExpenseAccountId}
             error={expenseError}
             onNext={handleExpenseNext}
-            onSkip={() => setStep("bill")}
-            isPending={isPending}
-          />
-        )}
-
-        {step === "bill" && (
-          <BillStep
-            categories={categories}
-            categoryId={billCategoryId}
-            setCategoryId={setBillCategoryId}
-            amount={billAmount}
-            setAmount={setBillAmount}
-            note={billNote}
-            setNote={setBillNote}
-            dueDate={billDueDate}
-            setDueDate={(v) => setBillDueDate(v ?? "")}
-            error={billError}
-            onNext={handleBillNext}
             onSkip={() => setStep("done")}
             isPending={isPending}
           />
@@ -279,23 +339,235 @@ function ProfileStep({ name, setName, fixes, goals, onToggleFix, onToggleGoal, o
   );
 }
 
-interface CategoryItem { id: string; label: string; }
-
-interface ExpenseStepProps {
-  categories: CategoryItem[];
-  categoryId: string;
-  setCategoryId: (v: string) => void;
-  amount: string;
-  setAmount: (v: string) => void;
-  note: string;
-  setNote: (v: string) => void;
+interface AccountStepProps {
+  bankName: string;
+  setBankName: (v: string) => void;
+  accountAlias: string;
+  setAccountAlias: (v: string) => void;
+  accountType: AccountType;
+  setAccountType: (v: AccountType) => void;
+  currency: string;
+  setCurrency: (v: string) => void;
+  startingBalance: string;
+  setStartingBalance: (v: string) => void;
+  maintainingBalance: string;
+  setMaintainingBalance: (v: string) => void;
   error: string;
   onNext: () => void;
   onSkip: () => void;
   isPending: boolean;
 }
 
-function ExpenseStep({ categories, categoryId, setCategoryId, amount, setAmount, note, setNote, error, onNext, onSkip, isPending }: ExpenseStepProps) {
+function AccountStep({ bankName, setBankName, accountAlias, setAccountAlias, accountType, setAccountType, currency, setCurrency, startingBalance, setStartingBalance, maintainingBalance, setMaintainingBalance, error, onNext, onSkip, isPending }: AccountStepProps) {
+  const [bankSearch, setBankSearch] = useState("");
+
+  const filteredGroups = useMemo(() => {
+    const query = bankSearch.trim().toLowerCase();
+    if (!query) return BANK_GROUPS;
+    return BANK_GROUPS
+      .map((g) => ({ ...g, banks: g.banks.filter((b) => b.toLowerCase().includes(query)) }))
+      .filter((g) => g.banks.length > 0);
+  }, [bankSearch]);
+
+  const showOther = !bankSearch.trim() || "other".includes(bankSearch.trim().toLowerCase());
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Add your first account</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Add a bank or e-wallet account for tracking. A Cash account is already set up for you.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground/70">
+          This is for tracking purposes only — not linked to your real bank account.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {/* Row 1: Account name | Type */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-alias">Account Name</Label>
+            <Input
+              id="acc-alias"
+              placeholder="e.g. Savings, Payroll"
+              value={accountAlias}
+              onChange={(e) => setAccountAlias(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-type">Type</Label>
+            <Select value={accountType} onValueChange={(v) => setAccountType(v as AccountType)}>
+              <SelectTrigger id="acc-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_TYPE_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 2: Bank / e-Wallet / Platform | Currency */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-bank">Bank / e-Wallet / Platform</Label>
+            <Select
+              value={bankName}
+              onValueChange={(v) => { setBankName(v); setBankSearch(""); }}
+            >
+              <SelectTrigger id="acc-bank">
+                <SelectValue placeholder="Select bank or e-wallet">
+                  {bankName ? (
+                    <span className="flex items-center gap-2 min-w-0">
+                      {bankName !== "Other" && getBankLogoSlug(bankName) && (
+                        <Image src={`/images/bank-logo/${getBankLogoSlug(bankName)}.webp`} alt="" width={16} height={16} className="flex-shrink-0 object-contain" unoptimized />
+                      )}
+                      <span className="truncate">{bankName}</span>
+                    </span>
+                  ) : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
+                  <Input
+                    value={bankSearch}
+                    onChange={(e) => setBankSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Search..."
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {filteredGroups.length === 0 && !showOther ? (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">No results found.</p>
+                ) : (
+                  <>
+                    {filteredGroups.map((group, gi) => (
+                      <SelectGroup key={group.label}>
+                        {gi > 0 && <SelectSeparator />}
+                        <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          <span className="h-px flex-1 bg-border" />
+                          {group.label}
+                          <span className="h-px flex-1 bg-border" />
+                        </SelectLabel>
+                        {group.banks.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            <span className="flex items-center gap-2">
+                              {getBankLogoSlug(b) && (
+                                <Image src={`/images/bank-logo/${getBankLogoSlug(b)}.webp`} alt="" width={16} height={16} className="flex-shrink-0 object-contain" unoptimized />
+                              )}
+                              {b}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                    {showOther && (
+                      <SelectGroup>
+                        <SelectSeparator />
+                        <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          <span className="h-px flex-1 bg-border" />
+                          Other
+                          <span className="h-px flex-1 bg-border" />
+                        </SelectLabel>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectGroup>
+                    )}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-currency">Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger id="acc-currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 3: Starting Balance | Minimum Balance */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-starting-balance">Starting Balance</Label>
+            <Input
+              id="acc-starting-balance"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={startingBalance}
+              onChange={(e) => setStartingBalance(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-maintaining-balance">
+              Minimum Balance <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="acc-maintaining-balance"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={maintainingBalance}
+              onChange={(e) => setMaintainingBalance(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+
+      <StepFooter
+        onNext={onNext}
+        onSkip={onSkip}
+        nextLabel="Next"
+        isPending={isPending}
+      />
+    </div>
+  );
+}
+
+interface CategoryItem { id: string; label: string; }
+interface AccountItem { id: string; account_alias: string; bank_name: string; color: string; }
+
+interface ExpenseStepProps {
+  categories: CategoryItem[];
+  accounts: AccountItem[];
+  categoryId: string;
+  setCategoryId: (v: string) => void;
+  amount: string;
+  setAmount: (v: string) => void;
+  note: string;
+  setNote: (v: string) => void;
+  accountId: string;
+  setAccountId: (v: string) => void;
+  error: string;
+  onNext: () => void;
+  onSkip: () => void;
+  isPending: boolean;
+}
+
+function ExpenseStep({ categories, accounts, categoryId, setCategoryId, amount, setAmount, note, setNote, accountId, setAccountId, error, onNext, onSkip, isPending }: ExpenseStepProps) {
+  const sortedAccounts = [...accounts].sort((a, b) =>
+    a.account_alias.toLowerCase() === "cash" ? -1 : b.account_alias.toLowerCase() === "cash" ? 1 : 0
+  );
+  const selectedAccount = accounts.find((a) => a.id === accountId) ?? null;
+  const selectedLogoSlug = selectedAccount ? getBankLogoSlug(selectedAccount.bank_name) : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -343,94 +615,44 @@ function ExpenseStep({ categories, categoryId, setCategoryId, amount, setAmount,
           </Select>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
-
-      <StepFooter
-        onNext={onNext}
-        onSkip={onSkip}
-        nextLabel="Save & Next"
-        isPending={isPending}
-      />
-    </div>
-  );
-}
-
-interface BillStepProps {
-  categories: CategoryItem[];
-  categoryId: string;
-  setCategoryId: (v: string) => void;
-  amount: string;
-  setAmount: (v: string) => void;
-  note: string;
-  setNote: (v: string) => void;
-  dueDate: string;
-  setDueDate: (v: string | undefined) => void;
-  error: string;
-  onNext: () => void;
-  onSkip: () => void;
-  isPending: boolean;
-}
-
-function BillStep({ categories, categoryId, setCategoryId, amount, setAmount, note, setNote, dueDate, setDueDate, error, onNext, onSkip, isPending }: BillStepProps) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Add your first planned expense</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Set up a planned expense to track — like electricity, internet, or a loan payment.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="bill-name">Name</Label>
-          <Input
-            id="bill-name"
-            placeholder="e.g. Electricity"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            autoFocus
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Category</Label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bill-amount">Amount</Label>
-          <Input
-            id="bill-amount"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Due date</Label>
-          <DatePicker
-            value={dueDate}
-            onChange={(ymd) => setDueDate(ymd)}
-            placeholder="Pick a due date"
-            showOutsideDays={false}
-            disableNavigation
-          />
-        </div>
+        {accounts.length > 0 && (
+          <div className="space-y-2">
+            <Label>Account</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger className="h-auto min-h-10 py-2">
+                {selectedAccount ? (
+                  <div className="flex min-w-0 items-center gap-2">
+                    {selectedLogoSlug ? (
+                      <Image src={`/images/bank-logo/${selectedLogoSlug}.webp`} alt={selectedAccount.bank_name} width={18} height={18} className="flex-shrink-0 rounded object-contain" unoptimized />
+                    ) : (
+                      <span className="h-[18px] w-[18px] flex-shrink-0 rounded-md" style={{ backgroundColor: selectedAccount.color }} />
+                    )}
+                    <span className="truncate text-sm font-medium">{selectedAccount.account_alias}</span>
+                  </div>
+                ) : (
+                  <SelectValue placeholder="Select account" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {sortedAccounts.map((acc) => {
+                  const logoSlug = getBankLogoSlug(acc.bank_name);
+                  return (
+                    <SelectItem key={acc.id} value={acc.id} className="py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {logoSlug ? (
+                          <Image src={`/images/bank-logo/${logoSlug}.webp`} alt={acc.bank_name} width={18} height={18} className="flex-shrink-0 rounded object-contain" unoptimized />
+                        ) : (
+                          <span className="h-[18px] w-[18px] flex-shrink-0 rounded-md" style={{ backgroundColor: acc.color }} />
+                        )}
+                        <span className="truncate text-sm">{acc.account_alias}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
@@ -462,7 +684,7 @@ function DoneStep({ name, onFinish }: { name: string; onFinish: () => void }) {
           Your financial journey starts today.
         </p>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          Every expense tracked, every planned expense remembered, every goal set — it all adds up.
+          Every expense tracked, every account balanced, every goal set — it all adds up.
           Small consistent actions are what build real financial freedom over time.
         </p>
       </div>
@@ -472,15 +694,15 @@ function DoneStep({ name, onFinish }: { name: string; onFinish: () => void }) {
         <ul className="space-y-1.5 text-sm text-foreground">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Check your dashboard — your expenses and planned expenses are already there.
+            Check your dashboard — your expenses are already tracked.
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Mark planned expenses as paid when you settle them each month.
+            Add more accounts on the Accounts page to track all your balances.
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Visit your Goals page to track your progress over time.
+            Visit your Goals page to track your savings progress over time.
           </li>
         </ul>
       </div>

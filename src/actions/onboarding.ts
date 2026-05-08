@@ -4,12 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createGoal, type GoalType } from "@/actions/goals";
 
 const GOAL_DEFINITIONS: Record<string, { label: string; type: GoalType }> = {
-  save_money:      { label: "Save more money",           type: "long_term" },
-  emergency_fund:  { label: "Build an emergency fund",   type: "short_term" },
-  pay_debt:        { label: "Pay off debt",               type: "long_term" },
-  budget:          { label: "Stick to a budget",          type: "short_term" },
-  plan_future:     { label: "Plan for the future",        type: "lifetime" },
-  track_expenses:  { label: "Track all my expenses",      type: "short_term" },
+  travel_savings: { label: "Travel savings goal", type: "short_term" },
+  emergency_fund: { label: "Build an emergency fund", type: "long_term" },
+  house_renovation: { label: "House renovation fund", type: "long_term" },
+  mp2_savings: { label: "Build an MP2 savings", type: "lifetime" },
+  solar_panel: { label: "Saving for solar panel installation", type: "long_term" },
+  vehicle_maintenance: { label: "Vehicle maintenance savings", type: "short_term" },
 };
 
 export async function completeOnboarding(params: {

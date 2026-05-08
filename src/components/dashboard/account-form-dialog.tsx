@@ -223,7 +223,7 @@ export function AccountFormDialog({
               <Label htmlFor="acc-alias">Account Alias</Label>
               <Input
                 id="acc-alias"
-                placeholder="e.g. BDO Savings, GCash"
+                placeholder="e.g. Savings, Payroll"
                 value={form.account_alias}
                 onChange={(e) => setForm((p) => ({ ...p, account_alias: e.target.value }))}
                 autoFocus

@@ -1246,7 +1246,7 @@ export function BillsBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
         title="Planned Expenses"
-        subtitle="Manage your planned expenses, due dates, and mark them as paid when you settle up."
+        subtitle="Manage your planned expenses, bills, due dates, and mark them as paid when you settle up."
         icon={Receipt}
         actions={
           <div className="flex items-center gap-2">
@@ -1381,7 +1381,7 @@ export function BillsBoard() {
 
           <Button onClick={() => setAddOpen(true)} size="lg" className="hidden gap-1.5 sm:inline-flex">
             <Plus className="h-4 w-4" />
-            Add Bill
+            Add Planned Expense
           </Button>
         </div>
 
