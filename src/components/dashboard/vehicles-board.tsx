@@ -652,7 +652,7 @@ export function VehiclesBoard() {
               <Card className="h-full">
                 <CardHeader className="pb-0 pt-4">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Spend by vehicle
+                    Spendings by vehicle this month
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4 pt-2">

@@ -15,7 +15,7 @@ import {
 } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
-import { Wallet, Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Wallet, Plus, AlertTriangle, ExternalLink } from "lucide-react";
 import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -269,14 +269,10 @@ function AccountCard({
   account,
   balance,
   onOpen,
-  onEdit,
-  onDelete,
 }: {
   account: AccountRow;
   balance: number;
   onOpen: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
 }) {
   const logoSlug = getBankLogoSlug(account.bank_name);
 
@@ -296,17 +292,12 @@ function AccountCard({
 
       {/* Content */}
       <div className="relative z-10">
-        {/* Action buttons — hidden for the system Cash account */}
-        {account.bank_name !== "Cash" && (
-          <div className="absolute right-0 top-0 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-black hover:text-foreground" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label="Edit account" >
-              <Pencil className="h-3 w-3" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-red-800 hover:text-red-700" onClick={(e) => { e.stopPropagation(); onDelete(); }} aria-label="Delete account" >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        {/* Go-to link icon */}
+        <div className="absolute right-0 top-0 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button size="icon" variant="ghost" className="h-6 w-6 text-foreground/60 hover:text-foreground" onClick={(e) => { e.stopPropagation(); onOpen(); }} aria-label="Open account">
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+        </div>
 
         {/* Header */}
         <div className="mb-2 flex min-w-0 items-center gap-2 pr-12">
@@ -418,6 +409,7 @@ export function AccountsBoard() {
   );
 
   const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -463,7 +455,7 @@ export function AccountsBoard() {
         icon={Wallet}
         subtitle="Your accounts hub — record expenses, income, transfers, and adjustments here. This isn&apos;t linked to your real bank or e-wallet."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddOpen(true); }}>
+          <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
             <Plus className="h-4 w-4" />
             Add Account
           </Button>
@@ -519,7 +511,7 @@ export function AccountsBoard() {
       {accounts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-muted-foreground">
           <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
-          <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddOpen(true); }}>
+          <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
             <Plus className="mr-1.5 h-4 w-4" />
             Add Account
           </Button>
@@ -532,8 +524,6 @@ export function AccountsBoard() {
               account={acc}
               balance={balances[acc.id] ?? 0}
               onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
-              onEdit={() => { setFormError(null); setEditingAccount(acc); }}
-              onDelete={() => setDeletingId(acc.id)}
             />
           ))}
         </div>
@@ -541,6 +531,7 @@ export function AccountsBoard() {
 
       {/* Add dialog */}
       <AccountFormDialog
+        key={addKey}
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSave={handleAdd}

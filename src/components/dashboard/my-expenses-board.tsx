@@ -13,7 +13,6 @@ import {
 } from "recharts";
 import {
   Banknote,
-  CalendarDays,
   Car,
   Download,
   LayoutGrid,
@@ -32,24 +31,17 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { DatePicker, parseYmdToLocalDate } from "@/components/ui/date-picker";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { formatYmdLocal } from "@/lib/expense-due-date";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { addExpense, deleteExpense, updateExpense, type ExpenseEntryRow } from "@/actions/budget";
+import { addExpense, deleteExpense, type ExpenseEntryRow } from "@/actions/budget";
 import { type AccountRow } from "@/actions/accounts";
 import { useUser } from "@/hooks/use-user";
 import { expenseDataQueryOptions } from "@/lib/query/expenses";
@@ -62,11 +54,11 @@ import {
 } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
-import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
 import { ContentHeader } from "../app/content-header";
-import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
+import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
+import { EditExpenseDialog } from "@/components/dashboard/expense/edit-expense-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
@@ -246,108 +238,6 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
   );
 }
 
-// ─── Account Tag Selector ─────────────────────────────────────────────────────
-
-const LAST_ACCOUNT_NAMES = ["cash", "borrowed"];
-
-function AccountTagSelector({
-  accounts,
-  value,
-  onChange,
-}: {
-  accounts: AccountRow[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  if (!accounts.length) return null;
-  const sorted = [...accounts].sort((a, b) => {
-    const aLast = LAST_ACCOUNT_NAMES.includes(a.account_alias.toLowerCase()) ? 1 : 0;
-    const bLast = LAST_ACCOUNT_NAMES.includes(b.account_alias.toLowerCase()) ? 1 : 0;
-    return aLast - bLast;
-  });
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {sorted.map((acc) => {
-        const selected = value === acc.id;
-        return (
-          <button
-            key={acc.id}
-            type="button"
-            onClick={() => onChange(selected ? "" : acc.id)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-              selected
-                ? "ring-1"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted"
-            )}
-            style={selected ? {
-              backgroundColor: `${acc.color}22`,
-              color: acc.color,
-              outlineColor: acc.color,
-            } : undefined}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} />
-            {acc.account_alias}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Inline Date Picker (icon-only) ──────────────────────────────────────────
-
-function InlineDatePicker({
-  value,
-  onChange,
-  disabled,
-  restrictToMonth,
-}: {
-  value: string;
-  onChange: (ymd: string) => void;
-  disabled?: boolean;
-  restrictToMonth?: string; // YYYY-MM — locks calendar nav to this month
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = value.trim() ? parseYmdToLocalDate(value) : undefined;
-  const monthDate = useMemo(() => {
-    if (!restrictToMonth) return undefined;
-    const [y, m] = restrictToMonth.split("-").map(Number);
-    return new Date(y, m - 1, 1);
-  }, [restrictToMonth]);
-  return (
-    <Popover modal={false} open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted",
-            value ? "text-primary" : "text-muted-foreground/50"
-          )}
-          aria-label={value ? `Date: ${value}` : "Pick date"}
-        >
-          <CalendarDays className="h-4 w-4" aria-hidden />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="z-[100] w-auto border-0 bg-transparent p-0 shadow-none" align="end">
-        <Calendar
-          mode="single"
-          selected={selected}
-          defaultMonth={monthDate ?? selected ?? new Date()}
-          startMonth={monthDate}
-          endMonth={monthDate}
-          onSelect={(d) => {
-            if (!d) return;
-            onChange(formatYmdLocal(d));
-            setOpen(false);
-          }}
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function MyExpensesBoard() {
@@ -432,30 +322,9 @@ export function MyExpensesBoard() {
 
   // ── Add dialog state ──
   const [addOpen, setAddOpen] = useState(false);
-  const [addName, setAddName] = useState("");
-  const [addAmount, setAddAmount] = useState("");
-  const [addCategory, setAddCategory] = useState("");
-  const [addNote, setAddNote] = useState("");
-  const [addDate, setAddDate] = useState(todayYmd);
-  const [addAccountId, setAddAccountId] = useState("");
-  const [addVehicleId, setAddVehicleId] = useState("");
-  const [addVehicleCategory, setAddVehicleCategory] = useState("");
-  const [addSaving, setAddSaving] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
 
   // ── Edit modal state ──
   const [editingEntry, setEditingEntry] = useState<ExpenseEntryRow | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editAmount, setEditAmount] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editNote, setEditNote] = useState("");
-  const [editExpenseDate, setEditExpenseDate] = useState("");
-  const [editAccountId, setEditAccountId] = useState("");
-  const [editVehicleId, setEditVehicleId] = useState("");
-  const [editVehicleCategory, setEditVehicleCategory] = useState("");
-
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -469,7 +338,6 @@ export function MyExpensesBoard() {
   useEffect(() => {
     const defaultDate = isCurrentMonth ? todayYmd() : `${selectedMonth}-01`;
     setExpDate(defaultDate);
-    setAddDate(defaultDate);
   }, [selectedMonth, isCurrentMonth]);
 
   // Auth guard
@@ -559,96 +427,6 @@ export function MyExpensesBoard() {
 
   function handleOpenEdit(entry: ExpenseEntryRow) {
     setEditingEntry(entry);
-    setEditName(entry.note?.trim() || "");
-    setEditAmount(String(entry.amount));
-    setEditCategory(entry.category_id === "other" || !entry.category_id ? "" : entry.category_id);
-    setEditNote(entry.notes?.trim() || "");
-    setEditExpenseDate(entry.created_at ? entry.created_at.slice(0, 10) : todayYmd());
-    setEditAccountId(entry.account_id ?? "");
-    setEditVehicleId(entry.vehicle_id ?? "");
-    setEditVehicleCategory(entry.vehicle_category ?? "");
-    setEditError(null);
-  }
-
-  async function handleAddFromDialog(e: React.FormEvent) {
-    e.preventDefault();
-    const name = addName.trim();
-    const amt = parseFloat(addAmount);
-    if (!name || isNaN(amt) || amt <= 0) {
-      setAddError("Please enter a name and a valid amount.");
-      return;
-    }
-    setAddSaving(true);
-    setAddError(null);
-    if (addVehicleId && !addVehicleCategory) {
-      setAddError("Please select a vehicle category.");
-      setAddSaving(false);
-      return;
-    }
-    const res = await addExpense(
-      addCategory || "other", amt, name,
-      addNote.trim() || null, null, null, "monthly", "both", addDate, addAccountId || null, addVehicleId || null, addVehicleCategory || null
-    );
-    setAddSaving(false);
-    if (res.error) {
-      setAddError(res.error);
-    } else {
-      setAddOpen(false);
-      setAddName("");
-      setAddAmount("");
-      setAddCategory("");
-      setAddNote("");
-      setAddDate(todayYmd());
-      setAddAccountId("");
-      setAddVehicleId("");
-      setAddVehicleCategory("");
-      invalidate();
-      invalidateVehicleQueriesIfTransportAffected(queryClient, addCategory || "other");
-    }
-  }
-
-  async function handleSaveEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingEntry) return;
-    const name = editName.trim();
-    const amt = parseFloat(editAmount);
-    if (!name || isNaN(amt) || amt <= 0) {
-      setEditError("Please enter a name and a valid amount.");
-      return;
-    }
-    if (editVehicleId && !editVehicleCategory) {
-      setEditError("Please select a vehicle category.");
-      return;
-    }
-    setEditSaving(true);
-    setEditError(null);
-    const res = await updateExpense(
-      editingEntry.id,
-      editCategory || "other",
-      amt,
-      name,
-      editNote.trim() || null,
-      undefined,
-      null,
-      undefined,
-      undefined,
-      editExpenseDate,
-      editAccountId || null,
-      editVehicleId || null,
-      editVehicleCategory || null,
-    );
-    setEditSaving(false);
-    if (res.error) {
-      setEditError(res.error);
-    } else {
-      setEditingEntry(null);
-      invalidate();
-      invalidateVehicleQueriesIfTransportAffected(
-        queryClient,
-        editingEntry.category_id,
-        editCategory || "other",
-      );
-    }
   }
 
   // ── Render ──
@@ -754,7 +532,7 @@ export function MyExpensesBoard() {
             ))}
           </SelectContent>
         </Select>
-        <Button size="lg" onClick={() => { setAddOpen(true); setAddError(null); }} className="gap-1.5">
+        <Button size="lg" onClick={() => setAddOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" aria-hidden />
           Add Expense
         </Button>
@@ -770,47 +548,13 @@ export function MyExpensesBoard() {
         </div>
       )}
 
-      <form
-        onSubmit={handleAddExpense}
-        className="flex items-center gap-1.5 sm:gap-3 border border-border/70 py-3 mt-1 mb-2 rounded-lg px-3 sm:px-4"
-      >
-        <input
-          ref={expNameRef}
-          value={expName}
-          onChange={(e) => setExpName(e.target.value)}
-          placeholder="Expense name"
-          className="h-9 flex-1 min-w-0 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-base sm:text-sm shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0"
-          disabled={expSaving}
-          aria-label="Expense name"
-        />
-        <input
-          value={expAmount}
-          onChange={(e) => setExpAmount(e.target.value)}
-          placeholder="Amount"
-          type="number"
-          min="0.01"
-          step="any"
-          className="w-16 sm:w-20 h-9 rounded-none border-0 border-b-2 border-muted-foreground/35 bg-transparent px-0 text-right text-base sm:text-sm tabular-nums shadow-none placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          disabled={expSaving}
-          aria-label="Amount"
-        />
-        <InlineDatePicker value={expDate} onChange={setExpDate} disabled={expSaving} restrictToMonth={selectedMonth} />
-        <button
-          type="submit"
-          disabled={expSaving || !expName.trim() || !expAmount}
-          className="flex-shrink-0 rounded-md bg-primary px-2.5 sm:px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-40"
-        >
-          {expSaving ? "…" : "Add"}
-        </button>
-      </form>
-
       {/* Expenses board */}
       <div className="flex flex-col gap-2">
         {expenseDataQuery.isPending ? (
           <DashboardSkeleton variant="form" />
         ) : expenses.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            No expenses yet — add one above or use the form below.
+            No expenses yet. Add one to get started.
           </p>
         ) : (
           expenses.map((exp) => {
@@ -877,289 +621,8 @@ export function MyExpensesBoard() {
 
       </div>
 
-      {/* ── Add modal ── */}
-      <Dialog open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); setAddError(null); setAddVehicleId(""); setAddVehicleCategory(""); } }}>
-        <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
-          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-            <DialogTitle>Add Expense</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddFromDialog} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <ScrollFadeBody className="space-y-4 px-6 pb-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="add-name">Name</Label>
-                  <Input
-                    id="add-name"
-                    value={addName}
-                    onChange={(e) => setAddName(e.target.value)}
-                    placeholder="Name"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="add-amount">Amount</Label>
-                  <Input
-                    id="add-amount"
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    value={addAmount}
-                    onChange={(e) => setAddAmount(e.target.value)}
-                    placeholder="₱0"
-                    className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
-
-              {accounts.length > 0 && (
-                <div className="grid gap-1.5">
-                  <AccountTagSelector accounts={accounts} value={addAccountId} onChange={setAddAccountId} />
-                </div>
-              )}
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="add-category">Category</Label>
-                  <Select value={addCategory} onValueChange={setAddCategory}>
-                    <SelectTrigger id="add-category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="add-date">Date</Label>
-                  <DatePicker
-                    id="add-date"
-                    value={addDate}
-                    onChange={setAddDate}
-                    formatDisplay={formatShortDate}
-                  />
-                </div>
-              </div>
-
-              {/* Vehicle selector — transport category only */}
-              {addCategory === "transport" && vehicles.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="add-vehicle">Vehicle (optional)</Label>
-                    <Select value={addVehicleId} onValueChange={(v) => { setAddVehicleId(v === "_none" ? "" : v); setAddVehicleCategory(""); }}>
-                      <SelectTrigger id="add-vehicle">
-                        <SelectValue placeholder="Link to a vehicle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">— None —</SelectItem>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {addVehicleId && (
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="add-vehicle-category">
-                        Vehicle Category <span className="text-destructive">*</span>
-                      </Label>
-                      <Select value={addVehicleCategory} onValueChange={setAddVehicleCategory}>
-                        <SelectTrigger id="add-vehicle-category">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-note">Note</Label>
-                <textarea
-                  id="add-note"
-                  value={addNote}
-                  onChange={(e) => setAddNote(e.target.value)}
-                  placeholder="Optional note…"
-                  rows={2}
-                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-
-              {addError && <p className="text-sm text-destructive">{addError}</p>}
-            </ScrollFadeBody>
-
-            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
-              <div className="flex w-full gap-2">
-                <Button type="button" variant="outline" className="w-1/2" onClick={() => setAddOpen(false)} disabled={addSaving}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-1/2" disabled={addSaving || !addName.trim() || !addAmount}>
-                  {addSaving ? "Saving…" : "Add"}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Edit modal ── */}
-      <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
-        <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
-          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-            <DialogTitle>Edit Expense</DialogTitle>
-            {editingEntry && (
-              <p className="text-xs text-muted-foreground">
-                {editingEntry.note?.trim() || editingEntry.notes?.trim() || "—"} · {formatCurrency(editingEntry.amount)}
-              </p>
-            )}
-          </DialogHeader>
-          <form onSubmit={handleSaveEdit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <ScrollFadeBody className="space-y-4 px-6 pb-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-name">Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Name"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-amount">Amount</Label>
-                  <Input
-                    id="edit-amount"
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    value={editAmount}
-                    onChange={(e) => setEditAmount(e.target.value)}
-                    placeholder="₱0"
-                    className="[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                </div>
-              </div>
-
-              {accounts.length > 0 && (
-                <div className="grid gap-1.5">
-                  <AccountTagSelector accounts={accounts} value={editAccountId} onChange={setEditAccountId} />
-                </div>
-              )}
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-category">Category</Label>
-                  <Select value={editCategory} onValueChange={setEditCategory}>
-                    <SelectTrigger id="edit-category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="edit-date">Date</Label>
-                  <DatePicker
-                    id="edit-date"
-                    value={editExpenseDate}
-                    onChange={setEditExpenseDate}
-                    formatDisplay={formatShortDate}
-                  />
-                </div>
-              </div>
-
-              {/* Vehicle selector — transport category only */}
-              {editCategory === "transport" && vehicles.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-vehicle">Vehicle (optional)</Label>
-                    <Select value={editVehicleId} onValueChange={(v) => { setEditVehicleId(v === "_none" ? "" : v); setEditVehicleCategory(""); }}>
-                      <SelectTrigger id="edit-vehicle">
-                        <SelectValue placeholder="Link to a vehicle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">— None —</SelectItem>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {editVehicleId && (
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="edit-vehicle-category">
-                        Vehicle Category <span className="text-destructive">*</span>
-                      </Label>
-                      <Select value={editVehicleCategory} onValueChange={setEditVehicleCategory}>
-                        <SelectTrigger id="edit-vehicle-category">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="edit-note">Note</Label>
-                <textarea
-                  id="edit-note"
-                  value={editNote}
-                  onChange={(e) => setEditNote(e.target.value)}
-                  placeholder="Optional note…"
-                  rows={2}
-                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-
-              {editError && <p className="text-sm text-destructive">{editError}</p>}
-            </ScrollFadeBody>
-
-            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 flex-none rounded-full text-destructive hover:bg-destructive/15 hover:text-destructive"
-                  aria-label="Remove"
-                  onClick={() => { setEditingEntry(null); handleDelete(editingEntry!.id); }}
-                  disabled={editSaving}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </Button>
-                <Button type="button" variant="outline" className="flex-1 w-1/2" onClick={() => setEditingEntry(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 w-1/2"
-                  disabled={editSaving || !editName.trim() || !editAmount || !editCategory}
-                >
-                  {editSaving ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddExpenseDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <EditExpenseDialog entry={editingEntry} onClose={() => setEditingEntry(null)} onDelete={handleDelete} />
 
       {/* Delete confirm */}
       <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>

@@ -28,6 +28,7 @@ import {
   AccountTransferDialog,
   type SimpleEntryMode,
 } from "@/components/dashboard/account-transaction-dialog";
+import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
 import {
   updateAccount,
   deleteAccount,
@@ -35,7 +36,7 @@ import {
 } from "@/actions/accounts";
 import {
   createAccountAdjustment,
-  createAccountExpense,
+  createAccountFee,
   createAccountIncome,
   createAccountTransfer,
   deleteAccountTransaction,
@@ -47,19 +48,28 @@ import {
 } from "@/lib/query/account-transactions";
 import {
   accountsQueryOptions,
+  accountBalancesQueryOptions,
   invalidateAccountQueries,
 } from "@/lib/query/accounts";
 import { formatCurrency, cn } from "@/lib/utils";
 
-function formatTxDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+function formatGroupDate(dateStr: string): string {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  if (dateStr === todayStr) return "Today";
+  if (dateStr === yesterdayStr) return "Yesterday";
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
+    year: "numeric", month: "long", day: "numeric",
+  });
 }
 
 function txMeta(
   tx: AccountTransactionRow,
 ): { label: string; iconClass: string; sign: 1 | -1 | 0 } {
   if (tx.type === "expense") return { label: "Expense", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+  if (tx.type === "fee") return { label: "Fee", iconClass: "text-orange-600 dark:text-orange-400", sign: -1 };
   if (tx.type === "income") return { label: "Income", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 };
   if (tx.type === "transfer") {
     return tx.amount >= 0
@@ -68,8 +78,8 @@ function txMeta(
   }
   // adjustment
   return tx.amount >= 0
-    ? { label: "Adjustment +", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 }
-    : { label: "Adjustment −", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+    ? { label: "Adjustment", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 }
+    : { label: "Adjustment", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
 }
 
 export function AccountDetailBoard({ account: initialAccount }: { account: AccountRow }) {
@@ -79,6 +89,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
   const [account, setAccount] = useState<AccountRow>(initialAccount);
   const [activeMode, setActiveMode] = useState<SimpleEntryMode | null>(null);
+  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -88,10 +99,38 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
   const { data: txData = { balance: 0, transactions: [] } } = useQuery(accountTransactionsQueryOptions(account.id));
   const { data: allAccounts = [] } = useQuery(accountsQueryOptions());
+  const { data: balances = {} } = useQuery(accountBalancesQueryOptions());
+
+  // Pre-compute balance before/after each transaction (transactions are newest-first).
+  const txBalances = useMemo(() => {
+    let running = 0;
+    return txData.transactions.map((tx) => {
+      const after = txData.balance - running;
+      running += tx.amount;
+      return { before: after - tx.amount, after };
+    });
+  }, [txData]);
+
+  // Group transactions by calendar date for the history view (order preserved, newest-first).
+  const txGroups = useMemo(() => {
+    const groups: Array<{ date: string; entries: Array<{ tx: AccountTransactionRow; idx: number }> }> = [];
+    txData.transactions.forEach((tx, idx) => {
+      const date = tx.occurred_at.slice(0, 10);
+      const last = groups[groups.length - 1];
+      if (last && last.date === date) {
+        last.entries.push({ tx, idx });
+      } else {
+        groups.push({ date, entries: [{ tx, idx }] });
+      }
+    });
+    return groups;
+  }, [txData.transactions]);
 
   const otherAccounts = useMemo(
-    () => allAccounts.filter((a: AccountRow) => a.id !== account.id),
-    [allAccounts, account.id],
+    () => allAccounts
+      .filter((a: AccountRow) => a.id !== account.id)
+      .map((a: AccountRow) => ({ ...a, balance: balances[a.id] ?? 0 })),
+    [allAccounts, account.id, balances],
   );
 
   const invalidateTx = useCallback(() => {
@@ -99,20 +138,18 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     invalidateAccountQueries(queryClient);
   }, [queryClient, account.id]);
 
-  function handleSimpleSave({ amount, description, direction }: { amount: number; description: string; direction: 1 | -1 }) {
+  function handleSimpleSave({ amount, description, direction, date, accountId }: { amount: number; description: string; direction: 1 | -1; date: string; accountId: string }) {
     if (!activeMode) return;
     setTxError(null);
     startTransition(async () => {
       const res =
-        activeMode === "expense"
-          ? await createAccountExpense({ accountId: account.id, amount, description })
-          : activeMode === "income"
-            ? await createAccountIncome({ accountId: account.id, amount, description })
-            : await createAccountAdjustment({
-              accountId: account.id,
-              amount: direction === 1 ? amount : -amount,
-              description,
-            });
+        activeMode === "income"
+          ? await createAccountIncome({ accountId: accountId || account.id, amount, description, occurredAt: date })
+          : await createAccountAdjustment({
+            accountId: account.id,
+            amount: direction === 1 ? amount : -amount,
+            description,
+          });
       if (res.error) {
         setTxError(res.error);
         return;
@@ -122,7 +159,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     });
   }
 
-  function handleTransferSave({ toAccountId, amount, description }: { toAccountId: string; amount: number; description: string }) {
+  function handleTransferSave({ toAccountId, amount, description, fee }: { toAccountId: string; amount: number; description: string; fee: number }) {
     setTxError(null);
     startTransition(async () => {
       const res = await createAccountTransfer({
@@ -134,6 +171,13 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       if (res.error) {
         setTxError(res.error);
         return;
+      }
+      if (fee > 0) {
+        await createAccountFee({
+          accountId: account.id,
+          amount: fee,
+          description: description ? `Transfer fee — ${description}` : "Transfer fee",
+        });
       }
       setTransferOpen(false);
       invalidateTx();
@@ -229,7 +273,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
         {/* Action buttons */}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("expense"); }}>
+          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setAddExpenseOpen(true); }}>
             <ArrowDownCircle className="h-4 w-4 text-rose-500" />
             Add Expense
           </Button>
@@ -257,60 +301,84 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
             <p className="max-w-md text-xs">Add an expense, income, adjustment, or transfer to start tracking the balance on this account.</p>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {txData.transactions.map((tx: AccountTransactionRow) => {
-              const meta = txMeta(tx);
-              const counterpartName = tx.transfer_counterpart?.account_alias ?? "another account";
-              return (
-                <li
-                  key={tx.id}
-                  className="group flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={cn("text-xs font-semibold uppercase tracking-wide", meta.iconClass)}>
-                        {meta.label}
-                      </span>
-                      {tx.type === "transfer" && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {tx.amount >= 0 ? `from ${counterpartName}` : `to ${counterpartName}`}
-                        </span>
-                      )}
-                    </div>
-                    {tx.description && (
-                      <p className="mt-0.5 truncate text-sm">{tx.description}</p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground">{formatTxDate(tx.occurred_at)}</p>
-                  </div>
-                  <p className={cn(
-                    "flex-shrink-0 text-sm font-semibold tabular-nums",
-                    tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
-                    tx.amount < 0 && "text-rose-600 dark:text-rose-400",
-                  )}>
-                    {tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}
-                    {formatCurrency(Math.abs(tx.amount))}
-                  </p>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => setDeletingTxId(tx.id)}
-                    aria-label="Delete entry"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-4">
+            {txGroups.map((group) => (
+              <div key={group.date} className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {formatGroupDate(group.date)}
+                </p>
+                <ul className="space-y-2">
+                  {group.entries.map(({ tx, idx }) => {
+                    const meta = txMeta(tx);
+                    const counterpartName = tx.transfer_counterpart?.account_alias ?? "another account";
+                    const { before, after } = txBalances[idx] ?? { before: 0, after: 0 };
+                    return (
+                      <li
+                        key={tx.id}
+                        className="group flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={cn("text-xs font-semibold uppercase tracking-wide", meta.iconClass)}>
+                              {meta.label}
+                            </span>
+                            {tx.type === "transfer" && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {tx.amount >= 0 ? `from ${counterpartName}` : `to ${counterpartName}`}
+                              </span>
+                            )}
+                          </div>
+                          {tx.description && (
+                            <p className="mt-0.5 truncate text-sm">{tx.description}</p>
+                          )}
+                          {tx.type === "adjustment" && (
+                            <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                              {formatCurrency(before)} → {formatCurrency(after)}
+                            </p>
+                          )}
+                        </div>
+                        <p className={cn(
+                          "flex-shrink-0 text-sm font-semibold tabular-nums",
+                          tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
+                          tx.amount < 0 && "text-rose-600 dark:text-rose-400",
+                        )}>
+                          {tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}
+                          {formatCurrency(Math.abs(tx.amount))}
+                        </p>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeletingTxId(tx.id)}
+                          aria-label="Delete entry"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Simple entry dialog (expense / income / adjustment) */}
+      {/* Add Expense dialog (expenses module) */}
+      <AddExpenseDialog
+        open={addExpenseOpen}
+        onClose={() => setAddExpenseOpen(false)}
+        initialAccountId={account.id}
+      />
+
+      {/* Income / Adjustment dialog */}
       {activeMode && (
         <AccountTransactionDialog
           open
           mode={activeMode}
+          currentBalance={txData.balance}
+          accounts={allAccounts}
+          defaultAccountId={account.id}
           onClose={() => setActiveMode(null)}
           onSave={handleSimpleSave}
           isPending={isPending}

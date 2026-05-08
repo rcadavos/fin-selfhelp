@@ -14,6 +14,25 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.7",
+    date: "2026-05-08",
+    summary: "Unified expense dialogs with required account, bank logo, and balance validation.",
+    changes: [
+      { type: "improvement", description: "Adjustment modal now takes a 'Current Balance' input instead of add/subtract direction buttons — the delta is computed and recorded automatically." },
+      { type: "improvement", description: "Live adjustment preview shown below the input (e.g. Adjustment +₱500 or Adjustment −₱200)." },
+      { type: "improvement", description: "Description field renamed to Notes in the Adjustment modal." },
+      { type: "improvement", description: "Transfer destination is now a dropdown showing each account's bank logo, name, and current balance." },
+      { type: "feature", description: "Optional Transfer Fee field added — when provided, a separate expense entry is recorded on the source account." },
+      { type: "fix", description: "Account cards now show an external link icon on hover instead of edit/delete buttons (edit/delete moved to the account detail page)." },
+      { type: "fix", description: "Resolved browser warning about missing aria-describedby on dialog components." },
+      { type: "improvement", description: "Account is now required when adding or editing an expense — expenses must always be linked to an account." },
+      { type: "improvement", description: "Account dropdown in Add/Edit Expense now shows the bank logo alongside the account name." },
+      { type: "improvement", description: "Available balance is displayed below the account selector; saving is blocked if the expense exceeds the balance." },
+      { type: "feature", description: "Saving an expense with a linked account creates an account transaction to deduct the amount from the balance (Expenses page and Account detail page both do this)." },
+      { type: "improvement", description: "Add and Edit Expense modals on the Expenses page now use the same shared components as the Account detail page." },
+    ],
+  },
+  {
     version: "1.5.6",
     date: "2026-05-07",
     summary: "Account modal improvements: interest rate, maintaining balance, warning indicators.",

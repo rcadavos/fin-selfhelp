@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export type AccountTransactionType = "expense" | "income" | "adjustment" | "transfer";
+export type AccountTransactionType = "expense" | "income" | "adjustment" | "transfer" | "fee";
 
 export type AccountTransactionRow = {
   id: string;
@@ -167,6 +167,12 @@ export async function createAccountExpense(input: SimpleEntryInput): Promise<{ e
   const v = validatePositiveAmount(input.amount);
   if (v) return { error: v };
   return insertSimpleTransaction(input, "expense", -Math.abs(input.amount));
+}
+
+export async function createAccountFee(input: SimpleEntryInput): Promise<{ error?: string }> {
+  const v = validatePositiveAmount(input.amount);
+  if (v) return { error: v };
+  return insertSimpleTransaction(input, "fee", -Math.abs(input.amount));
 }
 
 export async function createAccountIncome(input: SimpleEntryInput): Promise<{ error?: string }> {
