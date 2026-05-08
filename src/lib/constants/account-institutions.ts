@@ -29,6 +29,10 @@ export const BANK_COLOR_MAP: Record<string, string> = {
   "GoTyme Bank":                               "#01F3FA",
   "OwnBank":                                   "#65E294",
   "Maribank":                                  "#EA5F01",
+  "Coins.ph":                                  "#1E68D5",
+  "Binance":                                   "#F0B90A",
+  "OKX":                                       "#000000",
+  "Metamask":                                  "#FFA680",
 };
 
 export function getBankColor(bankName: string): string | null {
@@ -65,6 +69,10 @@ const BANK_LOGO_MAP: Record<string, string> = {
   "GoTyme Bank": "gotyme",
   "OwnBank": "ownbank",
   "Maribank": "maribank",
+  "Coins.ph": "coins",
+  "Binance":  "binance",
+  "OKX":      "okx",
+  "Metamask": "metamask",
 };
 
 const BANK_LOGO_MAP_LOWER = Object.fromEntries(
@@ -79,36 +87,49 @@ export function getBankLogoSlug(bankName: string): string | null {
   );
 }
 
+export const BANK_GROUPS: Array<{ label: string; banks: string[] }> = [
+  {
+    label: "Banks & E-Wallets",
+    banks: [
+      "BDO Unibank",
+      "Bank of the Philippine Islands (BPI)",
+      "Metrobank",
+      "Philippine National Bank (PNB)",
+      "Security Bank",
+      "Landbank of the Philippines",
+      "Development Bank of the Philippines (DBP)",
+      "UnionBank",
+      "China Banking Corporation (Chinabank)",
+      "RCBC",
+      "EastWest Bank",
+      "Maybank Philippines",
+      "Asia United Bank (AUB)",
+      "Philippine Savings Bank (PSBank)",
+      "Robinsons Bank",
+      "CTBC Bank Philippines",
+      "ING Bank Philippines",
+      "HSBC Philippines",
+      "Citibank Philippines",
+      "Standard Chartered Philippines",
+      "BDO Network Bank",
+      "Overseas Filipino Bank (OFBank)",
+      "GCash",
+      "Maya (PayMaya)",
+      "CIMB Bank Philippines",
+      "Tonik Digital Bank",
+      "GoTyme Bank",
+      "OwnBank",
+      "Maribank",
+    ],
+  },
+  {
+    label: "Crypto",
+    banks: ["Coins.ph", "Binance", "OKX", "Metamask"],
+  },
+];
+
 export const PHILIPPINE_BANKS = [
-  "BDO Unibank",
-  "Bank of the Philippine Islands (BPI)",
-  "Metrobank",
-  "Philippine National Bank (PNB)",
-  "Security Bank",
-  "Landbank of the Philippines",
-  "Development Bank of the Philippines (DBP)",
-  "UnionBank",
-  "China Banking Corporation (Chinabank)",
-  "RCBC",
-  "EastWest Bank",
-  "Maybank Philippines",
-  "Asia United Bank (AUB)",
-  "Philippine Savings Bank (PSBank)",
-  "Robinsons Bank",
-  "CTBC Bank Philippines",
-  "ING Bank Philippines",
-  "HSBC Philippines",
-  "Citibank Philippines",
-  "Standard Chartered Philippines",
-  "BDO Network Bank",
-  "Overseas Filipino Bank (OFBank)",
-  "GCash",
-  "Maya (PayMaya)",
-  "CIMB Bank Philippines",
-  "Tonik Digital Bank",
-  "GoTyme Bank",
-  "OwnBank",
-  "Maribank",
+  ...BANK_GROUPS.flatMap((g) => g.banks),
   "Other",
 ] as const;
 
@@ -156,6 +177,10 @@ const INSTITUTION_BADGES: Array<{ match: RegExp; badge: InstitutionBadge }> = [
   { match: /gotyme/i, badge: { text: "GT", bg: "#15803d", fg: "#ffffff" } },
   { match: /ownbank/i, badge: { text: "OW", bg: "#7c2d12", fg: "#ffffff" } },
   { match: /mari ?bank/i, badge: { text: "MR", bg: "#0f766e", fg: "#ffffff" } },
+  { match: /coins\.ph|coins/i, badge: { text: "CO", bg: "#1E68D5", fg: "#ffffff" } },
+  { match: /binance/i, badge: { text: "BN", bg: "#F0B90A", fg: "#000000" } },
+  { match: /\bokx\b/i, badge: { text: "OK", bg: "#000000", fg: "#ffffff" } },
+  { match: /metamask/i, badge: { text: "MM", bg: "#FFA680", fg: "#ffffff" } },
 ];
 
 export function getInstitutionBadge(bankName: string): InstitutionBadge {

@@ -14,6 +14,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.6",
+    date: "2026-05-07",
+    summary: "Account modal improvements: interest rate, maintaining balance, warning indicators.",
+    changes: [
+      { type: "improvement", description: "Account Type field changed from button grid to a dropdown with Debit as default." },
+      { type: "improvement", description: "Starting Balance is now on the left and Currency on the right in the modal layout." },
+      { type: "feature", description: "Interest Rate (%) field added beside Interest Frequency — disabled until a frequency is selected." },
+      { type: "feature", description: "Maintaining Balance (optional) field added to the account form to set a minimum balance threshold." },
+      { type: "feature", description: "Warning icon shown on account cards and the account detail page when the balance drops below the maintaining balance." },
+    ],
+  },
+  {
     version: "1.5.5",
     date: "2026-05-07",
     summary: "Account list redesigned as cards; currency field added to accounts; bank logos in modal.",

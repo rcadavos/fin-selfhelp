@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowDownCircle,
   ArrowLeft,
   ArrowLeftRight,
@@ -209,9 +210,19 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       {/* Balance card */}
       <div className="rounded-2xl border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current balance</p>
-        <p className={cn("mt-1 text-3xl font-bold tabular-nums", txData.balance < 0 && "text-rose-600 dark:text-rose-400")}>
-          {formatCurrency(txData.balance)}
-        </p>
+        <div className="mt-1 flex items-center gap-2">
+          <p className={cn("text-3xl font-bold tabular-nums", txData.balance < 0 && "text-rose-600 dark:text-rose-400")}>
+            {formatCurrency(txData.balance)}
+          </p>
+          {account.maintaining_balance != null &&
+            account.maintaining_balance > 0 &&
+            txData.balance < account.maintaining_balance && (
+              <span className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Below maintaining balance ({formatCurrency(account.maintaining_balance)})
+              </span>
+            )}
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
           Computed from {txData.transactions.length} {txData.transactions.length === 1 ? "entry" : "entries"} on this account.
         </p>

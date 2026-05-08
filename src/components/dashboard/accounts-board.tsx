@@ -15,7 +15,7 @@ import {
 } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
-import { Wallet, Plus, Pencil, Trash2 } from "lucide-react";
+import { Wallet, Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -355,14 +355,24 @@ function AccountCard({
             Balance
           </p>
 
-          <p
-            className={cn(
-              "text-lg font-bold tabular-nums text-foreground",
-              balance < 0 && "text-rose-600 dark:text-rose-400",
-            )}
-          >
-            {formatCurrency(balance, account.currency)}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p
+              className={cn(
+                "text-lg font-bold tabular-nums text-foreground",
+                balance < 0 && "text-rose-600 dark:text-rose-400",
+              )}
+            >
+              {formatCurrency(balance, account.currency)}
+            </p>
+            {account.maintaining_balance != null &&
+              account.maintaining_balance > 0 &&
+              balance < account.maintaining_balance && (
+                <AlertTriangle
+                  className="h-4 w-4 flex-shrink-0 text-amber-500"
+                  aria-label="Balance below maintaining balance"
+                />
+              )}
+          </div>
         </div>
       </div>
     </div>

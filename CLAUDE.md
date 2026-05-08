@@ -127,6 +127,9 @@ Always use the shared `src/components/ui/calendar.tsx` component whenever a cale
 ### Text separators
 Use `•` as the separator character whenever inline text items need to be separated (e.g. meta info lines, tag lists, stat labels). Never use `/`, `|`, or `-` as inline text separators in the UI.
 
+### Preserving user edits
+Always re-read a file immediately before editing it — never rely on what you wrote in a previous turn, because the user may have changed it since. Make only the changes the current instruction requires; leave every other line exactly as it is in the file at read time.
+
 ### Compact instructions
 When you are using compact, please focus on test output and code changes
 
