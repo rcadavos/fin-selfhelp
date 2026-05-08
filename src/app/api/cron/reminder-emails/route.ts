@@ -80,7 +80,7 @@ export async function GET(request: Request) {
     }
 
     const now = new Date();
-    if (!isReminderReleaseHour(now, 8)) {
+    if (!isReminderReleaseHour(now, 9)) {
       return NextResponse.json(
         { ok: true, skipped: "Before 08:00 Asia/Manila (reminder release window)." },
         { status: 200 }

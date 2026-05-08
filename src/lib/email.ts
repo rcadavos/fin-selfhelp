@@ -7,11 +7,7 @@ function getResendClient() {
   return new Resend(apiKey);
 }
 
-function getFromAddress() {
-  const raw = process.env.REMINDER_FROM_EMAIL?.trim() ?? "OmniTrak <info@omnitrak.cloud>";
-  // Strip surrounding quotes that some env var editors add (e.g. Vercel dashboard)
-  return raw.replace(/^["']|["']$/g, "");
-}
+const FROM_ADDRESS = "OmniTrak <info@omnitrak.cloud>";
 
 export async function sendWelcomeEmail(params: {
   to: string;
@@ -169,7 +165,7 @@ export async function sendWelcomeEmail(params: {
   try {
     const resend = getResendClient();
     const { error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: params.to,
       subject,
       text,
@@ -290,7 +286,7 @@ export async function sendPhoneChangedEmail(params: {
   try {
     const resend = getResendClient();
     const { error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: params.to,
       subject,
       text,
@@ -422,7 +418,7 @@ export async function sendReminderEmail(params: {
   try {
     const resend = getResendClient();
     const { error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: params.to,
       subject,
       text,
@@ -567,7 +563,7 @@ export async function sendReceivableInviteEmail(params: {
   try {
     const resend = getResendClient();
     const { error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: params.to,
       subject,
       text,

@@ -104,7 +104,7 @@ export async function syncGeneratedProNotificationsForToday(
   );
 
   const today = new Date();
-  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
+  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 9)) {
     return { notificationsInserted: 0, errors: [], skipped: true };
   }
   const todayYmd = formatYmdLocal(today);
@@ -294,7 +294,7 @@ export async function sendGeneratedProReminderEmailsForToday(
   );
 
   const today = new Date();
-  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
+  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 9)) {
     return { emailsSent: 0, pendingCount: 0, skipped: true, errors: [] };
   }
 
