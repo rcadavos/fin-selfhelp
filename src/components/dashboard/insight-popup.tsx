@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { SiteLogo } from "@/components/app/site-logo";
 import { cn } from "@/lib/utils";
@@ -26,21 +26,61 @@ const FINANCIAL_TIPS = [
   { emoji: "📅", message: "Log in daily to stay on top of your finances." },
 ];
 
+const STORAGE_KEY = "insight-popup-dismissed";
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isDismissedToday() {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === getTodayKey();
+  } catch {
+    return false;
+  }
+}
+
+function dismissToday() {
+  try {
+    localStorage.setItem(STORAGE_KEY, getTodayKey());
+  } catch {
+    // ignore
+  }
+}
+
 export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupProps) {
   const [visible, setVisible] = useState(false);
   const [closed, setClosed] = useState(false);
+  // Stabilise tip selection so it never changes on re-render
+  const [tip] = useState(() => FINANCIAL_TIPS[Math.floor(Math.random() * FINANCIAL_TIPS.length)]);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("insight-popup-closed")) return;
+    if (isDismissedToday()) {
+      setClosed(true);
+      return;
+    }
     const timer = setTimeout(() => setVisible(true), 1200);
     return () => clearTimeout(timer);
   }, []);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!visible) return;
+    function handleClick(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        close();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [visible]);
 
   function close() {
     setVisible(false);
     setTimeout(() => {
       setClosed(true);
-      sessionStorage.setItem("insight-popup-closed", "1");
+      dismissToday();
     }, 350);
   }
 
@@ -48,13 +88,11 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
 
   const hasStreak = streak >= 2;
   const hasBills = billsPaidPct !== undefined && billsPaidPct > 0;
-  const tip = FINANCIAL_TIPS[Math.floor(Math.random() * FINANCIAL_TIPS.length)];
 
   return (
     <div
+      ref={popupRef}
       className={cn(
-        // On mobile: sit above the 64px bottom navbar (bottom-20 = 80px) and use smaller width
-        // On desktop: normal bottom-5 position and full width
         "fixed bottom-20 right-3 z-50 w-60 overflow-hidden rounded-2xl border bg-background shadow-2xl",
         "md:bottom-5 md:right-5 md:w-72",
         "transition-all duration-500 ease-out",

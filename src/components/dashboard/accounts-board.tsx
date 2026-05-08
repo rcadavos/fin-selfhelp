@@ -129,7 +129,7 @@ function NetBalanceBarChartInner({
     const maxY = max(series, getY) ?? 0;
     const pad = Math.max(1, maxY * 0.15);
     return scaleLinear({
-      domain: [0, maxY + pad],
+      domain: [0, Math.max(500, maxY + pad)],
       range: [innerHeight, 0],
       nice: true,
     });
