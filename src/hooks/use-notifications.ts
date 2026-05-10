@@ -49,7 +49,20 @@ export function useNotifications(): UseNotificationsResult {
       const res = await markAllNotificationsRead();
       if (res.error) throw new Error(res.error);
     },
-    onSuccess: invalidate,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications() });
+      const previous = queryClient.getQueryData<AppNotification[]>(queryKeys.notifications());
+      queryClient.setQueryData<AppNotification[]>(queryKeys.notifications(), (old) =>
+        old ? old.map((n) => ({ ...n, read: true })) : old
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.notifications(), context.previous);
+      }
+    },
+    onSettled: invalidate,
   });
 
   const markRead = useCallback(
