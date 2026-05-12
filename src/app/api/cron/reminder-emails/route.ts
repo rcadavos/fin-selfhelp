@@ -117,6 +117,7 @@ export async function GET(request: Request) {
         .from("bills")
         .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
         .eq("profile_id", profile.id)
+        .eq("is_auto_debit", false)
         .not("reminder_days_before", "is", null);
 
       const authUserPromise = supabase.auth.admin.getUserById(profile.user_id);

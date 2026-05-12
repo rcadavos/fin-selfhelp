@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export type AccountType = "debit" | "credit" | "stocks" | "crypto";
+export type AccountType = "debit" | "credit" | "savings" | "stocks" | "crypto" | "collectibles" | "asset";
 export type InterestFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "annually";
 
 export type AccountRow = {
@@ -32,7 +32,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
     bank_name: String(r.bank_name ?? ""),
     tags: Array.isArray(r.tags) ? (r.tags as unknown[]).map(String) : [],
     color: String(r.color ?? "#6366f1"),
-    account_type: (["debit", "credit", "stocks", "crypto"].includes(type) ? type : "debit") as AccountType,
+    account_type: (["debit", "credit", "savings", "stocks", "crypto", "collectibles", "asset"].includes(type) ? type : "debit") as AccountType,
     starting_balance: Number(r.starting_balance ?? 0),
     interest_frequency:
       freqRaw && ["daily", "weekly", "monthly", "quarterly", "annually"].includes(freqRaw)
@@ -196,9 +196,7 @@ export async function loadNetBalanceHistory(days = 7): Promise<{
     day.setDate(today.getDate() - i);
     const endOfDay = new Date(day);
     endOfDay.setHours(23, 59, 59, 999);
-    const startingTotal = accountsWithDates
-      .filter((a) => a.effectiveDate.getTime() <= endOfDay.getTime())
-      .reduce((s, a) => s + a.startingBalance, 0);
+    const startingTotal = accountsWithDates.reduce((s, a) => s + a.startingBalance, 0);
     const cumulative = txRows
       .filter((t) => new Date(t.occurred_at).getTime() <= endOfDay.getTime())
       .reduce((s, t) => s + t.amount, 0);
@@ -228,7 +226,7 @@ type AccountInput = {
 function validateInput(input: AccountInput): string | null {
   if (!input.account_alias.trim()) return "Account alias is required.";
   if (!input.bank_name.trim()) return "Bank name is required.";
-  if (!["debit", "credit", "stocks", "crypto"].includes(input.account_type)) {
+  if (!["debit", "credit", "savings", "stocks", "crypto", "collectibles", "asset"].includes(input.account_type)) {
     return "Invalid account type.";
   }
   if (!Number.isFinite(input.starting_balance)) {

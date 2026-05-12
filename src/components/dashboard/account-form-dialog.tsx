@@ -47,8 +47,11 @@ export type AccountFormState = {
 export const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountType; label: string }> = [
   { value: "debit", label: "Debit" },
   { value: "credit", label: "Credit" },
+  { value: "savings", label: "Savings" },
   { value: "stocks", label: "Stocks" },
   { value: "crypto", label: "Crypto" },
+  { value: "collectibles", label: "Collectibles" },
+  { value: "asset", label: "Asset" },
 ];
 
 export const CURRENCIES: Array<{ value: string; label: string }> = [

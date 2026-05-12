@@ -139,15 +139,16 @@ function exportBoardToExcel(expenses: ExpenseEntryRow[], categories: CatList): v
   document.body.removeChild(link);
 }
 
-function formatShortDate(isoStr: string): string {
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
-}
-
-function getExpenseDateLabel(entry: ExpenseEntryRow): string {
-  if (!entry.created_at) return "";
-  return formatShortDate(entry.created_at);
+function formatGroupDate(dateStr: string): string {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  if (dateStr === todayStr) return "Today";
+  if (dateStr === yesterdayStr) return "Yesterday";
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
+    year: "numeric", month: "long", day: "numeric",
+  });
 }
 
 function todayYmd(): string {
@@ -291,6 +292,20 @@ export function MyExpensesBoard() {
         }),
     [allEntries, selectedMonth]
   );
+
+  const expenseGroups = useMemo(() => {
+    const groups: Array<{ date: string; entries: ExpenseEntryRow[] }> = [];
+    for (const exp of expenses) {
+      const date = exp.created_at ? exp.created_at.slice(0, 10) : "unknown";
+      const last = groups[groups.length - 1];
+      if (last && last.date === date) {
+        last.entries.push(exp);
+      } else {
+        groups.push({ date, entries: [exp] });
+      }
+    }
+    return groups;
+  }, [expenses]);
 
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
 
@@ -557,66 +572,73 @@ export function MyExpensesBoard() {
             No expenses yet. Add one to get started.
           </p>
         ) : (
-          expenses.map((exp) => {
-            const isPending = exp.id.startsWith("optimistic-");
-            return (
-            <div
-              key={exp.id}
-              onClick={() => { if (!isPending) handleOpenEdit(exp); }}
-              className={`flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:border-primary/30"}`}
-            >
-              <span
-                className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: getCategoryColor(exp.category_id, categories) }}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
-                  {exp.vehicle_id && vehicleMap[exp.vehicle_id] && (() => {
-                    const color = vehicleColorMap[exp.vehicle_id!] ?? "#6b7280";
-                    return (
-                      <span
-                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                        style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
-                      >
-                        <Car className="h-2.5 w-2.5" />
-                        {vehicleMap[exp.vehicle_id!].name}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {getCategoryLabel(exp.category_id, categories)}
-                  {getExpenseDateLabel(exp) && (
-                    <span className="text-muted-foreground/60"> • {getExpenseDateLabel(exp)}</span>
-                  )}
-                </p>
+          expenseGroups.map((group) => (
+            <div key={group.date}>
+              <div className="flex items-center gap-2 pb-1.5 pt-3 first:pt-0">
+                <span className="text-xs font-semibold text-muted-foreground">{formatGroupDate(group.date)}</span>
+                <div className="flex-1 border-t" />
               </div>
-              {exp.account_id && accountMap[exp.account_id] && (
-                <span
-                  className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style={{
-                    backgroundColor: `${accountMap[exp.account_id].color}22`,
-                    color: accountMap[exp.account_id].color,
-                  }}
-                >
-                  {accountMap[exp.account_id].account_alias}
-                </span>
-              )}
-              <span className="flex-shrink-0 text-sm font-semibold tabular-nums">
-                {formatCurrency(exp.amount)}
-              </span>
-              <button
-                disabled={isPending}
-                onClick={(e) => { e.stopPropagation(); if (!isPending) handleDelete(exp.id); }}
-                className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50"
-                title="Delete"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex flex-col gap-2">
+                {group.entries.map((exp) => {
+                  const isPending = exp.id.startsWith("optimistic-");
+                  return (
+                    <div
+                      key={exp.id}
+                      onClick={() => { if (!isPending) handleOpenEdit(exp); }}
+                      className={`flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:border-primary/30"}`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: getCategoryColor(exp.category_id, categories) }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-sm font-medium">{getEntryName(exp, categories)}</p>
+                          {exp.vehicle_id && vehicleMap[exp.vehicle_id] && (() => {
+                            const color = vehicleColorMap[exp.vehicle_id!] ?? "#6b7280";
+                            return (
+                              <span
+                                className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                                style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
+                              >
+                                <Car className="h-2.5 w-2.5" />
+                                {vehicleMap[exp.vehicle_id!].name}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {getCategoryLabel(exp.category_id, categories)}
+                        </p>
+                      </div>
+                      {exp.account_id && accountMap[exp.account_id] && (
+                        <span
+                          className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${accountMap[exp.account_id].color}22`,
+                            color: accountMap[exp.account_id].color,
+                          }}
+                        >
+                          {accountMap[exp.account_id].account_alias}
+                        </span>
+                      )}
+                      <span className="flex-shrink-0 text-sm font-semibold tabular-nums">
+                        {formatCurrency(exp.amount)}
+                      </span>
+                      <button
+                        disabled={isPending}
+                        onClick={(e) => { e.stopPropagation(); if (!isPending) handleDelete(exp.id); }}
+                        className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            );
-          })
+          ))
         )}
 
       </div>

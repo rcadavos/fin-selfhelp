@@ -1896,7 +1896,9 @@ export function ExpenseCashflowPage({
           </Card>
 
           {/* ════════════════════ INSIGHT POPUP ════════════════════ */}
-          {user && (() => {
+          {/* Only mount once every query the popup reads from has settled — */}
+          {/* prevents the content from flipping as queries land one by one. */}
+          {user && streakQuery.isSuccess && billsDataQuery.isSuccess && (() => {
             const firstName = getAccountDisplayName(user).split(" ")[0];
             const streak = streakQuery.data?.streak_count ?? 1;
             const billsList = billsDataQuery.data?.bills ?? [];

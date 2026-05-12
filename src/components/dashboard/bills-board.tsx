@@ -74,7 +74,8 @@ import {
   type BillsData,
 } from "@/actions/bills";
 import { type AccountRow } from "@/actions/accounts";
-import { accountsQueryOptions } from "@/lib/query/accounts";
+import { accountsQueryOptions, invalidateAccountQueries } from "@/lib/query/accounts";
+import { AccountSelect } from "@/components/app/account-select";
 import {
   vehiclesQueryOptions,
   buildVehicleColorMap,
@@ -171,6 +172,7 @@ type BillFormState = {
   accountId: string;
   vehicleId: string;
   vehicleCategory: string;
+  autoDebit: boolean;
 };
 
 const EMPTY_FORM: BillFormState = {
@@ -185,6 +187,7 @@ const EMPTY_FORM: BillFormState = {
   accountId: "",
   vehicleId: "",
   vehicleCategory: "",
+  autoDebit: false,
 };
 
 function billToForm(bill: BillRow): BillFormState {
@@ -201,6 +204,7 @@ function billToForm(bill: BillRow): BillFormState {
     accountId: bill.account_id ?? "",
     vehicleId: bill.vehicle_id ?? "",
     vehicleCategory: bill.vehicle_category ?? "",
+    autoDebit: bill.is_auto_debit,
   };
 }
 
@@ -212,53 +216,6 @@ const REMINDER_OPTIONS = [
   { value: 1, label: "1d" },
   { value: 0, label: "On due date" },
 ] as const;
-
-const LAST_ACCOUNT_NAMES = ["cash", "borrowed"];
-
-function AccountTagSelector({
-  accounts,
-  value,
-  onChange,
-}: {
-  accounts: AccountRow[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  if (!accounts.length) return null;
-  const sorted = [...accounts].sort((a, b) => {
-    const aLast = LAST_ACCOUNT_NAMES.includes(a.account_alias.toLowerCase()) ? 1 : 0;
-    const bLast = LAST_ACCOUNT_NAMES.includes(b.account_alias.toLowerCase()) ? 1 : 0;
-    return aLast - bLast;
-  });
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {sorted.map((acc) => {
-        const selected = value === acc.id;
-        return (
-          <button
-            key={acc.id}
-            type="button"
-            onClick={() => onChange(selected ? "" : acc.id)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-              selected
-                ? "ring-1"
-                : "bg-muted/60 text-muted-foreground hover:bg-muted"
-            )}
-            style={selected ? {
-              backgroundColor: `${acc.color}22`,
-              color: acc.color,
-              outlineColor: acc.color,
-            } : undefined}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} />
-            {acc.account_alias}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function BillDialog({
   open,
@@ -350,10 +307,18 @@ function BillDialog({
             />
           </div>
 
-          {/* Account tags */}
+          {/* Account */}
           {accounts.length > 0 && (
             <div className="grid gap-1.5">
-              <AccountTagSelector accounts={accounts} value={form.accountId} onChange={(id) => set("accountId", id)} />
+              <Label htmlFor="bill-account">Account</Label>
+              <AccountSelect
+                id="bill-account"
+                accounts={accounts}
+                value={form.accountId}
+                onChange={(id) => set("accountId", id)}
+                allowClear
+                placeholder="Select account (optional)"
+              />
             </div>
           )}
 
@@ -489,7 +454,7 @@ function BillDialog({
           {/* Row 4 — Due Date + End Date */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label>Due Day</Label>
+              <Label>Due Date</Label>
               <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select day of the month" />
@@ -521,8 +486,30 @@ function BillDialog({
             </div>
           </div>
 
-          {/* Row 5 — Reminder */}
-          {(() => {
+          {/* Auto Debit */}
+          <label className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors hover:bg-muted/50">
+            <input
+              type="checkbox"
+              checked={form.autoDebit}
+              onChange={(e) => {
+                setForm((prev) => ({
+                  ...prev,
+                  autoDebit: e.target.checked,
+                  reminderDays: e.target.checked ? [] : prev.reminderDays,
+                }));
+              }}
+              className="h-4 w-4 rounded accent-primary"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium leading-none">Auto Debit</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Automatically mark as paid on the due date and deduct from the linked account.
+              </p>
+            </div>
+          </label>
+
+          {/* Row 5 — Reminder (hidden when auto debit is on) */}
+          {!form.autoDebit && (() => {
             const isThisTheLocked = !!lockedFreeReminderBillId && editingBillId === lockedFreeReminderBillId;
             const slotLockedByOther = !!lockedFreeReminderBillId && !isThisTheLocked;
 
@@ -1065,6 +1052,11 @@ export function BillsBoard() {
   const [editingBill, setEditingBill] = useState<BillRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [toggleError, setToggleError] = useState<
+    | { kind: "insufficient_balance"; accountId: string; available: number; required: number; billNote: string }
+    | { kind: "generic"; message: string }
+    | null
+  >(null);
   /** Mobile: chart body starts collapsed; tap the card header to expand. Desktop always shows the chart. */
   const [showMobileCategoryChart, setShowMobileCategoryChart] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -1167,13 +1159,29 @@ export function BillsBoard() {
     });
 
     setPendingIds((prev) => new Set(prev).add(billId));
+    setToggleError(null);
     const res = await toggleBillPayment(billId, paidMonth);
     setPendingIds((prev) => { const s = new Set(prev); s.delete(billId); return s; });
 
     if (res.error) {
       queryClient.setQueryData(queryKey, snapshot);
+      if (res.error === "insufficient_balance" && res.insufficientBalance) {
+        const bill = bills.find((b) => b.id === billId);
+        setToggleError({
+          kind: "insufficient_balance",
+          accountId: res.insufficientBalance.accountId,
+          available: res.insufficientBalance.available,
+          required: res.insufficientBalance.required,
+          billNote: bill?.note?.trim() || getCategoryLabel(bill?.category_id ?? "", categories),
+        });
+      } else {
+        setToggleError({ kind: "generic", message: res.error });
+      }
     } else {
       invalidate();
+      // Bill payment auto-creates an account transaction + expense entry when an account is linked.
+      invalidateAccountQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
     }
   }
 
@@ -1188,12 +1196,13 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        form.reminderDays.length > 0 ? form.reminderDays : undefined,
+        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
         "both",
         form.endDate || undefined,
         form.accountId || null,
         form.vehicleId || null,
         form.vehicleCategory || null,
+        form.autoDebit,
       );
       if (!res.error) {
         setAddOpen(false);
@@ -1216,12 +1225,13 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        form.reminderDays.length > 0 ? form.reminderDays : undefined,
+        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
         "both",
         form.endDate || undefined,
         form.accountId || null,
         form.vehicleId || null,
         form.vehicleCategory || null,
+        form.autoDebit,
       );
       if (!res.error) {
         setEditingBill(null);
@@ -1384,6 +1394,41 @@ export function BillsBoard() {
             Add Planned Expense
           </Button>
         </div>
+
+        {toggleError && (
+          <div
+            role="alert"
+            className="mb-3 flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+          >
+            {toggleError.kind === "insufficient_balance" ? (
+              <div className="flex-1">
+                <p className="font-semibold">Insufficient account balance</p>
+                <p className="mt-0.5 text-xs text-destructive/90">
+                  {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
+                  {formatCurrency(toggleError.available, currency)} available, but{" "}
+                  {toggleError.billNote ? `“${toggleError.billNote}”` : "this planned expense"} needs{" "}
+                  {formatCurrency(toggleError.required, currency)}.
+                </p>
+              </div>
+            ) : (
+              <p className="flex-1">{toggleError.message}</p>
+            )}
+            <div className="flex shrink-0 gap-2">
+              <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Link href="/dashboard/accounts">Go to Accounts</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setToggleError(null)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           {billsDataQuery.isPending ? (

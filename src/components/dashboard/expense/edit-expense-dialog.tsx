@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,13 +22,13 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
+import { AccountSelect } from "@/components/app/account-select";
 import { updateExpense, type ExpenseEntryRow } from "@/actions/budget";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { accountsQueryOptions } from "@/lib/query/accounts";
 import { vehiclesQueryOptions, invalidateVehicleQueriesIfTransportAffected } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
 import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
-import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 
 function todayYmd(): string {
   const d = new Date();
@@ -126,12 +125,6 @@ export function EditExpenseDialog({
     onClose();
   }
 
-  const selectedAccount = accounts.find((a) => a.id === accountId) ?? null;
-  const selectedLogoSlug = selectedAccount ? getBankLogoSlug(selectedAccount.bank_name) : null;
-  const sortedAccounts = [...accounts].sort((a, b) =>
-    a.account_alias.toLowerCase() === "cash" ? -1 : b.account_alias.toLowerCase() === "cash" ? 1 : 0
-  );
-
   return (
     <Dialog open={!!entry} onOpenChange={(v) => !v && onClose()}>
       <DialogContent aria-describedby={undefined} className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
@@ -171,39 +164,12 @@ export function EditExpenseDialog({
             {accounts.length > 0 ? (
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-exp-account">Account</Label>
-                <Select value={accountId} onValueChange={setAccountId}>
-                  <SelectTrigger id="edit-exp-account" className="h-auto min-h-10 py-2">
-                    {selectedAccount ? (
-                      <div className="flex min-w-0 items-center gap-2">
-                        {selectedLogoSlug ? (
-                          <Image src={`/images/bank-logo/${selectedLogoSlug}.webp`} alt={selectedAccount.bank_name} width={18} height={18} className="flex-shrink-0 rounded object-contain" unoptimized />
-                        ) : (
-                          <span className="h-[18px] w-[18px] flex-shrink-0 rounded-md" style={{ backgroundColor: selectedAccount.color }} />
-                        )}
-                        <span className="truncate text-sm font-medium">{selectedAccount.account_alias}</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="Select account" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sortedAccounts.map((acc) => {
-                      const logoSlug = getBankLogoSlug(acc.bank_name);
-                      return (
-                        <SelectItem key={acc.id} value={acc.id} className="py-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            {logoSlug ? (
-                              <Image src={`/images/bank-logo/${logoSlug}.webp`} alt={acc.bank_name} width={18} height={18} className="flex-shrink-0 rounded object-contain" unoptimized />
-                            ) : (
-                              <span className="h-[18px] w-[18px] flex-shrink-0 rounded-md" style={{ backgroundColor: acc.color }} />
-                            )}
-                            <span className="truncate text-sm">{acc.account_alias}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <AccountSelect
+                  id="edit-exp-account"
+                  accounts={accounts}
+                  value={accountId}
+                  onChange={setAccountId}
+                />
               </div>
             ) : (
               <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">

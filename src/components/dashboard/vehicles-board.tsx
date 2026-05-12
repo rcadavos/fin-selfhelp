@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
-import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -46,7 +46,7 @@ import {
   invalidateVehicleQueries,
   VEHICLE_CHART_COLORS,
 } from "@/lib/query/vehicles";
-import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import { labelForVehicleExpenseCategory, VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
 import Link from "next/link";
 import {
   addVehicle,
@@ -54,6 +54,8 @@ import {
   deleteVehicle,
   type VehicleRow,
 } from "@/actions/vehicles";
+import { addExpense } from "@/actions/budget";
+import { queryKeys } from "@/lib/query/keys";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

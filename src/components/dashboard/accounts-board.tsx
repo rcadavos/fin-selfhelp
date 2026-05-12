@@ -8,11 +8,7 @@ import { scaleLinear, scaleBand } from "@visx/scale";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { GridRows } from "@visx/grid";
 import { Group } from "@visx/group";
-import {
-  useTooltip,
-  useTooltipInPortal,
-  defaultStyles as defaultTooltipStyles,
-} from "@visx/tooltip";
+import { useTooltip } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
 import { Wallet, Plus, AlertTriangle, ExternalLink } from "lucide-react";
@@ -61,16 +57,6 @@ function formatChartTick(date: Date): string {
 
 const getY = (d: NetBalancePoint) => d.balance;
 
-const tooltipStyles = {
-  ...defaultTooltipStyles,
-  background: "hsl(var(--popover))",
-  color: "hsl(var(--popover-foreground))",
-  border: "1px solid hsl(var(--border))",
-  borderRadius: 6,
-  padding: "6px 8px",
-  fontSize: 12,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-};
 
 // rounded-top rect path (SVG path string)
 function roundedTopPath(x: number, y: number, w: number, h: number, r: number): string {
@@ -110,11 +96,6 @@ function NetBalanceBarChartInner({
     tooltipTop = 0,
   } = useTooltip<NetBalancePoint>();
 
-  const { containerRef, TooltipInPortal } = useTooltipInPortal({
-    detectBounds: true,
-    scroll: true,
-  });
-
   const xScale = useMemo(
     () =>
       scaleBand<string>({
@@ -140,7 +121,7 @@ function NetBalanceBarChartInner({
   if (width < 10 || height < 10) return null;
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width, height }}>
+    <div style={{ position: "relative", width, height }}>
       <svg width={width} height={height}>
         <defs>
           <linearGradient id="nbg-pos" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
@@ -173,7 +154,7 @@ function NetBalanceBarChartInner({
                   showTooltip({
                     tooltipData: d,
                     tooltipLeft: bx + bw / 2 + margin.left,
-                    tooltipTop: barTop + margin.top - 8,
+                    tooltipTop: margin.top + 8,
                   })
                 }
                 onMouseLeave={hideTooltip}
@@ -242,10 +223,27 @@ function NetBalanceBarChartInner({
       </svg>
 
       {tooltipData && (
-        <TooltipInPortal top={tooltipTop} left={tooltipLeft} style={tooltipStyles}>
-          <div className="font-medium">{formatChartTick(parseDate(tooltipData.date))}</div>
-          <div className="tabular-nums">{formatCurrency(getY(tooltipData))}</div>
-        </TooltipInPortal>
+        <div
+          style={{
+            position: "absolute",
+            top: tooltipTop,
+            left: tooltipLeft,
+            transform: "translateX(-50%)",
+            pointerEvents: "none",
+            background: "var(--popover)",
+            color: "var(--popover-foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            padding: "5px 10px",
+            fontSize: 12,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+            whiteSpace: "nowrap",
+            zIndex: 50,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 2 }}>{formatChartTick(parseDate(tooltipData.date))}</div>
+          <div style={{ fontVariantNumeric: "tabular-nums" }}>{formatCurrency(getY(tooltipData))}</div>
+        </div>
       )}
     </div>
   );
