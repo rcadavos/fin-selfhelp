@@ -14,6 +14,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.8",
+    date: "2026-05-11",
+    summary: "Admin notifications can now send in-app, email, or both, with an HTML editor for email content.",
+    changes: [
+      { type: "feature", description: "Admin → Notifications now has a Delivery selector with three options: In-app, Email, and Both." },
+      { type: "feature", description: "Email body editor with formatting toolbar (bold, italic, headings, lists, links), HTML source toggle, and live preview." },
+      { type: "feature", description: "Outgoing broadcast emails are wrapped in the standard OmniTrak email template (logo, header, CTA, footer)." },
+      { type: "improvement", description: "Confirmation dialog summarises the selected channel and previews the email body before sending." },
+      { type: "improvement", description: "Send result panel reports the number of in-app notifications delivered plus successful and failed email deliveries." },
+      { type: "feature", description: "Built-in notification templates (Track your finances, Month-end review, Bills check-in) — click to fill the title, in-app body, and email HTML in one step." },
+    ],
+  },
+  {
     version: "1.5.7",
     date: "2026-05-08",
     summary: "Unified expense dialogs with required account, bank logo, and balance validation.",

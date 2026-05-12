@@ -30,10 +30,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { HtmlEditor } from "@/components/ui/html-editor";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { sendAdminNotification } from "@/actions/admin";
+import { sendAdminNotification, type AdminNotificationChannel } from "@/actions/admin";
 import { type AdminUserRow } from "@/actions/admin";
-import { Bell, Loader2, Search, CheckCheck, Users, CreditCard } from "lucide-react";
+import {
+  ADMIN_NOTIFICATION_TEMPLATES,
+  type AdminNotificationTemplate,
+} from "@/lib/constants/admin-notification-templates";
+import {
+  Bell,
+  Loader2,
+  Search,
+  CheckCheck,
+  Users,
+  CreditCard,
+  Mail,
+  Smartphone,
+  Send,
+  Sparkles,
+} from "lucide-react";
 
 type Target = "all" | "subscribers" | "specific";
 
@@ -48,12 +64,18 @@ function isActiveSubscriber(u: AdminUserRow): boolean {
 
 function AdminNotificationsContent() {
   const [target, setTarget] = useState<Target>("all");
+  const [channel, setChannel] = useState<AdminNotificationChannel>("in_app");
   const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [inAppBody, setInAppBody] = useState("");
+  const [emailHtml, setEmailHtml] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [lastResult, setLastResult] = useState<{ sent: number } | null>(null);
+  const [lastResult, setLastResult] = useState<{
+    sent: number;
+    emailsSent?: number;
+    emailsFailed?: number;
+  } | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
 
   const { data: users } = useSuspenseQuery(adminUsersQueryOptions());
@@ -72,7 +94,8 @@ function AdminNotificationsContent() {
     return selectedIds.size;
   }, [target, users, selectedIds]);
 
-  const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedIds.has(u.id));
+  const allFilteredSelected =
+    filteredUsers.length > 0 && filteredUsers.every((u) => selectedIds.has(u.id));
 
   function toggleUser(id: string) {
     setSelectedIds((prev) => {
@@ -81,6 +104,12 @@ function AdminNotificationsContent() {
       else next.add(id);
       return next;
     });
+  }
+
+  function applyTemplate(tpl: AdminNotificationTemplate) {
+    setTitle(tpl.subject);
+    setInAppBody(tpl.inAppBody);
+    setEmailHtml(tpl.emailHtml);
   }
 
   function toggleAllFiltered() {
@@ -95,25 +124,36 @@ function AdminNotificationsContent() {
     });
   }
 
+  const wantsInApp = channel === "in_app" || channel === "both";
+  const wantsEmail = channel === "email" || channel === "both";
+
   const sendMutation = useMutation({
     mutationFn: async () => {
       const result = await sendAdminNotification({
         target,
         userIds: target === "specific" ? [...selectedIds] : undefined,
         title: title.trim(),
-        body: body.trim(),
+        body: inAppBody.trim(),
+        channel,
+        emailHtml: wantsEmail ? emailHtml.trim() : undefined,
       });
       if (result.error) throw new Error(result.error);
       return result;
     },
     onSuccess: (data) => {
-      setLastResult(data);
+      setLastResult({
+        sent: data.sent,
+        emailsSent: data.emailsSent,
+        emailsFailed: data.emailsFailed,
+      });
       setSendError(null);
       setTitle("");
-      setBody("");
+      setInAppBody("");
+      setEmailHtml("");
       setSelectedIds(new Set());
       setSearch("");
       setTarget("all");
+      setChannel("in_app");
       setConfirmOpen(false);
     },
     onError: (err: Error) => {
@@ -122,12 +162,22 @@ function AdminNotificationsContent() {
     },
   });
 
+  const bodyReady = wantsEmail
+    ? emailHtml.trim().length > 0 || inAppBody.trim().length > 0
+    : true;
+
   const canSend =
     title.trim().length > 0 &&
     recipientCount > 0 &&
+    bodyReady &&
     (target !== "specific" || selectedIds.size > 0);
 
-  const targetOptions: { value: Target; label: string; description: string; icon: React.ElementType }[] = [
+  const targetOptions: {
+    value: Target;
+    label: string;
+    description: string;
+    icon: React.ElementType;
+  }[] = [
     {
       value: "all",
       label: "All users",
@@ -137,14 +187,43 @@ function AdminNotificationsContent() {
     {
       value: "subscribers",
       label: "Subscribers only",
-      description: `${users.filter(isActiveSubscriber).length} active subscriber${users.filter(isActiveSubscriber).length === 1 ? "" : "s"}`,
+      description: `${users.filter(isActiveSubscriber).length} active subscriber${
+        users.filter(isActiveSubscriber).length === 1 ? "" : "s"
+      }`,
       icon: CreditCard,
     },
     {
       value: "specific",
       label: "Specific users",
-      description: selectedIds.size > 0 ? `${selectedIds.size} selected` : "Pick from list",
+      description:
+        selectedIds.size > 0 ? `${selectedIds.size} selected` : "Pick from list",
       icon: CheckCheck,
+    },
+  ];
+
+  const channelOptions: {
+    value: AdminNotificationChannel;
+    label: string;
+    description: string;
+    icon: React.ElementType;
+  }[] = [
+    {
+      value: "in_app",
+      label: "In-app",
+      description: "Bell notification only",
+      icon: Smartphone,
+    },
+    {
+      value: "email",
+      label: "Email",
+      description: "Resend email only",
+      icon: Mail,
+    },
+    {
+      value: "both",
+      label: "Both",
+      description: "In-app + email",
+      icon: Send,
     },
   ];
 
@@ -157,10 +236,37 @@ function AdminNotificationsContent() {
             <CardTitle>Send Notification</CardTitle>
           </div>
           <CardDescription>
-            Push an in-app notification to all users, active subscribers, or specific users.
+            Send an in-app notification, an email, or both to all users, active
+            subscribers, or specific users.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Channel selector */}
+          <div className="space-y-2">
+            <Label>Delivery</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {channelOptions.map(({ value, label, description, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setChannel(value)}
+                  className={[
+                    "flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-colors",
+                    channel === value
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <span className="flex items-center gap-1.5 text-sm font-medium">
+                    <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {label}
+                  </span>
+                  <span className="text-xs">{description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Target selector */}
           <div className="space-y-2">
             <Label>Recipients</Label>
@@ -200,7 +306,9 @@ function AdminNotificationsContent() {
                 />
               </div>
               {filteredUsers.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">No users match.</p>
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No users match.
+                </p>
               ) : (
                 <div className="max-h-64 overflow-y-auto">
                   <Table>
@@ -241,8 +349,13 @@ function AdminNotificationsContent() {
                             {u.full_name ?? "—"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={isActiveSubscriber(u) ? "default" : "secondary"} className="text-xs">
-                              {isActiveSubscriber(u) ? (u.subscription_tier ?? "pro") : "free"}
+                            <Badge
+                              variant={isActiveSubscriber(u) ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {isActiveSubscriber(u)
+                                ? (u.subscription_tier ?? "pro")
+                                : "free"}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -259,44 +372,114 @@ function AdminNotificationsContent() {
             </div>
           )}
 
+          {/* Templates */}
+          <div className="space-y-2">
+            <Label>Templates</Label>
+            <div className="flex flex-wrap gap-2">
+              {ADMIN_NOTIFICATION_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  title={tpl.description}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                >
+                  <Sparkles className="h-3 w-3" aria-hidden />
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Click a template to fill in the title, in-app body, and email HTML. You can edit anything before sending.
+            </p>
+          </div>
+
           {/* Compose */}
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="notif-title">Title</Label>
+              <Label htmlFor="notif-title">
+                {wantsEmail && !wantsInApp
+                  ? "Email subject"
+                  : wantsEmail
+                  ? "Title • Email subject"
+                  : "Title"}
+              </Label>
               <Input
                 id="notif-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. New feature available"
-                maxLength={120}
+                maxLength={150}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="notif-body">Body <span className="text-muted-foreground">(optional)</span></Label>
-              <textarea
-                id="notif-body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Additional details…"
-                rows={3}
-                maxLength={500}
-                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-              />
-            </div>
+
+            {wantsInApp && (
+              <div className="space-y-1.5">
+                <Label htmlFor="notif-body">
+                  In-app body{" "}
+                  <span className="text-muted-foreground">(optional, plain text)</span>
+                </Label>
+                <textarea
+                  id="notif-body"
+                  value={inAppBody}
+                  onChange={(e) => setInAppBody(e.target.value)}
+                  placeholder="Additional details shown in the bell menu…"
+                  rows={3}
+                  maxLength={500}
+                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            )}
+
+            {wantsEmail && (
+              <div className="space-y-1.5">
+                <Label>
+                  Email body{" "}
+                  <span className="text-muted-foreground">
+                    (HTML — use the toolbar to format)
+                  </span>
+                </Label>
+                <HtmlEditor
+                  value={emailHtml}
+                  onChange={setEmailHtml}
+                  placeholder="<p>Hi there,</p><p>We just shipped…</p>"
+                  minRows={10}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Body is wrapped in the OmniTrak email template (logo, header, CTA, footer).
+                </p>
+              </div>
+            )}
           </div>
 
           {sendError && <p className="text-sm text-destructive">{sendError}</p>}
 
           {lastResult && (
             <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-              Sent to {lastResult.sent} user{lastResult.sent === 1 ? "" : "s"}.
+              {lastResult.sent > 0 && (
+                <p>
+                  Delivered to {lastResult.sent} user
+                  {lastResult.sent === 1 ? "" : "s"}.
+                </p>
+              )}
+              {lastResult.emailsSent !== undefined && (
+                <p>
+                  Emails sent: {lastResult.emailsSent}
+                  {lastResult.emailsFailed
+                    ? ` • ${lastResult.emailsFailed} failed`
+                    : ""}
+                </p>
+              )}
             </div>
           )}
 
           <Button
             className="w-full"
             disabled={!canSend}
-            onClick={() => { setSendError(null); setConfirmOpen(true); }}
+            onClick={() => {
+              setSendError(null);
+              setConfirmOpen(true);
+            }}
           >
             <Bell className="mr-2 h-4 w-4" />
             Send to {recipientCount} user{recipientCount === 1 ? "" : "s"}
@@ -310,7 +493,15 @@ function AdminNotificationsContent() {
           <DialogHeader>
             <DialogTitle>Send notification</DialogTitle>
             <DialogDescription>
-              This will deliver an in-app notification to{" "}
+              This will deliver{" "}
+              <span className="font-medium text-foreground">
+                {channel === "in_app"
+                  ? "an in-app notification"
+                  : channel === "email"
+                  ? "an email"
+                  : "an in-app notification and an email"}
+              </span>{" "}
+              to{" "}
               <span className="font-medium text-foreground">
                 {recipientCount} user{recipientCount === 1 ? "" : "s"}
               </span>
@@ -319,12 +510,24 @@ function AdminNotificationsContent() {
           </DialogHeader>
           <div className="rounded-lg border bg-muted/40 px-4 py-3 space-y-1">
             <p className="text-sm font-medium">{title}</p>
-            {body.trim() && <p className="text-sm text-muted-foreground">{body}</p>}
+            {wantsInApp && inAppBody.trim() && (
+              <p className="text-sm text-muted-foreground">{inAppBody}</p>
+            )}
+            {wantsEmail && emailHtml.trim() && (
+              <div
+                className="prose prose-sm max-w-none text-sm text-muted-foreground dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: emailHtml }}
+              />
+            )}
           </div>
           {sendError && <p className="text-sm text-destructive">{sendError}</p>}
           <DialogFooter className="pt-2">
             <div className="flex w-full gap-2">
-              <Button variant="outline" className="w-1/2" onClick={() => setConfirmOpen(false)}>
+              <Button
+                variant="outline"
+                className="w-1/2"
+                onClick={() => setConfirmOpen(false)}
+              >
                 Cancel
               </Button>
               <Button
@@ -332,7 +535,11 @@ function AdminNotificationsContent() {
                 disabled={sendMutation.isPending}
                 onClick={() => sendMutation.mutate()}
               >
-                {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+                {sendMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Send"
+                )}
               </Button>
             </div>
           </DialogFooter>
@@ -344,11 +551,13 @@ function AdminNotificationsContent() {
 
 export default function AdminNotificationsPage() {
   return (
-    <Suspense fallback={
-      <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="flex min-h-[50vh] items-center justify-center px-4 py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+      }
+    >
       <AdminNotificationsContent />
     </Suspense>
   );

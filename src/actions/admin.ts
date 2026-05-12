@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { sendAdminBroadcastEmail } from "@/lib/email";
 
 export async function getIsAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -188,12 +189,16 @@ export async function confirmUserEmail(userId: string): Promise<{ error?: string
   }
 }
 
+export type AdminNotificationChannel = "in_app" | "email" | "both";
+
 export async function sendAdminNotification(params: {
   target: "all" | "subscribers" | "specific";
   userIds?: string[];
   title: string;
   body: string;
-}): Promise<{ sent: number; error?: string }> {
+  channel?: AdminNotificationChannel;
+  emailHtml?: string;
+}): Promise<{ sent: number; emailsSent?: number; emailsFailed?: number; error?: string }> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -209,53 +214,99 @@ export async function sendAdminNotification(params: {
 
     const title = params.title.trim();
     const body = params.body.trim();
+    const emailHtml = params.emailHtml?.trim() ?? "";
+    const channel: AdminNotificationChannel = params.channel ?? "in_app";
     if (!title) return { sent: 0, error: "Title is required." };
 
-    let targetUserIds: string[] = [];
+    const wantsInApp = channel === "in_app" || channel === "both";
+    const wantsEmail = channel === "email" || channel === "both";
 
-    if (params.target === "specific") {
-      targetUserIds = (params.userIds ?? []).filter(Boolean);
-    } else {
-      const { data: profiles, error: profilesError } = await admin
-        .from("profiles")
-        .select("user_id, is_subscriber, subscription_tier, subscription_ends_at");
-      if (profilesError) return { sent: 0, error: profilesError.message };
-
-      const now = new Date();
-      targetUserIds = (profiles ?? [])
-        .filter((p) => {
-          if (params.target === "all") return true;
-          if (p.is_subscriber) return true;
-          if (p.subscription_tier === "pro" || p.subscription_tier === "premium") {
-            const endsAt = p.subscription_ends_at ? new Date(p.subscription_ends_at as string) : null;
-            return endsAt != null && endsAt > now;
-          }
-          return false;
-        })
-        .map((p) => p.user_id as string)
-        .filter(Boolean);
+    if (wantsEmail && !emailHtml && !body) {
+      return { sent: 0, error: "Email body is required when sending an email." };
     }
 
-    if (targetUserIds.length === 0) return { sent: 0, error: "No target users found." };
+    const { data: rpcUsers, error: rpcError } = await supabase.rpc("get_users_for_admin");
+    if (rpcError) return { sent: 0, error: rpcError.message };
+    type AdminUserRpcRow = {
+      id: string;
+      email: string | null;
+      is_subscriber: boolean | null;
+      subscription_tier: string | null;
+      subscription_ends_at: string | null;
+    };
+    const allUsers = (rpcUsers ?? []) as AdminUserRpcRow[];
+    const now = new Date();
+
+    const isActiveSubscriber = (u: AdminUserRpcRow): boolean => {
+      if (u.is_subscriber) return true;
+      if (u.subscription_tier === "pro" || u.subscription_tier === "premium") {
+        const endsAt = u.subscription_ends_at ? new Date(u.subscription_ends_at) : null;
+        return endsAt != null && endsAt > now;
+      }
+      return false;
+    };
+
+    let targetUsers: AdminUserRpcRow[] = [];
+    if (params.target === "specific") {
+      const idSet = new Set((params.userIds ?? []).filter(Boolean));
+      targetUsers = allUsers.filter((u) => idSet.has(u.id));
+    } else if (params.target === "all") {
+      targetUsers = allUsers;
+    } else {
+      targetUsers = allUsers.filter(isActiveSubscriber);
+    }
+
+    if (targetUsers.length === 0) return { sent: 0, error: "No target users found." };
 
     const broadcastId = crypto.randomUUID();
-    const notifications = targetUserIds.map((userId) => ({
-      user_id: userId,
-      title,
-      body,
-      kind: "system",
-      dedupe_key: `admin:${broadcastId}:${userId}`,
-    }));
+    let inAppSent = 0;
+    let emailsSent = 0;
+    let emailsFailed = 0;
 
-    const batchSize = 500;
-    for (let i = 0; i < notifications.length; i += batchSize) {
-      const { error: insertError } = await admin.rpc("insert_user_notifications_bulk", {
-        notifications: notifications.slice(i, i + batchSize),
-      });
-      if (insertError) return { sent: 0, error: insertError.message };
+    if (wantsInApp) {
+      const notifications = targetUsers.map((u) => ({
+        user_id: u.id,
+        title,
+        body,
+        kind: "system",
+        dedupe_key: `admin:${broadcastId}:${u.id}`,
+      }));
+      const batchSize = 500;
+      for (let i = 0; i < notifications.length; i += batchSize) {
+        const { error: insertError } = await admin.rpc("insert_user_notifications_bulk", {
+          notifications: notifications.slice(i, i + batchSize),
+        });
+        if (insertError) return { sent: 0, error: insertError.message };
+      }
+      inAppSent = notifications.length;
     }
 
-    return { sent: notifications.length };
+    if (wantsEmail) {
+      const recipients = targetUsers
+        .map((u) => u.email)
+        .filter((e): e is string => Boolean(e && e.includes("@")));
+
+      const htmlForEmail = emailHtml || body;
+      const textForEmail = body || emailHtml.replace(/<[^>]*>/g, "");
+
+      const results = await Promise.allSettled(
+        recipients.map((to) =>
+          sendAdminBroadcastEmail({
+            to,
+            subject: title,
+            bodyHtml: htmlForEmail,
+            bodyText: textForEmail,
+          })
+        )
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value.ok) emailsSent += 1;
+        else emailsFailed += 1;
+      }
+    }
+
+    const sent = wantsInApp ? inAppSent : emailsSent;
+    return { sent, emailsSent: wantsEmail ? emailsSent : undefined, emailsFailed: wantsEmail ? emailsFailed : undefined };
   } catch (e) {
     return { sent: 0, error: e instanceof Error ? e.message : "Failed to send notification." };
   }
