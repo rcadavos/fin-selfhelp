@@ -14,6 +14,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.8",
+    date: "2026-05-12",
+    summary: "Admin notifications: in-app + email channels, HTML editor, templates, batch-send, and one-click unsubscribe.",
+    changes: [
+      { type: "feature", description: "Admin → Notifications now has a Delivery selector: In-app, Email, or Both." },
+      { type: "feature", description: "Email body editor with toolbar (bold, italic, headings, lists, links), HTML source toggle, and live preview." },
+      { type: "feature", description: "Built-in notification templates (Track your finances, Month-end review, Bills check-in) — one click fills title, in-app body, and email HTML." },
+      { type: "fix", description: "Bulk broadcast emails now use Resend's batch API (up to 100 per request). Previous per-recipient parallel calls hit rate limits on larger user lists." },
+      { type: "feature", description: "Every broadcast and reminder email now includes a signed one-click Unsubscribe link in the footer, plus List-Unsubscribe / List-Unsubscribe-Post headers for Gmail/Outlook native support." },
+      { type: "feature", description: "GET /api/unsubscribe processes unsubscribe clicks — verifies a per-user HMAC token and sets email_unsubscribed on the profile. Unsubscribed users are excluded from all future non-transactional emails." },
+    ],
+  },
+  {
     version: "1.5.7",
     date: "2026-05-08",
     summary: "Unified expense dialogs with required account, bank logo, and balance validation.",

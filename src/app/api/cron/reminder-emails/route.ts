@@ -11,6 +11,7 @@ type ProfileRow = {
   is_subscriber: boolean;
   subscription_ends_at: string | null;
   subscription_tier: string | null;
+  email_unsubscribed: boolean | null;
 };
 
 type ExpenseReminderRow = {
@@ -92,7 +93,7 @@ export async function GET(request: Request) {
 
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, user_id, is_subscriber, subscription_ends_at, subscription_tier");
+      .select("id, user_id, is_subscriber, subscription_ends_at, subscription_tier, email_unsubscribed");
     if (profilesError) {
       return NextResponse.json({ error: profilesError.message }, { status: 500 });
     }
@@ -104,6 +105,8 @@ export async function GET(request: Request) {
 
 
     for (const profile of (profiles ?? []) as ProfileRow[]) {
+      if (profile.email_unsubscribed) continue;
+
       const tier = normalizeDbTier(profile.subscription_tier);
       const hasProAccess = hasProLevelProductAccess(
         tier,
@@ -297,6 +300,7 @@ export async function GET(request: Request) {
           to: toEmail,
           items: newlyPending,
           todayYmd,
+          userId: profile.user_id,
         });
 
         if (!sendResult.ok) {

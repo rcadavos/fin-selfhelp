@@ -1,5 +1,19 @@
 import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
+import { generateUnsubscribeUrl } from "@/lib/email-unsubscribe";
+
+const UNSUB_PLACEHOLDER = "{{UNSUB_URL}}";
+
+function unsubscribeFooterHtml(url: string): string {
+  return `<tr>
+              <td style="padding:8px 24px 24px 24px;text-align:center;">
+                <p style="margin:0;font-size:11px;line-height:1.6;color:#94a3b8;">
+                  You received this email because you have an OmniTrak account.
+                  <a href="${url}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>`;
+}
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY?.trim();
@@ -304,8 +318,10 @@ export async function sendReminderEmail(params: {
   to: string;
   items: { title: string; body: string }[];
   todayYmd: string;
+  userId?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const siteUrl = getBaseUrl();
+  const unsubUrl = params.userId ? generateUnsubscribeUrl(params.userId) : null;
   const subject = `OmniTrak reminders for ${params.todayYmd}`;
 
   const text = [
@@ -390,23 +406,16 @@ export async function sendReminderEmail(params: {
               </td>
             </tr>
 
-            <!-- Unsub note -->
-            <tr>
-              <td style="padding:12px 24px 0 24px;">
-                <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;text-align:center;">
-                  To stop receiving reminder emails, update your notification preferences in OmniTrak.
-                </p>
-              </td>
-            </tr>
-
             <!-- Footer -->
             <tr>
-              <td style="padding:20px 24px 24px 24px;">
+              <td style="padding:20px 24px 8px 24px;">
                 <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">
                   OmniTrak &bull; Your all-in-one personal tracker for expenses, payments, and reminders
                 </p>
               </td>
             </tr>
+
+            ${unsubUrl ? unsubscribeFooterHtml(unsubUrl) : `<tr><td style="padding:0 24px 24px 24px;text-align:center;"><p style="margin:0;font-size:11px;color:#94a3b8;">To stop receiving reminder emails, update your <a href="${siteUrl}/account/notifications" style="color:#94a3b8;text-decoration:underline;">notification preferences</a>.</p></td></tr>`}
 
           </table>
         </td>
@@ -423,6 +432,12 @@ export async function sendReminderEmail(params: {
       subject,
       text,
       html,
+      ...(unsubUrl ? {
+        headers: {
+          "List-Unsubscribe": `<${unsubUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      } : {}),
     });
     if (error) return { ok: false, error: `Reminder email failed: ${error.message}` };
     return { ok: true };
@@ -436,6 +451,8 @@ function buildAdminBroadcastEmail(params: {
   subject: string;
   bodyHtml: string;
   bodyText: string;
+  /** Pass generateUnsubscribeUrl(userId) or UNSUB_PLACEHOLDER for batch sends. */
+  unsubscribeUrl?: string;
 }): { subject: string; html: string; text: string } {
   const siteUrl = getBaseUrl();
   const subject = params.subject.trim() || "A message from OmniTrak";
@@ -490,12 +507,14 @@ function buildAdminBroadcastEmail(params: {
             </tr>
 
             <tr>
-              <td style="padding:20px 24px 24px 24px;">
+              <td style="padding:20px 24px 8px 24px;">
                 <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">
                   OmniTrak &bull; Your all-in-one personal tracker for expenses, payments, and reminders
                 </p>
               </td>
             </tr>
+
+            ${params.unsubscribeUrl ? unsubscribeFooterHtml(params.unsubscribeUrl) : ""}
 
           </table>
         </td>
@@ -535,25 +554,26 @@ export async function sendAdminBroadcastEmail(params: {
 /**
  * Bulk send via Resend's batch API. Handles up to 100 emails per call and
  * chunks larger lists. Each chunk is one HTTP request, so 57 users = 1 request.
+ * Each email gets its own signed unsubscribe link via userId.
  */
 export async function sendAdminBroadcastEmailBatch(params: {
-  recipients: string[];
+  recipients: { email: string; userId: string }[];
   subject: string;
   bodyHtml: string;
   bodyText: string;
 }): Promise<{ sent: number; failed: number; errors: string[] }> {
-  const recipients = params.recipients
-    .map((r) => r.trim())
-    .filter((r) => r.length > 0 && r.includes("@"));
+  const recipients = params.recipients.filter(
+    (r) => r.email?.trim() && r.email.includes("@")
+  );
 
-  if (recipients.length === 0) {
-    return { sent: 0, failed: 0, errors: [] };
-  }
+  if (recipients.length === 0) return { sent: 0, failed: 0, errors: [] };
 
-  const { subject, html, text } = buildAdminBroadcastEmail({
+  // Build the template once using the placeholder so we avoid rebuilding per recipient.
+  const { subject, html: baseHtml, text } = buildAdminBroadcastEmail({
     subject: params.subject,
     bodyHtml: params.bodyHtml,
     bodyText: params.bodyText,
+    unsubscribeUrl: UNSUB_PLACEHOLDER,
   });
 
   let resend: ReturnType<typeof getResendClient>;
@@ -574,13 +594,21 @@ export async function sendAdminBroadcastEmailBatch(params: {
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
     const chunk = recipients.slice(i, i + BATCH_SIZE);
-    const emails = chunk.map((to) => ({
-      from: FROM_ADDRESS,
-      to,
-      subject,
-      html,
-      text,
-    }));
+    const emails = chunk.map(({ email: to, userId }) => {
+      const unsubUrl = generateUnsubscribeUrl(userId) ?? "#";
+      const html = baseHtml.replaceAll(UNSUB_PLACEHOLDER, unsubUrl);
+      return {
+        from: FROM_ADDRESS,
+        to,
+        subject,
+        html,
+        text,
+        headers: {
+          "List-Unsubscribe": `<${unsubUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      };
+    });
 
     try {
       const { data, error } = await resend.batch.send(emails);

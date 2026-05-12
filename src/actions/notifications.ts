@@ -496,6 +496,7 @@ export async function sendGeneratedProReminderEmailsForToday(
     to: toEmail,
     items: newlyPending,
     todayYmd,
+    userId,
   });
 
   if (!sendResult.ok) {

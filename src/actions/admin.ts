@@ -258,6 +258,13 @@ export async function sendAdminNotification(params: {
 
     if (targetUsers.length === 0) return { sent: 0, error: "No target users found." };
 
+    // Fetch unsubscribed user IDs once, used by the email path.
+    const { data: unsubRows } = await admin
+      .from("profiles")
+      .select("user_id")
+      .eq("email_unsubscribed", true);
+    const unsubIds = new Set((unsubRows ?? []).map((r) => r.user_id as string));
+
     const broadcastId = crypto.randomUUID();
     let inAppSent = 0;
     let emailsSent = 0;
@@ -283,8 +290,8 @@ export async function sendAdminNotification(params: {
 
     if (wantsEmail) {
       const recipients = targetUsers
-        .map((u) => u.email)
-        .filter((e): e is string => Boolean(e && e.includes("@")));
+        .filter((u) => !unsubIds.has(u.id) && u.email?.includes("@"))
+        .map((u) => ({ email: u.email as string, userId: u.id }));
 
       const htmlForEmail = emailHtml || body;
       const textForEmail = body || emailHtml.replace(/<[^>]*>/g, "");
