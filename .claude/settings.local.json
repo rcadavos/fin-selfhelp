@@ -45,7 +45,8 @@
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
       "Bash(Get-ChildItem -Path \"c:/WORK/MyProjects/fin-selfhelp/src/components/dashboard\" -Recurse -Filter \"*expense*\" -File)",
       "Bash(Get-ChildItem -Path \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\" -Recurse -Directory -ErrorAction SilentlyContinue)",
-      "Bash(Select-Object -First 20 FullName)"
+      "Bash(Select-Object -First 20 FullName)",
+      "Bash(node -e \"const m = require\\('resend'\\); const r = new m.Resend\\('test'\\); console.log\\('batch:', typeof r.batch, 'send:', typeof r.batch?.send\\);\")"
     ]
   }
 }

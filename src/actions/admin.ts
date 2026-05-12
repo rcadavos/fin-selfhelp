@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import { sendAdminBroadcastEmail } from "@/lib/email";
+import { sendAdminBroadcastEmailBatch } from "@/lib/email";
 
 export async function getIsAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -289,19 +289,16 @@ export async function sendAdminNotification(params: {
       const htmlForEmail = emailHtml || body;
       const textForEmail = body || emailHtml.replace(/<[^>]*>/g, "");
 
-      const results = await Promise.allSettled(
-        recipients.map((to) =>
-          sendAdminBroadcastEmail({
-            to,
-            subject: title,
-            bodyHtml: htmlForEmail,
-            bodyText: textForEmail,
-          })
-        )
-      );
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value.ok) emailsSent += 1;
-        else emailsFailed += 1;
+      const batchResult = await sendAdminBroadcastEmailBatch({
+        recipients,
+        subject: title,
+        bodyHtml: htmlForEmail,
+        bodyText: textForEmail,
+      });
+      emailsSent = batchResult.sent;
+      emailsFailed = batchResult.failed;
+      if (batchResult.errors.length > 0) {
+        console.error("[sendAdminNotification] email batch errors:", batchResult.errors);
       }
     }
 

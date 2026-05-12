@@ -432,12 +432,11 @@ export async function sendReminderEmail(params: {
   }
 }
 
-export async function sendAdminBroadcastEmail(params: {
-  to: string;
+function buildAdminBroadcastEmail(params: {
   subject: string;
   bodyHtml: string;
   bodyText: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): { subject: string; html: string; text: string } {
   const siteUrl = getBaseUrl();
   const subject = params.subject.trim() || "A message from OmniTrak";
   const bodyHtml = params.bodyHtml.trim();
@@ -505,6 +504,17 @@ export async function sendAdminBroadcastEmail(params: {
   </body>
 </html>`;
 
+  return { subject, html, text };
+}
+
+export async function sendAdminBroadcastEmail(params: {
+  to: string;
+  subject: string;
+  bodyHtml: string;
+  bodyText: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { subject, html, text } = buildAdminBroadcastEmail(params);
+
   try {
     const resend = getResendClient();
     const { error } = await resend.emails.send({
@@ -520,6 +530,75 @@ export async function sendAdminBroadcastEmail(params: {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Admin broadcast email failed: ${message}` };
   }
+}
+
+/**
+ * Bulk send via Resend's batch API. Handles up to 100 emails per call and
+ * chunks larger lists. Each chunk is one HTTP request, so 57 users = 1 request.
+ */
+export async function sendAdminBroadcastEmailBatch(params: {
+  recipients: string[];
+  subject: string;
+  bodyHtml: string;
+  bodyText: string;
+}): Promise<{ sent: number; failed: number; errors: string[] }> {
+  const recipients = params.recipients
+    .map((r) => r.trim())
+    .filter((r) => r.length > 0 && r.includes("@"));
+
+  if (recipients.length === 0) {
+    return { sent: 0, failed: 0, errors: [] };
+  }
+
+  const { subject, html, text } = buildAdminBroadcastEmail({
+    subject: params.subject,
+    bodyHtml: params.bodyHtml,
+    bodyText: params.bodyText,
+  });
+
+  let resend: ReturnType<typeof getResendClient>;
+  try {
+    resend = getResendClient();
+  } catch (err) {
+    return {
+      sent: 0,
+      failed: recipients.length,
+      errors: [err instanceof Error ? err.message : String(err)],
+    };
+  }
+
+  const BATCH_SIZE = 100;
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const chunk = recipients.slice(i, i + BATCH_SIZE);
+    const emails = chunk.map((to) => ({
+      from: FROM_ADDRESS,
+      to,
+      subject,
+      html,
+      text,
+    }));
+
+    try {
+      const { data, error } = await resend.batch.send(emails);
+      if (error) {
+        failed += chunk.length;
+        errors.push(error.message);
+        continue;
+      }
+      const succeeded = Array.isArray(data?.data) ? data.data.length : chunk.length;
+      sent += succeeded;
+      failed += chunk.length - succeeded;
+    } catch (err) {
+      failed += chunk.length;
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return { sent, failed, errors };
 }
 
 export async function sendReceivableInviteEmail(params: {
