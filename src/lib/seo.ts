@@ -5,6 +5,7 @@ const DEFAULT_TITLE = "OmniTrak — Your all-in-one personal tracker for everyth
 const DEFAULT_DESCRIPTION =
   "Planned expense tracker and expense dashboard: track planned expenses by category, mark paid each month, to-buy and to-do lists, and calculators — see at a glance where you stand.";
 const TWITTER_HANDLE = ""; // e.g. "@omnitrak" if you have one
+const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID ?? "";
 
 /** Base URL for canonical and OG URLs. Set NEXT_PUBLIC_SITE_URL in production. Must be HTTPS for Open Graph. */
 export function getBaseUrl(): string {
@@ -63,6 +64,10 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
     ],
   };
 
+  const other: Metadata["other"] = FB_APP_ID
+    ? { "fb:app_id": FB_APP_ID }
+    : {};
+
   const twitter: Metadata["twitter"] = {
     card: "summary_large_image",
     title,
@@ -96,6 +101,7 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
     ...(meta.path !== undefined && { alternates: { canonical: url } }),
     openGraph,
     twitter,
+    ...(Object.keys(other).length ? { other } : {}),
     robots: meta.noIndex
       ? { index: false, follow: false }
       : { index: true, follow: true, googleBot: { index: true, follow: true } },

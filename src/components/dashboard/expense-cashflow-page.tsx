@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -99,12 +99,12 @@ export function ExpenseCashflowPage({
 
   const { user } = useUser();
   const paidMonthQueryKey = getCurrentPaidMonth();
-  const expenseDataQuery = useSuspenseQuery(expenseDataQueryOptions(paidMonthQueryKey));
-  const monthlyBreakdownQuery = useSuspenseQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
-  const billsDataQuery = useSuspenseQuery(billsDataQueryOptions(paidMonthQueryKey));
+  const expenseDataQuery = useQuery(expenseDataQueryOptions(paidMonthQueryKey));
+  const monthlyBreakdownQuery = useQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
+  const billsDataQuery = useQuery(billsDataQueryOptions(paidMonthQueryKey));
   const accountsQuery = useQuery(accountsQueryOptions());
   const accountBalancesQuery = useQuery(accountBalancesQueryOptions());
-  const streakQuery = useSuspenseQuery(userStreakQueryOptions());
+  const streakQuery = useQuery(userStreakQueryOptions());
   const prefsOptional = useUserPreferencesOptional();
 
   const entries = expenseDataQuery.data?.entries ?? [];
