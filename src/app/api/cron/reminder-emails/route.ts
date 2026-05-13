@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { sendReminderEmail } from "@/lib/email";
-import { getDueDayOfMonthFromYmd, getCandidateDueDates, getCandidateDueDatesForBill } from "@/lib/expense-due-date";
+import { getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 
@@ -12,15 +12,6 @@ type ProfileRow = {
   subscription_ends_at: string | null;
   subscription_tier: string | null;
   email_unsubscribed: boolean | null;
-};
-
-type ExpenseReminderRow = {
-  id: string;
-  note: string | null;
-  notes: string | null;
-  due_date: string | null;
-  reminder_days_before: number[] | null;
-  reminder_channel: string | null;
 };
 
 type BillReminderRow = {
@@ -57,20 +48,6 @@ function addDays(date: Date, days: number): Date {
   out.setDate(out.getDate() + days);
   return out;
 }
-
-function monthLastDay(year: number, month1to12: number): number {
-  return new Date(year, month1to12, 0).getDate();
-}
-
-function computeDueDateThisMonthFromStored(dueYmd: string, today: Date): Date | null {
-  const dueDay = getDueDayOfMonthFromYmd(dueYmd);
-  if (!dueDay) return null;
-  const year = today.getFullYear();
-  const month1to12 = today.getMonth() + 1;
-  const safeDay = Math.min(dueDay, monthLastDay(year, month1to12));
-  return new Date(year, month1to12 - 1, safeDay);
-}
-
 
 export async function GET(request: Request) {
   try {
@@ -125,23 +102,15 @@ export async function GET(request: Request) {
 
       const authUserPromise = supabase.auth.admin.getUserById(profile.user_id);
 
-      let expenses: ExpenseReminderRow[] = [];
       let toDoRows: ToDoTargetRow[] = [];
 
       if (hasProAccess) {
-        const [{ data: expData }, { data: todoData }] = await Promise.all([
-          supabase
-            .from("expense_entries")
-            .select("id, note, notes, due_date, reminder_days_before, reminder_channel")
-            .eq("profile_id", profile.id),
-          supabase
-            .from("to_do_items")
-            .select("id, name, target_date")
-            .eq("profile_id", profile.id)
-            .eq("checked", false)
-            .eq("target_date", todayYmd),
-        ]);
-        expenses = (expData ?? []) as ExpenseReminderRow[];
+        const { data: todoData } = await supabase
+          .from("to_do_items")
+          .select("id, name, target_date")
+          .eq("profile_id", profile.id)
+          .eq("checked", false)
+          .eq("target_date", todayYmd);
         toDoRows = (todoData ?? []) as ToDoTargetRow[];
       }
 
@@ -208,42 +177,6 @@ export async function GET(request: Request) {
                 body,
               });
               if (!hasProAccess) freeTierBillFired = true;
-            }
-          }
-        }
-      }
-
-      for (const entry of expenses) {
-        if (!entry.due_date || !Array.isArray(entry.reminder_days_before) || entry.reminder_days_before.length === 0) {
-          continue;
-        }
-        const candidates = getCandidateDueDates(entry.due_date, now);
-        const expenseLabel = (entry.notes ?? entry.note ?? "Expense").trim() || "Expense";
-        const channel = entry.reminder_channel || "both";
-
-        for (const dueThisMonth of candidates) {
-          for (const reminderDay of entry.reminder_days_before) {
-            if (reminderDay < 0 || reminderDay > 5) continue;
-            const reminderDate = addDays(dueThisMonth, -reminderDay);
-            if (formatYmdLocal(reminderDate) !== todayYmd) continue;
-
-            const dedupeKey = `expense:${entry.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
-            const title = reminderDay === 0 ? `Due today: ${expenseLabel}` : `Expense reminder: ${expenseLabel}`;
-            const body = reminderDay === 0
-              ? "This expense is due today. Please review and settle it."
-              : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
-
-            if (channel === "email" || channel === "both") {
-              pending.push({ dedupeKey, title, body });
-            }
-            if (channel === "in-app" || channel === "both") {
-              notificationsToInsert.push({
-                user_id: profile.user_id,
-                kind: "expense_reminder",
-                dedupe_key: dedupeKey,
-                title,
-                body,
-              });
             }
           }
         }

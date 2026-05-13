@@ -148,8 +148,11 @@ export function SetupWizard({ initialName }: Props) {
     if (!expenseAccountId) { setExpenseError("Please select an account."); return; }
     startTransition(async () => {
       const res = await addExpense(
-        expenseCategoryId, amount, expenseNote || null,
-        null, null, null, "monthly", "both", undefined,
+        expenseCategoryId,
+        amount,
+        expenseNote || null,
+        null,
+        undefined,
         expenseAccountId,
       );
       if (res.error) { setExpenseError(res.error); return; }

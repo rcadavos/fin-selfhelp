@@ -258,7 +258,7 @@ export async function getMonthlyBreakdown(
   const [{ data: expenseRows, error }, { data: billRows }, { data: billPaymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("amount, due_date, category_id, billing_period, created_at")
+      .select("amount, category_id, created_at")
       .eq("profile_id", profileId),
     supabase
       .from("bills")
@@ -281,7 +281,7 @@ export async function getMonthlyBreakdown(
     const nextYear = m === 12 ? y + 1 : y;
     const monthEndIso = `${nextYear}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00`;
 
-    // Bills: monthly bills (excluding savings category) that existed by end of this month
+    // Planned expenses: monthly bills (excluding savings category) that existed by end of this month
     const bills = allBills
       .filter(
         (b) =>
@@ -291,7 +291,7 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Bills Paid: monthly non-savings bills marked paid in this month
+    // Planned paid: monthly non-savings bills marked paid in this month
     const paidBillIds = new Set(
       allBillPayments
         .filter((p) => p.paid_month === month)
@@ -306,11 +306,10 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Expenses: daily entries (no due_date, not savings) created in this month
+    // Expenses: non-savings entries created in this month
     const expenses = allEntries
       .filter(
         (e) =>
-          !e.due_date &&
           e.category_id !== "savings" &&
           (e.created_at ?? "").startsWith(month)
       )

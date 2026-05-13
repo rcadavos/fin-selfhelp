@@ -9,7 +9,6 @@ import { ContentHeader } from "@/components/app/content-header";
 import { loadSharedExpenseData, type ExpenseEntryRow } from "@/actions/budget";
 import { granteeSharedToggleExpensePayment } from "@/actions/expense-payments";
 import { categoriesQueryOptions } from "@/lib/query/categories";
-import { effectiveDueDateInPaidMonth } from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
 import { CheckCircle2, CircleDollarSign, LayoutDashboard, Loader2 } from "lucide-react";
 
@@ -214,9 +213,6 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
                         {categoryEntries.map((entry) => {
                           const isPaid = paidIds.has(entry.id);
                           const busy = savingEntryId === entry.id;
-                          const dueEff = entry.due_date
-                            ? effectiveDueDateInPaidMonth(entry.due_date, data.paidMonth)
-                            : null;
                           return (
                             <li key={entry.id} className="py-2.5 first:pt-0 last:pb-0">
                               <div className="flex items-center justify-between gap-2">
@@ -237,16 +233,6 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
                                   >
                                     {formatCurrency(entry.amount)}
                                   </span>
-                                  {dueEff ? (
-                                    <span className="shrink-0 text-xs text-muted-foreground">
-                                      Due:{" "}
-                                      {dueEff.toLocaleDateString("en-PH", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                  ) : null}
                                   {isPaid ? (
                                     <Button
                                       type="button"

@@ -54,7 +54,6 @@ import {
   deleteVehicle,
   type VehicleRow,
 } from "@/actions/vehicles";
-import { addExpense } from "@/actions/budget";
 import { queryKeys } from "@/lib/query/keys";
 
 // ─── Constants ───────────────────────────────────────────────────────────────

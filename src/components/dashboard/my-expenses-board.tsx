@@ -284,7 +284,7 @@ export function MyExpensesBoard() {
   const expenses = useMemo(
     () =>
       allEntries
-        .filter((e) => !e.due_date && e.created_at?.slice(0, 7) === selectedMonth)
+        .filter((e) => e.created_at?.slice(0, 7) === selectedMonth)
         .sort((a, b) => {
           const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
           const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -312,7 +312,6 @@ export function MyExpensesBoard() {
   const expensesToday = useMemo(() => {
     const todayTime = startOfTodayLocal().getTime();
     return allEntries.filter((e) => {
-      if (e.due_date) return false;
       if (!e.created_at) return false;
       const d = new Date(e.created_at);
       return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() === todayTime;
@@ -382,10 +381,8 @@ export function MyExpensesBoard() {
       id: `optimistic-${Date.now()}`,
       category_id: expCategory || "",
       amount: amt,
-      billing_period: "monthly",
       note: name,
       notes: null,
-      due_date: null,
       created_at: `${expDate}T00:00:00`,
     };
     queryClient.setQueryData<import("@/actions/budget").ExpenseData | null>(queryKey, (old) =>
@@ -404,8 +401,11 @@ export function MyExpensesBoard() {
     setExpSaving(true);
 
     const res = await addExpense(
-      savedCategory || "other", amt, savedName,
-      null, null, null, "monthly", "both", savedDate
+      savedCategory || "other",
+      amt,
+      savedName,
+      null,
+      savedDate,
     );
     setExpSaving(false);
     if (res.error) {

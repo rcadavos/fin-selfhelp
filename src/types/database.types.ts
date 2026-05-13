@@ -204,13 +204,8 @@ export type DbExpenseEntry = {
   profile_id: string;
   category_id: ExpenseCategoryKey;
   amount: number;
-  billing_period?: "monthly" | "quarterly" | "yearly";
-  due_month?: number | null;
   note?: string;
   notes?: string | null;
-  /** Monthly due day; stored as YYYY-MM-DD with canonical `1970-01-{DD}` (only the day is meaningful). */
-  due_date?: string | null;
-  reminder_days_before?: number[] | null;
   created_at: string;
   updated_at: string;
 };

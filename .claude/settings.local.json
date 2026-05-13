@@ -48,7 +48,11 @@
       "Bash(Select-Object -First 20 FullName)",
       "Bash(node -e \"const m = require\\('resend'\\); const r = new m.Resend\\('test'\\); console.log\\('batch:', typeof r.batch, 'send:', typeof r.batch?.send\\);\")",
       "Bash(npx eslint *)",
-      "Bash(Get-ChildItem \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\supabase\\\\migrations\\\\\" | Select-Object -Last 5 | Select-Object Name)"
+      "Bash(Get-ChildItem \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\supabase\\\\migrations\\\\\" | Select-Object -Last 5 | Select-Object Name)",
+      "Bash(Get-ChildItem \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\src\\\\components\\\\dashboard\" -Recurse)",
+      "Bash(Get-ChildItem -Path \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Sort-Object -Unique)"
     ]
   }
 }

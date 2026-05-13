@@ -2,29 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { BudgetState, ReminderDay } from "@/types/database.types";
+import type { BudgetState } from "@/types/database.types";
 import {
   hasPremiumProductAccess,
   hasProLevelProductAccess,
   normalizeDbTier,
   type SubscriptionTierId,
 } from "@/lib/subscription-tier";
-
-const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
-
-function normalizeReminderDaysBefore(
-  raw: unknown
-): ReminderDay[] | undefined {
-  if (raw == null) return undefined;
-  if (!Array.isArray(raw)) return undefined;
-  const filtered = raw
-    .map((d) => (typeof d === "number" ? d : Number(d)))
-    .filter((d): d is ReminderDay => VALID_REMINDER_DAYS.includes(d as ReminderDay));
-  if (filtered.length === 0) return undefined;
-  return [...new Set(filtered)].sort((a, b) => b - a) as ReminderDay[];
-}
 import { getExpenseCategories } from "@/actions/categories";
-import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 export async function getNetTakeHome(): Promise<number | null> {
@@ -45,13 +30,8 @@ export type ExpenseEntryRow = {
   id: string;
   category_id: string;
   amount: number;
-  billing_period: "monthly" | "quarterly" | "yearly";
-  due_month?: number | null;
   note?: string | null;
   notes?: string | null;
-  due_date?: string | null;
-  reminder_days_before?: number[] | null;
-  reminder_channel?: "email" | "in-app" | "both";
   account_id?: string | null;
   vehicle_id?: string | null;
   vehicle_category?: string | null;
@@ -133,7 +113,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       .order("sort_order", { ascending: true }),
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, created_at, updated_at")
+      .select("id, category_id, amount, note, notes, account_id, vehicle_id, vehicle_category, created_at, updated_at")
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -152,26 +132,7 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
   const totalFromIncome = incomeEntries.reduce((s, r) => s + r.amount, 0);
   const netTakeHome = incomeEntries.length > 0 ? totalFromIncome : Number(profile.net_take_home);
 
-  let entries = entriesRaw ?? [];
-  if (!hasProAccess) {
-    const hasReminders = entries.some(
-      (row) =>
-        row.reminder_days_before != null &&
-        (!Array.isArray(row.reminder_days_before) || row.reminder_days_before.length > 0)
-    );
-    if (hasReminders) {
-      const { error: clearErr } = await supabase
-        .from("expense_entries")
-        .update({ reminder_days_before: null })
-        .eq("profile_id", profile.id);
-      if (!clearErr) {
-        entries = entries.map((row) => ({
-          ...row,
-          reminder_days_before: null,
-        }));
-      }
-    }
-  }
+  const entries = entriesRaw ?? [];
 
   return {
     netTakeHome,
@@ -184,18 +145,8 @@ export async function loadExpenseData(paidMonth?: string): Promise<ExpenseData |
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
-      billing_period:
-        row.billing_period === "yearly"
-          ? "yearly"
-          : row.billing_period === "quarterly"
-            ? "quarterly"
-            : "monthly",
-      due_month: row.due_month != null ? Number(row.due_month) : undefined,
       note: row.note ?? undefined,
       notes: row.notes ?? undefined,
-      due_date: row.due_date ?? undefined,
-      reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
-      reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
       account_id: (row.account_id as string | null) ?? null,
       vehicle_id: (row.vehicle_id as string | null) ?? null,
       vehicle_category: (row.vehicle_category as string | null) ?? null,
@@ -239,13 +190,11 @@ export async function loadExpenseSummary(paidMonth?: string): Promise<DashboardS
     supabase
       .from("expense_entries")
       .select("id", { count: "exact", head: true })
-      .eq("profile_id", profile.id)
-      .eq("billing_period", "monthly"),
+      .eq("profile_id", profile.id),
     supabase
       .from("expense_entries")
       .select("amount")
-      .eq("profile_id", profile.id)
-      .eq("billing_period", "monthly"),
+      .eq("profile_id", profile.id),
     supabase
       .from("expense_payments")
       .select("id", { count: "exact", head: true })
@@ -255,8 +204,7 @@ export async function loadExpenseSummary(paidMonth?: string): Promise<DashboardS
       .from("expense_payments")
       .select("expense_entries!inner(amount)")
       .eq("profile_id", profile.id)
-      .eq("paid_month", month)
-      .eq("expense_entries.billing_period", "monthly"),
+      .eq("paid_month", month),
   ]);
 
   const totalIncome = (incomeRows ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
@@ -333,7 +281,7 @@ export async function loadSharedExpenseData(
   const [{ data: entries }, { data: paymentRows }] = await Promise.all([
     supabase
       .from("expense_entries")
-      .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, reminder_days_before, reminder_channel, created_at, updated_at")
+      .select("id, category_id, amount, note, notes, account_id, vehicle_id, vehicle_category, created_at, updated_at")
       .eq("profile_id", grantorProfile.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -354,20 +302,11 @@ export async function loadSharedExpenseData(
       id: row.id,
       category_id: String(row.category_id ?? ""),
       amount: Number(row.amount),
-      billing_period:
-        row.billing_period === "yearly"
-          ? "yearly"
-          : row.billing_period === "quarterly"
-            ? "quarterly"
-            : "monthly",
-      due_month: row.due_month != null ? Number(row.due_month) : undefined,
       note: row.note ?? undefined,
       notes: row.notes ?? undefined,
-      due_date: row.due_date ?? undefined,
-      reminder_days_before: hasProAccess
-        ? normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined
-        : undefined,
-      reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      account_id: (row.account_id as string | null) ?? null,
+      vehicle_id: (row.vehicle_id as string | null) ?? null,
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
       created_at: row.created_at ?? undefined,
       updated_at: row.updated_at ?? undefined,
     })),
@@ -503,10 +442,6 @@ export async function addExpense(
   amount: number,
   note?: string | null,
   notes?: string | null,
-  dueDate?: string | null,
-  reminderDaysBefore?: ReminderDay[] | null,
-  billingPeriod: "monthly" | "quarterly" | "yearly" = "monthly",
-  reminderChannel: "email" | "in-app" | "both" = "both",
   expenseDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
@@ -517,44 +452,27 @@ export async function addExpense(
   if (!user) return { error: "Not logged in." };
   let { data: profile } = await supabase
     .from("profiles")
-    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+    .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!profile) {
     const { data: newProfile, error: insertErr } = await supabase
       .from("profiles")
       .insert({ user_id: user.id, net_take_home: 0, currency: "PHP" })
-      .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+      .select("id")
       .single();
     if (insertErr || !newProfile) return { error: insertErr?.message ?? "Could not create profile." };
     profile = newProfile;
   }
   if (amount <= 0) return { error: "Amount must be greater than 0." };
-  const tier = normalizeDbTier(profile.subscription_tier as string | null);
-  const endsIso = profile.subscription_ends_at as string | null;
-  const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
-  const dueRaw = dueDate?.trim() ?? "";
-  const dueNorm = dueRaw ? normalizeDueDateForStorage(dueRaw) : null;
-  if (dueRaw && !dueNorm) return { error: "Invalid due date." };
-  const reminders = reminderDaysBefore?.length ? reminderDaysBefore : null;
-  if (billingPeriod !== "monthly" && billingPeriod !== "quarterly" && billingPeriod !== "yearly") {
-    return { error: "Invalid billing period." };
-  }
-  if (!hasProAccess && reminders) {
-    return { error: "Reminders are available on Pro or Premium." };
-  }
   const { error } = await supabase
     .from("expense_entries")
     .insert({
       profile_id: profile.id,
       category_id: categoryId,
       amount,
-      billing_period: billingPeriod,
       ...(note != null && { note: note.trim() || null }),
       ...(notes != null && { notes: notes.trim() || null }),
-      ...(dueNorm && { due_date: dueNorm }),
-      ...(reminders && { reminder_days_before: reminders }),
-      reminder_channel: reminderChannel,
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
       account_id: accountId || null,
       vehicle_id: vehicleId || null,
@@ -576,10 +494,6 @@ export async function updateExpense(
   amount: number,
   note?: string | null,
   notes?: string | null,
-  dueDate?: string | null,
-  reminderDaysBefore?: ReminderDay[] | null,
-  billingPeriod?: "monthly" | "quarterly" | "yearly",
-  reminderChannel?: "email" | "in-app" | "both",
   expenseDate?: string,
   accountId?: string | null,
   vehicleId?: string | null,
@@ -590,38 +504,11 @@ export async function updateExpense(
   if (!user) return { error: "Not logged in." };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+    .select("id")
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "Profile not found." };
   if (amount <= 0) return { error: "Amount must be greater than 0." };
-  const tier = normalizeDbTier(profile.subscription_tier as string | null);
-  const endsIso = profile.subscription_ends_at as string | null;
-  const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
-  let due: string | null | undefined = undefined;
-  if (dueDate !== undefined) {
-    const raw = dueDate?.trim() ?? "";
-    if (!raw) due = null;
-    else {
-      const norm = normalizeDueDateForStorage(raw);
-      if (!norm) return { error: "Invalid due date." };
-      due = norm;
-    }
-  }
-  const reminders = reminderDaysBefore !== undefined ? (reminderDaysBefore?.length ? reminderDaysBefore : null) : undefined;
-  if (
-    billingPeriod !== undefined &&
-    billingPeriod !== "monthly" &&
-    billingPeriod !== "quarterly" &&
-    billingPeriod !== "yearly"
-  ) {
-    return { error: "Invalid billing period." };
-  }
-  if (!hasProAccess) {
-    if (reminders !== undefined && reminders !== null) {
-      return { error: "Reminders are available on Pro or Premium." };
-    }
-  }
   const { error } = await supabase
     .from("expense_entries")
     .update({
@@ -629,10 +516,6 @@ export async function updateExpense(
       amount,
       ...(note !== undefined && { note: note || null }),
       ...(notes !== undefined && { notes: notes || null }),
-      ...(billingPeriod !== undefined && { billing_period: billingPeriod }),
-      ...(due !== undefined && { due_date: due }),
-      ...(reminders !== undefined && { reminder_days_before: reminders }),
-      ...(reminderChannel !== undefined && { reminder_channel: reminderChannel }),
       ...(expenseDate?.trim() && { created_at: `${expenseDate.trim()}T00:00:00` }),
       ...(accountId !== undefined && { account_id: accountId || null }),
       ...(vehicleId !== undefined && { vehicle_id: vehicleId || null }),
