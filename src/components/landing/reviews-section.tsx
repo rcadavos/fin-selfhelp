@@ -72,10 +72,50 @@ function MarqueeColumn({
   );
 }
 
-function splitIntoColumns(reviews: ApprovedReviewRow[], n: number): ApprovedReviewRow[][] {
-  const cols: ApprovedReviewRow[][] = Array.from({ length: n }, () => []);
-  reviews.forEach((r, i) => cols[i % n]!.push(r));
-  return cols;
+function rotate<T>(arr: T[], offset: number): T[] {
+  if (arr.length === 0) return arr;
+  const n = ((offset % arr.length) + arr.length) % arr.length;
+  return [...arr.slice(n), ...arr.slice(0, n)];
+}
+
+function HorizontalMarquee({
+  reviews,
+  speed = 50,
+}: {
+  reviews: ApprovedReviewRow[];
+  speed?: number;
+}) {
+  const doubled = [...reviews, ...reviews];
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        maskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+        WebkitMaskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+      }}
+    >
+      <style>{`
+        @keyframes marquee-left {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .marquee-left { animation: marquee-left linear infinite; }
+        .marquee-row:hover .marquee-left { animation-play-state: paused; }
+      `}</style>
+      <div className="marquee-row">
+        <div
+          className="marquee-left flex w-max gap-4"
+          style={{ animationDuration: `${speed}s` }}
+        >
+          {doubled.map((r, i) => (
+            <div key={`${r.id}-${i}`} className="w-[300px] shrink-0 sm:w-[340px]">
+              <ReviewCard review={r} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ReviewsSection({
@@ -87,7 +127,24 @@ export function ReviewsSection({
 }) {
   if (reviews.length === 0) return null;
 
-  const useWall = reviews.length >= 3;
+  // Vertical 3-column wall needs at least 3 unique cards per column to look
+  // full; below that the horizontal marquee reads better with a small pool.
+  const useWall = reviews.length >= 9;
+  const useHorizontal = !useWall && reviews.length >= 3;
+
+  if (useHorizontal) {
+    return (
+      <section id="reviews" className={cn("border-t px-4 py-16 sm:px-6 lg:px-8", className)}>
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">What users say</h2>
+            <p className="mt-2 text-muted-foreground">From OmniTrak users.</p>
+          </div>
+          <HorizontalMarquee reviews={reviews} />
+        </div>
+      </section>
+    );
+  }
 
   if (!useWall) {
     return (
@@ -105,7 +162,12 @@ export function ReviewsSection({
     );
   }
 
-  const cols = splitIntoColumns(reviews, 3);
+  // Every column gets the full review set, rotated by a different offset so
+  // adjacent columns never show the same card at the same vertical position.
+  const colCount = 3;
+  const cols = Array.from({ length: colCount }, (_, i) =>
+    rotate(reviews, Math.floor((reviews.length * i) / colCount)),
+  );
   const speeds = [45, 35, 50];
   const directions: ("up" | "down")[] = ["up", "down", "up"];
 
@@ -127,7 +189,7 @@ export function ReviewsSection({
             {cols.map((col, i) => (
               <div key={i} className={cn(i === 2 && "hidden lg:block", i === 1 && "hidden sm:block")}>
                 <MarqueeColumn
-                  reviews={col.length >= 2 ? col : [...col, ...col, ...col]}
+                  reviews={col}
                   direction={directions[i]}
                   speed={speeds[i]}
                 />
