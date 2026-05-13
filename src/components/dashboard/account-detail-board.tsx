@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
+import { BackLink } from "@/components/app/back-link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowDownCircle,
-  ArrowLeft,
   ArrowLeftRight,
   ArrowUpCircle,
   Edit,
@@ -218,12 +217,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-        <Link href="/dashboard/accounts">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Accounts
-        </Link>
-      </Button>
+      <BackLink href="/dashboard/accounts" label="Accounts" />
 
       <ContentHeader
         title={

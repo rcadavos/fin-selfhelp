@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
-import { useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -12,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
+  ArrowDownCircle,
   Car,
   Plus,
   Trash2,
@@ -46,7 +48,8 @@ import {
   invalidateVehicleQueries,
   VEHICLE_CHART_COLORS,
 } from "@/lib/query/vehicles";
-import { labelForVehicleExpenseCategory, VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
+import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
 import Link from "next/link";
 import {
   addVehicle,
@@ -54,7 +57,6 @@ import {
   deleteVehicle,
   type VehicleRow,
 } from "@/actions/vehicles";
-import { queryKeys } from "@/lib/query/keys";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -77,7 +79,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type VehicleFormState = {
+export type VehicleFormState = {
   name: string;
   type: string;
   make: string;
@@ -101,7 +103,7 @@ const EMPTY_FORM: VehicleFormState = {
   notes: "",
 };
 
-function vehicleToForm(v: VehicleRow): VehicleFormState {
+export function vehicleToForm(v: VehicleRow): VehicleFormState {
   return {
     name: v.name,
     type: v.type,
@@ -219,7 +221,7 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
 
 // ─── Vehicle Dialog ───────────────────────────────────────────────────────────
 
-function VehicleDialog({
+export function VehicleDialog({
   open,
   onClose,
   onSave,
@@ -472,6 +474,7 @@ const CURRENT_MONTH_YM = (() => {
 })();
 
 export function VehiclesBoard() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
 
@@ -491,13 +494,17 @@ export function VehiclesBoard() {
     return opts;
   }, []);
 
-  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
+  const { data: vehiclesData } = useQuery(vehiclesQueryOptions());
   const { data: spending } = useQuery(vehicleSpendingQueryOptions(selectedMonth));
+  const vehicles: VehicleRow[] = vehiclesData ?? [];
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // ── Quick add transport expense ──
+  const [qeOpen, setQeOpen] = useState(false);
 
   function invalidate() {
     invalidateVehicleQueries(queryClient);
@@ -716,10 +723,22 @@ export function VehiclesBoard() {
             ))}
           </SelectContent>
         </Select>
-        <Button size="lg" onClick={() => { setSaveError(null); setAddOpen(true); }} className="gap-1.5">
-          <Plus className="h-4 w-4" aria-hidden />
-          Add Vehicle
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => setQeOpen(true)}
+            disabled={vehicles.length === 0}
+            className="gap-1.5"
+          >
+            <ArrowDownCircle className="h-4 w-4 text-rose-500" aria-hidden />
+            Add Expense
+          </Button>
+          <Button size="lg" onClick={() => { setSaveError(null); setAddOpen(true); }} className="gap-1.5">
+            <Plus className="h-4 w-4" aria-hidden />
+            Add Vehicle
+          </Button>
+        </div>
       </div>
 
       {/* Vehicle list */}
@@ -738,7 +757,7 @@ export function VehiclesBoard() {
                 billSpend={billSpend}
                 expenseSpend={expenseSpend}
                 color={color}
-                onEdit={() => { setSaveError(null); setEditingVehicle(vehicle); }}
+                onEdit={() => router.push(`/dashboard/vehicles/${vehicle.id}`)}
                 onDelete={() => setDeletingId(vehicle.id)}
               />
             );
@@ -816,6 +835,14 @@ export function VehiclesBoard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quick add transport expense — reuses shared dialog with full Account dropdown */}
+      <AddExpenseDialog
+        open={qeOpen}
+        onClose={() => setQeOpen(false)}
+        initialCategory="transport"
+        initialVehicleId={vehicles[0]?.id}
+      />
     </div>
   );
 }

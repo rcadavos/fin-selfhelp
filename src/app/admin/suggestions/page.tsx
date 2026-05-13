@@ -10,8 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getSuggestionsForAdmin, type SuggestionForAdminRow } from "@/actions/feedback";
-import { Loader2, ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import { BackLink } from "@/components/app/back-link";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
@@ -30,12 +30,7 @@ function AdminSuggestionsContent() {
   return (
     <main className="container mx-auto max-w-4xl py-8">
       <div className="mb-6">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />Back to Admin
-        </Link>
+        <BackLink href="/admin" label="Admin" />
       </div>
       <Card>
         <CardHeader>

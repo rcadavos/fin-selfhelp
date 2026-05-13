@@ -4,7 +4,6 @@ import { useState, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronLeft,
   Plus,
   Pencil,
   Trash2,
@@ -14,6 +13,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
+import { BackLink } from "@/components/app/back-link";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -295,13 +295,7 @@ export function CategoriesBoard() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-6">
       {/* back */}
-      <Link
-        href="/dashboard/expenses"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back to Expenses
-      </Link>
+      <BackLink href="/dashboard/expenses" label="Expenses" />
 
       {/* header */}
       <div className="mb-6 mt-2">

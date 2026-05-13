@@ -46,10 +46,14 @@ export function AddExpenseDialog({
   open,
   onClose,
   initialAccountId,
+  initialCategory,
+  initialVehicleId,
 }: {
   open: boolean;
   onClose: () => void;
   initialAccountId?: string;
+  initialCategory?: string;
+  initialVehicleId?: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -60,11 +64,11 @@ export function AddExpenseDialog({
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(initialCategory ?? "");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(todayYmd);
   const [accountId, setAccountId] = useState(initialAccountId ?? "");
-  const [vehicleId, setVehicleId] = useState("");
+  const [vehicleId, setVehicleId] = useState(initialVehicleId ?? "");
   const [vehicleCategory, setVehicleCategory] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,15 +77,15 @@ export function AddExpenseDialog({
     if (open) {
       setName("");
       setAmount("");
-      setCategory("");
+      setCategory(initialCategory ?? "");
       setNote("");
       setDate(todayYmd());
       setAccountId(initialAccountId ?? "");
-      setVehicleId("");
+      setVehicleId(initialVehicleId ?? "");
       setVehicleCategory("");
       setError(null);
     }
-  }, [open, initialAccountId]);
+  }, [open, initialAccountId, initialCategory, initialVehicleId]);
 
   const parsedAmt = parseFloat(amount);
   const selectedBalance = accountId ? (balances[accountId] ?? 0) : null;

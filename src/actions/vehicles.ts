@@ -54,6 +54,47 @@ export async function loadVehicles(): Promise<{ vehicles: VehicleRow[]; error?: 
   };
 }
 
+export async function loadVehicle(
+  vehicleId: string,
+): Promise<{ vehicle: VehicleRow | null; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { vehicle: null, error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile) return { vehicle: null };
+
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("id, name, type, make, model, year, plate_number, color, fuel_type, notes, created_at")
+    .eq("id", vehicleId)
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+
+  if (error) return { vehicle: null, error: error.message };
+  if (!data) return { vehicle: null };
+
+  return {
+    vehicle: {
+      id: String(data.id),
+      name: String(data.name),
+      type: String(data.type),
+      make: data.make ?? null,
+      model: data.model ?? null,
+      year: data.year != null ? Number(data.year) : null,
+      plate_number: data.plate_number ?? null,
+      color: data.color ?? null,
+      fuel_type: data.fuel_type ?? null,
+      notes: data.notes ?? null,
+      created_at: String(data.created_at),
+    },
+  };
+}
+
 export async function addVehicle(input: {
   name: string;
   type: string;
