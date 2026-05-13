@@ -33,6 +33,7 @@ export async function createPayMongoQRPhPaymentIntent(
   const { pro, premium } = await getSubscriptionPlans();
   const plan = planId === "premium" ? premium ?? pro : pro;
   if (!plan) return { error: "Subscription plan not found." };
+  if (!plan.enabled) return { error: `The ${plan.name} plan is currently unavailable.` };
   // PayMongo QR PH uses PHP; amount in centavos (100 centavos = 1 PHP). Min 2000 centavos = 20 PHP.
   const amountCentavos = Math.round(plan.priceAmount * 100);
   if (amountCentavos < MIN_AMOUNT_CENTAVOS) {
@@ -152,6 +153,7 @@ export async function createPayMongoCheckoutSession(
   const { pro, premium } = await getSubscriptionPlans();
   const plan = planId === "premium" ? premium ?? pro : pro;
   if (!plan) return { error: "Subscription plan not found." };
+  if (!plan.enabled) return { error: `The ${plan.name} plan is currently unavailable.` };
 
   const amountCentavos = Math.round(plan.priceAmount * 100);
   if (amountCentavos < MIN_AMOUNT_CENTAVOS) {

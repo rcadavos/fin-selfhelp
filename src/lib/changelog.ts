@@ -14,6 +14,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.9",
+    date: "2026-05-13",
+    summary: "Admin pricing now supports an on/off toggle per plan and creating custom plans.",
+    changes: [
+      { type: "feature", description: "Admin → Pricing: each plan now has an Enabled toggle. Toggling a plan off hides it from the landing page and subscription page, and blocks new PayMongo checkouts; existing subscribers keep access." },
+      { type: "feature", description: "Admin → Pricing: 'Create new subscription' button opens a modal to add a custom plan (id, name, price, currency, interval, original price, enabled)." },
+      { type: "improvement", description: "Admin → Pricing: custom plans created in the modal show up alongside Pro and Premium as editable cards." },
+      { type: "improvement", description: "Landing page plan cards are now a fixed width and centered, so the row no longer stretches wide when there are only two plans visible." },
+    ],
+  },
+  {
     version: "1.5.8",
     date: "2026-05-12",
     summary: "Admin notifications: in-app + email channels, HTML editor, templates, batch-send, and one-click unsubscribe.",

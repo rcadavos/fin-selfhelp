@@ -52,7 +52,8 @@
       "Bash(Get-ChildItem \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\src\\\\components\\\\dashboard\" -Recurse)",
       "Bash(Get-ChildItem -Path \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\src\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
-      "Bash(Sort-Object -Unique)"
+      "Bash(Sort-Object -Unique)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

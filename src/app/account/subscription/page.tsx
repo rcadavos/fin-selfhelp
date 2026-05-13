@@ -269,8 +269,9 @@ function SubscriptionPageInner() {
 
   const [unsubmitting, setUnsubmitting] = useState(false);
   const [unsubError, setUnsubError] = useState<string | null>(null);
+  const premiumEnabled = plans?.premium?.enabled ?? true;
   const [selectedPlan, setSelectedPlan] = useState<"pro" | "premium" | null>(
-    planParam === "premium" ? "premium" : planParam === "pro" ? "pro" : null
+    planParam === "premium" && premiumEnabled ? "premium" : planParam === "pro" ? "pro" : null
   );
   const paymentRef = useRef<HTMLDivElement>(null);
 
@@ -414,7 +415,7 @@ function SubscriptionPageInner() {
           Start free, upgrade to Pro for reminders and unlimited lists, or Premium for extra modules.
         </p>
 
-        <div className="grid items-center gap-5 sm:grid-cols-3">
+        <div className={cn("grid items-center gap-5", plans?.premium?.enabled ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
           {/* Free */}
           <Card className="flex flex-col border-border/50">
             <CardHeader>
@@ -496,6 +497,7 @@ function SubscriptionPageInner() {
           </Card>
 
           {/* Premium */}
+          {plans?.premium?.enabled && (
           <Card className={cn(
             "relative flex flex-col overflow-hidden border-sky-500/40",
             hasPremium ? "bg-sky-500/[0.08] dark:bg-sky-950/20" : "bg-sky-500/[0.04] dark:bg-sky-950/10"
@@ -546,6 +548,7 @@ function SubscriptionPageInner() {
               )}
             </CardFooter>
           </Card>
+          )}
         </div>
       </section>
 

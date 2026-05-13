@@ -14,6 +14,7 @@ export const SUBSCRIPTION_PLAN_FALLBACK: SubscriptionPlanRow = {
   priceCurrency: "USD",
   interval: "month",
   originalPriceAmount: 20,
+  enabled: true,
 };
 
 export const SUBSCRIPTION_PREMIUM_FALLBACK: SubscriptionPlanRow = {
@@ -23,6 +24,7 @@ export const SUBSCRIPTION_PREMIUM_FALLBACK: SubscriptionPlanRow = {
   priceCurrency: "USD",
   interval: "month",
   originalPriceAmount: null,
+  enabled: true,
 };
 
 export const subscriptionPlanQueryOptions = () =>
@@ -39,10 +41,11 @@ export const subscriptionPlansQueryOptions = () =>
   queryOptions({
     queryKey: queryKeys.subscriptionPlans(),
     queryFn: () => Promise.resolve().then(async () => {
-      const { pro, premium } = await getSubscriptionPlans();
+      const { pro, premium, extras } = await getSubscriptionPlans();
       return {
         pro: pro ?? SUBSCRIPTION_PLAN_FALLBACK,
         premium: premium ?? SUBSCRIPTION_PREMIUM_FALLBACK,
+        extras,
       };
     }),
     staleTime: Infinity,

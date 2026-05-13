@@ -41,8 +41,8 @@ export function SubscribeSection({
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-3">
-          <Card className="flex flex-col border-border/50">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-stretch justify-center gap-6">
+          <Card className="flex w-full max-w-sm flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-base">Free</CardTitle>
               <CardDescription>Track planned expenses and cashflow, no card required.</CardDescription>
@@ -62,7 +62,7 @@ export function SubscribeSection({
             </CardFooter>
           </Card>
 
-          <Card className="relative flex h-full flex-col overflow-hidden border-primary/60 bg-primary/5 shadow-xl ring-2 ring-primary/20 lg:scale-[1.06] lg:z-10">
+          <Card className="relative flex h-full w-full max-w-sm flex-col overflow-hidden border-primary/60 bg-primary/5 shadow-xl ring-2 ring-primary/20 lg:scale-[1.06] lg:z-10">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-primary/10" aria-hidden />
             <div className="absolute left-0 top-0">
               <span className="inline-flex items-center gap-1 rounded-br-xl bg-orange-500 px-3 py-1 text-xs font-bold text-white">
@@ -107,7 +107,8 @@ export function SubscribeSection({
             </CardFooter>
           </Card>
 
-          <Card className="relative flex h-full flex-col overflow-hidden border-sky-500/40 bg-sky-500/[0.06] shadow-sm dark:bg-sky-950/20">
+          {premiumPlan.enabled && (
+          <Card className="relative flex h-full w-full max-w-sm flex-col overflow-hidden border-sky-500/40 bg-sky-500/[0.06] shadow-sm dark:bg-sky-950/20">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-sky-500/10" aria-hidden />
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -149,6 +150,7 @@ export function SubscribeSection({
               </Button>
             </CardFooter>
           </Card>
+          )}
         </div>
       </div>
     </section>
