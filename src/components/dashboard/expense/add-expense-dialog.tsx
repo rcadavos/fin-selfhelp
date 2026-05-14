@@ -23,6 +23,8 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { AccountSelect } from "@/components/app/account-select";
+import { ReceiptScannerButton } from "@/components/dashboard/expense/receipt-scanner-button";
+import type { ParsedReceipt } from "@/lib/utils/parse-receipt";
 import { addExpense } from "@/actions/budget";
 import { createAccountExpense } from "@/actions/account-transactions";
 import { categoriesQueryOptions } from "@/lib/query/categories";
@@ -86,6 +88,12 @@ export function AddExpenseDialog({
       setError(null);
     }
   }, [open, initialAccountId, initialCategory, initialVehicleId]);
+
+  function handleScanExtract(parsed: ParsedReceipt) {
+    if (parsed.merchant) setName(parsed.merchant);
+    if (parsed.amount !== undefined) setAmount(String(parsed.amount));
+    if (parsed.date) setDate(parsed.date);
+  }
 
   const parsedAmt = parseFloat(amount);
   const selectedBalance = accountId ? (balances[accountId] ?? 0) : null;
@@ -155,6 +163,8 @@ export function AddExpenseDialog({
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ScrollFadeBody className="space-y-4 px-6 pb-4">
+
+            <ReceiptScannerButton onExtract={handleScanExtract} />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">

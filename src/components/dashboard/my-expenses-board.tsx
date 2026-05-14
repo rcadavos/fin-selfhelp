@@ -54,7 +54,7 @@ import {
 } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { ContentHeader } from "../app/content-header";
 import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
@@ -193,16 +193,20 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
 
   if (!data.length) return null;
 
+  const useTwoCols = data.length > 5;
+  const rowsPerCol = useTwoCols ? Math.ceil(data.length / 2) : data.length;
+  const height = Math.max(170, rowsPerCol * 22);
+
   return (
     <div className="[&_svg]:outline-none">
-      <ResponsiveContainer width="100%" height={150}>
+      <ResponsiveContainer width="100%" height={height}>
         <PieChart style={{ outline: "none" }}>
           <Pie
             style={{ outline: "none" }}
             data={data}
             dataKey="value"
             nameKey="name"
-            cx="50%"
+            cx={useTwoCols ? "25%" : "28%"}
             cy="50%"
             innerRadius={35}
             outerRadius={55}
@@ -227,10 +231,25 @@ function ExpensePieChart({ entries, categories }: { entries: ExpenseEntryRow[]; 
             align="right"
             verticalAlign="middle"
             wrapperStyle={{ right: 10 }}
-            iconType="circle"
-            iconSize={8}
-            formatter={(value) => (
-              <span className="text-xs text-foreground">{value}</span>
+            content={({ payload }) => (
+              <div
+                className={cn(
+                  "grid gap-x-3 gap-y-1",
+                  useTwoCols ? "grid-cols-2" : "grid-cols-1"
+                )}
+              >
+                {payload?.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: entry.color }}
+                    />
+                    <span className="truncate text-xs text-foreground">
+                      {entry.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           />
         </PieChart>
