@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProFeatureDialog } from "@/components/app/pro-feature-dialog";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
+import { ocrEnabledQueryOptions } from "@/lib/query/app-settings";
 import { parseReceipt, type ParsedReceipt } from "@/lib/utils/parse-receipt";
 import {
   OCR_ALLOWED_ACCEPT_ATTR,
@@ -41,6 +42,7 @@ export function ReceiptScannerButton({
 }) {
   const { data: subscriptionStatus } = useQuery(subscriptionStatusQueryOptions());
   const isPro = !!(subscriptionStatus?.hasProAccess || subscriptionStatus?.hasPremiumAccess);
+  const { data: ocrEnabled } = useQuery(ocrEnabledQueryOptions());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [upsellOpen, setUpsellOpen] = useState(false);
@@ -112,6 +114,8 @@ export function ReceiptScannerButton({
     setModalOpen(false);
     setScanState({ kind: "idle" });
   }
+
+  if (ocrEnabled === false) return null;
 
   return (
     <>

@@ -52,4 +52,6 @@ export const queryKeys = {
   receivables: () => [...queryKeys.all, "receivables"] as const,
   /** Pending receivable links where current user is the debtor (see `pendingReceivableLinksQueryOptions`). */
   pendingReceivableLinks: () => [...queryKeys.all, "receivables", "links", "pending"] as const,
+  /** Global `app_settings.ocr_scanning_enabled` flag (see `ocrEnabledQueryOptions`). */
+  appSettingOcrEnabled: () => [...queryKeys.all, "app-settings", "ocr-enabled"] as const,
 };
