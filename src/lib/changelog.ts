@@ -14,6 +14,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.9",
+    date: "2026-05-15",
+    summary: "Optimistic account deletion — instant redirect and cache update without waiting for the server.",
+    changes: [
+      { type: "fix", description: "Deleting an account now navigates back to the accounts list immediately instead of waiting for the server action to complete." },
+      { type: "improvement", description: "Account deletion is now optimistic: the account is removed from the cache instantly and rolled back only if the server returns an error." },
+    ],
+  },
+  {
     version: "1.5.8",
     date: "2026-05-12",
     summary: "Admin notifications: in-app + email channels, HTML editor, templates, batch-send, and one-click unsubscribe.",

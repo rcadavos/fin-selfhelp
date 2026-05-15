@@ -208,10 +208,19 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   }
 
   function handleDeleteAccount() {
-    startTransition(async () => {
-      await deleteAccount(account.id);
-      invalidateAccountQueries(queryClient);
-      router.push("/dashboard/accounts");
+    const previousAccounts = queryClient.getQueryData(accountsQueryOptions().queryKey);
+    queryClient.setQueryData(
+      accountsQueryOptions().queryKey,
+      (old: AccountRow[] | undefined) => (old ?? []).filter((a) => a.id !== account.id),
+    );
+    setDeleteOpen(false);
+    router.push("/dashboard/accounts");
+    deleteAccount(account.id).then((res) => {
+      if (res?.error) {
+        queryClient.setQueryData(accountsQueryOptions().queryKey, previousAccounts);
+      } else {
+        invalidateAccountQueries(queryClient);
+      }
     });
   }
 
