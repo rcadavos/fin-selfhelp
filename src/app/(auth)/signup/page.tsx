@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/auth/turnstile-widget";
 import Image from "next/image";
 import { BadgeCheck, Check, ChevronLeft, Lock, Mail, Sparkles } from "lucide-react";
 import { useFormStatus } from "react-dom";
@@ -102,6 +103,8 @@ export default function SignUpPage() {
   const [fullNameError, setFullNameError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string>("");
+  const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -122,10 +125,17 @@ export default function SignUpPage() {
   async function handleSubmit(formData: FormData) {
     if (fullNameError) return;
     if (!agreed) return;
+    if (!captchaToken) {
+      setFormError("Please complete the verification challenge.");
+      return;
+    }
     setFormError(null);
     const email = (formData.get("email") as string | null)?.trim() ?? "";
+    formData.set("captchaToken", captchaToken);
     const result = await signUp(formData);
     if (result?.error) {
+      setCaptchaToken("");
+      turnstileRef.current?.reset();
       setFormError(result.error);
     } else if (result?.next) {
       router.push(result.next);
@@ -136,7 +146,7 @@ export default function SignUpPage() {
   }
 
   const score = passwordScore(password);
-  const canSubmit = agreed && !fullNameError && score >= 4;
+  const canSubmit = agreed && !fullNameError && score >= 4 && !!captchaToken;
 
   if (loading || user) {
     return (
@@ -399,8 +409,15 @@ export default function SignUpPage() {
                     </Link>
                   </span>
                 </label>
+                <TurnstileWidget
+                  ref={turnstileRef}
+                  onSuccess={setCaptchaToken}
+                  onExpire={() => setCaptchaToken("")}
+                  onError={() => setCaptchaToken("")}
+                  action="signup"
+                />
                 <SubmitButton disabled={!canSubmit} />
-                
+
               </form>
 
               <div className="relative">

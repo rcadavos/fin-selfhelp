@@ -131,10 +131,15 @@ export async function GET(request: Request) {
       }
     }
 
-    // Insert bill_payment
+    // Insert bill_payment — auto-debit always records a full payment.
     const { data: payment, error: payErr } = await supabase
       .from("bill_payments")
-      .insert({ bill_id: bill.id, profile_id: bill.profile_id, paid_month: paidMonth })
+      .insert({
+        bill_id: bill.id,
+        profile_id: bill.profile_id,
+        paid_month: paidMonth,
+        amount_paid: billAmount,
+      })
       .select("id")
       .single();
 

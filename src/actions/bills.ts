@@ -93,7 +93,14 @@ export type BillRow = {
 export type BillsData = {
   bills: BillRow[];
   paidMonth: string;
+  /** Bill IDs with any payment row for this month (full or partial). */
   paidBillIds: string[];
+  /**
+   * For every bill with a payment row this month, the actual amount_paid.
+   * Use this (rather than bill.amount) to compute "Planned paid" totals so
+   * partial payments are reflected accurately. Missing key => no payment.
+   */
+  paymentAmountByBillId: Record<string, number>;
   netTakeHome: number;
   isSubscriber: boolean;
   subscriptionTier: SubscriptionTierId;
@@ -134,7 +141,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       .order("created_at", { ascending: true }),
     supabase
       .from("bill_payments")
-      .select("bill_id")
+      .select("bill_id, amount_paid")
       .eq("profile_id", profile.id)
       .eq("paid_month", month),
     supabase
@@ -213,6 +220,9 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
     })),
     paidMonth: month,
     paidBillIds: (paymentRows ?? []).map((r) => r.bill_id as string),
+    paymentAmountByBillId: Object.fromEntries(
+      (paymentRows ?? []).map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+    ),
     netTakeHome,
     isSubscriber: hasProAccess,
     subscriptionTier: tier,
@@ -226,6 +236,7 @@ export type SharedBillsData = {
   bills: BillRow[];
   paidMonth: string;
   paidBillIds: string[];
+  paymentAmountByBillId: Record<string, number>;
   grantorUserId: string;
 };
 
@@ -264,7 +275,7 @@ export async function loadSharedBillsData(
       .order("created_at", { ascending: true }),
     supabase
       .from("bill_payments")
-      .select("bill_id")
+      .select("bill_id, amount_paid")
       .eq("profile_id", grantorProfile.id)
       .eq("paid_month", month),
   ]);
@@ -292,6 +303,9 @@ export async function loadSharedBillsData(
     })),
     paidMonth: month,
     paidBillIds: (paymentRows ?? []).map((r) => r.bill_id as string),
+    paymentAmountByBillId: Object.fromEntries(
+      (paymentRows ?? []).map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+    ),
     grantorUserId,
   };
 }
@@ -340,9 +354,24 @@ export async function granteeSharedToggleBillPayment(
     return { paid: false };
   }
 
+  // Grantee toggle stays binary: always records a full payment.
+  // First read the bill amount so amount_paid is set explicitly (NOT NULL column).
+  const { data: bill } = await srClient
+    .from("bills")
+    .select("amount")
+    .eq("id", billId)
+    .eq("profile_id", grantorProfile.id)
+    .maybeSingle();
+  if (!bill) return { error: "Bill not found." };
+
   const { error } = await srClient
     .from("bill_payments")
-    .insert({ bill_id: billId, profile_id: grantorProfile.id, paid_month: paidMonth });
+    .insert({
+      bill_id: billId,
+      profile_id: grantorProfile.id,
+      paid_month: paidMonth,
+      amount_paid: Number(bill.amount),
+    });
 
   if (error) return { error: error.message };
   revalidatePath(`/account/shared/${grantorUserId}/expenses`);
@@ -352,10 +381,235 @@ export async function granteeSharedToggleBillPayment(
 export type ToggleBillPaymentResult = {
   error?: string;
   paid?: boolean;
-  /** Set when the toggle failed because the linked account does not have enough balance. */
+  /** Total amount_paid on the bill_payments row after the operation. 0 when unmarked. */
+  amountPaid?: number;
+  /** Set when the operation failed because the linked account does not have enough balance for the delta. */
   insufficientBalance?: { accountId: string; available: number; required: number };
 };
 
+/**
+ * Compute available balance for an account = starting_balance + sum(account_transactions.amount).
+ * Returns null if the account doesn't exist / isn't owned by the profile.
+ */
+async function getAccountAvailableBalance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+  accountId: string,
+): Promise<number | null> {
+  const [{ data: account }, { data: txRows }] = await Promise.all([
+    supabase
+      .from("accounts")
+      .select("starting_balance")
+      .eq("id", accountId)
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+    supabase
+      .from("account_transactions")
+      .select("amount")
+      .eq("account_id", accountId)
+      .eq("profile_id", profileId),
+  ]);
+  if (!account) return null;
+  return (
+    Number(account.starting_balance ?? 0) +
+    (txRows ?? []).reduce((s, r) => s + Number(r.amount), 0)
+  );
+}
+
+/**
+ * Mark a planned expense as paid (fully or partially) for the given month.
+ * - If `amount` is omitted, defaults to the bill's full amount.
+ * - If a payment row already exists, this updates it to the new absolute amount
+ *   and adjusts the linked account_transaction/expense_entry by the delta. The
+ *   insufficient-funds guard checks the delta (not the absolute amount), so
+ *   reducing a partial payment never fails for lack of balance.
+ * - Rejects amount <= 0.
+ */
+export async function markBillPaid(
+  billId: string,
+  paidMonth: string,
+  amount?: number,
+): Promise<ToggleBillPaymentResult> {
+  if (!/^\d{4}-\d{2}$/.test(paidMonth)) return { error: "invalid_month" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const { data: bill, error: billErr } = await supabase
+    .from("bills")
+    .select("id, amount, account_id, category_id, note")
+    .eq("id", billId)
+    .eq("profile_id", profile.id)
+    .single();
+  if (billErr || !bill) return { error: "bill_not_found" };
+
+  const billAmount = Number(bill.amount);
+  const newAmount = amount == null ? billAmount : Number(amount);
+  if (!Number.isFinite(newAmount) || newAmount <= 0) return { error: "invalid_amount" };
+
+  const accountId = (bill.account_id as string | null) ?? null;
+
+  const { data: existing } = await supabase
+    .from("bill_payments")
+    .select("id, amount_paid")
+    .eq("bill_id", billId)
+    .eq("profile_id", profile.id)
+    .eq("paid_month", paidMonth)
+    .maybeSingle();
+
+  const previousAmount = existing ? Number(existing.amount_paid) : 0;
+  const delta = newAmount - previousAmount;
+
+  // Insufficient-funds guard: only when balance actually needs to go down (delta > 0).
+  if (accountId && delta > 0) {
+    const balance = await getAccountAvailableBalance(supabase, profile.id, accountId);
+    if (balance == null) return { error: "account_not_found" };
+    if (balance < delta) {
+      return {
+        error: "insufficient_balance",
+        insufficientBalance: { accountId, available: balance, required: delta },
+      };
+    }
+  }
+
+  const description = (bill.note as string | null)?.trim() || "Planned expense";
+  const occurredAt = new Date().toISOString();
+
+  if (existing) {
+    // UPDATE path: adjust the row + linked side-rows.
+    const { error: updErr } = await supabase
+      .from("bill_payments")
+      .update({ amount_paid: newAmount })
+      .eq("id", existing.id);
+    if (updErr) return { error: updErr.message };
+
+    if (accountId) {
+      // The linked account_transaction and expense_entry should reflect the new
+      // absolute amount. The bill_payment_id FK with ON DELETE CASCADE means
+      // each bill_payment has at most one of each linked row.
+      const [{ error: txErr }, { error: expErr }] = await Promise.all([
+        supabase
+          .from("account_transactions")
+          .update({ amount: -Math.abs(newAmount), description, occurred_at: occurredAt })
+          .eq("bill_payment_id", existing.id)
+          .eq("profile_id", profile.id),
+        supabase
+          .from("expense_entries")
+          .update({ amount: newAmount, note: description })
+          .eq("bill_payment_id", existing.id)
+          .eq("profile_id", profile.id),
+      ]);
+      if (txErr || expErr) {
+        // Roll the row back so the user can retry cleanly.
+        await supabase
+          .from("bill_payments")
+          .update({ amount_paid: previousAmount })
+          .eq("id", existing.id);
+        return { error: txErr?.message ?? expErr?.message ?? "could_not_update_payment" };
+      }
+    }
+
+    revalidatePath("/dashboard/planned-expenses");
+    revalidatePath("/dashboard/accounts");
+    revalidatePath("/dashboard/expenses");
+    return { paid: true, amountPaid: newAmount };
+  }
+
+  // INSERT path: brand-new payment row + linked side-rows.
+  const { data: payment, error: payErr } = await supabase
+    .from("bill_payments")
+    .insert({
+      bill_id: billId,
+      profile_id: profile.id,
+      paid_month: paidMonth,
+      amount_paid: newAmount,
+    })
+    .select("id")
+    .single();
+  if (payErr || !payment) return { error: payErr?.message ?? "could_not_mark_paid" };
+
+  if (accountId) {
+    const [{ error: txErr }, { error: expErr }] = await Promise.all([
+      supabase.from("account_transactions").insert({
+        profile_id: profile.id,
+        account_id: accountId,
+        type: "expense",
+        amount: -Math.abs(newAmount),
+        description,
+        occurred_at: occurredAt,
+        bill_payment_id: payment.id,
+      }),
+      supabase.from("expense_entries").insert({
+        profile_id: profile.id,
+        category_id: bill.category_id as string,
+        amount: newAmount,
+        note: description,
+        account_id: accountId,
+        bill_payment_id: payment.id,
+      }),
+    ]);
+
+    if (txErr || expErr) {
+      await supabase.from("bill_payments").delete().eq("id", payment.id);
+      return { error: txErr?.message ?? expErr?.message ?? "could_not_record_payment" };
+    }
+  }
+
+  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/accounts");
+  revalidatePath("/dashboard/expenses");
+  return { paid: true, amountPaid: newAmount };
+}
+
+/** Remove a payment row (and its linked account_transaction / expense_entry via cascade). */
+export async function unmarkBillPaid(
+  billId: string,
+  paidMonth: string,
+): Promise<ToggleBillPaymentResult> {
+  if (!/^\d{4}-\d{2}$/.test(paidMonth)) return { error: "invalid_month" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const { data: existing } = await supabase
+    .from("bill_payments")
+    .select("id")
+    .eq("bill_id", billId)
+    .eq("profile_id", profile.id)
+    .eq("paid_month", paidMonth)
+    .maybeSingle();
+
+  if (!existing) return { paid: false, amountPaid: 0 };
+
+  // Cascading FK on bill_payment_id removes the linked account_transaction and expense_entry.
+  await supabase.from("bill_payments").delete().eq("id", existing.id);
+  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/accounts");
+  revalidatePath("/dashboard/expenses");
+  return { paid: false, amountPaid: 0 };
+}
+
+/**
+ * Binary toggle: if a payment row exists this month, remove it; otherwise mark
+ * it fully paid. Kept for the list-row checkbox and the auto-debit cron — for
+ * partial payments use `markBillPaid` directly.
+ */
 export async function toggleBillPayment(
   billId: string,
   paidMonth: string,
@@ -381,97 +635,8 @@ export async function toggleBillPayment(
     .eq("paid_month", paidMonth)
     .maybeSingle();
 
-  if (existing) {
-    // Cascading FK on bill_payment_id will also remove the auto-created
-    // account_transaction and expense_entry from the original mark-paid action.
-    await supabase.from("bill_payments").delete().eq("id", existing.id);
-    revalidatePath("/dashboard/planned-expenses");
-    revalidatePath("/dashboard/accounts");
-    revalidatePath("/dashboard/expenses");
-    return { paid: false };
-  }
-
-  const { data: bill, error: billErr } = await supabase
-    .from("bills")
-    .select("id, amount, account_id, category_id, note")
-    .eq("id", billId)
-    .eq("profile_id", profile.id)
-    .single();
-  if (billErr || !bill) return { error: "bill_not_found" };
-
-  const billAmount = Number(bill.amount);
-  const accountId = (bill.account_id as string | null) ?? null;
-
-  if (accountId) {
-    const [{ data: account }, { data: txRows }] = await Promise.all([
-      supabase
-        .from("accounts")
-        .select("starting_balance")
-        .eq("id", accountId)
-        .eq("profile_id", profile.id)
-        .maybeSingle(),
-      supabase
-        .from("account_transactions")
-        .select("amount")
-        .eq("account_id", accountId)
-        .eq("profile_id", profile.id),
-    ]);
-    if (!account) return { error: "account_not_found" };
-
-    const balance =
-      Number(account.starting_balance ?? 0) +
-      (txRows ?? []).reduce((s, r) => s + Number(r.amount), 0);
-
-    if (balance < billAmount) {
-      return {
-        error: "insufficient_balance",
-        insufficientBalance: { accountId, available: balance, required: billAmount },
-      };
-    }
-  }
-
-  const { data: payment, error: payErr } = await supabase
-    .from("bill_payments")
-    .insert({ bill_id: billId, profile_id: profile.id, paid_month: paidMonth })
-    .select("id")
-    .single();
-  if (payErr || !payment) return { error: payErr?.message ?? "could_not_mark_paid" };
-
-  if (accountId) {
-    const description = (bill.note as string | null)?.trim() || "Planned expense";
-    const occurredAt = new Date().toISOString();
-
-    const [{ error: txErr }, { error: expErr }] = await Promise.all([
-      supabase.from("account_transactions").insert({
-        profile_id: profile.id,
-        account_id: accountId,
-        type: "expense",
-        amount: -Math.abs(billAmount),
-        description,
-        occurred_at: occurredAt,
-        bill_payment_id: payment.id,
-      }),
-      supabase.from("expense_entries").insert({
-        profile_id: profile.id,
-        category_id: bill.category_id as string,
-        amount: billAmount,
-        note: description,
-        account_id: accountId,
-        bill_payment_id: payment.id,
-      }),
-    ]);
-
-    if (txErr || expErr) {
-      // Roll back the bill_payment so the user can retry; cascade removes any partial side rows.
-      await supabase.from("bill_payments").delete().eq("id", payment.id);
-      return { error: txErr?.message ?? expErr?.message ?? "could_not_record_payment" };
-    }
-  }
-
-  revalidatePath("/dashboard/planned-expenses");
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/expenses");
-  return { paid: true };
+  if (existing) return unmarkBillPaid(billId, paidMonth);
+  return markBillPaid(billId, paidMonth);
 }
 
 export async function addBill(
@@ -665,4 +830,120 @@ export async function deleteBill(billId: string): Promise<{ error?: string }> {
   revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/vehicles");
   return {};
+}
+
+/** Load a single bill by id for the detail page. Returns null if not found or not owned by the user. */
+export async function loadBill(billId: string): Promise<{ bill: BillRow | null }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { bill: null };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { bill: null };
+
+  const { data: row } = await supabase
+    .from("bills")
+    .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, is_auto_debit, created_at, updated_at")
+    .eq("id", billId)
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!row) return { bill: null };
+
+  return {
+    bill: {
+      id: row.id,
+      category_id: String(row.category_id ?? ""),
+      amount: Number(row.amount),
+      billing_period:
+        row.billing_period === "yearly"
+          ? "yearly"
+          : row.billing_period === "quarterly"
+            ? "quarterly"
+            : "monthly",
+      due_month: row.due_month != null ? Number(row.due_month) : undefined,
+      note: row.note ?? undefined,
+      notes: row.notes ?? undefined,
+      due_date: String(row.due_date),
+      end_date: row.end_date ? String(row.end_date) : null,
+      reminder_days_before: normalizeReminderDaysBefore(row.reminder_days_before) ?? undefined,
+      reminder_channel: (row.reminder_channel as "email" | "in-app" | "both") ?? "both",
+      account_id: row.account_id ?? undefined,
+      vehicle_id: (row.vehicle_id as string | null) ?? null,
+      vehicle_category: (row.vehicle_category as string | null) ?? null,
+      is_auto_debit: Boolean(row.is_auto_debit),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    },
+  };
+}
+
+export type BillPaymentHistoryRow = {
+  id: string;
+  paid_month: string;
+  paid_at: string;
+  /** Amount paid this month (from bill_payments.amount_paid). May be less than bill.amount for partial payments. */
+  amount: number;
+  /** Human label of the linked account at time of payment, if any. */
+  account_alias?: string | null;
+  account_color?: string | null;
+};
+
+/** Load full payment history for one bill, newest paid_month first. */
+export async function loadBillPaymentsHistory(billId: string): Promise<{ history: BillPaymentHistoryRow[] }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { history: [] };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { history: [] };
+
+  const { data: payments } = await supabase
+    .from("bill_payments")
+    .select("id, paid_month, paid_at, amount_paid")
+    .eq("bill_id", billId)
+    .eq("profile_id", profile.id)
+    .order("paid_month", { ascending: false });
+
+  const paymentRows = payments ?? [];
+  if (paymentRows.length === 0) return { history: [] };
+
+  // Join in account info (alias/color) via the linked account_transaction row,
+  // so the history can show which account each payment was debited from.
+  const paymentIds = paymentRows.map((p) => p.id);
+  const { data: txRows } = await supabase
+    .from("account_transactions")
+    .select("bill_payment_id, accounts:account_id(account_alias, color)")
+    .in("bill_payment_id", paymentIds)
+    .eq("profile_id", profile.id);
+
+  type TxJoinRow = {
+    bill_payment_id: string | null;
+    accounts: { account_alias: string | null; color: string | null } | null;
+  };
+  const acctByPaymentId = new Map<string, TxJoinRow["accounts"]>();
+  for (const tx of (txRows ?? []) as unknown as TxJoinRow[]) {
+    if (tx.bill_payment_id) acctByPaymentId.set(String(tx.bill_payment_id), tx.accounts);
+  }
+
+  return {
+    history: paymentRows.map((p) => {
+      const acct = acctByPaymentId.get(String(p.id));
+      return {
+        id: String(p.id),
+        paid_month: String(p.paid_month),
+        paid_at: String(p.paid_at),
+        amount: Number(p.amount_paid ?? 0),
+        account_alias: acct?.account_alias ?? null,
+        account_color: acct?.color ?? null,
+      };
+    }),
+  };
 }

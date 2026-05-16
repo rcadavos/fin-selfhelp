@@ -15,11 +15,15 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.5.9",
-    date: "2026-05-15",
-    summary: "Optimistic account deletion — instant redirect and cache update without waiting for the server.",
+    date: "2026-05-13",
+    summary: "Each planned expense now has its own detail page with payment history and inline edit.",
     changes: [
-      { type: "fix", description: "Deleting an account now navigates back to the accounts list immediately instead of waiting for the server action to complete." },
-      { type: "improvement", description: "Account deletion is now optimistic: the account is removed from the cache instantly and rolled back only if the server returns an error." },
+      { type: "feature", description: "New route /dashboard/planned-expenses/[billId] shows amount, due date, linked account/vehicle, reminders, and a full month-by-month payment history. Mirrors the /dashboard/accounts/[accountId] pattern." },
+      { type: "feature", description: "Edit button on the detail page opens the same Planned Expense form used by the list — extracted into a shared dialog component so list and detail page stay in sync." },
+      { type: "feature", description: "Mark Paid (and Unmark) for the current month is available right on the detail page, with the same insufficient-funds guard the list uses." },
+      { type: "feature", description: "Payment history list lets you unmark any past month — the linked account transaction and expense entry are cleaned up via cascade." },
+      { type: "improvement", description: "Clicking a row in the Planned Expenses list now navigates to the detail page (matches the Accounts list behavior)." },
+      { type: "improvement", description: "Added a Pencil button to each row so editing stays one click away from the list view." },
     ],
   },
   {

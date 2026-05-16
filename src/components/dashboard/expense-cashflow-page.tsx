@@ -137,22 +137,22 @@ export function ExpenseCashflowPage({
   );
 
   const billsList = billsDataQuery.data?.bills ?? [];
-  const paidBillIds = useMemo(
-    () => new Set(billsDataQuery.data?.paidBillIds ?? []),
-    [billsDataQuery.data?.paidBillIds],
-  );
+  const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
   const monthBills = useMemo(
     () => billsList.filter((b) => isBillApplicableInMonth(b, paidMonthYm)),
     [billsList, paidMonthYm],
   );
   const billsTotal = useMemo(() => monthBills.reduce((s, b) => s + b.amount, 0), [monthBills]);
+  // billsPaid sums the actual amount_paid per bill_payments row so partial payments
+  // count partially toward the "Planned paid" stat and progress ring.
   const billsPaid = useMemo(
-    () => monthBills.filter((b) => paidBillIds.has(b.id)).reduce((s, b) => s + b.amount, 0),
-    [monthBills, paidBillIds],
+    () => monthBills.reduce((s, b) => s + (paymentAmountByBillId[b.id] ?? 0), 0),
+    [monthBills, paymentAmountByBillId],
   );
+  // Count any bill with a payment row (full or partial) toward the "X / Y paid" label.
   const billsPaidCount = useMemo(
-    () => monthBills.filter((b) => paidBillIds.has(b.id)).length,
-    [monthBills, paidBillIds],
+    () => monthBills.filter((b) => (paymentAmountByBillId[b.id] ?? 0) > 0).length,
+    [monthBills, paymentAmountByBillId],
   );
   const totalTrackedBalance = useMemo(() => {
     const accounts = accountsQuery.data ?? [];

@@ -78,6 +78,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
 
   const bills = data?.bills ?? [];
   const paidIds = useMemo(() => new Set(data?.paidBillIds ?? []), [data]);
+  const paymentAmountByBillId = data?.paymentAmountByBillId ?? {};
 
   const categories = useMemo(
     () => dbCategories.map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass })),
@@ -113,9 +114,13 @@ export function SharedPartnerBillsPage({ params }: Props) {
 
   const { total, remaining, unpaid } = useMemo(() => {
     const t = filteredBills.reduce((s, b) => s + b.amount, 0);
-    const paid = filteredBills.filter((b) => paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
-    return { total: t, remaining: t - paid, unpaid: filteredBills.filter((b) => !paidIds.has(b.id)).length };
-  }, [filteredBills, paidIds]);
+    const paid = filteredBills.reduce((s, b) => s + (paymentAmountByBillId[b.id] ?? 0), 0);
+    return {
+      total: t,
+      remaining: Math.max(0, t - paid),
+      unpaid: filteredBills.filter((b) => !paidIds.has(b.id)).length,
+    };
+  }, [filteredBills, paidIds, paymentAmountByBillId]);
 
   const tabCounts = useMemo(() => ({
     monthly: bills.filter((b) => b.billing_period === "monthly").length,
@@ -127,12 +132,26 @@ export function SharedPartnerBillsPage({ params }: Props) {
     if (!data) return;
     setPendingIds((prev) => new Set(prev).add(billId));
 
-    // Optimistic update
+    // Optimistic update — keep paidBillIds and paymentAmountByBillId in sync.
     const wasPaid = paidIds.has(billId);
-    setData((d) => d ? {
-      ...d,
-      paidBillIds: wasPaid ? d.paidBillIds.filter((id) => id !== billId) : [...d.paidBillIds, billId],
-    } : d);
+    const billAmount = bills.find((b) => b.id === billId)?.amount ?? 0;
+    setData((d) => {
+      if (!d) return d;
+      if (wasPaid) {
+        const next = { ...d.paymentAmountByBillId };
+        delete next[billId];
+        return {
+          ...d,
+          paidBillIds: d.paidBillIds.filter((id) => id !== billId),
+          paymentAmountByBillId: next,
+        };
+      }
+      return {
+        ...d,
+        paidBillIds: [...d.paidBillIds, billId],
+        paymentAmountByBillId: { ...d.paymentAmountByBillId, [billId]: billAmount },
+      };
+    });
 
     const res = await granteeSharedToggleBillPayment(grantorUserId, billId, paidMonth);
     setPendingIds((prev) => { const s = new Set(prev); s.delete(billId); return s; });

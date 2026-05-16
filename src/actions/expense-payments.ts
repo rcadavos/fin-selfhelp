@@ -266,7 +266,7 @@ export async function getMonthlyBreakdown(
       .eq("profile_id", profileId),
     supabase
       .from("bill_payments")
-      .select("bill_id, paid_month")
+      .select("bill_id, paid_month, amount_paid")
       .eq("profile_id", profileId),
   ]);
   if (error) return { error: error.message };
@@ -291,20 +291,19 @@ export async function getMonthlyBreakdown(
       )
       .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Planned paid: monthly non-savings bills marked paid in this month
-    const paidBillIds = new Set(
-      allBillPayments
-        .filter((p) => p.paid_month === month)
-        .map((p) => p.bill_id)
-    );
-    const billsPaid = allBills
-      .filter(
-        (b) =>
-          b.billing_period === "monthly" &&
-          b.category_id !== "savings" &&
-          paidBillIds.has(b.id)
-      )
-      .reduce((s, b) => s + Number(b.amount), 0);
+    // Planned paid: sum of bill_payments.amount_paid for monthly non-savings bills this month.
+    // Using amount_paid (instead of bill.amount keyed by paid bill IDs) so partial payments
+    // are reflected accurately in the dashboard chart.
+    const billCategoryById = new Map(allBills.map((b) => [b.id, b]));
+    const billsPaid = allBillPayments
+      .filter((p) => p.paid_month === month)
+      .reduce((s, p) => {
+        const b = billCategoryById.get(p.bill_id);
+        if (!b) return s;
+        if (b.billing_period !== "monthly") return s;
+        if (b.category_id === "savings") return s;
+        return s + Number(p.amount_paid ?? 0);
+      }, 0);
 
     // Expenses: non-savings entries created in this month
     const expenses = allEntries
@@ -316,12 +315,7 @@ export async function getMonthlyBreakdown(
       .reduce((s, e) => s + Number(e.amount), 0);
 
     // Savings: expense_entries with category savings created this month
-    //        + bills with category savings paid this month (via bill_payments)
-    const paidSavingsBillIds = new Set(
-      allBillPayments
-        .filter((p) => p.paid_month === month)
-        .map((p) => p.bill_id)
-    );
+    //        + bill_payments.amount_paid for bills with category savings paid this month
     const savings =
       allEntries
         .filter(
@@ -330,9 +324,13 @@ export async function getMonthlyBreakdown(
             (e.created_at ?? "").startsWith(month)
         )
         .reduce((s, e) => s + Number(e.amount), 0) +
-      allBills
-        .filter((b) => b.category_id === "savings" && paidSavingsBillIds.has(b.id))
-        .reduce((s, b) => s + Number(b.amount), 0);
+      allBillPayments
+        .filter((p) => p.paid_month === month)
+        .reduce((s, p) => {
+          const b = billCategoryById.get(p.bill_id);
+          if (!b || b.category_id !== "savings") return s;
+          return s + Number(p.amount_paid ?? 0);
+        }, 0);
 
     return { month, bills, billsPaid, expenses, savings };
   });

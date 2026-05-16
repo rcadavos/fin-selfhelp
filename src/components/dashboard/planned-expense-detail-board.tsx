@@ -1,0 +1,554 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bell,
+  Car,
+  CalendarClock,
+  CheckCircle2,
+  Circle,
+  Pencil,
+  Trash2,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentHeader } from "@/components/app/content-header";
+import { BackLink } from "@/components/app/back-link";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import {
+  PlannedExpenseFormDialog,
+  billToForm,
+  type BillFormState,
+} from "@/components/dashboard/planned-expense-form-dialog";
+import {
+  deleteBill,
+  toggleBillPayment,
+  updateBill,
+  type BillRow,
+} from "@/actions/bills";
+import {
+  billsDataQueryOptions,
+  billPaymentsHistoryQueryOptions,
+  invalidateBillPaymentsHistory,
+} from "@/lib/query/bills";
+import { accountsQueryOptions } from "@/lib/query/accounts";
+import { categoriesQueryOptions } from "@/lib/query/categories";
+import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
+import { queryKeys } from "@/lib/query/keys";
+import { getCurrentPaidMonth } from "@/lib/paid-month";
+import {
+  effectiveDueDateInPaidMonth,
+  getDueDayOfMonthFromYmd,
+  parseYmToYearMonth,
+} from "@/lib/expense-due-date";
+import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import { formatCurrency, cn } from "@/lib/utils";
+import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const BILLING_PERIOD_LABELS: Record<string, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+};
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
+
+function getCategoryDotColor(bgClass: string): string {
+  const match = bgClass.match(/bg-(\w+)-\d+/);
+  if (!match) return "#94a3b8";
+  return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
+}
+
+function effectiveBillDueDate(bill: BillRow, today: Date, paidMonthYm: string): Date | null {
+  const dueDay = getDueDayOfMonthFromYmd(bill.due_date);
+  if (!dueDay) return null;
+  const ym = parseYmToYearMonth(paidMonthYm);
+  if (bill.billing_period === "yearly") {
+    const dueMonth1 = bill.due_month ?? 1;
+    const year = ym?.year ?? today.getFullYear();
+    const lastDay = new Date(year, dueMonth1, 0).getDate();
+    return new Date(year, dueMonth1 - 1, Math.min(dueDay, lastDay));
+  }
+  if (bill.billing_period === "quarterly") {
+    const qStartMonth = ym
+      ? Math.floor((ym.month1to12 - 1) / 3) * 3
+      : Math.floor(today.getMonth() / 3) * 3;
+    const year = ym?.year ?? today.getFullYear();
+    const lastDay = new Date(year, qStartMonth + 1, 0).getDate();
+    return new Date(year, qStartMonth, Math.min(dueDay, lastDay));
+  }
+  return effectiveDueDateInPaidMonth(bill.due_date, paidMonthYm);
+}
+
+function formatPaidMonthLabel(ym: string): string {
+  const parsed = parseYmToYearMonth(ym);
+  if (!parsed) return ym;
+  return `${MONTH_NAMES[parsed.month1to12 - 1]} ${parsed.year}`;
+}
+
+function formatPaidAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
+}
+
+export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [isPending, startTransition] = useTransition();
+  const [bill, setBill] = useState<BillRow>(initialBill);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const paidMonth = getCurrentPaidMonth();
+
+  const { data: billsData } = useQuery(billsDataQueryOptions(paidMonth));
+  const { data: history = [], refetch: refetchHistory } = useQuery({
+    ...billPaymentsHistoryQueryOptions(bill.id),
+    select: (d) => d.history,
+  });
+  const { data: accounts = [] } = useQuery(accountsQueryOptions());
+  const { data: categories = [] } = useQuery(categoriesQueryOptions());
+  const { data: vehicles = [] } = useQuery(vehiclesQueryOptions());
+  const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
+
+  const cat = categories.find((c) => c.id === bill.category_id);
+  const account = bill.account_id ? accounts.find((a) => a.id === bill.account_id) : null;
+  const vehicle = bill.vehicle_id ? vehicles.find((v) => v.id === bill.vehicle_id) : null;
+  const vehicleColor = vehicle ? (vehicleColorMap[vehicle.id] ?? "#6b7280") : null;
+  const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
+
+  const isPaidThisMonth = useMemo(
+    () => (billsData?.paidBillIds ?? []).includes(bill.id),
+    [billsData?.paidBillIds, bill.id],
+  );
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const dueThisMonth = useMemo(
+    () => effectiveBillDueDate(bill, today, paidMonth),
+    [bill, today, paidMonth],
+  );
+  const isOverdue = !isPaidThisMonth && !!dueThisMonth && dueThisMonth < today;
+  const isUpcoming = !isPaidThisMonth && !!dueThisMonth && dueThisMonth > today;
+
+  const dueDayOfMonth = getDueDayOfMonthFromYmd(bill.due_date);
+  const dueLabel = useMemo(() => {
+    if (!dueDayOfMonth) return "—";
+    if (bill.billing_period === "yearly") {
+      const m = MONTH_NAMES[(bill.due_month ?? 1) - 1] ?? "";
+      return `${m} ${ordinal(dueDayOfMonth)}, every year`;
+    }
+    if (bill.billing_period === "quarterly") {
+      return `${ordinal(dueDayOfMonth)} of every quarter (Jan/Apr/Jul/Oct)`;
+    }
+    return `${ordinal(dueDayOfMonth)} of every month`;
+  }, [bill.billing_period, bill.due_month, dueDayOfMonth]);
+
+  const reminderLabel = bill.reminder_days_before?.length
+    ? bill.reminder_days_before.map((d) => (d === 0 ? "Due date" : `${d}d before`)).join(", ")
+    : null;
+
+  function refreshAfterToggle() {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+    invalidateBillPaymentsHistory(queryClient, bill.id);
+    void refetchHistory();
+  }
+
+  function handleToggleThisMonth() {
+    setError(null);
+    startTransition(async () => {
+      const res = await toggleBillPayment(bill.id, paidMonth);
+      if (res.error === "insufficient_balance" && res.insufficientBalance) {
+        const acct = accounts.find((a) => a.id === res.insufficientBalance!.accountId);
+        setError(
+          `${acct?.account_alias ?? "This account"} has ${formatCurrency(res.insufficientBalance.available)} available, but this planned expense needs ${formatCurrency(res.insufficientBalance.required)}.`,
+        );
+        return;
+      }
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      refreshAfterToggle();
+    });
+  }
+
+  function handleUnmarkMonth(historyMonth: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await toggleBillPayment(bill.id, historyMonth);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      refreshAfterToggle();
+    });
+  }
+
+  const freeReminderUsed = useMemo(
+    () =>
+      (billsData?.bills ?? []).filter(
+        (b) => b.reminder_days_before && b.reminder_days_before.length > 0,
+      ).length,
+    [billsData?.bills],
+  );
+
+  function handleEditSave(form: BillFormState) {
+    setError(null);
+    startTransition(async () => {
+      const dueDateYmd = `1970-01-${form.dueDate.padStart(2, "0")}`;
+      const res = await updateBill(
+        bill.id,
+        form.categoryId,
+        parseFloat(form.amount),
+        form.note,
+        dueDateYmd,
+        form.billingPeriod,
+        form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
+        undefined,
+        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
+        "both",
+        form.endDate || undefined,
+        form.accountId || null,
+        form.vehicleId || null,
+        form.vehicleCategory || null,
+        form.autoDebit,
+      );
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      // Optimistic local update so the detail page reflects the change immediately.
+      setBill((prev) => ({
+        ...prev,
+        category_id: form.categoryId,
+        amount: parseFloat(form.amount),
+        note: form.note,
+        due_date: dueDateYmd,
+        end_date: form.endDate || null,
+        billing_period: form.billingPeriod,
+        due_month: form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
+        reminder_days_before: form.autoDebit
+          ? null
+          : form.reminderDays.length > 0
+            ? form.reminderDays
+            : null,
+        reminder_channel: "both",
+        account_id: form.accountId || undefined,
+        vehicle_id: form.vehicleId || null,
+        vehicle_category: form.vehicleCategory || null,
+        is_auto_debit: form.autoDebit,
+      }));
+      setEditOpen(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const res = await deleteBill(bill.id);
+      if (res.error) {
+        setError(res.error);
+        setDeleteOpen(false);
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+      router.push("/dashboard/planned-expenses");
+    });
+  }
+
+  const statusBadge = isPaidThisMonth ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+      <CheckCircle2 className="h-3 w-3" /> Paid this month
+    </span>
+  ) : isOverdue ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-red-400/60 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
+      Overdue
+    </span>
+  ) : isUpcoming ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/60 bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+      Upcoming
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full border border-muted-foreground/30 bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+      Unpaid
+    </span>
+  );
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
+      <BackLink href="/dashboard/planned-expenses" label="Planned Expenses" />
+
+      <ContentHeader
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: dotColor }}
+              aria-hidden
+            />
+            <span className="min-w-0 truncate">{bill.note ?? cat?.label ?? "Planned expense"}</span>
+          </span>
+        }
+        subtitle={`${cat?.label ?? "Uncategorized"} • ${BILLING_PERIOD_LABELS[bill.billing_period] ?? "Monthly"} recurrence`}
+        actions={
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              onClick={() => setEditOpen(true)}
+              aria-label="Edit planned expense"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+              aria-label="Delete planned expense"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Amount + status + Mark Paid toggle */}
+      <div className="rounded-2xl border bg-card px-5 py-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
+        <div className="mt-1 flex flex-wrap items-baseline gap-3">
+          <p className="text-3xl font-bold tabular-nums">{formatCurrency(bill.amount)}</p>
+          {statusBadge}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {formatPaidMonthLabel(paidMonth)} •{" "}
+          {dueThisMonth
+            ? `Due ${dueThisMonth.toLocaleDateString("en-PH", { month: "short", day: "numeric" })}`
+            : "No due date this month"}
+        </p>
+
+        <div className="mt-4">
+          <Button
+            variant={isPaidThisMonth ? "outline" : "default"}
+            className="gap-1.5"
+            onClick={handleToggleThisMonth}
+            disabled={isPending}
+          >
+            {isPaidThisMonth ? (
+              <>
+                <Circle className="h-4 w-4" /> Mark unpaid for this month
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" /> Mark paid for this month
+              </>
+            )}
+          </Button>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="mt-3 flex items-start justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            <p className="flex-1">{error}</p>
+            <div className="flex shrink-0 gap-1">
+              <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Link href="/dashboard/accounts">Go to Accounts</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setError(null)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="rounded-2xl border bg-card px-5 py-5 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</h2>
+        <DetailRow icon={<CalendarClock className="h-4 w-4" />} label="Due">
+          {dueLabel}
+        </DetailRow>
+        {bill.end_date && (
+          <DetailRow icon={<CalendarClock className="h-4 w-4" />} label="End date">
+            {new Date(bill.end_date).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
+          </DetailRow>
+        )}
+        <DetailRow icon={<Wallet className="h-4 w-4" />} label="Account">
+          {account ? (
+            <Link
+              href={`/dashboard/accounts/${account.id}`}
+              className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium hover:bg-muted"
+              style={{ borderColor: `${account.color}55`, color: account.color }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: account.color }} />
+              {account.account_alias}
+            </Link>
+          ) : (
+            <span className="text-muted-foreground">Not linked</span>
+          )}
+        </DetailRow>
+        {vehicle && (
+          <DetailRow icon={<Car className="h-4 w-4" />} label="Vehicle">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+              style={{
+                backgroundColor: `${vehicleColor}22`,
+                color: vehicleColor ?? undefined,
+                border: `1px solid ${vehicleColor}55`,
+              }}
+            >
+              {vehicle.name}
+              {bill.vehicle_category && (
+                <span className="opacity-70"> • {labelForVehicleExpenseCategory(bill.vehicle_category)}</span>
+              )}
+            </span>
+          </DetailRow>
+        )}
+        {reminderLabel && (
+          <DetailRow icon={<Bell className="h-4 w-4" />} label="Reminders">
+            {reminderLabel}
+          </DetailRow>
+        )}
+        {bill.is_auto_debit && (
+          <DetailRow icon={<Zap className="h-4 w-4" />} label="Auto-debit">
+            Enabled — paid automatically each due date
+          </DetailRow>
+        )}
+        {bill.notes && (
+          <DetailRow icon={null} label="Notes">
+            <span className="whitespace-pre-wrap">{bill.notes}</span>
+          </DetailRow>
+        )}
+      </div>
+
+      {/* Payment history */}
+      <div className="space-y-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment history</h2>
+        {history.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center text-muted-foreground">
+            <p className="text-sm">No payments recorded yet.</p>
+            <p className="max-w-md text-xs">Mark this planned expense paid to record a payment for the current month.</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {history.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
+                    {entry.account_alias && (
+                      <span
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: `${entry.account_color ?? "#6b7280"}22`,
+                          color: entry.account_color ?? undefined,
+                        }}
+                      >
+                        {entry.account_alias}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Paid on {formatPaidAt(entry.paid_at)}
+                  </p>
+                </div>
+                <p className="flex-shrink-0 text-sm font-semibold tabular-nums">
+                  {entry.amount != null ? formatCurrency(entry.amount) : formatCurrency(bill.amount)}
+                </p>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleUnmarkMonth(entry.paid_month)}
+                  disabled={isPending}
+                  aria-label={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
+                  title={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {editOpen && (
+        <PlannedExpenseFormDialog
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSave={handleEditSave}
+          onDelete={() => { setEditOpen(false); setDeleteOpen(true); }}
+          initial={billToForm(bill)}
+          editingBillId={bill.id}
+          isPending={isPending}
+          accounts={accounts}
+          vehicles={vehicles}
+          freeReminderUsed={freeReminderUsed}
+          lockedFreeReminderBillId={billsData?.lockedFreeReminderBillId}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete planned expense?"
+        description="This permanently removes the planned expense and all of its payment history. Linked account transactions and expense entries are also removed."
+        confirmLabel={isPending ? "Deleting…" : "Delete"}
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
+    </div>
+  );
+}
+
+function DetailRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center text-muted-foreground">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <div className={cn("mt-0.5 text-sm")}>{children}</div>
+      </div>
+    </div>
+  );
+}

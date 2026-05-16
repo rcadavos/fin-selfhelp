@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useMemo, useEffect, useTransition } from "react";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +16,7 @@ import {
   Car,
   CheckCircle2,
   Circle,
+  Pencil,
   Plus,
   Trash2,
   Receipt,
@@ -159,454 +161,15 @@ function formatDueDay(bill: BillRow, paidMonth: string): string {
 }
 
 // ─── Bill dialog ─────────────────────────────────────────────────────────────
+// The form dialog itself lives in planned-expense-form-dialog.tsx so it can be
+// reused from the detail page.
+import {
+  PlannedExpenseFormDialog as BillDialog,
+  billToForm,
+  EMPTY_BILL_FORM as EMPTY_FORM,
+  type BillFormState,
+} from "@/components/dashboard/planned-expense-form-dialog";
 
-type BillFormState = {
-  categoryId: string;
-  note: string;
-  amount: string;
-  dueDate: string;
-  endDate: string;
-  billingPeriod: "monthly" | "quarterly" | "yearly";
-  dueMonth: string;
-  reminderDays: number[];
-  accountId: string;
-  vehicleId: string;
-  vehicleCategory: string;
-  autoDebit: boolean;
-};
-
-const EMPTY_FORM: BillFormState = {
-  categoryId: "",
-  note: "",
-  amount: "",
-  dueDate: "",
-  endDate: "",
-  billingPeriod: "monthly",
-  dueMonth: "1",
-  reminderDays: [],
-  accountId: "",
-  vehicleId: "",
-  vehicleCategory: "",
-  autoDebit: false,
-};
-
-function billToForm(bill: BillRow): BillFormState {
-  const day = getDueDayOfMonthFromYmd(bill.due_date);
-  return {
-    categoryId: bill.category_id,
-    note: bill.note ?? "",
-    amount: String(bill.amount),
-    dueDate: day ? String(day) : "15",
-    endDate: bill.end_date ?? "",
-    billingPeriod: bill.billing_period,
-    dueMonth: String(bill.due_month ?? 1),
-    reminderDays: bill.reminder_days_before ?? [],
-    accountId: bill.account_id ?? "",
-    vehicleId: bill.vehicle_id ?? "",
-    vehicleCategory: bill.vehicle_category ?? "",
-    autoDebit: bill.is_auto_debit,
-  };
-}
-
-const REMINDER_OPTIONS = [
-  { value: 5, label: "5d" },
-  { value: 4, label: "4d" },
-  { value: 3, label: "3d" },
-  { value: 2, label: "2d" },
-  { value: 1, label: "1d" },
-  { value: 0, label: "On due date" },
-] as const;
-
-function BillDialog({
-  open,
-  onClose,
-  onSave,
-  onDelete,
-  initial,
-  editingBillId,
-  isPending,
-  accounts,
-  vehicles,
-  freeReminderUsed,
-  lockedFreeReminderBillId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSave: (form: BillFormState) => void;
-  onDelete?: () => void;
-  initial?: BillFormState;
-  editingBillId?: string;
-  isPending: boolean;
-  accounts: AccountRow[];
-  vehicles: VehicleRow[];
-  freeReminderUsed: number;
-  lockedFreeReminderBillId?: string;
-}) {
-  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
-  const { data: capabilities } = useSuspenseQuery(subscriptionCapabilitiesQueryOptions());
-  const hasProAccess = capabilities?.hasProLevelAccess ?? false;
-  const categories = dbCategories ?? [];
-
-  const [form, setForm] = useState<BillFormState>(initial ?? EMPTY_FORM);
-
-  useEffect(() => {
-    if (open) setForm(initial ?? EMPTY_FORM);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  function set<K extends keyof BillFormState>(key: K, val: BillFormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: val }));
-  }
-
-  function toggleReminder(day: number) {
-    setForm((prev) => ({
-      ...prev,
-      reminderDays: prev.reminderDays.includes(day)
-        ? prev.reminderDays.filter((d) => d !== day)
-        : [...prev.reminderDays, day],
-    }));
-  }
-
-  const amountNum = parseFloat(form.amount);
-  const needsVehicleCategory =
-    form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID &&
-    Boolean(form.vehicleId) &&
-    vehicles.length > 0;
-  const hasVehicleCategoryWhenNeeded = !needsVehicleCategory || Boolean(form.vehicleCategory);
-  const isValid =
-    form.categoryId &&
-    form.note.trim() &&
-    !isNaN(amountNum) &&
-    amountNum > 0 &&
-    form.dueDate &&
-    hasVehicleCategoryWhenNeeded;
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
-        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-          <DialogTitle>{editingBillId ? "Edit Planned Expense" : "Add Planned Expense"}</DialogTitle>
-          {editingBillId && initial && (
-            <p className="text-xs text-muted-foreground">
-              {initial.note || "—"} · {formatCurrency(parseFloat(initial.amount) || 0)}
-            </p>
-          )}
-        </DialogHeader>
-
-        <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollFadeBody className="space-y-4 px-6 pb-4">
-          {/* Row 1 — Name */}
-          <div className="grid gap-1.5">
-            <Label htmlFor="bill-name">Name</Label>
-            <Input
-              id="bill-name"
-              placeholder="e.g. Internet, Electricity"
-              value={form.note}
-              onChange={(e) => set("note", e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          {/* Account */}
-          {accounts.length > 0 && (
-            <div className="grid gap-1.5">
-              <Label htmlFor="bill-account">Account</Label>
-              <AccountSelect
-                id="bill-account"
-                accounts={accounts}
-                value={form.accountId}
-                onChange={(id) => set("accountId", id)}
-                allowClear
-                placeholder="Select account (optional)"
-              />
-            </div>
-          )}
-
-          {/* Row 2 — Category + Amount */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label>Category</Label>
-              <Select
-                value={form.categoryId}
-                onValueChange={(v) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    categoryId: v,
-                    ...(v !== TRANSPORT_EXPENSE_CATEGORY_ID
-                      ? { vehicleId: "", vehicleCategory: "" }
-                      : {}),
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={form.amount}
-                onChange={(e) => set("amount", e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Vehicle + vehicle category — Transport & Commute only */}
-          {form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID && vehicles.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label>Vehicle (optional)</Label>
-                <Select
-                  value={form.vehicleId}
-                  onValueChange={(v) => {
-                    const id = v === "_none" ? "" : v;
-                    setForm((prev) => ({
-                      ...prev,
-                      vehicleId: id,
-                      vehicleCategory: id ? prev.vehicleCategory : "",
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Link to a vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">— None —</SelectItem>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}{v.plate_number ? ` (${v.plate_number})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.vehicleId ? (
-                <div className="grid gap-1.5">
-                  <Label>
-                    Vehicle category <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={form.vehicleCategory} onValueChange={(c) => set("vehicleCategory", c)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VEHICLE_EXPENSE_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          {/* Row 3 — Billing Period (+ Due Month if yearly) */}
-          <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
-            <div className="grid gap-1.5">
-              <Label>Recurrence</Label>
-              <Select
-                value={form.billingPeriod}
-                onValueChange={(v) => set("billingPeriod", v as BillFormState["billingPeriod"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {form.billingPeriod === "yearly" && (
-              <div className="grid gap-1.5">
-                <Label>Due Month</Label>
-                <Select value={form.dueMonth} onValueChange={(v) => set("dueMonth", v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_NAMES.map((name, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {/* Row 4 — Due Date + End Date */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label>Due Date</Label>
-              <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select day of the month" />
-                </SelectTrigger>
-                <SelectContent className="max-h-52">
-                  <SelectItem value="15">{ordinal(15)} of the month</SelectItem>
-                  <SelectItem value="31">End of the month</SelectItem>
-                  <SelectSeparator />
-                  {Array.from({ length: 31 }, (_, i) => i + 1)
-                    .filter((d) => d !== 15 && d !== 31)
-                    .map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {ordinal(d)} of the month
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>
-                End Date{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <DatePicker
-                value={form.endDate}
-                onChange={(ymd) => set("endDate", ymd)}
-                placeholder="No end date"
-              />
-            </div>
-          </div>
-
-          {/* Auto Debit */}
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors hover:bg-muted/50">
-            <input
-              type="checkbox"
-              checked={form.autoDebit}
-              onChange={(e) => {
-                setForm((prev) => ({
-                  ...prev,
-                  autoDebit: e.target.checked,
-                  reminderDays: e.target.checked ? [] : prev.reminderDays,
-                }));
-              }}
-              className="h-4 w-4 rounded accent-primary"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-medium leading-none">Auto Debit</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Automatically mark as paid on the due date and deduct from the linked account.
-              </p>
-            </div>
-          </label>
-
-          {/* Row 5 — Reminder (hidden when auto debit is on) */}
-          {!form.autoDebit && (() => {
-            const isThisTheLocked = !!lockedFreeReminderBillId && editingBillId === lockedFreeReminderBillId;
-            const slotLockedByOther = !!lockedFreeReminderBillId && !isThisTheLocked;
-
-            let reminderEnabled: boolean;
-            let badgeLabel: string;
-            let badgeClass: string;
-            let hintText: string;
-
-            if (hasProAccess) {
-              reminderEnabled = true;
-              badgeLabel = "Pro / Premium";
-              badgeClass = "bg-primary text-white";
-              hintText = "You have unlocked unlimited reminders with your Pro / Premium subscription.";
-            } else if (slotLockedByOther) {
-              reminderEnabled = false;
-              badgeLabel = "Slot locked";
-              badgeClass = "bg-destructive/10 text-destructive";
-              hintText = "Your free reminder slot is permanently assigned to another planned expense. Upgrade to Pro for unlimited reminders.";
-            } else if (isThisTheLocked) {
-              reminderEnabled = true;
-              badgeLabel = "Permanent";
-              badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
-              hintText = "This planned expense permanently holds your free reminder slot.";
-            } else {
-              const canHaveFree = (initial?.reminderDays?.length ?? 0) > 0 || freeReminderUsed === 0;
-              reminderEnabled = canHaveFree;
-              badgeLabel = freeReminderUsed >= 1 && !canHaveFree ? "1/1 used" : freeReminderUsed >= 1 ? "1/1 free" : "0/1 free";
-              badgeClass = freeReminderUsed >= 1 && !canHaveFree ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground";
-              hintText = canHaveFree
-                ? "Free plan: 1 planned expense reminder. Once a reminder fires, this slot is permanently assigned to that planned expense."
-                : "Free reminder slot used by another planned expense. Upgrade to Pro for unlimited reminders.";
-            }
-
-            return (
-              <div className="grid gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Reminder (Days before)</Label>
-                  <span className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", badgeClass)}>
-                    {(isThisTheLocked || slotLockedByOther) && <Lock className="h-2.5 w-2.5" />}
-                    {badgeLabel}
-                  </span>
-                </div>
-                <div className={cn("flex flex-wrap gap-1.5", !reminderEnabled && "pointer-events-none opacity-40")}>
-                  {REMINDER_OPTIONS.map(({ value, label }) => {
-                    const active = form.reminderDays.includes(value);
-                    const isOnDueDate = value === 0;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => reminderEnabled && toggleReminder(value)}
-                        disabled={!reminderEnabled}
-                        className={cn(
-                          "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
-                          isOnDueDate ? "flex-none" : "flex-1",
-                          active
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                        )}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {!hasProAccess && hintText && (
-                  <p className="text-[11px] text-muted-foreground">{hintText}</p>
-                )}
-              </div>
-            );
-          })()}
-
-          </ScrollFadeBody>
-          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
-            <div className="flex w-full gap-2">
-              {editingBillId && onDelete && (
-                <Button type="button" variant="ghost" size="icon" className="flex-none text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={isPending}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <div className={cn("flex gap-2", editingBillId ? "flex-1 justify-end" : "w-full")}>
-                <Button type="button" variant="outline" className={editingBillId ? "flex-1" : "w-1/2"} onClick={onClose} disabled={isPending}>
-                  Cancel
-                </Button>
-                <Button type="submit" className={editingBillId ? "flex-1" : "w-1/2"} disabled={!isValid || isPending}>
-                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add planned expense"}
-                </Button>
-              </div>
-            </div>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Bills Pie Chart ─────────────────────────────────────────────────────────
 
 function PiePercentLabel({
   cx, cy, midAngle, innerRadius, outerRadius, percent,
@@ -723,6 +286,7 @@ function BillRow({
   onDelete: () => void;
   isLockedFreeReminder?: boolean;
 }) {
+  const router = useRouter();
   const cat = categories.find((c) => c.id === bill.category_id);
   const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
   const dueDateLabel = formatDueDay(bill, paidMonth);
@@ -732,7 +296,7 @@ function BillRow({
 
   return (
     <div
-      onClick={onEdit}
+      onClick={() => router.push(`/dashboard/planned-expenses/${bill.id}`)}
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
         isPaid
@@ -890,9 +454,19 @@ function BillRow({
       <Button
         size="icon"
         variant="ghost"
+        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground"
+        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+        aria-label="Edit planned expense"
+        title="Edit"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
         className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        aria-label="Delete bill"
+        aria-label="Delete planned expense"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
@@ -960,14 +534,14 @@ function CategoriesDialog({
   open,
   onClose,
   bills,
-  paidIds,
+  paymentAmountByBillId,
   currency,
   categories,
 }: {
   open: boolean;
   onClose: () => void;
   bills: BillRow[];
-  paidIds: Set<string>;
+  paymentAmountByBillId: Record<string, number>;
   currency: string;
   categories: CatList;
 }) {
@@ -977,13 +551,13 @@ function CategoriesDialog({
       const entry = map.get(b.category_id) ?? { total: 0, paid: 0, count: 0 };
       entry.total += b.amount;
       entry.count += 1;
-      if (paidIds.has(b.id)) entry.paid += b.amount;
+      entry.paid += paymentAmountByBillId[b.id] ?? 0;
       map.set(b.category_id, entry);
     }
     return Array.from(map.entries())
       .map(([id, v]) => ({ id, label: getCategoryLabel(id, categories), ...v }))
       .sort((a, b) => b.total - a.total);
-  }, [bills, paidIds, categories]);
+  }, [bills, paymentAmountByBillId, categories]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -1084,6 +658,7 @@ export function BillsBoard() {
   const currency = prefsQuery.data?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = billsDataQuery.data?.bills ?? [];
   const paidIds = useMemo(() => new Set(billsDataQuery.data?.paidBillIds ?? []), [billsDataQuery.data?.paidBillIds]);
+  const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
@@ -1120,16 +695,17 @@ export function BillsBoard() {
     });
   }, [filteredBills, paidIds, paidMonth]);
 
-  // Summary — reactive to active tab
+  // Summary — reactive to active tab. paidAmt sums actual amount_paid so a
+  // partial payment reduces "Remaining" by its real value, not the full bill amount.
   const { totalFiltered, totalRemaining, unpaidCount } = useMemo(() => {
     const total = filteredBills.reduce((s, b) => s + b.amount, 0);
-    const paidAmt = filteredBills.filter((b) => paidIds.has(b.id)).reduce((s, b) => s + b.amount, 0);
+    const paidAmt = filteredBills.reduce((s, b) => s + (paymentAmountByBillId[b.id] ?? 0), 0);
     return {
       totalFiltered: total,
-      totalRemaining: total - paidAmt,
+      totalRemaining: Math.max(0, total - paidAmt),
       unpaidCount: filteredBills.filter((b) => !paidIds.has(b.id)).length,
     };
-  }, [filteredBills, paidIds]);
+  }, [filteredBills, paidIds, paymentAmountByBillId]);
 
   // Tab counts
   const tabCounts = useMemo(() => ({
@@ -1146,15 +722,25 @@ export function BillsBoard() {
     const queryKey = queryKeys.billData(paidMonth);
     const snapshot = queryClient.getQueryData(queryKey);
 
-    // Optimistic flip
+    // Optimistic flip — keep paidBillIds and paymentAmountByBillId in sync
+    // so the stat cards reflect the change immediately.
     queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
       if (!old) return old;
       const wasPaid = old.paidBillIds.includes(billId);
+      const billAmount = old.bills.find((b) => b.id === billId)?.amount ?? 0;
+      if (wasPaid) {
+        const nextAmounts = { ...old.paymentAmountByBillId };
+        delete nextAmounts[billId];
+        return {
+          ...old,
+          paidBillIds: old.paidBillIds.filter((id) => id !== billId),
+          paymentAmountByBillId: nextAmounts,
+        };
+      }
       return {
         ...old,
-        paidBillIds: wasPaid
-          ? old.paidBillIds.filter((id) => id !== billId)
-          : [...old.paidBillIds, billId],
+        paidBillIds: [...old.paidBillIds, billId],
+        paymentAmountByBillId: { ...old.paymentAmountByBillId, [billId]: billAmount },
       };
     });
 
@@ -1474,7 +1060,7 @@ export function BillsBoard() {
         open={categoriesOpen}
         onClose={() => setCategoriesOpen(false)}
         bills={bills}
-        paidIds={paidIds}
+        paymentAmountByBillId={paymentAmountByBillId}
         currency={currency}
         categories={categories}
       />

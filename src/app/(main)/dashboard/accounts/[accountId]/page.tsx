@@ -15,6 +15,14 @@ export default async function AccountDetailPage({
   params: Promise<{ accountId: string }>;
 }) {
   const { accountId } = await params;
+  return (
+    <Suspense fallback={<DashboardSkeleton variant="page" />}>
+      <AccountDetailContent accountId={accountId} />
+    </Suspense>
+  );
+}
+
+async function AccountDetailContent({ accountId }: { accountId: string }) {
   const { account } = await loadAccount(accountId);
   if (!account) notFound();
 
@@ -26,9 +34,7 @@ export default async function AccountDetailPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <Suspense fallback={<DashboardSkeleton variant="page" />}>
-        <AccountDetailBoard account={account} />
-      </Suspense>
+      <AccountDetailBoard account={account} />
     </HydrationBoundary>
   );
 }

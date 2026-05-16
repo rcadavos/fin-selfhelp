@@ -53,6 +53,7 @@ export async function signUp(formData: FormData) {
   const fullName = (formData.get("full_name") as string | null)?.trim() ?? "";
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const captchaToken = (formData.get("captchaToken") as string | null) ?? undefined;
 
   if (!email || !password) {
     return { error: "Email and password are required." };
@@ -68,6 +69,7 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/setup")}`,
+      captchaToken,
       data: {
         full_name: fullName || undefined,
         welcome_email_pending: true,
@@ -92,6 +94,7 @@ export async function signUp(formData: FormData) {
 export async function signInWithOtp(formData: FormData) {
   const supabase = await createClient();
   const email = formData.get("email") as string;
+  const captchaToken = (formData.get("captchaToken") as string | null) ?? undefined;
 
   if (!email?.trim()) {
     return { error: "Email is required." };
@@ -104,6 +107,7 @@ export async function signInWithOtp(formData: FormData) {
     email: email.trim(),
     options: {
       emailRedirectTo: callbackUrl,
+      captchaToken,
     },
   });
   if (error) {
@@ -115,6 +119,7 @@ export async function signInWithOtp(formData: FormData) {
 export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
   const email = formData.get("email") as string;
+  const captchaToken = (formData.get("captchaToken") as string | null) ?? undefined;
 
   if (!email?.trim()) {
     return { error: "Email is required." };
@@ -124,6 +129,7 @@ export async function requestPasswordReset(formData: FormData) {
   const redirectTo = `${siteUrl}/reset-password`;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo,
+    captchaToken,
   });
   if (error) {
     return { error: error.message };

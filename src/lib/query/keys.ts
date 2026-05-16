@@ -24,6 +24,9 @@ export const queryKeys = {
     [...queryKeys.all, "user", "preferences", userId ?? "none"] as const,
   /** Bills data for a paid month (see `billsDataQueryOptions`). */
   billData: (paidMonth: string) => [...queryKeys.all, "bills", "data", paidMonth] as const,
+  /** Full payment history for a single bill (see `billPaymentsHistoryQueryOptions`). */
+  billPaymentsHistory: (billId: string) =>
+    [...queryKeys.all, "bills", "payments-history", billId] as const,
   /** Current user’s subscription row shape from `getSubscriptionStatus` (see `subscriptionStatusQueryOptions`). */
   subscriptionStatus: () => [...queryKeys.all, "subscription", "status"] as const,
   /** Pro/Premium capability flags from `getSubscriptionCapabilities` (see `subscriptionCapabilitiesQueryOptions`). */

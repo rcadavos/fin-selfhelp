@@ -1,19 +1,21 @@
 "use client";
 
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { requestPasswordReset } from "@/actions/auth";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/auth/turnstile-widget";
 import { ChevronLeft } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 
-function SubmitButton({ children }: { children: React.ReactNode }) {
+function SubmitButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" disabled={pending || disabled}>
       {pending ? "Sending…" : children}
     </Button>
   );
@@ -21,9 +23,18 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
 
 export default function ForgotPasswordPage() {
   const { showError, showSuccess } = useSnackbar();
+  const [captchaToken, setCaptchaToken] = useState<string>("");
+  const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
 
   async function handleSubmit(formData: FormData) {
+    if (!captchaToken) {
+      showError("Please complete the verification challenge.");
+      return;
+    }
+    formData.set("captchaToken", captchaToken);
     const result = await requestPasswordReset(formData);
+    setCaptchaToken("");
+    turnstileRef.current?.reset();
     if (result?.error) showError(result.error);
     if (result?.message) showSuccess(result.message);
   }
@@ -50,7 +61,14 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
               />
             </div>
-            <SubmitButton>Send reset link</SubmitButton>
+            <TurnstileWidget
+              ref={turnstileRef}
+              onSuccess={setCaptchaToken}
+              onExpire={() => setCaptchaToken("")}
+              onError={() => setCaptchaToken("")}
+              action="password-reset"
+            />
+            <SubmitButton disabled={!captchaToken}>Send reset link</SubmitButton>
           </form>
           <p className="text-center text-sm text-muted-foreground">
             <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
