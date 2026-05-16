@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signInWithOtp } from "@/actions/auth";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/auth/turnstile-widget";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import Image from "next/image";
 import { ChevronLeft, LayoutDashboard, Mail } from "lucide-react";
@@ -18,10 +17,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-function SubmitButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="h-11 w-full" disabled={pending || disabled}>
+    <Button type="submit" className="h-11 w-full" disabled={pending}>
       {pending ? "Signing in…" : children}
     </Button>
   );
@@ -91,15 +90,8 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string>("");
-  const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
   const nextPath = safeNextPath(searchParams.get("next"));
   const supabase = createClient();
-
-  function resetCaptcha() {
-    setCaptchaToken("");
-    turnstileRef.current?.reset();
-  }
 
   useEffect(() => {
     if (!loading && user) {
@@ -130,17 +122,11 @@ function LoginContent() {
       setFormMessage({ type: "error", text: "Email and password are required." });
       return;
     }
-    if (!captchaToken) {
-      setFormMessage({ type: "error", text: "Please complete the verification challenge." });
-      return;
-    }
     const { error } = await supabase.auth.signInWithPassword({
       email: emailValue,
       password: passwordValue,
-      options: { captchaToken },
     });
     if (error) {
-      resetCaptcha();
       if (error.message.toLowerCase().includes("email not confirmed")) {
         setUnconfirmedEmail(emailValue);
         setPassword("");
@@ -162,15 +148,9 @@ function LoginContent() {
   }
 
   async function handleOtpSubmit(formData: FormData) {
-    if (!captchaToken) {
-      setFormMessage({ type: "error", text: "Please complete the verification challenge." });
-      return;
-    }
     setOtpPending(true);
     setFormMessage(null);
-    formData.set("captchaToken", captchaToken);
     const result = await signInWithOtp(formData);
-    resetCaptcha();
     if (result?.error) {
       setFormMessage({ type: "error", text: result.error });
       setOtpPending(false);
@@ -317,14 +297,7 @@ function LoginContent() {
                         </Link>
                       </div>
                     </div>
-                    <TurnstileWidget
-                      ref={turnstileRef}
-                      onSuccess={setCaptchaToken}
-                      onExpire={() => setCaptchaToken("")}
-                      onError={() => setCaptchaToken("")}
-                      action="login"
-                    />
-                    <SubmitButton disabled={!captchaToken}>Log in</SubmitButton>
+                    <SubmitButton>Log in</SubmitButton>
                   </form>
                 ) : (
                   <form id="login-otp" action={handleOtpSubmit} className="space-y-3">
@@ -333,17 +306,10 @@ function LoginContent() {
                     <p className="text-sm text-muted-foreground">
                       We&apos;ll send a one-time sign-in link to the email above. No password needed.
                     </p>
-                    <TurnstileWidget
-                      ref={turnstileRef}
-                      onSuccess={setCaptchaToken}
-                      onExpire={() => setCaptchaToken("")}
-                      onError={() => setCaptchaToken("")}
-                      action="login-otp"
-                    />
                     <Button
                       type="submit"
                       className="h-11 w-full"
-                      disabled={otpPending || otpSent || !email.trim() || !captchaToken}
+                      disabled={otpPending || otpSent || !email.trim()}
                     >
                       {otpPending ? "Sending…" : otpSent ? "Link sent — check your email" : "Send one-time sign-in link"}
                     </Button>
