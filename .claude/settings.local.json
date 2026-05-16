@@ -56,7 +56,13 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(cd c:/WORK/MyProjects/fin-selfhelp && type \"C:\\\\Users\\\\Admin\\\\.claude\\\\projects\\\\c--WORK-MyProjects-fin-selfhelp\\\\memory\\\\MEMORY.md\" 2>nul)",
       "Bash(npm ls *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(findstr /c:\"export function getCurrentPaidMonth\" /c:\"return\")",
+      "Bash(dir /b supabase\\\\migrations)",
+      "Bash(findstr /i \"bill\")",
+      "Bash(git mv *)",
+      "Bash(mv \"supabase/migrations/080_bill_payments_amount_paid.sql\" \"supabase/migrations/082_bill_payments_amount_paid.sql\")",
+      "Bash(dir \"c:\\\\WORK\\\\MyProjects\\\\fin-selfhelp\\\\src\\\\components\\\\dashboard\\\\\" | grep -i \"card\\\\|summary\")"
     ],
     "additionalDirectories": [
       "c:\\WORK\\MyProjects\\fin-selfhelp"

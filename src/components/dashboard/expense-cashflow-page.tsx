@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ import {
   CircleDollarSign,
   Banknote,
   CalendarRange,
+  Eye,
+  EyeOff,
   Wallet,
 } from "lucide-react";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
@@ -139,20 +141,33 @@ export function ExpenseCashflowPage({
   const billsList = billsDataQuery.data?.bills ?? [];
   const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
   const monthBills = useMemo(
-    () => billsList.filter((b) => isBillApplicableInMonth(b, paidMonthYm)),
+    () =>
+      billsList.filter(
+        (b) => b.category_id !== "savings" && isBillApplicableInMonth(b, paidMonthYm),
+      ),
     [billsList, paidMonthYm],
   );
   const billsTotal = useMemo(() => monthBills.reduce((s, b) => s + b.amount, 0), [monthBills]);
-  // billsPaid sums the actual amount_paid per bill_payments row so partial payments
-  // count partially toward the "Planned paid" stat and progress ring.
-  const billsPaid = useMemo(
-    () => monthBills.reduce((s, b) => s + (paymentAmountByBillId[b.id] ?? 0), 0),
-    [monthBills, paymentAmountByBillId],
+  // Only sum payments for bills that are actually due this month so billsPaid
+  // and billsTotal always cover the same set (prevents billsPaid > billsTotal).
+  const monthBillIds = useMemo(
+    () => new Set(monthBills.map((b) => b.id)),
+    [monthBills],
   );
-  // Count any bill with a payment row (full or partial) toward the "X / Y paid" label.
+  const billsPaid = useMemo(
+    () =>
+      Object.entries(paymentAmountByBillId)
+        .filter(([id]) => monthBillIds.has(id))
+        .reduce((s, [, v]) => s + Number(v ?? 0), 0),
+    [paymentAmountByBillId, monthBillIds],
+  );
+  // Count bills due this month that have any payment row (full or partial).
   const billsPaidCount = useMemo(
-    () => monthBills.filter((b) => (paymentAmountByBillId[b.id] ?? 0) > 0).length,
-    [monthBills, paymentAmountByBillId],
+    () =>
+      Object.entries(paymentAmountByBillId).filter(
+        ([id, v]) => monthBillIds.has(id) && Number(v ?? 0) > 0,
+      ).length,
+    [paymentAmountByBillId, monthBillIds],
   );
   const totalTrackedBalance = useMemo(() => {
     const accounts = accountsQuery.data ?? [];
@@ -166,11 +181,23 @@ export function ExpenseCashflowPage({
   const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
   const showRing = billsTotal > 0;
 
+  const [amountsHidden, setAmountsHidden] = useState(false);
+  useEffect(() => {
+    setAmountsHidden(localStorage.getItem("omnitrak-amounts-hidden") === "1");
+  }, []);
+  function toggleAmountsHidden() {
+    setAmountsHidden((prev) => {
+      const next = !prev;
+      localStorage.setItem("omnitrak-amounts-hidden", next ? "1" : "0");
+      return next;
+    });
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       {/* ════════════════════ WELCOME ════════════════════ */}
       {user && (
-        <p className="mt-4 mb-2 text-lg font-semibold text-foreground">
+        <p className="text-lg font-semibold text-foreground">
           <RandomGreeting />, {getAccountDisplayName(user).split(" ")[0]} 👋
         </p>
       )}
@@ -187,9 +214,18 @@ export function ExpenseCashflowPage({
               {paidMonthDisplay}
             </p>
             <p className="mt-2 text-sm opacity-80">Planned expenses still to pay</p>
-            <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-              <AnimatedAmount value={billsUnpaid} />
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-4xl font-bold tracking-tight sm:text-5xl">
+                {amountsHidden ? "••••••" : <AnimatedAmount value={billsUnpaid} />}
+              </p>
+              <button
+                onClick={toggleAmountsHidden}
+                className="pt-0.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                aria-label={amountsHidden ? "Show amounts" : "Hide amounts"}
+              >
+                {amountsHidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
           {showRing && (
             <div className="absolute right-6 top-6 h-28 w-28">
@@ -213,7 +249,7 @@ export function ExpenseCashflowPage({
           <div className="mt-6">
             <div className="mb-1 flex justify-between text-xs font-medium opacity-80">
               <span>Planned expenses paid vs total</span>
-              <span><AnimatedAmount value={billsPaid} /> / <AnimatedAmount value={billsTotal} /></span>
+              <span>{amountsHidden ? "•••••• / ••••••" : <><AnimatedAmount value={billsPaid} /> / <AnimatedAmount value={billsTotal} /></>}</span>
             </div>
             <div className="flex h-3 w-full overflow-hidden rounded-full bg-white/20">
               <div className="bg-emerald-300 transition-all duration-500" style={{ width: `${billsPaidPct}%` }} />
@@ -231,7 +267,7 @@ export function ExpenseCashflowPage({
             <Banknote className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Expenses</p>
-          <p className="text-lg font-bold"><AnimatedAmount value={dailyAmt} /></p>
+          <p className="text-lg font-bold">{amountsHidden ? "••••••" : <AnimatedAmount value={dailyAmt} />}</p>
           <p className="text-[10px] text-muted-foreground">Spending this month</p>
         </Link>
 
@@ -241,7 +277,7 @@ export function ExpenseCashflowPage({
             <CheckCircle2 className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Planned paid</p>
-          <p className="text-lg font-bold"><AnimatedAmount value={billsPaid} /></p>
+          <p className="text-lg font-bold">{amountsHidden ? "••••••" : <AnimatedAmount value={billsPaid} />}</p>
           <p className="text-[10px] text-muted-foreground">
             {billsPaidCount}/{monthBills.length} planned expenses paid this month
           </p>
@@ -252,7 +288,7 @@ export function ExpenseCashflowPage({
             <CircleDollarSign className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Planned Paid + Expenses</p>
-          <p className="text-lg font-bold"><AnimatedAmount value={billsPaid + dailyAmt} /></p>
+          <p className="text-lg font-bold">{amountsHidden ? "••••••" : <AnimatedAmount value={billsPaid + dailyAmt} />}</p>
           <p className="text-[10px] text-muted-foreground">Combined total this month</p>
         </Link>
 
@@ -262,7 +298,7 @@ export function ExpenseCashflowPage({
             <Wallet className="h-4 w-4" />
           </div>
           <p className="text-xs text-muted-foreground">Account Balance</p>
-          <p className="text-lg font-bold"><AnimatedAmount value={totalTrackedBalance} /></p>
+          <p className="text-lg font-bold">{amountsHidden ? "••••••" : <AnimatedAmount value={totalTrackedBalance} />}</p>
           <p className="text-[10px] text-muted-foreground">
             Total tracked net balance
           </p>
@@ -301,7 +337,7 @@ export function ExpenseCashflowPage({
         const BILL_PAID_COLOR = "hsl(221 83% 53%)";
         const EXP_COLOR = "hsl(38 92% 50%)";
         const SAV_COLOR = "hsl(142 71% 45%)";
-        const fmtY = (v: number) => v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
+        const fmtY = (v: number) => amountsHidden ? "•••" : v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
         return (
           <Card className="mb-6">
             <CardHeader className="pb-2">
@@ -323,7 +359,7 @@ export function ExpenseCashflowPage({
                           <p className="mb-1.5 font-semibold">{label}</p>
                           {payload.map((p) => (
                             <p key={p.dataKey as string} style={{ color: p.fill }} className="leading-5">
-                              {String(p.dataKey)}: {formatCurrency(Number(p.value))}
+                              {String(p.dataKey)}: {amountsHidden ? "••••••" : formatCurrency(Number(p.value))}
                             </p>
                           ))}
                         </div>

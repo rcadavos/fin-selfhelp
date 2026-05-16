@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { BackLink } from "@/components/app/back-link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,8 @@ import {
   ArrowLeftRight,
   ArrowUpCircle,
   Edit,
+  Eye,
+  EyeOff,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -51,6 +53,7 @@ import {
   invalidateAccountQueries,
 } from "@/lib/query/accounts";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useAnimatedNumber } from "@/hooks/use-animated-number";
 
 function formatGroupDate(dateStr: string): string {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -99,6 +102,21 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   const { data: txData = { balance: 0, transactions: [] } } = useQuery(accountTransactionsQueryOptions(account.id));
   const { data: allAccounts = [] } = useQuery(accountsQueryOptions());
   const { data: balances = {} } = useQuery(accountBalancesQueryOptions());
+
+  const animatedBalance = useAnimatedNumber(txData.balance);
+
+  const [amountsHidden, setAmountsHidden] = useState(false);
+  useEffect(() => {
+    setAmountsHidden(localStorage.getItem("omnitrak-amounts-hidden") === "1");
+  }, []);
+
+  function toggleAmountsHidden() {
+    setAmountsHidden((prev) => {
+      const next = !prev;
+      localStorage.setItem("omnitrak-amounts-hidden", next ? "1" : "0");
+      return next;
+    });
+  }
 
   // Pre-compute balance before/after each transaction (transactions are newest-first).
   const txBalances = useMemo(() => {
@@ -257,16 +275,25 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       {/* Balance card */}
       <div className="rounded-2xl border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current balance</p>
-        <div className="mt-1 flex items-center gap-2">
-          <p className={cn("text-3xl font-bold tabular-nums", txData.balance < 0 && "text-rose-600 dark:text-rose-400")}>
-            {formatCurrency(txData.balance)}
-          </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <p className={cn("text-3xl font-bold tabular-nums", txData.balance < 0 && !amountsHidden && "text-rose-600 dark:text-rose-400")}>
+              {amountsHidden ? "••••••" : formatCurrency(animatedBalance)}
+            </p>
+            <button
+              onClick={toggleAmountsHidden}
+              className="pt-0.5 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={amountsHidden ? "Show amounts" : "Hide amounts"}
+            >
+              {amountsHidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           {account.maintaining_balance != null &&
             account.maintaining_balance > 0 &&
             txData.balance < account.maintaining_balance && (
               <span className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                Below maintaining balance ({formatCurrency(account.maintaining_balance)})
+                Below maintaining balance{amountsHidden ? "" : ` (${formatCurrency(account.maintaining_balance)})`}
               </span>
             )}
         </div>
@@ -336,17 +363,16 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
                           )}
                           {tx.type === "adjustment" && (
                             <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-                              {formatCurrency(before)} → {formatCurrency(after)}
+                              {amountsHidden ? "•••••• → ••••••" : `${formatCurrency(before)} → ${formatCurrency(after)}`}
                             </p>
                           )}
                         </div>
                         <p className={cn(
                           "flex-shrink-0 text-sm font-semibold tabular-nums",
-                          tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
-                          tx.amount < 0 && "text-rose-600 dark:text-rose-400",
+                          !amountsHidden && tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
+                          !amountsHidden && tx.amount < 0 && "text-rose-600 dark:text-rose-400",
                         )}>
-                          {tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}
-                          {formatCurrency(Math.abs(tx.amount))}
+                          {amountsHidden ? "••••••" : `${tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}${formatCurrency(Math.abs(tx.amount))}`}
                         </p>
                         <Button
                           size="icon"

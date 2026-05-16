@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +69,13 @@ export function AccountTransactionDialog({
   const [date, setDate] = useState(todayYmd);
   const [selectedAccountId, setSelectedAccountId] = useState(defaultAccountId);
   const copy = MODE_COPY[mode];
+
+  useEffect(() => {
+    if (open && mode === "adjustment") {
+      setAmountText(currentBalance.toFixed(2));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode]);
 
   const parsedAmount = Number(amountText);
   const delta = parsedAmount - currentBalance;

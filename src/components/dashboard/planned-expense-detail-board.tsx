@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Circle,
   Pencil,
+  PiggyBank,
   Trash2,
   Wallet,
   Zap,
@@ -26,10 +27,12 @@ import {
 } from "@/components/dashboard/planned-expense-form-dialog";
 import {
   deleteBill,
+  markBillPaid,
   toggleBillPayment,
   updateBill,
   type BillRow,
 } from "@/actions/bills";
+import { PartialPaymentDialog } from "@/components/dashboard/partial-payment-dialog";
 import {
   billsDataQueryOptions,
   billPaymentsHistoryQueryOptions,
@@ -112,6 +115,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   const [bill, setBill] = useState<BillRow>(initialBill);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [partialOpen, setPartialOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const paidMonth = getCurrentPaidMonth();
@@ -132,10 +136,15 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   const vehicleColor = vehicle ? (vehicleColorMap[vehicle.id] ?? "#6b7280") : null;
   const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
 
-  const isPaidThisMonth = useMemo(
-    () => (billsData?.paidBillIds ?? []).includes(bill.id),
-    [billsData?.paidBillIds, bill.id],
+  const amountPaidThisMonth = useMemo(
+    () => billsData?.paymentAmountByBillId?.[bill.id] ?? 0,
+    [billsData?.paymentAmountByBillId, bill.id],
   );
+  const hasAnyPaymentThisMonth = amountPaidThisMonth > 0;
+  const isFullyPaidThisMonth = amountPaidThisMonth >= bill.amount;
+  const isPartiallyPaidThisMonth = hasAnyPaymentThisMonth && !isFullyPaidThisMonth;
+  const remainingThisMonth = Math.max(0, bill.amount - amountPaidThisMonth);
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -145,8 +154,8 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     () => effectiveBillDueDate(bill, today, paidMonth),
     [bill, today, paidMonth],
   );
-  const isOverdue = !isPaidThisMonth && !!dueThisMonth && dueThisMonth < today;
-  const isUpcoming = !isPaidThisMonth && !!dueThisMonth && dueThisMonth > today;
+  const isOverdue = !hasAnyPaymentThisMonth && !!dueThisMonth && dueThisMonth < today;
+  const isUpcoming = !hasAnyPaymentThisMonth && !!dueThisMonth && dueThisMonth > today;
 
   const dueDayOfMonth = getDueDayOfMonthFromYmd(bill.due_date);
   const dueLabel = useMemo(() => {
@@ -186,6 +195,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         setError(res.error);
         return;
       }
+      refreshAfterToggle();
+    });
+  }
+
+  function handlePartialSubmit(absoluteAmount: number) {
+    setError(null);
+    startTransition(async () => {
+      const res = await markBillPaid(bill.id, paidMonth, absoluteAmount);
+      if (res.error === "insufficient_balance" && res.insufficientBalance) {
+        const acct = accounts.find((a) => a.id === res.insufficientBalance!.accountId);
+        setError(
+          `${acct?.account_alias ?? "This account"} has ${formatCurrency(res.insufficientBalance.available)} available, but this payment needs ${formatCurrency(res.insufficientBalance.required)} more.`,
+        );
+        return;
+      }
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setPartialOpen(false);
       refreshAfterToggle();
     });
   }
@@ -274,9 +303,13 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     });
   }
 
-  const statusBadge = isPaidThisMonth ? (
+  const statusBadge = isFullyPaidThisMonth ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
       <CheckCircle2 className="h-3 w-3" /> Paid this month
+    </span>
+  ) : isPartiallyPaidThisMonth ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+      Partial • {formatCurrency(amountPaidThisMonth)} / {formatCurrency(bill.amount)}
     </span>
   ) : isOverdue ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-red-400/60 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
@@ -346,23 +379,37 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
             : "No due date this month"}
         </p>
 
-        <div className="mt-4">
-          <Button
-            variant={isPaidThisMonth ? "outline" : "default"}
-            className="gap-1.5"
-            onClick={handleToggleThisMonth}
-            disabled={isPending}
-          >
-            {isPaidThisMonth ? (
-              <>
-                <Circle className="h-4 w-4" /> Mark unpaid for this month
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" /> Mark paid for this month
-              </>
-            )}
-          </Button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {hasAnyPaymentThisMonth ? (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={handleToggleThisMonth}
+              disabled={isPending}
+            >
+              <Circle className="h-4 w-4" /> Mark unpaid for this month
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              className="gap-1.5"
+              onClick={handleToggleThisMonth}
+              disabled={isPending}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Mark fully paid
+            </Button>
+          )}
+          {remainingThisMonth > 0 && (
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => { setError(null); setPartialOpen(true); }}
+              disabled={isPending}
+            >
+              <PiggyBank className="h-4 w-4" />
+              {isPartiallyPaidThisMonth ? "Add to payment" : "Add partial payment…"}
+            </Button>
+          )}
         </div>
 
         {error && (
@@ -458,46 +505,66 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
           </div>
         ) : (
           <ul className="space-y-2">
-            {history.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
-                    {entry.account_alias && (
-                      <span
-                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${entry.account_color ?? "#6b7280"}22`,
-                          color: entry.account_color ?? undefined,
-                        }}
-                      >
-                        {entry.account_alias}
-                      </span>
+            {history.map((entry) => {
+              const paidAmount = entry.amount ?? bill.amount;
+              const isPartialMonth = paidAmount > 0 && paidAmount < bill.amount;
+              return (
+                <li
+                  key={entry.id}
+                  className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
+                      {isPartialMonth ? (
+                        <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                          Partial
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                          Paid in full
+                        </span>
+                      )}
+                      {entry.account_alias && (
+                        <span
+                          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${entry.account_color ?? "#6b7280"}22`,
+                            color: entry.account_color ?? undefined,
+                          }}
+                        >
+                          {entry.account_alias}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Paid on {formatPaidAt(entry.paid_at)}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end">
+                    <p className="text-sm font-semibold tabular-nums">
+                      {formatCurrency(paidAmount)}
+                    </p>
+                    {isPartialMonth && (
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                        of {formatCurrency(bill.amount)}
+                      </p>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Paid on {formatPaidAt(entry.paid_at)}
-                  </p>
-                </div>
-                <p className="flex-shrink-0 text-sm font-semibold tabular-nums">
-                  {entry.amount != null ? formatCurrency(entry.amount) : formatCurrency(bill.amount)}
-                </p>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleUnmarkMonth(entry.paid_month)}
-                  disabled={isPending}
-                  aria-label={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
-                  title={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </li>
-            ))}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleUnmarkMonth(entry.paid_month)}
+                    disabled={isPending}
+                    aria-label={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
+                    title={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -517,6 +584,16 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
           lockedFreeReminderBillId={billsData?.lockedFreeReminderBillId}
         />
       )}
+
+      <PartialPaymentDialog
+        open={partialOpen}
+        onClose={() => setPartialOpen(false)}
+        billLabel={bill.note ?? cat?.label ?? "Planned expense"}
+        billAmount={bill.amount}
+        alreadyPaid={amountPaidThisMonth}
+        onSubmit={handlePartialSubmit}
+        isPending={isPending}
+      />
 
       <ConfirmDialog
         open={deleteOpen}

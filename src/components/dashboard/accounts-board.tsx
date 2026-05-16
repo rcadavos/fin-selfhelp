@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback, useMemo } from "react";
+import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ParentSize } from "@visx/responsive";
@@ -11,7 +11,7 @@ import { Group } from "@visx/group";
 import { useTooltip } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
-import { Wallet, Plus, AlertTriangle, ExternalLink } from "lucide-react";
+import { Wallet, Plus, AlertTriangle, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,10 +79,12 @@ function NetBalanceBarChartInner({
   width,
   height,
   series,
+  hideAmounts,
 }: {
   width: number;
   height: number;
   series: NetBalancePoint[];
+  hideAmounts: boolean;
 }) {
   const margin = { top: 10, right: 16, bottom: 28, left: 56 };
   const innerWidth = Math.max(0, width - margin.left - margin.right);
@@ -208,7 +210,7 @@ function NetBalanceBarChartInner({
           <AxisLeft
             scale={yScale}
             numTicks={4}
-            tickFormat={(v) => formatCurrency(Number(v))}
+            tickFormat={(v) => hideAmounts ? "•••" : formatCurrency(Number(v))}
             stroke="transparent"
             tickStroke="transparent"
             tickLabelProps={() => ({
@@ -242,19 +244,19 @@ function NetBalanceBarChartInner({
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 2 }}>{formatChartTick(parseDate(tooltipData.date))}</div>
-          <div style={{ fontVariantNumeric: "tabular-nums" }}>{formatCurrency(getY(tooltipData))}</div>
+          <div style={{ fontVariantNumeric: "tabular-nums" }}>{hideAmounts ? "••••••" : formatCurrency(getY(tooltipData))}</div>
         </div>
       )}
     </div>
   );
 }
 
-function NetBalanceBarChart({ series }: { series: NetBalancePoint[] }) {
+function NetBalanceBarChart({ series, hideAmounts }: { series: NetBalancePoint[]; hideAmounts: boolean }) {
   return (
     <div style={{ height: 200 }}>
       <ParentSize>
         {({ width, height }) => (
-          <NetBalanceBarChartInner width={width} height={height} series={series} />
+          <NetBalanceBarChartInner width={width} height={height} series={series} hideAmounts={hideAmounts} />
         )}
       </ParentSize>
     </div>
@@ -266,10 +268,12 @@ function NetBalanceBarChart({ series }: { series: NetBalancePoint[] }) {
 function AccountCard({
   account,
   balance,
+  hideAmounts,
   onOpen,
 }: {
   account: AccountRow;
   balance: number;
+  hideAmounts: boolean;
   onOpen: () => void;
 }) {
   const logoSlug = getBankLogoSlug(account.bank_name);
@@ -323,6 +327,18 @@ function AccountCard({
             </>
           )}
           <span>{account.currency}</span>
+          {account.maintaining_balance != null && account.maintaining_balance > 0 && (
+            <>
+              <span>•</span>
+              <span>Min: {hideAmounts ? "•••" : formatCurrency(account.maintaining_balance, account.currency)}</span>
+            </>
+          )}
+
+          {!account.include_in_net_balance && (
+            <span className="rounded-full border border-amber-500/40 bg-amber-50/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 backdrop-blur-sm dark:bg-amber-950/40 dark:text-amber-400">
+              Untracked
+            </span>
+          )}
 
           {account.tags
             .filter((tag) => !(account.bank_name === "Cash" && tag === "Cash"))
@@ -348,10 +364,10 @@ function AccountCard({
             <p
               className={cn(
                 "text-lg font-bold tabular-nums text-foreground",
-                balance < 0 && "text-rose-600 dark:text-rose-400",
+                balance < 0 && !hideAmounts && "text-rose-600 dark:text-rose-400",
               )}
             >
-              {formatCurrency(balance, account.currency)}
+              {hideAmounts ? "••••••" : formatCurrency(balance, account.currency)}
             </p>
             {account.maintaining_balance != null &&
               account.maintaining_balance > 0 &&
@@ -405,6 +421,19 @@ export function AccountsBoard() {
       }),
     [accounts],
   );
+
+  const [amountsHidden, setAmountsHidden] = useState(false);
+  useEffect(() => {
+    setAmountsHidden(localStorage.getItem("omnitrak-amounts-hidden") === "1");
+  }, []);
+
+  function toggleAmountsHidden() {
+    setAmountsHidden((prev) => {
+      const next = !prev;
+      localStorage.setItem("omnitrak-amounts-hidden", next ? "1" : "0");
+      return next;
+    });
+  }
 
   const [addOpen, setAddOpen] = useState(false);
   const [addKey, setAddKey] = useState(0);
@@ -473,11 +502,20 @@ export function AccountsBoard() {
           </div>
           <div className="flex-1 rounded-xl border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Net Balance</p>
-            <p className={
-              netBalance < 0
-                ? "mt-0.5 text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400"
-                : "mt-0.5 text-lg font-bold tabular-nums"
-            }>{formatCurrency(netBalance)}</p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <p className={
+                netBalance < 0 && !amountsHidden
+                  ? "text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400"
+                  : "text-lg font-bold tabular-nums"
+              }>{amountsHidden ? "••••••" : formatCurrency(netBalance)}</p>
+              <button
+                onClick={toggleAmountsHidden}
+                className="pt-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={amountsHidden ? "Show amounts" : "Hide amounts"}
+              >
+                {amountsHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <p className="text-[11px] text-muted-foreground">
               {includedCount} of {accounts.length} {accounts.length === 1 ? "account" : "accounts"} included
             </p>
@@ -494,7 +532,7 @@ export function AccountsBoard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-1 pb-3">
-                <NetBalanceBarChart series={netHistory} />
+                <NetBalanceBarChart series={netHistory} hideAmounts={amountsHidden} />
               </CardContent>
             </Card>
           ) : (
@@ -521,6 +559,7 @@ export function AccountsBoard() {
               key={acc.id}
               account={acc}
               balance={balances[acc.id] ?? 0}
+              hideAmounts={amountsHidden}
               onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
             />
           ))}

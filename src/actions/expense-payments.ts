@@ -262,7 +262,7 @@ export async function getMonthlyBreakdown(
       .eq("profile_id", profileId),
     supabase
       .from("bills")
-      .select("id, amount, billing_period, category_id, created_at")
+      .select("id, amount, billing_period, due_month, category_id, created_at, end_date")
       .eq("profile_id", profileId),
     supabase
       .from("bill_payments")
@@ -274,34 +274,41 @@ export async function getMonthlyBreakdown(
   const allEntries = expenseRows ?? [];
   const allBills = billRows ?? [];
   const allBillPayments = billPaymentRows ?? [];
+  const billById = new Map(allBills.map((b) => [b.id as string, b]));
   const monthKeys = getRecentPaidMonths(months);
 
-  const stats: MonthlyBreakdownPoint[] = monthKeys.map((month) => {
-    const [y, m] = month.split("-").map(Number);
-    const nextYear = m === 12 ? y + 1 : y;
-    const monthEndIso = `${nextYear}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00`;
+  // Whether a bill is "due" for the given month based on billing_period:
+  //   monthly   → every month (within its lifetime)
+  //   quarterly → only Jan/Apr/Jul/Oct (consistent with bills-board)
+  //   yearly    → only when due_month matches
+  function isBillDueInMonth(bill: typeof allBills[number], ym: string): boolean {
+    const m1to12 = Number(ym.split("-")[1]);
+    if (!Number.isFinite(m1to12)) return false;
+    const createdYm = (bill.created_at as string | null)?.slice(0, 7);
+    if (createdYm && createdYm > ym) return false;
+    const endYm = (bill.end_date as string | null)?.slice(0, 7);
+    if (endYm && endYm < ym) return false;
+    if (bill.billing_period === "yearly") return (bill.due_month ?? 1) === m1to12;
+    if (bill.billing_period === "quarterly") return [1, 4, 7, 10].includes(m1to12);
+    return true; // monthly
+  }
 
-    // Planned expenses: monthly bills (excluding savings category) that existed by end of this month
+  const stats: MonthlyBreakdownPoint[] = monthKeys.map((month) => {
+    // Planned expenses: all non-savings bills that are due in this month (any billing period)
     const bills = allBills
-      .filter(
-        (b) =>
-          b.billing_period === "monthly" &&
-          b.category_id !== "savings" &&
-          (b.created_at ?? "") < monthEndIso
-      )
+      .filter((b) => b.category_id !== "savings" && isBillDueInMonth(b, month))
       .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Planned paid: sum of bill_payments.amount_paid for monthly non-savings bills this month.
-    // Using amount_paid (instead of bill.amount keyed by paid bill IDs) so partial payments
-    // are reflected accurately in the dashboard chart.
-    const billCategoryById = new Map(allBills.map((b) => [b.id, b]));
+    // Planned paid: only count payments for bills that are actually due this month.
+    // Restricting to isBillDueInMonth keeps billsPaid and bills (Planned) in sync —
+    // both cover the same set of bills so the ratio is always meaningful.
     const billsPaid = allBillPayments
       .filter((p) => p.paid_month === month)
       .reduce((s, p) => {
-        const b = billCategoryById.get(p.bill_id);
+        const b = billById.get(p.bill_id as string);
         if (!b) return s;
-        if (b.billing_period !== "monthly") return s;
         if (b.category_id === "savings") return s;
+        if (!isBillDueInMonth(b, month)) return s;
         return s + Number(p.amount_paid ?? 0);
       }, 0);
 
@@ -327,7 +334,7 @@ export async function getMonthlyBreakdown(
       allBillPayments
         .filter((p) => p.paid_month === month)
         .reduce((s, p) => {
-          const b = billCategoryById.get(p.bill_id);
+          const b = billById.get(p.bill_id as string);
           if (!b || b.category_id !== "savings") return s;
           return s + Number(p.amount_paid ?? 0);
         }, 0);

@@ -196,10 +196,11 @@ export function formatCurrencyWithPreferences(
         ? "de-DE"
         : "fil-PH"
       : numberFormatLocale(prefs.numberGrouping);
+  const hasFractional = !Number.isInteger(Math.round(amount * 100) / 100);
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: prefs.currency,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: hasFractional ? 2 : 0,
     maximumFractionDigits: 2,
   }).format(amount);
 }

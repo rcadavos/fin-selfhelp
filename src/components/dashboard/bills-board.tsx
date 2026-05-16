@@ -15,8 +15,9 @@ import {
   Bell,
   Car,
   CheckCircle2,
-  Circle,
+  CircleDashed,
   Pencil,
+  PiggyBank,
   Plus,
   Trash2,
   Receipt,
@@ -69,12 +70,14 @@ import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
   toggleBillPayment,
+  markBillPaid,
   addBill,
   updateBill,
   deleteBill,
   type BillRow,
   type BillsData,
 } from "@/actions/bills";
+import { PartialPaymentDialog } from "@/components/dashboard/partial-payment-dialog";
 import { type AccountRow } from "@/actions/accounts";
 import { accountsQueryOptions, invalidateAccountQueries } from "@/lib/query/accounts";
 import { AccountSelect } from "@/components/app/account-select";
@@ -256,6 +259,8 @@ function BillsPieChart({ bills, currency, categories }: { bills: BillRow[]; curr
 function BillRow({
   bill,
   isPaid,
+  isPartial,
+  amountPaid,
   isOverdue,
   isUpcoming,
   isPending,
@@ -266,12 +271,18 @@ function BillRow({
   vehicleColorMap,
   categories,
   onToggle,
+  onPartialClick,
   onEdit,
   onDelete,
   isLockedFreeReminder,
 }: {
   bill: BillRow;
+  /** True if amountPaid >= bill.amount. */
   isPaid: boolean;
+  /** True if 0 < amountPaid < bill.amount. */
+  isPartial: boolean;
+  /** Amount actually paid this month for this bill (0 if no payment row). */
+  amountPaid: number;
   isOverdue: boolean;
   isUpcoming: boolean;
   isPending: boolean;
@@ -281,7 +292,10 @@ function BillRow({
   vehicleMap: Record<string, VehicleRow>;
   vehicleColorMap: Record<string, string>;
   categories: CatList;
+  /** Full-paid toggle: marks fully paid if unpaid, removes the row if any payment exists. */
   onToggle: () => void;
+  /** Opens the partial-payment dialog for this bill. */
+  onPartialClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
   isLockedFreeReminder?: boolean;
@@ -301,34 +315,44 @@ function BillRow({
         "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
         isPaid
           ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
-          : isOverdue
-            ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
-            : isUpcoming
-              ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
-              : "border-border bg-card hover:bg-muted/40",
+          : isPartial
+            ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
+            : isOverdue
+              ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+              : isUpcoming
+                ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+                : "border-border bg-card hover:bg-muted/40",
       )}
     >
-      {/* Paid toggle */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        disabled={isPending}
-        className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-        aria-label={isPaid ? "Mark unpaid" : "Mark paid"}
-        title={isPaid ? "Mark unpaid" : "Mark paid"}
-        data-title={isPaid ? "Mark unpaid" : "Mark paid"}
-      >
-        {isPaid ? (
-          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-        ) : (
-          <Circle className={cn("h-5 w-5", isOverdue ? "text-red-500" : isUpcoming ? "text-blue-500" : "")} />
-        )}
-      </button>
-
-      {/* Category dot */}
-      <span
-        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-        style={{ backgroundColor: dotColor }}
-      />
+      {/* Two-button row: fully-paid toggle + partial-payment dialog */}
+      <div className="flex flex-shrink-0 items-center gap-0.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          disabled={isPending}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-emerald-100 hover:text-emerald-600 disabled:opacity-50 dark:hover:bg-emerald-900/40"
+          aria-label={isPaid ? "Mark unpaid" : "Mark fully paid"}
+          title={isPaid ? "Mark unpaid" : "Mark fully paid"}
+        >
+          {isPaid ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+          ) : (
+            <CheckCircle2 className={cn("h-5 w-5", isOverdue ? "text-red-400" : isUpcoming ? "text-blue-400" : "text-gray-200 dark:text-gray-700")} />
+          )}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onPartialClick(); }}
+          disabled={isPending || isPaid}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-amber-100 hover:text-amber-600 disabled:opacity-30 dark:hover:bg-amber-900/40"
+          aria-label="Add partial payment"
+          title={isPartial ? "Add to this month's payment" : "Add partial payment"}
+        >
+          {isPartial ? (
+            <PiggyBank className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          ) : (
+            <CircleDashed className="h-4 w-4 text-gray-200 dark:text-gray-700" />
+          )}
+        </button>
+      </div>
 
       {/* Info */}
       <div className="min-w-0 flex-1">
@@ -365,6 +389,13 @@ function BillRow({
             <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
               Paid
             </span>
+          ) : isPartial ? (
+            <span
+              className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              title={`${formatCurrency(amountPaid, currency)} of ${formatCurrency(bill.amount, currency)}`}
+            >
+              {formatCurrency(amountPaid, currency)} / {formatCurrency(bill.amount, currency)}
+            </span>
           ) : isOverdue ? (
             <span className="shrink-0 rounded-full border border-red-400/60 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
               Overdue
@@ -386,7 +417,7 @@ function BillRow({
           )}
         </div>
         <p className="truncate text-xs text-muted-foreground">
-          {cat?.label}
+          <span style={{ color: dotColor }}>{cat?.label}</span>
           {dueDateLabel && <span className="hidden sm:inline text-muted-foreground/60"> • {dueDateLabel}</span>}
           {reminderLabel && (
             <span className="hidden sm:inline-flex items-center gap-0.5 text-muted-foreground/60">
@@ -624,6 +655,7 @@ export function BillsBoard() {
   const [addOpen, setAddOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRow | null>(null);
+  const [partialBill, setPartialBill] = useState<BillRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [toggleError, setToggleError] = useState<
@@ -769,6 +801,30 @@ export function BillsBoard() {
       invalidateAccountQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
     }
+  }
+
+  async function handlePartialSubmit(absoluteAmount: number) {
+    if (!partialBill) return;
+    setToggleError(null);
+    const res = await markBillPaid(partialBill.id, paidMonth, absoluteAmount);
+    if (res.error === "insufficient_balance" && res.insufficientBalance) {
+      setToggleError({
+        kind: "insufficient_balance",
+        accountId: res.insufficientBalance.accountId,
+        available: res.insufficientBalance.available,
+        required: res.insufficientBalance.required,
+        billNote: partialBill.note?.trim() || getCategoryLabel(partialBill.category_id, categories),
+      });
+      return;
+    }
+    if (res.error) {
+      setToggleError({ kind: "generic", message: res.error });
+      return;
+    }
+    setPartialBill(null);
+    invalidate();
+    invalidateAccountQueries(queryClient);
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
   }
 
   async function handleAdd(form: BillFormState) {
@@ -1028,13 +1084,19 @@ export function BillsBoard() {
             sortedFilteredBills.map((bill) => {
               const today = new Date(); today.setHours(0, 0, 0, 0);
               const eff = effectiveBillDueDate(bill, today, paidMonth);
-              const isOverdue = !paidIds.has(bill.id) && !!eff && eff < today;
-              const isUpcoming = !paidIds.has(bill.id) && !!eff && eff > today;
+              const amountPaid = paymentAmountByBillId[bill.id] ?? 0;
+              const isFullyPaid = amountPaid >= bill.amount && amountPaid > 0;
+              const isPartial = amountPaid > 0 && amountPaid < bill.amount;
+              const hasAnyPayment = amountPaid > 0;
+              const isOverdue = !hasAnyPayment && !!eff && eff < today;
+              const isUpcoming = !hasAnyPayment && !!eff && eff > today;
               return (
                 <BillRow
                   key={bill.id}
                   bill={bill}
-                  isPaid={paidIds.has(bill.id)}
+                  isPaid={isFullyPaid}
+                  isPartial={isPartial}
+                  amountPaid={amountPaid}
                   isOverdue={isOverdue}
                   isUpcoming={isUpcoming}
                   isPending={pendingIds.has(bill.id)}
@@ -1045,6 +1107,7 @@ export function BillsBoard() {
                   vehicleColorMap={vehicleColorMap}
                   categories={categories}
                   onToggle={() => handleToggle(bill.id)}
+                  onPartialClick={() => { setToggleError(null); setPartialBill(bill); }}
                   onEdit={() => setEditingBill(bill)}
                   onDelete={() => setDeletingId(bill.id)}
                   isLockedFreeReminder={bill.id === lockedFreeReminderBillId}
@@ -1094,6 +1157,19 @@ export function BillsBoard() {
           vehicles={vehicles}
           freeReminderUsed={freeReminderUsed}
           lockedFreeReminderBillId={lockedFreeReminderBillId}
+        />
+      )}
+
+      {/* Partial payment dialog */}
+      {partialBill && (
+        <PartialPaymentDialog
+          open={!!partialBill}
+          onClose={() => setPartialBill(null)}
+          billLabel={partialBill.note ?? getCategoryLabel(partialBill.category_id, categories)}
+          billAmount={partialBill.amount}
+          alreadyPaid={paymentAmountByBillId[partialBill.id] ?? 0}
+          onSubmit={handlePartialSubmit}
+          isPending={isPending}
         />
       )}
 
