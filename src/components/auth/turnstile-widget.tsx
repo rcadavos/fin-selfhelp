@@ -1,7 +1,6 @@
 "use client";
 
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
-import { useTheme } from "next-themes";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 
 // Cloudflare-provided "always passes" test key — used when the real site key
@@ -24,7 +23,6 @@ type TurnstileWidgetProps = {
 
 export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
   function TurnstileWidget({ onSuccess, onExpire, onError, action, className }, ref) {
-    const { resolvedTheme } = useTheme();
     const instanceRef = useRef<TurnstileInstance | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -32,7 +30,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
     }));
 
     return (
-      <div className={className}>
+      <div className={className} style={{ minHeight: 65 }}>
         <Turnstile
           ref={instanceRef}
           siteKey={SITE_KEY}
@@ -40,8 +38,8 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
           onExpire={onExpire}
           onError={onError}
           options={{
-            theme: resolvedTheme === "dark" ? "dark" : "light",
-            size: "flexible",
+            theme: "auto",
+            size: "normal",
             action,
           }}
         />

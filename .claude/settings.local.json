@@ -54,7 +54,8 @@
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(Sort-Object -Unique)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(cd c:/WORK/MyProjects/fin-selfhelp && type \"C:\\\\Users\\\\Admin\\\\.claude\\\\projects\\\\c--WORK-MyProjects-fin-selfhelp\\\\memory\\\\MEMORY.md\" 2>nul)"
+      "Bash(cd c:/WORK/MyProjects/fin-selfhelp && type \"C:\\\\Users\\\\Admin\\\\.claude\\\\projects\\\\c--WORK-MyProjects-fin-selfhelp\\\\memory\\\\MEMORY.md\" 2>nul)",
+      "Bash(npm ls *)"
     ],
     "additionalDirectories": [
       "c:\\WORK\\MyProjects\\fin-selfhelp"

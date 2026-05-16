@@ -44,9 +44,11 @@ const nextConfig: NextConfig = {
   async headers() {
     // Security headers target securityheaders.com (A/B) while allowing
     // required inline JSON-LD and Supabase browser calls.
+    const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
     const connectSrc = SUPABASE_ORIGIN
-      ? `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WSS_ORIGIN}`
-      : "connect-src 'self'";
+      ? `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WSS_ORIGIN} ${TURNSTILE_ORIGIN}`
+      : `connect-src 'self' ${TURNSTILE_ORIGIN}`;
 
     const imgSrc = SUPABASE_ORIGIN
       ? `img-src 'self' data: blob: ${SUPABASE_ORIGIN}`
@@ -56,14 +58,19 @@ const nextConfig: NextConfig = {
       ? `font-src 'self' data: ${SUPABASE_ORIGIN}`
       : "font-src 'self' data:";
 
+    const scriptSrc = IS_DEV
+      ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${TURNSTILE_ORIGIN}`
+      : `script-src 'self' 'unsafe-inline' ${TURNSTILE_ORIGIN}`;
+
     const cspParts: string[] = [
       "default-src 'self'",
       "base-uri 'self'",
       "object-src 'none'",
       "frame-ancestors 'none'",
+      `frame-src 'self' ${TURNSTILE_ORIGIN}`,
       "form-action 'self'",
       "worker-src 'self'",
-      IS_DEV ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
+      scriptSrc,
       "style-src 'self' 'unsafe-inline'",
       imgSrc,
       fontSrc,
