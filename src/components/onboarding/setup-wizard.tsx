@@ -129,6 +129,7 @@ export function SetupWizard({ initialName }: Props) {
           interest_frequency: null,
           interest_rate: null,
           maintaining_balance: maintainingBalance.trim() && !isNaN(maintaining) ? maintaining : null,
+          credit_limit: null,
           include_in_net_balance: true,
           currency: currency || "PHP",
         });
