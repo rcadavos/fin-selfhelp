@@ -280,7 +280,7 @@ export function AccountFormDialog({
                             alt=""
                             width={16}
                             height={16}
-                            className="flex-shrink-0 object-contain"
+                            className="flex-shrink-0 rounded-sm object-contain"
                           />
                         )}
                         <span className="truncate">{form.bank_name}</span>
@@ -319,7 +319,7 @@ export function AccountFormDialog({
                                     alt=""
                                     width={16}
                                     height={16}
-                                    className="flex-shrink-0 object-contain"
+                                    className="flex-shrink-0 rounded-sm object-contain"
                                   />
                                 )}
                                 {b}
