@@ -15,7 +15,7 @@ import {
   Bell,
   Car,
   CheckCircle2,
-  CircleDashed,
+  MoreHorizontal,
   Pencil,
   PiggyBank,
   Plus,
@@ -24,6 +24,7 @@ import {
   Download,
   LayoutGrid,
   Lock,
+  RotateCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -304,9 +305,16 @@ function BillRow({
   const cat = categories.find((c) => c.id === bill.category_id);
   const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
   const dueDateLabel = formatDueDay(bill, paidMonth);
-  const reminderLabel = bill.reminder_days_before?.length
-    ? bill.reminder_days_before.map(d => d === 0 ? "Due date" : `${d}d before`).join(", ")
-    : null;
+  const reminderLabel = (() => {
+    const days = bill.reminder_days_before;
+    if (!days?.length) return null;
+    const beforeDays = days.filter((d) => d !== 0).sort((a, b) => b - a);
+    const hasDueDate = days.includes(0);
+    const parts: string[] = [];
+    if (beforeDays.length > 0) parts.push(`${beforeDays.map((d) => `${d}d`).join(", ")} before`);
+    if (hasDueDate) parts.push("Due date");
+    return parts.join(", ");
+  })();
 
   return (
     <div
@@ -314,7 +322,7 @@ function BillRow({
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
         isPaid
-          ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30"
+          ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-400/60 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/50"
           : isPartial
             ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
             : isOverdue
@@ -324,36 +332,6 @@ function BillRow({
                 : "border-border bg-card hover:bg-muted/40",
       )}
     >
-      {/* Two-button row: fully-paid toggle + partial-payment dialog */}
-      <div className="flex flex-shrink-0 items-center gap-0.5">
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          disabled={isPending}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-emerald-100 hover:text-emerald-600 disabled:opacity-50 dark:hover:bg-emerald-900/40"
-          aria-label={isPaid ? "Mark unpaid" : "Mark fully paid"}
-          title={isPaid ? "Mark unpaid" : "Mark fully paid"}
-        >
-          {isPaid ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-          ) : (
-            <CheckCircle2 className={cn("h-5 w-5", isOverdue ? "text-red-400" : isUpcoming ? "text-blue-400" : "text-gray-200 dark:text-gray-700")} />
-          )}
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onPartialClick(); }}
-          disabled={isPending || isPaid}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-amber-100 hover:text-amber-600 disabled:opacity-30 dark:hover:bg-amber-900/40"
-          aria-label="Add partial payment"
-          title={isPartial ? "Add to this month's payment" : "Add partial payment"}
-        >
-          {isPartial ? (
-            <PiggyBank className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          ) : (
-            <CircleDashed className="h-4 w-4 text-gray-200 dark:text-gray-700" />
-          )}
-        </button>
-      </div>
-
       {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -481,26 +459,51 @@ function BillRow({
         </p>
       </div>
 
-      {/* Actions */}
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground"
-        onClick={(e) => { e.stopPropagation(); onEdit(); }}
-        aria-label="Edit planned expense"
-        title="Edit"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        aria-label="Delete planned expense"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+      {/* Actions: 3-dot menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 flex-shrink-0 self-center text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
+            disabled={isPending}
+            aria-label="Planned expense actions"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          {isPaid ? (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+              <RotateCcw className="h-4 w-4" />
+              Mark Unpaid
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              Mark Paid
+            </DropdownMenuItem>
+          )}
+          {!isPaid && (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
+              <PiggyBank className="h-4 w-4 text-amber-600" />
+              {isPartial ? "Add to Payment" : "Add Partial Payment"}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+            <Pencil className="h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -709,7 +712,11 @@ export function BillsBoard() {
     today.setHours(0, 0, 0, 0);
 
     function statusRank(bill: BillRow): number {
-      if (paidIds.has(bill.id)) return 3;
+      const amountPaid = paymentAmountByBillId[bill.id] ?? 0;
+      const isFullyPaid = amountPaid > 0 && amountPaid >= bill.amount;
+      const isPartial = amountPaid > 0 && !isFullyPaid;
+      if (isFullyPaid) return 4;
+      if (isPartial) return 3;
       const eff = effectiveBillDueDate(bill, today, paidMonth);
       if (eff && eff < today) return 0; // overdue
       if (eff && eff > today) return 2; // upcoming
@@ -725,7 +732,7 @@ export function BillsBoard() {
       if (rankDiff !== 0) return rankDiff;
       return dueTime(a) - dueTime(b);
     });
-  }, [filteredBills, paidIds, paidMonth]);
+  }, [filteredBills, paymentAmountByBillId, paidMonth]);
 
   // Summary — reactive to active tab. paidAmt sums actual amount_paid so a
   // partial payment reduces "Remaining" by its real value, not the full bill amount.

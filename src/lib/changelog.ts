@@ -14,6 +14,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.10",
+    date: "2026-05-17",
+    summary: "Planned expense list rows cleaned up — all per-row actions moved into a single 3-dot menu.",
+    changes: [
+      { type: "improvement", description: "Removed the inline Mark Paid / Add Partial buttons and the trailing Edit / Remove icons from each row in the Planned Expenses list." },
+      { type: "improvement", description: "Added a 3-dot menu on the upper right of each row with: Mark Paid (or Mark Unpaid), Add Partial Payment (or Add to Payment when already partial), Edit, and Remove." },
+      { type: "improvement", description: "Reminder label now groups the 'before due date' days together — e.g. '5, 4, 3d before, Due date' instead of '5d before, 4d before, 3d before, Due date' — so the row stays compact on mobile." },
+    ],
+  },
+  {
     version: "1.5.9",
     date: "2026-05-13",
     summary: "Each planned expense now has its own detail page with payment history and inline edit.",
