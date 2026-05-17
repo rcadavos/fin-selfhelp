@@ -9,6 +9,7 @@ const StatsSection = dynamic(() => import("@/components/landing/stats-section").
 const HighlightsSection = dynamic(() => import("@/components/landing/highlights-section").then(m => m.HighlightsSection));
 const BuiltForSection = dynamic(() => import("@/components/landing/built-for-section").then(m => m.BuiltForSection));
 const SubscribeSection = dynamic(() => import("@/components/landing/subscribe-section").then(m => m.SubscribeSection));
+const CalculatorsSection = dynamic(() => import("@/components/landing/calculators-section").then(m => m.CalculatorsSection));
 const FaqSection = dynamic(() => import("@/components/landing/faq-section").then(m => m.FaqSection));
 const CtaBandSection = dynamic(() => import("@/components/landing/cta-band-section").then(m => m.CtaBandSection));
 const ReviewsSection = dynamic(() => import("@/components/landing/reviews-section").then(m => m.ReviewsSection));
@@ -42,6 +43,7 @@ export default async function HomePage() {
       <HighlightsSection />
       <BuiltForSection />
       <SubscribeSection proPlan={proPlan} premiumPlan={premiumPlan} />
+      <CalculatorsSection />
       <ReviewsSection reviews={reviews} />
       <FaqSection />
       <CtaBandSection />

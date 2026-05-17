@@ -3,18 +3,24 @@ import { cn } from "@/lib/utils";
 const steps = [
   {
     step: 1,
+    title: "Add your tracked accounts",
+    description:
+      "Start by adding the accounts you use — bank, e-wallet, cash, or credit. Every expense and planned expense gets linked to one, so balances stay in sync and you can see exactly where your money moves.",
+  },
+  {
+    step: 2,
     title: "Log expenses & planned expenses",
     description:
       "Record daily expenses with a date, category, and note. Add recurring planned expenses — monthly, quarterly, or yearly — and set due dates so nothing catches you off guard.",
   },
   {
-    step: 2,
+    step: 3,
     title: "Get reminded, then mark paid",
     description:
-      "Receive reminders before planned expenses are due. When you've settled one, tap to mark it paid — status badges update instantly to show Paid, Outstanding, or Unpaid.",
+      "Receive reminders before planned expenses are due. When you've settled one, tap to mark it paid — or log a partial payment if you only covered part of it. Status badges update instantly to show Paid, Partial, Outstanding, or Unpaid.",
   },
   {
-    step: 3,
+    step: 4,
     title: "Review your monthly summary",
     description:
       "Your dashboard shows total expenses, total planned expenses, what's still owed, and payment history across recent months — so you always know exactly where you stand.",
@@ -36,7 +42,7 @@ export function HowItWorksSection({ className }: { className?: string }) {
             How it works
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Three steps to a clearer view of your finances.
+            Four steps to a clearer view of your finances.
           </p>
         </div>
         <ul className="mt-12 space-y-0">

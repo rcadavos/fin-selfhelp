@@ -13,6 +13,7 @@ export function CtaBandSection({ className }: { className?: string }) {
 
   return (
     <section
+      id="cta"
       className={cn(
         "relative overflow-hidden border-t px-4 py-16 sm:px-6 lg:px-8",
         "bg-gradient-to-br from-primary via-emerald-600 to-teal-800 text-primary-foreground",

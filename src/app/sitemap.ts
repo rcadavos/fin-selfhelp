@@ -8,6 +8,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    { url: `${baseUrl}/calculators`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${baseUrl}/calculators/tax`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${baseUrl}/calculators/savings`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
+    { url: `${baseUrl}/calculators/debt-payoff`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${baseUrl}${LEGAL_ROUTES.hub}`, lastModified: now, changeFrequency: "yearly", priority: 0.35 },
     { url: `${baseUrl}${LEGAL_ROUTES.terms}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}${LEGAL_ROUTES.privacy}`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },

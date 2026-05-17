@@ -48,7 +48,7 @@ const navItems = [
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
   { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
-  { href: "/dashboard/calculators", label: "Calculators", icon: Calculator, premium: false },
+  { href: "/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
   { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
 ] as const;

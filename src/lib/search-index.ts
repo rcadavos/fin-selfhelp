@@ -16,14 +16,14 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "To-Buy List", href: "/dashboard/to-buy", group: "Navigation", keywords: ["shopping", "purchase", "wishlist", "buy", "grocery", "items"] },
   { title: "To-Do List", href: "/dashboard/to-do", group: "Navigation", keywords: ["tasks", "checklist", "todo", "task list"] },
   { title: "Vehicles", href: "/dashboard/vehicles", group: "Navigation", keywords: ["vehicle", "car", "motorcycle", "fuel", "gas", "transport", "gasoline", "diesel", "plate", "mileage", "vehicle tracker", "maintenance", "parking", "toll", "insurance", "registration"] },
-  { title: "Calculators", href: "/dashboard/calculators", group: "Navigation", keywords: ["math", "compute", "calculate", "financial calculator", "tools"] },
+  { title: "Calculators", href: "/calculators", group: "Navigation", keywords: ["math", "compute", "calculate", "financial calculator", "tools"] },
   { title: "Review & Feedback", href: "/dashboard/feedback", group: "Navigation", keywords: ["review", "feedback", "suggestions", "rate", "report", "suggest"] },
   { title: "What's New", href: "/changelog", group: "Navigation", keywords: ["changelog", "release notes", "updates", "version", "bugfix", "hotfix", "new features", "whats new"] },
 
   // ── Calculators ──────────────────────────────────────────────────────────
-  { title: "Debt Payoff Calculator", href: "/dashboard/calculators/debt-payoff", group: "Calculators", keywords: ["loan", "debt", "payoff", "amortization", "interest", "monthly payment", "installment"] },
-  { title: "Savings Calculator", href: "/dashboard/calculators/savings", group: "Calculators", keywords: ["savings", "interest", "compound", "future value", "investment", "earn"] },
-  { title: "Tax Calculator", href: "/dashboard/calculators/tax", group: "Calculators", keywords: ["tax", "income tax", "BIR", "TRAIN law", "SSS", "PhilHealth", "Pag-IBIG", "contributions", "take-home", "net pay", "salary", "withholding"] },
+  { title: "Debt Payoff Calculator", href: "/calculators/debt-payoff", group: "Calculators", keywords: ["loan", "debt", "payoff", "amortization", "interest", "monthly payment", "installment"] },
+  { title: "Savings Calculator", href: "/calculators/savings", group: "Calculators", keywords: ["savings", "interest", "compound", "future value", "investment", "earn"] },
+  { title: "Tax Calculator", href: "/calculators/tax", group: "Calculators", keywords: ["tax", "income tax", "BIR", "TRAIN law", "SSS", "PhilHealth", "Pag-IBIG", "contributions", "take-home", "net pay", "salary", "withholding"] },
 
   // ── Expenses sub ─────────────────────────────────────────────────────────
   { title: "Expense Categories", href: "/dashboard/expenses/categories", group: "Expenses", keywords: ["category", "organize", "type", "label", "food", "utilities", "rent", "transport", "groups", "custom category", "my categories"] },

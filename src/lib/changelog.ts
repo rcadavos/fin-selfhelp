@@ -14,6 +14,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.6.0",
+    date: "2026-05-17",
+    summary: "Calculators are now a public route — usable without signing in, indexed for search, and still shown inside the dashboard shell for logged-in users.",
+    changes: [
+      { type: "feature", description: "Tax, Savings, and Debt Payoff calculators now live at /calculators (and /calculators/tax|savings|debt-payoff) so anyone can use them without an account. Old /dashboard/calculators URLs redirect to the new paths." },
+      { type: "improvement", description: "When a logged-in user opens /calculators, the page renders inside the dashboard AppShell (sidebar + top bar) — guests get the landing header instead." },
+      { type: "feature", description: "Landing page now has a Calculators section (3 cards, one per calculator) styled like the Plans section." },
+      { type: "feature", description: "Added /calculators, /calculators/tax, /calculators/savings, and /calculators/debt-payoff to the sitemap so search engines can discover and crawl them. robots.txt already allows the path." },
+      { type: "feature", description: "Added an 'id' anchor to every landing section (hero, features, how-it-works, highlights, built-for, subscribe, calculators, reviews, faq, cta) for in-page navigation and SEO." },
+      { type: "improvement", description: "How-it-works on the landing page is now four steps: added 'Add your tracked accounts' as step 1, and the reminders step now calls out partial payments and the Partial status badge." },
+      { type: "improvement", description: "Sidebar and header search now point to /calculators (and per-calculator routes) instead of the dashboard paths." },
+    ],
+  },
+  {
     version: "1.5.10",
     date: "2026-05-17",
     summary: "Planned expense list rows cleaned up — all per-row actions moved into a single 3-dot menu.",
