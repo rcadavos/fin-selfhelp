@@ -16,12 +16,13 @@ export type AccountRow = {
   interest_frequency: InterestFrequency | null;
   interest_rate: number | null;
   maintaining_balance: number | null;
+  credit_limit: number | null;
   include_in_net_balance: boolean;
   currency: string;
 };
 
 const ACCOUNT_SELECT =
-  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, interest_rate, maintaining_balance, include_in_net_balance, currency";
+  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, interest_rate, maintaining_balance, credit_limit, include_in_net_balance, currency";
 
 function mapAccountRow(r: Record<string, unknown>): AccountRow {
   const type = String(r.account_type ?? "debit") as AccountType;
@@ -40,6 +41,7 @@ function mapAccountRow(r: Record<string, unknown>): AccountRow {
         : null,
     interest_rate: r.interest_rate != null ? Number(r.interest_rate) : null,
     maintaining_balance: r.maintaining_balance != null ? Number(r.maintaining_balance) : null,
+    credit_limit: r.credit_limit != null ? Number(r.credit_limit) : null,
     include_in_net_balance: r.include_in_net_balance !== false,
     currency: String(r.currency ?? "PHP"),
   };
@@ -219,6 +221,7 @@ type AccountInput = {
   interest_frequency: InterestFrequency | null;
   interest_rate: number | null;
   maintaining_balance: number | null;
+  credit_limit: number | null;
   include_in_net_balance: boolean;
   currency: string;
 };
@@ -279,6 +282,7 @@ export async function createAccount(input: AccountInput): Promise<{ error?: stri
     interest_frequency: input.interest_frequency,
     interest_rate: input.interest_rate,
     maintaining_balance: input.maintaining_balance,
+    credit_limit: input.credit_limit,
     include_in_net_balance: input.include_in_net_balance,
     currency: input.currency.trim().toUpperCase(),
   });
@@ -315,6 +319,7 @@ export async function updateAccount(accountId: string, input: AccountInput): Pro
       interest_frequency: input.interest_frequency,
       interest_rate: input.interest_rate,
       maintaining_balance: input.maintaining_balance,
+      credit_limit: input.credit_limit,
       include_in_net_balance: input.include_in_net_balance,
       currency: input.currency.trim().toUpperCase(),
       updated_at: new Date().toISOString(),

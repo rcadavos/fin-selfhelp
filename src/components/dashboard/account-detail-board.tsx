@@ -71,6 +71,7 @@ function txMeta(
   tx: AccountTransactionRow,
 ): { label: string; iconClass: string; sign: 1 | -1 | 0 } {
   if (tx.type === "expense") return { label: "Expense", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+  if (tx.type === "auto_pay") return { label: "Auto Pay", iconClass: "text-violet-600 dark:text-violet-400", sign: -1 };
   if (tx.type === "fee") return { label: "Fee", iconClass: "text-orange-600 dark:text-orange-400", sign: -1 };
   if (tx.type === "income") return { label: "Income", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 };
   if (tx.type === "transfer") {

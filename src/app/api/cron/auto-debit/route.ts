@@ -148,35 +148,25 @@ export async function GET(request: Request) {
       continue;
     }
 
-    // Deduct from account + create expense entry when account is linked
+    // Deduct from account when one is linked
     if (accountId) {
       const description = (bill.note as string | null)?.trim() || "Planned expense (auto debit)";
       const occurredAt = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-      const [{ error: txErr }, { error: expErr }] = await Promise.all([
-        supabase.from("account_transactions").insert({
-          profile_id: bill.profile_id,
-          account_id: accountId,
-          type: "expense",
-          amount: -Math.abs(billAmount),
-          description,
-          occurred_at: occurredAt,
-          bill_payment_id: payment.id,
-        }),
-        supabase.from("expense_entries").insert({
-          profile_id: bill.profile_id,
-          category_id: bill.category_id as string,
-          amount: billAmount,
-          note: description,
-          account_id: accountId,
-          bill_payment_id: payment.id,
-        }),
-      ]);
+      const { error: txErr } = await supabase.from("account_transactions").insert({
+        profile_id: bill.profile_id,
+        account_id: accountId,
+        type: "auto_pay",
+        amount: -Math.abs(billAmount),
+        description,
+        occurred_at: occurredAt,
+        bill_payment_id: payment.id,
+      });
 
-      if (txErr || expErr) {
+      if (txErr) {
         // Roll back the payment so the bill can be retried next day
         await supabase.from("bill_payments").delete().eq("id", payment.id);
-        errors.push(`Bill ${bill.id}: side-effect insert failed — ${txErr?.message ?? expErr?.message}`);
+        errors.push(`Bill ${bill.id}: side-effect insert failed — ${txErr.message}`);
         continue;
       }
     }

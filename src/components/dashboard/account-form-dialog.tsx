@@ -40,6 +40,7 @@ export type AccountFormState = {
   interest_frequency: InterestFrequency | "";
   interest_rate: string;
   maintaining_balance: string;
+  credit_limit: string;
   include_in_net_balance: boolean;
   currency: string;
 };
@@ -85,6 +86,7 @@ export const INTEREST_FREQUENCY_OPTIONS: Array<{ value: InterestFrequency; label
 
 export const ACCOUNT_TAG_PRESETS = [
   "Cash",
+  "Credit Card",
   "Payroll",
   "Savings",
   "Bills",
@@ -127,6 +129,7 @@ const EMPTY_FORM: AccountFormState = {
   interest_frequency: "",
   interest_rate: "",
   maintaining_balance: "",
+  credit_limit: "",
   include_in_net_balance: true,
   currency: "PHP",
 };
@@ -142,6 +145,7 @@ export function accountToForm(acc: AccountRow): AccountFormState {
     interest_frequency: acc.interest_frequency ?? "",
     interest_rate: acc.interest_rate != null ? String(acc.interest_rate) : "",
     maintaining_balance: acc.maintaining_balance != null ? String(acc.maintaining_balance) : "",
+    credit_limit: acc.credit_limit != null ? String(acc.credit_limit) : "",
     include_in_net_balance: acc.include_in_net_balance,
     currency: acc.currency ?? "PHP",
   };
@@ -149,20 +153,23 @@ export function accountToForm(acc: AccountRow): AccountFormState {
 
 /** Adapt the dialog's local form state into the shape `createAccount` / `updateAccount` expect. */
 export function accountFormToInput(form: AccountFormState) {
+  const isCredit = form.account_type === "credit";
   const starting = Number(form.starting_balance);
   const rate = form.interest_rate.trim() !== "" ? Number(form.interest_rate) : null;
   const maintaining = form.maintaining_balance.trim() !== "" ? Number(form.maintaining_balance) : null;
+  const creditLimit = form.credit_limit.trim() !== "" ? Number(form.credit_limit) : null;
   return {
     account_alias: form.account_alias,
     bank_name: form.bank_name,
     tags: form.tags,
     color: form.color,
     account_type: form.account_type,
-    starting_balance: Number.isFinite(starting) ? starting : 0,
+    starting_balance: isCredit ? 0 : Number.isFinite(starting) ? starting : 0,
     interest_frequency: form.interest_frequency === "" ? null : form.interest_frequency,
     interest_rate: rate != null && Number.isFinite(rate) ? rate : null,
-    maintaining_balance: maintaining != null && Number.isFinite(maintaining) ? maintaining : null,
-    include_in_net_balance: form.include_in_net_balance,
+    maintaining_balance: isCredit ? null : maintaining != null && Number.isFinite(maintaining) ? maintaining : null,
+    credit_limit: isCredit ? (creditLimit != null && Number.isFinite(creditLimit) ? creditLimit : null) : null,
+    include_in_net_balance: isCredit ? false : form.include_in_net_balance,
     currency: form.currency || "PHP",
   };
 }
@@ -210,6 +217,7 @@ export function AccountFormDialog({
     setCustomTag("");
   }
 
+  const isCredit = form.account_type === "credit";
   const isValid = form.account_alias.trim() && form.bank_name.trim();
 
   return (
@@ -354,37 +362,57 @@ export function AccountFormDialog({
             </div>
           </div>
 
-          {/* Row 3: Starting Balance | Maintaining Balance */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* Row 3: Starting Balance | Maintaining Balance (debit-style) — OR — Credit Limit (credit) */}
+          {isCredit ? (
             <div className="space-y-1.5">
-              <Label htmlFor="acc-starting-balance">Starting Balance</Label>
+              <Label htmlFor="acc-credit-limit">Credit Limit</Label>
               <Input
-                id="acc-starting-balance"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                placeholder="0.00"
-                value={form.starting_balance}
-                onChange={(e) => setForm((p) => ({ ...p, starting_balance: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-maintaining-balance">
-                Maintaining Balance
-              </Label>
-              <Input
-                id="acc-maintaining-balance"
+                id="acc-credit-limit"
                 type="number"
                 inputMode="decimal"
                 step="0.01"
                 min="0"
-                placeholder="Optional min. balance"
-                value={form.maintaining_balance}
-                onChange={(e) => setForm((p) => ({ ...p, maintaining_balance: e.target.value }))}
+                placeholder="e.g. 50000.00"
+                value={form.credit_limit}
+                onChange={(e) => setForm((p) => ({ ...p, credit_limit: e.target.value }))}
               />
+              <p className="text-[11px] text-muted-foreground">
+                Credit accounts aren&apos;t counted in Net Balance.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="acc-starting-balance">Starting Balance</Label>
+                <Input
+                  id="acc-starting-balance"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={form.starting_balance}
+                  onChange={(e) => setForm((p) => ({ ...p, starting_balance: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="acc-maintaining-balance">
+                  Maintaining Balance
+                </Label>
+                <Input
+                  id="acc-maintaining-balance"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="0"
+                  placeholder="Optional min. balance"
+                  value={form.maintaining_balance}
+                  onChange={(e) => setForm((p) => ({ ...p, maintaining_balance: e.target.value }))}
+                />
+              </div>
+            </div>
+          )}
 
+          {!isCredit && (
           <div className="grid gap-3 sm:grid-cols-2">
 
             <div className="space-y-1.5">
@@ -427,22 +455,25 @@ export function AccountFormDialog({
               />
             </div>
           </div>
+          )}
 
-          <div className="flex items-start justify-between gap-3 rounded-md border px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <Label htmlFor="acc-include-net" className="cursor-pointer text-sm">
-                Include in Net Balance
-              </Label>
-              <p className="text-[11px] text-muted-foreground">
-                Counts this account toward the Net Balance summary and the 7-day chart on /dashboard/accounts.
-              </p>
+          {!isCredit && (
+            <div className="flex items-start justify-between gap-3 rounded-md border px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="acc-include-net" className="cursor-pointer text-sm">
+                  Include in Net Balance
+                </Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Counts this account toward the Net Balance summary and the 7-day chart on /dashboard/accounts.
+                </p>
+              </div>
+              <ToggleSwitch
+                id="acc-include-net"
+                checked={form.include_in_net_balance}
+                onCheckedChange={(v) => setForm((p) => ({ ...p, include_in_net_balance: v }))}
+              />
             </div>
-            <ToggleSwitch
-              id="acc-include-net"
-              checked={form.include_in_net_balance}
-              onCheckedChange={(v) => setForm((p) => ({ ...p, include_in_net_balance: v }))}
-            />
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label>Tags</Label>

@@ -517,7 +517,7 @@ export function AccountsBoard() {
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {includedCount} of {accounts.length} {accounts.length === 1 ? "account" : "accounts"} included
+              Excluding untracked accounts
             </p>
           </div>
         </div>

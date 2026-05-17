@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export type AccountTransactionType = "expense" | "income" | "adjustment" | "transfer" | "fee";
+export type AccountTransactionType = "expense" | "income" | "adjustment" | "transfer" | "fee" | "auto_pay";
 
 export type AccountTransactionRow = {
   id: string;

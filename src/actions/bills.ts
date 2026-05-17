@@ -492,28 +492,18 @@ export async function markBillPaid(
     if (updErr) return { error: updErr.message };
 
     if (accountId) {
-      // The linked account_transaction and expense_entry should reflect the new
-      // absolute amount. The bill_payment_id FK with ON DELETE CASCADE means
-      // each bill_payment has at most one of each linked row.
-      const [{ error: txErr }, { error: expErr }] = await Promise.all([
-        supabase
-          .from("account_transactions")
-          .update({ amount: -Math.abs(newAmount), description, occurred_at: occurredAt })
-          .eq("bill_payment_id", existing.id)
-          .eq("profile_id", profile.id),
-        supabase
-          .from("expense_entries")
-          .update({ amount: newAmount, note: description })
-          .eq("bill_payment_id", existing.id)
-          .eq("profile_id", profile.id),
-      ]);
-      if (txErr || expErr) {
-        // Roll the row back so the user can retry cleanly.
+      // Keep the linked account_transaction in sync with the new absolute amount.
+      const { error: txErr } = await supabase
+        .from("account_transactions")
+        .update({ amount: -Math.abs(newAmount), description, occurred_at: occurredAt })
+        .eq("bill_payment_id", existing.id)
+        .eq("profile_id", profile.id);
+      if (txErr) {
         await supabase
           .from("bill_payments")
           .update({ amount_paid: previousAmount })
           .eq("id", existing.id);
-        return { error: txErr?.message ?? expErr?.message ?? "could_not_update_payment" };
+        return { error: txErr.message };
       }
     }
 
@@ -537,29 +527,19 @@ export async function markBillPaid(
   if (payErr || !payment) return { error: payErr?.message ?? "could_not_mark_paid" };
 
   if (accountId) {
-    const [{ error: txErr }, { error: expErr }] = await Promise.all([
-      supabase.from("account_transactions").insert({
-        profile_id: profile.id,
-        account_id: accountId,
-        type: "expense",
-        amount: -Math.abs(newAmount),
-        description,
-        occurred_at: occurredAt,
-        bill_payment_id: payment.id,
-      }),
-      supabase.from("expense_entries").insert({
-        profile_id: profile.id,
-        category_id: bill.category_id as string,
-        amount: newAmount,
-        note: description,
-        account_id: accountId,
-        bill_payment_id: payment.id,
-      }),
-    ]);
+    const { error: txErr } = await supabase.from("account_transactions").insert({
+      profile_id: profile.id,
+      account_id: accountId,
+      type: "expense",
+      amount: -Math.abs(newAmount),
+      description,
+      occurred_at: occurredAt,
+      bill_payment_id: payment.id,
+    });
 
-    if (txErr || expErr) {
+    if (txErr) {
       await supabase.from("bill_payments").delete().eq("id", payment.id);
-      return { error: txErr?.message ?? expErr?.message ?? "could_not_record_payment" };
+      return { error: txErr.message };
     }
   }
 
@@ -569,7 +549,7 @@ export async function markBillPaid(
   return { paid: true, amountPaid: newAmount };
 }
 
-/** Remove a payment row (and its linked account_transaction / expense_entry via cascade). */
+/** Remove a payment row (and its linked account_transaction via cascade). */
 export async function unmarkBillPaid(
   billId: string,
   paidMonth: string,
@@ -597,7 +577,7 @@ export async function unmarkBillPaid(
 
   if (!existing) return { paid: false, amountPaid: 0 };
 
-  // Cascading FK on bill_payment_id removes the linked account_transaction and expense_entry.
+  // Cascading FK on bill_payment_id removes the linked account_transaction.
   await supabase.from("bill_payments").delete().eq("id", existing.id);
   revalidatePath("/dashboard/planned-expenses");
   revalidatePath("/dashboard/accounts");
