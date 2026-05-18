@@ -134,6 +134,7 @@ export async function requestPasswordReset(formData: FormData) {
 export async function updateProfile(params: {
   fullName: string;
   phone: string;
+  birthMonth?: number | null;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -146,6 +147,7 @@ export async function updateProfile(params: {
     data: {
       full_name: params.fullName.trim() || undefined,
       phone: newPhone || undefined,
+      birth_month: params.birthMonth ?? null,
     },
   });
 

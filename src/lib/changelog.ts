@@ -14,7 +14,7 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.6.0",
+    version: "1.5.11",
     date: "2026-05-17",
     summary: "Calculators are now a public route — usable without signing in, indexed for search, and still shown inside the dashboard shell for logged-in users.",
     changes: [

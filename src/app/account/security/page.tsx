@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
-import { Check } from "lucide-react";
+import { ContentHeader } from "@/components/app/content-header";
+import { Check, Loader2, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PW_RULES = [
@@ -37,8 +38,11 @@ export default function ProfileSecurityPage() {
   const router = useRouter();
   const { user, loading } = useUser();
   const { showError, showSuccess } = useSnackbar();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -46,9 +50,20 @@ export default function ProfileSecurityPage() {
 
   const score = passwordScore(password);
   const isStrong = score >= 4;
+  const hasEmailPassword = (user?.identities ?? []).some((i) => i.provider === "email");
+  const currentPasswordFilled = currentPassword.length > 0;
+  const newPasswordEnabled = !hasEmailPassword || currentPasswordFilled;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!user?.email) {
+      showError("Missing account email.");
+      return;
+    }
+    if (hasEmailPassword && !currentPasswordFilled) {
+      showError("Please enter your current password.");
+      return;
+    }
     if (!isStrong) {
       showError("Please meet all password requirements.");
       return;
@@ -57,14 +72,46 @@ export default function ProfileSecurityPage() {
       showError("Passwords do not match.");
       return;
     }
+    setSubmitting(true);
     const supabase = createClient();
+    if (hasEmailPassword) {
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyError) {
+        setSubmitting(false);
+        showError("Current password is incorrect.");
+        return;
+      }
+    }
     const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setSubmitting(false);
+      showError(error.message);
+      return;
+    }
+    setSubmitting(false);
+    showSuccess(hasEmailPassword ? "Password updated." : "Password set. You can now sign in with email and password.");
+    router.push("/account/profile");
+  }
+
+  async function handleRequestReset() {
+    if (!user?.email) {
+      showError("Missing account email.");
+      return;
+    }
+    setSendingReset(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
     if (error) {
       showError(error.message);
       return;
     }
-    showSuccess("Password updated.");
-    router.push("/account/profile");
+    showSuccess(`Password reset link sent to ${user.email}.`);
   }
 
   if (loading || !user) {
@@ -77,15 +124,63 @@ export default function ProfileSecurityPage() {
 
   return (
     <main className="w-full min-w-0 py-2">
-      <Card className="border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Security</CardTitle>
-          <CardDescription>Change your password.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <ContentHeader
+        title="Security"
+        subtitle="Change your password."
+        icon={Shield}
+        className="mb-6"
+      />
+      <Card>
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
+            {hasEmailPassword ? (
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current password</Label>
+                <Input
+                  id="current-password"
+                  name="current-password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="Enter your current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRequestReset}
+                    disabled={sendingReset}
+                  >
+                    {sendingReset ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                        Sending…
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="mr-2 h-4 w-4" aria-hidden />
+                        Forgot password? Email me a reset link
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+                You signed in with Google and don&apos;t have a password yet. Set one below to also sign in with email and password.
+              </div>
+            )}
+            <div
+              className={cn(
+                "space-y-2 transition-opacity",
+                newPasswordEnabled ? "opacity-100" : "pointer-events-none opacity-50"
+              )}
+              aria-disabled={!newPasswordEnabled}
+            >
+              <Label htmlFor="password">{hasEmailPassword ? "New password" : "Password"}</Label>
               <Input
                 id="password"
                 name="password"
@@ -94,6 +189,7 @@ export default function ProfileSecurityPage() {
                 minLength={8}
                 autoComplete="new-password"
                 placeholder="At least 8 characters"
+                disabled={!newPasswordEnabled}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -163,8 +259,14 @@ export default function ProfileSecurityPage() {
                 })}
               </ul>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm new password</Label>
+            <div
+              className={cn(
+                "space-y-2 transition-opacity",
+                newPasswordEnabled ? "opacity-100" : "pointer-events-none opacity-50"
+              )}
+              aria-disabled={!newPasswordEnabled}
+            >
+              <Label htmlFor="confirm">{hasEmailPassword ? "Confirm new password" : "Confirm password"}</Label>
               <Input
                 id="confirm"
                 name="confirm"
@@ -173,12 +275,22 @@ export default function ProfileSecurityPage() {
                 minLength={8}
                 autoComplete="new-password"
                 placeholder="Repeat password"
+                disabled={!newPasswordEnabled}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
               />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={!isStrong}>Change Password</Button>
+              <Button type="submit" disabled={!isStrong || !newPasswordEnabled || submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                    {hasEmailPassword ? "Updating…" : "Saving…"}
+                  </>
+                ) : (
+                  hasEmailPassword ? "Change Password" : "Set Password"
+                )}
+              </Button>
               <Button variant="outline" asChild>
                 <Link href="/account/profile">Cancel</Link>
               </Button>

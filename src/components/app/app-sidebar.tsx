@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Calculator,
   ShoppingCart,
-  SlidersHorizontal,
   Banknote,
   ClipboardList,
   Gem,
@@ -50,7 +49,6 @@ const navItems = [
   { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
   { href: "/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
-  { href: "/account/settings", label: "Settings", icon: SlidersHorizontal, premium: false },
 ] as const;
 
 export function AppSidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {

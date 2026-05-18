@@ -18,7 +18,7 @@ import {
 import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, UsersRound, Lock, Settings2 } from "lucide-react";
+import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, Lock, Settings2 } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-admin";
 
 export function getAccountDisplayName(user: {
@@ -176,9 +176,9 @@ export function AccountDropdownMenu({
             Subscription
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="min-h-9 px-2.5 text-sm [&_svg]:size-4">
-            <Link href="/account/shared" className="flex cursor-pointer items-center gap-2.5">
-              <UsersRound className="h-4 w-4 shrink-0" aria-hidden />
-              Shared with me
+            <Link href="/account/settings" className="flex cursor-pointer items-center gap-2.5">
+              <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
+              Settings
             </Link>
           </DropdownMenuItem>
           {isAdmin && (

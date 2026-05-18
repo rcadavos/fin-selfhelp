@@ -7,11 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUser } from "@/hooks/use-user";
 import { updateProfile } from "@/actions/auth";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ProfileAvatarUploader } from "@/components/account/profile-avatar-uploader";
-import { Loader2 } from "lucide-react";
+import { Gift, Loader2 } from "lucide-react";
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 function getNameFromMeta(meta: Record<string, unknown> | undefined): string {
   const name = meta?.full_name;
@@ -34,6 +40,7 @@ export default function ProfilePage() {
   const { showError, showSuccess } = useSnackbar();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [birthMonth, setBirthMonth] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -44,13 +51,15 @@ export default function ProfilePage() {
     if (!user) return;
     setFullName(getNameFromMeta(user.user_metadata));
     setPhone(getPhoneForForm(user));
+    const bm = user.user_metadata?.birth_month;
+    setBirthMonth(typeof bm === "number" ? bm : null);
   }, [user]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const { error } = await updateProfile({ fullName, phone });
+    const { error } = await updateProfile({ fullName, phone, birthMonth });
     if (error) {
       setSaving(false);
       showError(error);
@@ -109,6 +118,31 @@ export default function ProfilePage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="birth_month">Birth Month</Label>
+              <Select
+                value={birthMonth !== null ? String(birthMonth) : ""}
+                onValueChange={(v) => setBirthMonth(v ? Number(v) : null)}
+              >
+                <SelectTrigger id="birth_month" className="w-full">
+                  <SelectValue placeholder="Select your birth month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((name, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm text-primary">
+                <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>
+                  <strong>Birthday perk:</strong> You get <strong>Pro for free</strong> during your birth month every year.
+                  Set your birth month to unlock this automatically.
+                </span>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button type="submit" disabled={saving}>

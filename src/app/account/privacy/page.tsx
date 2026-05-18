@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { ContentHeader } from "@/components/app/content-header";
 import { updatePrivacySettings, deleteSelfAccount } from "@/actions/auth";
-import { ArrowUpRight, Download, Loader2 } from "lucide-react";
+import { ArrowUpRight, Download, Loader2, Lock } from "lucide-react";
 
 export default function PrivacyPage() {
   const router = useRouter();
@@ -86,15 +87,12 @@ export default function PrivacyPage() {
 
   return (
     <main className="w-full min-w-0 py-2 space-y-4">
-      {/* Header */}
-      <Card className="shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle>Privacy</CardTitle>
-          <CardDescription>
-            Control who can see your information and how your data is used.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <ContentHeader
+        title="Privacy"
+        subtitle="Control who can see your information and how your data is used."
+        icon={Lock}
+        className="mb-6"
+      />
 
       {/* Profile visibility */}
       <Card className="shadow-none">
@@ -111,7 +109,7 @@ export default function PrivacyPage() {
                 Show my profile to members
               </Label>
               <p className="text-xs text-muted-foreground leading-snug">
-                When enabled, other members in your subdivision can see your name and avatar. Admins can always see your profile.
+                When enabled, members may be able to see your profile name and avatar on your blog posts.
               </p>
             </div>
             <ToggleSwitch
