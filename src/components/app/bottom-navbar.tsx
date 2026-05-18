@@ -24,8 +24,8 @@ export function BottomNavbar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0.5rem)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 flex min-h-16 items-stretch border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       {bottomNavItems.map(({ href, label, icon: Icon, exact, excludes }) => {
         const isActive =
@@ -36,7 +36,7 @@ export function BottomNavbar() {
             key={href}
             href={href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 transition-colors",
+              "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
               isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
