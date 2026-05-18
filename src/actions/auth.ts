@@ -142,16 +142,27 @@ export async function updateProfile(params: {
 
   const prevPhone = (user.user_metadata?.phone as string | undefined)?.trim() ?? user.phone ?? "";
   const newPhone = params.phone.trim();
+  const birthMonth =
+    typeof params.birthMonth === "number" && params.birthMonth >= 1 && params.birthMonth <= 12
+      ? params.birthMonth
+      : null;
 
   const { error } = await supabase.auth.updateUser({
     data: {
       full_name: params.fullName.trim() || undefined,
       phone: newPhone || undefined,
-      birth_month: params.birthMonth ?? null,
+      birth_month: birthMonth,
     },
   });
 
   if (error) return { error: error.message };
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ birth_month: birthMonth, updated_at: new Date().toISOString() })
+    .eq("user_id", user.id);
+
+  if (profileError) return { error: profileError.message };
 
   if (newPhone && newPhone !== prevPhone && user.email) {
     const name = (user.user_metadata?.full_name as string | undefined) ?? params.fullName;
