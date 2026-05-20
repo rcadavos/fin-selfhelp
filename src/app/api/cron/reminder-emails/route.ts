@@ -4,6 +4,7 @@ import { sendReminderEmail } from "@/lib/email";
 import { getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
+import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 type ProfileRow = {
   id: string;
@@ -114,8 +115,20 @@ export async function GET(request: Request) {
         toDoRows = (todoData ?? []) as ToDoTargetRow[];
       }
 
-      const [[{ data: billsRaw }, authUserResult], lockRow] = await Promise.all([
-        Promise.all([billsQuery, authUserPromise]),
+      const candidatePaidMonths: string[] = [];
+      for (let i = -1; i <= 1; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        candidatePaidMonths.push(getCurrentPaidMonth(d));
+      }
+
+      const paidPaymentsPromise = supabase
+        .from("bill_payments")
+        .select("bill_id, paid_month")
+        .eq("profile_id", profile.id)
+        .in("paid_month", candidatePaidMonths);
+
+      const [[{ data: billsRaw }, authUserResult, { data: paidRows }], lockRow] = await Promise.all([
+        Promise.all([billsQuery, authUserPromise, paidPaymentsPromise]),
         hasProAccess
           ? Promise.resolve(null)
           : supabase
@@ -125,6 +138,10 @@ export async function GET(request: Request) {
               .like("dedupe_key", "bill:%")
               .limit(1),
       ]);
+
+      const paidBillMonths = new Set(
+        (paidRows ?? []).map((r) => `${String(r.bill_id)}:${String(r.paid_month)}`)
+      );
 
       const toEmail = authUserResult.data.user?.email?.trim();
       if (!toEmail) continue;
@@ -153,6 +170,8 @@ export async function GET(request: Request) {
         const channel = bill.reminder_channel || "both";
 
         for (const dueThisMonth of candidates) {
+          const dueYm = getCurrentPaidMonth(dueThisMonth);
+          if (paidBillMonths.has(`${bill.id}:${dueYm}`)) continue;
           for (const reminderDay of bill.reminder_days_before) {
             if (reminderDay < 0 || reminderDay > 5) continue;
             const reminderDate = addDays(dueThisMonth, -reminderDay);
