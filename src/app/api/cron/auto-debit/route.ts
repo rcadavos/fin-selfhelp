@@ -62,10 +62,39 @@ export async function GET(request: Request) {
   }
 
   let marked = 0;
+  let markedFailed = 0;
   let skippedAlreadyPaid = 0;
   let skippedNotDueToday = 0;
-  let skippedInsufficientBalance = 0;
   const errors: string[] = [];
+
+  /**
+   * Record a failure for this bill+month. Uses the (bill_id, paid_month) unique
+   * index so retries replace the previous failed row. When the retry later
+   * succeeds, the same row is overwritten with status='paid'.
+   */
+  async function recordFailure(
+    bill: { id: string; profile_id: string },
+    reason: string,
+  ) {
+    const { error } = await supabase
+      .from("bill_payments")
+      .upsert(
+        {
+          bill_id: bill.id,
+          profile_id: bill.profile_id,
+          paid_month: paidMonth,
+          amount_paid: 0,
+          status: "failed",
+          failure_reason: reason,
+        },
+        { onConflict: "bill_id,paid_month" },
+      );
+    if (error) {
+      errors.push(`Bill ${bill.id}: failed to record failure — ${error.message}`);
+      return;
+    }
+    markedFailed++;
+  }
 
   for (const bill of bills ?? []) {
     const due = effectiveDueDate(
@@ -83,16 +112,18 @@ export async function GET(request: Request) {
       continue;
     }
 
-    // Skip if already paid for this month
+    // Skip if already paid for this month. A 'failed' row from an earlier
+    // attempt does NOT block the retry — it will be overwritten on success
+    // or replaced with a fresh failure reason via the same upsert key.
     const { data: existing } = await supabase
       .from("bill_payments")
-      .select("id")
+      .select("id, status")
       .eq("bill_id", bill.id)
       .eq("profile_id", bill.profile_id)
       .eq("paid_month", paidMonth)
       .maybeSingle();
 
-    if (existing) {
+    if (existing && existing.status === "paid") {
       skippedAlreadyPaid++;
       continue;
     }
@@ -105,7 +136,7 @@ export async function GET(request: Request) {
       const [{ data: account }, { data: txRows }] = await Promise.all([
         supabase
           .from("accounts")
-          .select("starting_balance")
+          .select("starting_balance, account_alias")
           .eq("id", accountId)
           .eq("profile_id", bill.profile_id)
           .maybeSingle(),
@@ -117,7 +148,7 @@ export async function GET(request: Request) {
       ]);
 
       if (!account) {
-        errors.push(`Bill ${bill.id}: account not found`);
+        await recordFailure(bill, "Linked account not found");
         continue;
       }
 
@@ -126,25 +157,35 @@ export async function GET(request: Request) {
         (txRows ?? []).reduce((s: number, r: { amount: unknown }) => s + Number(r.amount), 0);
 
       if (balance < billAmount) {
-        skippedInsufficientBalance++;
+        const alias = (account.account_alias as string | null) ?? "Linked account";
+        await recordFailure(
+          bill,
+          `Insufficient balance — ${alias} has ${balance.toFixed(2)}, needs ${billAmount.toFixed(2)}`,
+        );
         continue;
       }
     }
 
-    // Insert bill_payment — auto-debit always records a full payment.
+    // Upsert bill_payment — auto-debit always records a full payment.
+    // Upsert (not insert) so a prior failed row for this month is replaced.
     const { data: payment, error: payErr } = await supabase
       .from("bill_payments")
-      .insert({
-        bill_id: bill.id,
-        profile_id: bill.profile_id,
-        paid_month: paidMonth,
-        amount_paid: billAmount,
-      })
+      .upsert(
+        {
+          bill_id: bill.id,
+          profile_id: bill.profile_id,
+          paid_month: paidMonth,
+          amount_paid: billAmount,
+          status: "paid",
+          failure_reason: null,
+        },
+        { onConflict: "bill_id,paid_month" },
+      )
       .select("id")
       .single();
 
     if (payErr || !payment) {
-      errors.push(`Bill ${bill.id}: ${payErr?.message ?? "insert failed"}`);
+      await recordFailure(bill, payErr?.message ?? "Payment insert failed");
       continue;
     }
 
@@ -164,9 +205,11 @@ export async function GET(request: Request) {
       });
 
       if (txErr) {
-        // Roll back the payment so the bill can be retried next day
-        await supabase.from("bill_payments").delete().eq("id", payment.id);
-        errors.push(`Bill ${bill.id}: side-effect insert failed — ${txErr.message}`);
+        // Side-effect failed — mark the bill as failed so the UI reflects it
+        // and tomorrow's run can retry. Overwriting with status='failed'
+        // via upsert is fine because the FK on account_transactions.bill_payment_id
+        // is ON DELETE cascade and we never created one here.
+        await recordFailure(bill, `Account transaction failed — ${txErr.message}`);
         continue;
       }
     }
@@ -178,9 +221,9 @@ export async function GET(request: Request) {
     ok: true,
     date: todayYmd,
     marked,
+    markedFailed,
     skippedAlreadyPaid,
     skippedNotDueToday,
-    skippedInsufficientBalance,
     errors: errors.length ? errors : undefined,
   });
 }

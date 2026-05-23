@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
+  AlertTriangle,
   Bell,
   Car,
   CheckCircle2,
@@ -261,6 +262,8 @@ function BillRow({
   bill,
   isPaid,
   isPartial,
+  isFailed,
+  failureReason,
   amountPaid,
   isOverdue,
   isUpcoming,
@@ -282,6 +285,10 @@ function BillRow({
   isPaid: boolean;
   /** True if 0 < amountPaid < bill.amount. */
   isPartial: boolean;
+  /** True if the auto-debit attempt for this month did not go through. */
+  isFailed: boolean;
+  /** Failure reason text from the failed bill_payments row, if any. */
+  failureReason: string | null;
   /** Amount actually paid this month for this bill (0 if no payment row). */
   amountPaid: number;
   isOverdue: boolean;
@@ -325,11 +332,13 @@ function BillRow({
           ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-400/60 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/50"
           : isPartial
             ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
-            : isOverdue
-              ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
-              : isUpcoming
-                ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
-                : "border-border bg-card hover:bg-muted/40",
+            : isFailed
+              ? "border-red-400 bg-red-50/80 hover:bg-red-50 dark:border-red-600/60 dark:bg-red-950/30 dark:hover:bg-red-950/40"
+              : isOverdue
+                ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+                : isUpcoming
+                  ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+                  : "border-border bg-card hover:bg-muted/40",
       )}
     >
       {/* Info */}
@@ -373,6 +382,14 @@ function BillRow({
               title={`${formatCurrency(amountPaid, currency)} of ${formatCurrency(bill.amount, currency)}`}
             >
               {formatCurrency(amountPaid, currency)} / {formatCurrency(bill.amount, currency)}
+            </span>
+          ) : isFailed ? (
+            <span
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-red-500/70 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
+              title={failureReason ?? "Auto-debit did not go through."}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              Failed
             </span>
           ) : isOverdue ? (
             <span className="shrink-0 rounded-full border border-red-400/60 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
@@ -693,6 +710,11 @@ export function BillsBoard() {
   const currency = prefsQuery.data?.currency ?? DEFAULT_USER_PREFERENCES.currency;
   const bills = billsDataQuery.data?.bills ?? [];
   const paidIds = useMemo(() => new Set(billsDataQuery.data?.paidBillIds ?? []), [billsDataQuery.data?.paidBillIds]);
+  const failedIds = useMemo(
+    () => new Set(billsDataQuery.data?.failedBillIds ?? []),
+    [billsDataQuery.data?.failedBillIds],
+  );
+  const failureReasonByBillId = billsDataQuery.data?.failureReasonByBillId ?? {};
   const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
@@ -715,12 +737,13 @@ export function BillsBoard() {
       const amountPaid = paymentAmountByBillId[bill.id] ?? 0;
       const isFullyPaid = amountPaid > 0 && amountPaid >= bill.amount;
       const isPartial = amountPaid > 0 && !isFullyPaid;
-      if (isFullyPaid) return 4;
-      if (isPartial) return 3;
+      if (isFullyPaid) return 5;
+      if (isPartial) return 4;
+      if (failedIds.has(bill.id)) return 0; // failed auto-debit floats to the top
       const eff = effectiveBillDueDate(bill, today, paidMonth);
-      if (eff && eff < today) return 0; // overdue
-      if (eff && eff > today) return 2; // upcoming
-      return 1; // unpaid (due today or no due date)
+      if (eff && eff < today) return 1; // overdue
+      if (eff && eff > today) return 3; // upcoming
+      return 2; // unpaid (due today or no due date)
     }
 
     function dueTime(bill: BillRow): number {
@@ -732,7 +755,7 @@ export function BillsBoard() {
       if (rankDiff !== 0) return rankDiff;
       return dueTime(a) - dueTime(b);
     });
-  }, [filteredBills, paymentAmountByBillId, paidMonth]);
+  }, [filteredBills, paymentAmountByBillId, paidMonth, failedIds]);
 
   // Summary — reactive to active tab. paidAmt sums actual amount_paid so a
   // partial payment reduces "Remaining" by its real value, not the full bill amount.
@@ -762,7 +785,8 @@ export function BillsBoard() {
     const snapshot = queryClient.getQueryData(queryKey);
 
     // Optimistic flip — keep paidBillIds and paymentAmountByBillId in sync
-    // so the stat cards reflect the change immediately.
+    // so the stat cards reflect the change immediately. Marking paid also
+    // clears any 'failed' marker for this month.
     queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
       if (!old) return old;
       const wasPaid = old.paidBillIds.includes(billId);
@@ -776,10 +800,14 @@ export function BillsBoard() {
           paymentAmountByBillId: nextAmounts,
         };
       }
+      const nextReasons = { ...old.failureReasonByBillId };
+      delete nextReasons[billId];
       return {
         ...old,
         paidBillIds: [...old.paidBillIds, billId],
         paymentAmountByBillId: { ...old.paymentAmountByBillId, [billId]: billAmount },
+        failedBillIds: old.failedBillIds.filter((id) => id !== billId),
+        failureReasonByBillId: nextReasons,
       };
     });
 
@@ -1095,14 +1123,17 @@ export function BillsBoard() {
               const isFullyPaid = amountPaid >= bill.amount && amountPaid > 0;
               const isPartial = amountPaid > 0 && amountPaid < bill.amount;
               const hasAnyPayment = amountPaid > 0;
-              const isOverdue = !hasAnyPayment && !!eff && eff < today;
-              const isUpcoming = !hasAnyPayment && !!eff && eff > today;
+              const isFailed = !hasAnyPayment && failedIds.has(bill.id);
+              const isOverdue = !hasAnyPayment && !isFailed && !!eff && eff < today;
+              const isUpcoming = !hasAnyPayment && !isFailed && !!eff && eff > today;
               return (
                 <BillRow
                   key={bill.id}
                   bill={bill}
                   isPaid={isFullyPaid}
                   isPartial={isPartial}
+                  isFailed={isFailed}
+                  failureReason={isFailed ? (failureReasonByBillId[bill.id] ?? null) : null}
                   amountPaid={amountPaid}
                   isOverdue={isOverdue}
                   isUpcoming={isUpcoming}

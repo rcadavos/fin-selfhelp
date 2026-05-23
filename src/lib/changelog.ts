@@ -14,6 +14,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.12",
+    date: "2026-05-23",
+    summary: "Failed auto-debits are now tracked as a first-class status on planned expenses, with daily retries until paid.",
+    changes: [
+      { type: "feature", description: "When an auto-debit doesn't go through (insufficient balance, missing linked account, or insert failure), the planned expense now shows a red Failed badge for the month, with the reason on hover." },
+      { type: "feature", description: "Failed auto-debits retry automatically on each daily cron run until the bill is paid or the month rolls over — no need to manually re-trigger." },
+      { type: "improvement", description: "Planned expense detail page shows a Failed callout with the specific reason and surfaces failed attempts in the payment history." },
+      { type: "improvement", description: "Marking a failed bill as paid (via the list dropdown or the detail page) now replaces the failure with a real payment and creates the linked account transaction." },
+      { type: "improvement", description: "Failed planned expenses sort to the top of the list so they're easy to spot and resolve." },
+    ],
+  },
+  {
     version: "1.5.11",
     date: "2026-05-17",
     summary: "Calculators are now a public route — usable without signing in, indexed for search, and still shown inside the dashboard shell for logged-in users.",

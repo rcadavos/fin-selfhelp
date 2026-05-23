@@ -93,14 +93,19 @@ export type BillRow = {
 export type BillsData = {
   bills: BillRow[];
   paidMonth: string;
-  /** Bill IDs with any payment row for this month (full or partial). */
+  /** Bill IDs with a paid payment row for this month (full or partial). Excludes failed rows. */
   paidBillIds: string[];
   /**
-   * For every bill with a payment row this month, the actual amount_paid.
+   * For every bill with a paid payment row this month, the actual amount_paid.
    * Use this (rather than bill.amount) to compute "Planned paid" totals so
    * partial payments are reflected accurately. Missing key => no payment.
+   * Failed rows are not present here (amount_paid is always 0 for them).
    */
   paymentAmountByBillId: Record<string, number>;
+  /** Bill IDs whose auto-debit failed for this month and has not yet been resolved. */
+  failedBillIds: string[];
+  /** Failure reason text by bill id for the current month. */
+  failureReasonByBillId: Record<string, string>;
   netTakeHome: number;
   isSubscriber: boolean;
   subscriptionTier: SubscriptionTierId;
@@ -141,7 +146,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       .order("created_at", { ascending: true }),
     supabase
       .from("bill_payments")
-      .select("bill_id, amount_paid")
+      .select("bill_id, amount_paid, status, failure_reason")
       .eq("profile_id", profile.id)
       .eq("paid_month", month),
     supabase
@@ -219,9 +224,21 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       updated_at: row.updated_at,
     })),
     paidMonth: month,
-    paidBillIds: (paymentRows ?? []).map((r) => r.bill_id as string),
+    paidBillIds: (paymentRows ?? [])
+      .filter((r) => (r.status ?? "paid") === "paid")
+      .map((r) => r.bill_id as string),
     paymentAmountByBillId: Object.fromEntries(
-      (paymentRows ?? []).map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+      (paymentRows ?? [])
+        .filter((r) => (r.status ?? "paid") === "paid")
+        .map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+    ),
+    failedBillIds: (paymentRows ?? [])
+      .filter((r) => r.status === "failed")
+      .map((r) => r.bill_id as string),
+    failureReasonByBillId: Object.fromEntries(
+      (paymentRows ?? [])
+        .filter((r) => r.status === "failed")
+        .map((r) => [String(r.bill_id), String(r.failure_reason ?? "Auto-debit did not go through.")]),
     ),
     netTakeHome,
     isSubscriber: hasProAccess,
@@ -275,10 +292,12 @@ export async function loadSharedBillsData(
       .order("created_at", { ascending: true }),
     supabase
       .from("bill_payments")
-      .select("bill_id, amount_paid")
+      .select("bill_id, amount_paid, status")
       .eq("profile_id", grantorProfile.id)
       .eq("paid_month", month),
   ]);
+
+  const paidRows = (paymentRows ?? []).filter((r) => (r.status ?? "paid") === "paid");
 
   return {
     bills: (billsRaw ?? []).map((row) => ({
@@ -302,9 +321,9 @@ export async function loadSharedBillsData(
       updated_at: row.updated_at,
     })),
     paidMonth: month,
-    paidBillIds: (paymentRows ?? []).map((r) => r.bill_id as string),
+    paidBillIds: paidRows.map((r) => r.bill_id as string),
     paymentAmountByBillId: Object.fromEntries(
-      (paymentRows ?? []).map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+      paidRows.map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
     ),
     grantorUserId,
   };
@@ -342,13 +361,16 @@ export async function granteeSharedToggleBillPayment(
 
   const { data: existing } = await srClient
     .from("bill_payments")
-    .select("id")
+    .select("id, status")
     .eq("bill_id", billId)
     .eq("profile_id", grantorProfile.id)
     .eq("paid_month", paidMonth)
     .maybeSingle();
 
-  if (existing) {
+  // Only a 'paid' row counts as paid for the toggle. A 'failed' row falls
+  // through to the mark-paid path so the grantee can resolve a failed
+  // auto-debit on the grantor's behalf.
+  if (existing && (existing.status ?? "paid") === "paid") {
     await srClient.from("bill_payments").delete().eq("id", existing.id);
     revalidatePath(`/account/shared/${grantorUserId}/expenses`);
     return { paid: false };
@@ -366,12 +388,17 @@ export async function granteeSharedToggleBillPayment(
 
   const { error } = await srClient
     .from("bill_payments")
-    .insert({
-      bill_id: billId,
-      profile_id: grantorProfile.id,
-      paid_month: paidMonth,
-      amount_paid: Number(bill.amount),
-    });
+    .upsert(
+      {
+        bill_id: billId,
+        profile_id: grantorProfile.id,
+        paid_month: paidMonth,
+        amount_paid: Number(bill.amount),
+        status: "paid",
+        failure_reason: null,
+      },
+      { onConflict: "bill_id,paid_month" },
+    );
 
   if (error) return { error: error.message };
   revalidatePath(`/account/shared/${grantorUserId}/expenses`);
@@ -459,13 +486,18 @@ export async function markBillPaid(
 
   const { data: existing } = await supabase
     .from("bill_payments")
-    .select("id, amount_paid")
+    .select("id, amount_paid, status")
     .eq("bill_id", billId)
     .eq("profile_id", profile.id)
     .eq("paid_month", paidMonth)
     .maybeSingle();
 
-  const previousAmount = existing ? Number(existing.amount_paid) : 0;
+  // A 'failed' row holds amount_paid=0 and represents a tried-but-not-paid
+  // auto-debit. For paid-flow math it behaves like no row: the full newAmount
+  // is debited and the row's status flips to 'paid'.
+  const previousStatus = (existing?.status as string | undefined) ?? "paid";
+  const previousAmount =
+    existing && previousStatus === "paid" ? Number(existing.amount_paid) : 0;
   const delta = newAmount - previousAmount;
 
   // Insufficient-funds guard: only when balance actually needs to go down (delta > 0).
@@ -484,26 +516,48 @@ export async function markBillPaid(
   const occurredAt = new Date().toISOString();
 
   if (existing) {
-    // UPDATE path: adjust the row + linked side-rows.
+    // UPDATE path: adjust the row + linked side-rows. Also clears any
+    // 'failed' status carried over from a prior auto-debit attempt.
     const { error: updErr } = await supabase
       .from("bill_payments")
-      .update({ amount_paid: newAmount })
+      .update({ amount_paid: newAmount, status: "paid", failure_reason: null })
       .eq("id", existing.id);
     if (updErr) return { error: updErr.message };
 
     if (accountId) {
-      // Keep the linked account_transaction in sync with the new absolute amount.
-      const { error: txErr } = await supabase
-        .from("account_transactions")
-        .update({ amount: -Math.abs(newAmount), description, occurred_at: occurredAt })
-        .eq("bill_payment_id", existing.id)
-        .eq("profile_id", profile.id);
-      if (txErr) {
-        await supabase
-          .from("bill_payments")
-          .update({ amount_paid: previousAmount })
-          .eq("id", existing.id);
-        return { error: txErr.message };
+      if (previousStatus === "failed") {
+        // No prior account_transaction exists for a failed row — insert a
+        // fresh one rather than updating.
+        const { error: txErr } = await supabase.from("account_transactions").insert({
+          profile_id: profile.id,
+          account_id: accountId,
+          type: "expense",
+          amount: -Math.abs(newAmount),
+          description,
+          occurred_at: occurredAt,
+          bill_payment_id: existing.id,
+        });
+        if (txErr) {
+          await supabase
+            .from("bill_payments")
+            .update({ amount_paid: 0, status: "failed" })
+            .eq("id", existing.id);
+          return { error: txErr.message };
+        }
+      } else {
+        // Keep the linked account_transaction in sync with the new absolute amount.
+        const { error: txErr } = await supabase
+          .from("account_transactions")
+          .update({ amount: -Math.abs(newAmount), description, occurred_at: occurredAt })
+          .eq("bill_payment_id", existing.id)
+          .eq("profile_id", profile.id);
+        if (txErr) {
+          await supabase
+            .from("bill_payments")
+            .update({ amount_paid: previousAmount })
+            .eq("id", existing.id);
+          return { error: txErr.message };
+        }
       }
     }
 
@@ -609,13 +663,17 @@ export async function toggleBillPayment(
 
   const { data: existing } = await supabase
     .from("bill_payments")
-    .select("id")
+    .select("id, status")
     .eq("bill_id", billId)
     .eq("profile_id", profile.id)
     .eq("paid_month", paidMonth)
     .maybeSingle();
 
-  if (existing) return unmarkBillPaid(billId, paidMonth);
+  // 'failed' rows count as not-paid for the toggle — clicking Mark Paid
+  // should pay the bill (and replace the failure), not just clear it.
+  if (existing && (existing.status ?? "paid") === "paid") {
+    return unmarkBillPaid(billId, paidMonth);
+  }
   return markBillPaid(billId, paidMonth);
 }
 
@@ -865,8 +923,12 @@ export type BillPaymentHistoryRow = {
   id: string;
   paid_month: string;
   paid_at: string;
-  /** Amount paid this month (from bill_payments.amount_paid). May be less than bill.amount for partial payments. */
+  /** Amount paid this month (from bill_payments.amount_paid). May be less than bill.amount for partial payments. 0 for failed rows. */
   amount: number;
+  /** 'paid' for real payments, 'failed' for auto-debit attempts that did not go through. */
+  status: "paid" | "failed";
+  /** Reason text when status='failed'. */
+  failure_reason?: string | null;
   /** Human label of the linked account at time of payment, if any. */
   account_alias?: string | null;
   account_color?: string | null;
@@ -887,7 +949,7 @@ export async function loadBillPaymentsHistory(billId: string): Promise<{ history
 
   const { data: payments } = await supabase
     .from("bill_payments")
-    .select("id, paid_month, paid_at, amount_paid")
+    .select("id, paid_month, paid_at, amount_paid, status, failure_reason")
     .eq("bill_id", billId)
     .eq("profile_id", profile.id)
     .order("paid_month", { ascending: false });
@@ -916,11 +978,14 @@ export async function loadBillPaymentsHistory(billId: string): Promise<{ history
   return {
     history: paymentRows.map((p) => {
       const acct = acctByPaymentId.get(String(p.id));
+      const status = (p.status as string | null) === "failed" ? "failed" : "paid";
       return {
         id: String(p.id),
         paid_month: String(p.paid_month),
         paid_at: String(p.paid_at),
         amount: Number(p.amount_paid ?? 0),
+        status,
+        failure_reason: status === "failed" ? (p.failure_reason as string | null) ?? null : null,
         account_alias: acct?.account_alias ?? null,
         account_color: acct?.color ?? null,
       };
