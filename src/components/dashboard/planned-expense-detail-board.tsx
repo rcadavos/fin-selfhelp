@@ -324,10 +324,10 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     </span>
   ) : isFailedThisMonth ? (
     <span
-      className="inline-flex items-center gap-1 rounded-full border border-red-500/70 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
+      className="inline-flex rounded-full border border-red-500/70 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
       title={failureReasonThisMonth ?? "Auto-debit did not go through."}
     >
-      <AlertTriangle className="h-3 w-3" /> Failed
+      Failed
     </span>
   ) : isOverdue ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-red-400/60 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
@@ -542,28 +542,17 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         ) : (
           <ul className="space-y-2">
             {history.map((entry) => {
-              const isFailedEntry = entry.status === "failed";
               const paidAmount = entry.amount ?? bill.amount;
-              const isPartialMonth = !isFailedEntry && paidAmount > 0 && paidAmount < bill.amount;
+              const isPartialMonth = paidAmount > 0 && paidAmount < bill.amount;
               return (
                 <li
                   key={entry.id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border px-4 py-3",
-                    isFailedEntry
-                      ? "border-red-500/40 bg-red-50/60 dark:border-red-700/50 dark:bg-red-950/20"
-                      : "bg-card",
-                  )}
+                  className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
-                      {isFailedEntry ? (
-                        <span className="inline-flex items-center gap-0.5 rounded-full border border-red-500/70 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200">
-                          <AlertTriangle className="h-2.5 w-2.5" />
-                          Failed
-                        </span>
-                      ) : isPartialMonth ? (
+                      {isPartialMonth ? (
                         <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                           Partial
                         </span>
@@ -572,7 +561,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
                           Paid in full
                         </span>
                       )}
-                      {!isFailedEntry && entry.account_alias && (
+                      {entry.account_alias && (
                         <span
                           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                           style={{
@@ -585,39 +574,27 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {isFailedEntry
-                        ? entry.failure_reason ?? "Auto-debit did not go through."
-                        : `Paid on ${formatPaidAt(entry.paid_at)}`}
+                      Paid on {formatPaidAt(entry.paid_at)}
                     </p>
                   </div>
-                  {!isFailedEntry && (
-                    <div className="flex flex-shrink-0 flex-col items-end">
-                      <p className="text-sm font-semibold tabular-nums">
-                        {formatCurrency(paidAmount)}
+                  <div className="flex flex-shrink-0 flex-col items-end">
+                    <p className="text-sm font-semibold tabular-nums">
+                      {formatCurrency(paidAmount)}
+                    </p>
+                    {isPartialMonth && (
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                        of {formatCurrency(bill.amount)}
                       </p>
-                      {isPartialMonth && (
-                        <p className="text-[10px] text-muted-foreground tabular-nums">
-                          of {formatCurrency(bill.amount)}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
                     onClick={() => handleUnmarkMonth(entry.paid_month)}
                     disabled={isPending}
-                    aria-label={
-                      isFailedEntry
-                        ? `Clear failed entry for ${formatPaidMonthLabel(entry.paid_month)}`
-                        : `Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`
-                    }
-                    title={
-                      isFailedEntry
-                        ? `Clear failed entry for ${formatPaidMonthLabel(entry.paid_month)}`
-                        : `Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`
-                    }
+                    aria-label={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
+                    title={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

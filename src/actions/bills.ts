@@ -952,6 +952,7 @@ export async function loadBillPaymentsHistory(billId: string): Promise<{ history
     .select("id, paid_month, paid_at, amount_paid, status, failure_reason")
     .eq("bill_id", billId)
     .eq("profile_id", profile.id)
+    .eq("status", "paid")
     .order("paid_month", { ascending: false });
 
   const paymentRows = payments ?? [];

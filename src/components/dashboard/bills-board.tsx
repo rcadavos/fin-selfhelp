@@ -12,7 +12,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  AlertTriangle,
   Bell,
   Car,
   CheckCircle2,
@@ -385,10 +384,9 @@ function BillRow({
             </span>
           ) : isFailed ? (
             <span
-              className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-red-500/70 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
+              className="shrink-0 rounded-full border border-red-500/70 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
               title={failureReason ?? "Auto-debit did not go through."}
             >
-              <AlertTriangle className="h-2.5 w-2.5" />
               Failed
             </span>
           ) : isOverdue ? (
