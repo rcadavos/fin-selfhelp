@@ -31,6 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import {
   Select,
   SelectContent,
@@ -49,7 +50,7 @@ import {
   VEHICLE_CHART_COLORS,
 } from "@/lib/query/vehicles";
 import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
-import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
+import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import Link from "next/link";
 import {
   addVehicle,
@@ -249,8 +250,7 @@ export function VehicleDialog({
   const isValid = form.name.trim() && form.type;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex flex-col overflow-hidden p-0 max-w-[min(32rem,calc(100vw-2rem))] max-h-[90dvh]">
+    <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6">
           <DialogTitle>{editingId ? "Edit Vehicle" : "Add Vehicle"}</DialogTitle>
         </DialogHeader>
@@ -385,8 +385,7 @@ export function VehicleDialog({
             </Button>
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }
 
@@ -836,8 +835,8 @@ export function VehiclesBoard() {
         </DialogContent>
       </Dialog>
 
-      {/* Quick add transport expense — reuses shared dialog with full Account dropdown */}
-      <AddExpenseDialog
+      {/* Quick add transport expense */}
+      <AddEntryPanel
         open={qeOpen}
         onClose={() => setQeOpen(false)}
         initialCategory="transport"

@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import {
   Select,
   SelectContent,
@@ -109,8 +108,7 @@ export function AccountTransactionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent aria-describedby={undefined} className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={open} onOpenChange={(v) => !v && handleClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>{copy.title}</DialogTitle>
           <p className="text-xs text-muted-foreground">{copy.help}</p>
@@ -246,8 +244,7 @@ export function AccountTransactionDialog({
             </Button>
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }
 
@@ -300,8 +297,7 @@ export function AccountTransferDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent aria-describedby={undefined} className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={open} onOpenChange={(v) => !v && handleClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>Transfer</DialogTitle>
           <p className="text-xs text-muted-foreground">
@@ -388,8 +384,7 @@ export function AccountTransferDialog({
             </Button>
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }
 

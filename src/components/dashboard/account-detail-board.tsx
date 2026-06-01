@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { BackLink } from "@/components/app/back-link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,22 +24,13 @@ import {
   accountFormToInput,
   type AccountFormState,
 } from "@/components/dashboard/account-form-dialog";
-import {
-  AccountTransactionDialog,
-  AccountTransferDialog,
-  type SimpleEntryMode,
-} from "@/components/dashboard/account-transaction-dialog";
-import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
+import { AddEntryPanel, type EntryTab } from "@/components/dashboard/add-entry-panel";
 import {
   updateAccount,
   deleteAccount,
   type AccountRow,
 } from "@/actions/accounts";
 import {
-  createAccountAdjustment,
-  createAccountFee,
-  createAccountIncome,
-  createAccountTransfer,
   deleteAccountTransaction,
   type AccountTransactionRow,
 } from "@/actions/account-transactions";
@@ -49,7 +40,6 @@ import {
 } from "@/lib/query/account-transactions";
 import {
   accountsQueryOptions,
-  accountBalancesQueryOptions,
   invalidateAccountQueries,
 } from "@/lib/query/accounts";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -79,7 +69,6 @@ function txMeta(
       ? { label: "Transfer in", iconClass: "text-sky-600 dark:text-sky-400", sign: 1 }
       : { label: "Transfer out", iconClass: "text-sky-600 dark:text-sky-400", sign: -1 };
   }
-  // adjustment
   return tx.amount >= 0
     ? { label: "Adjustment", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 }
     : { label: "Adjustment", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
@@ -91,18 +80,13 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   const [isPending, startTransition] = useTransition();
 
   const [account, setAccount] = useState<AccountRow>(initialAccount);
-  const [activeMode, setActiveMode] = useState<SimpleEntryMode | null>(null);
-  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
+  const [addEntryTab, setAddEntryTab] = useState<EntryTab | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [txError, setTxError] = useState<string | null>(null);
 
   const { data: txData = { balance: 0, transactions: [] } } = useQuery(accountTransactionsQueryOptions(account.id));
-  const { data: allAccounts = [] } = useQuery(accountsQueryOptions());
-  const { data: balances = {} } = useQuery(accountBalancesQueryOptions());
 
   const animatedBalance = useAnimatedNumber(txData.balance);
 
@@ -119,7 +103,6 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     });
   }
 
-  // Pre-compute balance before/after each transaction (transactions are newest-first).
   const txBalances = useMemo(() => {
     let running = 0;
     return txData.transactions.map((tx) => {
@@ -129,7 +112,6 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     });
   }, [txData]);
 
-  // Group transactions by calendar date for the history view (order preserved, newest-first).
   const txGroups = useMemo(() => {
     const groups: Array<{ date: string; entries: Array<{ tx: AccountTransactionRow; idx: number }> }> = [];
     txData.transactions.forEach((tx, idx) => {
@@ -144,70 +126,13 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     return groups;
   }, [txData.transactions]);
 
-  const otherAccounts = useMemo(
-    () => allAccounts
-      .filter((a: AccountRow) => a.id !== account.id)
-      .map((a: AccountRow) => ({ ...a, balance: balances[a.id] ?? 0 })),
-    [allAccounts, account.id, balances],
-  );
-
-  const invalidateTx = useCallback(() => {
-    invalidateAccountTransactions(queryClient, account.id);
-    invalidateAccountQueries(queryClient);
-  }, [queryClient, account.id]);
-
-  function handleSimpleSave({ amount, description, direction, date, accountId }: { amount: number; description: string; direction: 1 | -1; date: string; accountId: string }) {
-    if (!activeMode) return;
-    setTxError(null);
-    startTransition(async () => {
-      const res =
-        activeMode === "income"
-          ? await createAccountIncome({ accountId: accountId || account.id, amount, description, occurredAt: date })
-          : await createAccountAdjustment({
-            accountId: account.id,
-            amount: direction === 1 ? amount : -amount,
-            description,
-          });
-      if (res.error) {
-        setTxError(res.error);
-        return;
-      }
-      setActiveMode(null);
-      invalidateTx();
-    });
-  }
-
-  function handleTransferSave({ toAccountId, amount, description, fee }: { toAccountId: string; amount: number; description: string; fee: number }) {
-    setTxError(null);
-    startTransition(async () => {
-      const res = await createAccountTransfer({
-        fromAccountId: account.id,
-        toAccountId,
-        amount,
-        description,
-      });
-      if (res.error) {
-        setTxError(res.error);
-        return;
-      }
-      if (fee > 0) {
-        await createAccountFee({
-          accountId: account.id,
-          amount: fee,
-          description: description ? `Transfer fee — ${description}` : "Transfer fee",
-        });
-      }
-      setTransferOpen(false);
-      invalidateTx();
-    });
-  }
-
   function handleDeleteTransaction() {
     if (!deletingTxId) return;
     startTransition(async () => {
       await deleteAccountTransaction(deletingTxId);
       setDeletingTxId(null);
-      invalidateTx();
+      invalidateAccountTransactions(queryClient, account.id);
+      invalidateAccountQueries(queryClient);
     });
   }
 
@@ -304,19 +229,19 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
         {/* Action buttons */}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setAddExpenseOpen(true); }}>
+          <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("expense")}>
             <ArrowDownCircle className="h-4 w-4 text-rose-500" />
             Add Expense
           </Button>
-          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("income"); }}>
+          <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("income")}>
             <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
             Add Income
           </Button>
-          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setActiveMode("adjustment"); }}>
+          <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("adjustment")}>
             <Edit className="h-4 w-4 text-amber-500" />
             Adjustment
           </Button>
-          <Button variant="outline" className="gap-1.5" onClick={() => { setTxError(null); setTransferOpen(true); }}>
+          <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("transfer")}>
             <ArrowLeftRight className="h-4 w-4 text-sky-500" />
             Transfer
           </Button>
@@ -394,37 +319,12 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
         )}
       </div>
 
-      {/* Add Expense dialog (expenses module) */}
-      <AddExpenseDialog
-        open={addExpenseOpen}
-        onClose={() => setAddExpenseOpen(false)}
-        initialAccountId={account.id}
-      />
-
-      {/* Income / Adjustment dialog */}
-      {activeMode && (
-        <AccountTransactionDialog
-          open
-          mode={activeMode}
-          currentBalance={txData.balance}
-          accounts={allAccounts}
-          defaultAccountId={account.id}
-          onClose={() => setActiveMode(null)}
-          onSave={handleSimpleSave}
-          isPending={isPending}
-          error={txError}
-        />
-      )}
-
-      {/* Transfer dialog */}
-      <AccountTransferDialog
-        open={transferOpen}
-        fromAccountId={account.id}
-        otherAccounts={otherAccounts}
-        onClose={() => setTransferOpen(false)}
-        onSave={handleTransferSave}
-        isPending={isPending}
-        error={txError}
+      {/* Unified add entry panel */}
+      <AddEntryPanel
+        open={addEntryTab !== null}
+        onClose={() => setAddEntryTab(null)}
+        initialTab={addEntryTab ?? "expense"}
+        accountId={account.id}
       />
 
       {/* Edit account dialog */}

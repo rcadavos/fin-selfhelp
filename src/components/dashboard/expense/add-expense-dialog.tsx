@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import {
   Select,
   SelectContent,
@@ -23,8 +22,6 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { AccountSelect } from "@/components/app/account-select";
-import { ReceiptScannerButton } from "@/components/dashboard/expense/receipt-scanner-button";
-import type { ParsedReceipt } from "@/lib/utils/parse-receipt";
 import { addExpense } from "@/actions/budget";
 import { createAccountExpense } from "@/actions/account-transactions";
 import { categoriesQueryOptions } from "@/lib/query/categories";
@@ -89,12 +86,6 @@ export function AddExpenseDialog({
     }
   }, [open, initialAccountId, initialCategory, initialVehicleId]);
 
-  function handleScanExtract(parsed: ParsedReceipt) {
-    if (parsed.merchant) setName(parsed.merchant);
-    if (parsed.amount !== undefined) setAmount(String(parsed.amount));
-    if (parsed.date) setDate(parsed.date);
-  }
-
   const parsedAmt = parseFloat(amount);
   const selectedBalance = accountId ? (balances[accountId] ?? 0) : null;
   const insufficientBalance =
@@ -155,16 +146,13 @@ export function AddExpenseDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent aria-describedby={undefined} className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ScrollFadeBody className="space-y-4 px-6 pb-4">
-
-            <ReceiptScannerButton onExtract={handleScanExtract} />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
@@ -317,7 +305,6 @@ export function AddExpenseDialog({
             </div>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }

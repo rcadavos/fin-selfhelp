@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ContentHeader } from "@/components/app/content-header";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
@@ -205,8 +206,7 @@ function ReceivableDialog({
   const inviteEmailValid = inviteEmail.trim().includes("@") && inviteEmail.trim() !== (userEmail ?? "");
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>{editingId ? "Edit Receivable" : "Add Receivable"}</DialogTitle>
           {editingId && initial && (
@@ -429,8 +429,7 @@ function ReceivableDialog({
             </div>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }
 

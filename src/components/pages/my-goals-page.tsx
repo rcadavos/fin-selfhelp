@@ -14,13 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -902,11 +901,7 @@ export function MyGoalsPage() {
       )}
 
       {/* ── Goal add / edit dialog ── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] max-w-[min(28rem,calc(100vw-2rem))]"
-          showClose
-        >
+      <FormPanel open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
             <DialogTitle>{editingId ? "Edit Goal" : "Add Goal"}</DialogTitle>
             <DialogDescription>
@@ -1179,22 +1174,18 @@ export function MyGoalsPage() {
               </div>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
+      </FormPanel>
 
       {/* ── Add deposit dialog ── */}
-      <Dialog open={depositDialogOpen} onOpenChange={setDepositDialogOpen}>
-        <DialogContent
-          className="max-w-[min(24rem,calc(100vw-2rem))]"
-          showClose
-        >
-          <DialogHeader>
-            <DialogTitle>Add Deposit</DialogTitle>
-            <DialogDescription className="truncate text-sm">
-              {depositTargetName}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleDepositSubmit} className="space-y-4">
+      <FormPanel open={depositDialogOpen} onOpenChange={setDepositDialogOpen}>
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
+          <DialogTitle>Add Deposit</DialogTitle>
+          <DialogDescription className="truncate text-sm">
+            {depositTargetName}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleDepositSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ScrollFadeBody className="space-y-4 px-6 pb-4">
             <div className="space-y-2">
               <Label htmlFor="deposit-amount">
                 Amount <span className="text-destructive">*</span>
@@ -1239,24 +1230,24 @@ export function MyGoalsPage() {
                 className="h-9"
               />
             </div>
-            <DialogFooter className="pt-2">
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setDepositDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" disabled={depositSaving}>
-                  {depositSaving ? "Saving…" : "Add Deposit"}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </ScrollFadeBody>
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+            <div className="flex w-full gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setDepositDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1" disabled={depositSaving}>
+                {depositSaving ? "Saving…" : "Add Deposit"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </FormPanel>
     </div>
   );
 }

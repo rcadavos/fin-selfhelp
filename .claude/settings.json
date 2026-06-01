@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(git show *)",
+      "Bash(cd \"c:\\\\Work\\\\MyProjects\\\\fin-selfhelp\" && cp /tmp/bills_ours.txt src/components/dashboard/bills-board.tsx && echo \"done\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

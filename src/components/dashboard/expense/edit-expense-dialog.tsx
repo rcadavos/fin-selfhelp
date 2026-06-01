@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import {
   Select,
   SelectContent,
@@ -122,8 +121,7 @@ export function EditExpenseDialog({
   }
 
   return (
-    <Dialog open={!!entry} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent aria-describedby={undefined} className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={!!entry} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
           <DialogTitle>Edit Expense</DialogTitle>
         </DialogHeader>
@@ -277,7 +275,6 @@ export function EditExpenseDialog({
             </div>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }

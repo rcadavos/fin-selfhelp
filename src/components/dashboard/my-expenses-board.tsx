@@ -57,7 +57,7 @@ import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { ContentHeader } from "../app/content-header";
-import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
+import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { EditExpenseDialog } from "@/components/dashboard/expense/edit-expense-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
@@ -662,7 +662,7 @@ export function MyExpensesBoard() {
 
       </div>
 
-      <AddExpenseDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddEntryPanel open={addOpen} onClose={() => setAddOpen(false)} />
       <EditExpenseDialog entry={editingEntry} onClose={() => setEditingEntry(null)} onDelete={handleDelete} />
 
       {/* Delete confirm */}

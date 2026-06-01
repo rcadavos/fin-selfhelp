@@ -8,12 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormPanel } from "@/components/app/form-panel";
 import {
   Select,
   SelectContent,
@@ -221,8 +220,7 @@ export function AccountFormDialog({
   const isValid = form.account_alias.trim() && form.bank_name.trim();
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="flex flex-col overflow-hidden p-0 max-h-[min(90dvh,calc(100dvh-2rem))] sm:max-w-md">
+    <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6">
           <DialogTitle>{initial ? "Edit Account" : "Add Account"}</DialogTitle>
         </DialogHeader>
@@ -555,7 +553,6 @@ export function AccountFormDialog({
             </Button>
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormPanel>
   );
 }

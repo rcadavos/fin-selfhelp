@@ -38,7 +38,7 @@ import {
   vehicleLinkedBillsQueryOptions,
 } from "@/lib/query/vehicles";
 import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
-import { AddExpenseDialog } from "@/components/dashboard/expense/add-expense-dialog";
+import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { BackLink } from "@/components/app/back-link";
 import {
   VehicleDialog,
@@ -408,7 +408,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
       </Dialog>
 
       {/* Add Expense */}
-      <AddExpenseDialog
+      <AddEntryPanel
         open={addExpenseOpen}
         onClose={() => setAddExpenseOpen(false)}
         initialCategory="transport"
