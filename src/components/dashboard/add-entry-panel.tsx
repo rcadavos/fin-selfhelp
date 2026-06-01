@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import type { AccountTransactionRow } from "@/actions/account-transactions";
@@ -87,6 +87,7 @@ export function AddEntryPanel({
 
   const [tab, setTab] = useState<EntryTab>(initialTab);
   const { showError } = useSnackbar();
+  const amountRef = useRef<HTMLInputElement>(null);
 
   // ── Shared account (carried across all tabs) ─────────────────────────────
   const [sharedAccountId, setSharedAccountId] = useState(accountId ?? "");
@@ -119,6 +120,12 @@ export function AddEntryPanel({
   const [txAmount, setTxAmount] = useState("");
   const [txFee, setTxFee] = useState("");
   const [txDescription, setTxDescription] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => amountRef.current?.focus(), 350);
+    return () => clearTimeout(t);
+  }, [open, tab]);
 
   useEffect(() => {
     if (!open) return;
@@ -309,7 +316,7 @@ export function AddEntryPanel({
                 <input
                   id="ae-amount" type="number" min="0.01" step="any"
                   value={expAmount} onChange={(e) => setExpAmount(e.target.value)}
-                  placeholder="₱0.00" autoFocus
+                  placeholder="₱0.00" ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
@@ -411,7 +418,7 @@ export function AddEntryPanel({
                 <input
                   id="inc-amount" type="number" min="0.01" step="any"
                   value={incAmount} onChange={(e) => setIncAmount(e.target.value)}
-                  placeholder="₱0.00" autoFocus
+                  placeholder="₱0.00" ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
@@ -448,7 +455,7 @@ export function AddEntryPanel({
                   id="adj-balance" type="number" inputMode="decimal" step="0.01"
                   placeholder={adjCurrentBalance.toFixed(2)}
                   value={adjNewBalance} onChange={(e) => setAdjNewBalance(e.target.value)}
-                  autoFocus
+                  ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -492,7 +499,7 @@ export function AddEntryPanel({
                 <input
                   id="tx-amount" type="number" inputMode="decimal" step="0.01" min="0"
                   placeholder="₱0.00" value={txAmount} onChange={(e) => setTxAmount(e.target.value)}
-                  autoFocus
+                  ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
