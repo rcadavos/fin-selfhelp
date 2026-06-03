@@ -7,9 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Calculator,
-  ShoppingCart,
   Banknote,
-  ClipboardList,
+  Bell,
   Gem,
   Target,
   Receipt,
@@ -45,8 +44,7 @@ const navItems = [
   { href: "/dashboard/receivables", label: "Receivables", icon: HandCoins, premium: false },
   { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
-  { href: "/dashboard/to-buy", label: "To-Buy", icon: ShoppingCart, premium: false },
-  { href: "/dashboard/to-do", label: "To-Do", icon: ClipboardList, premium: false },
+  { href: "/dashboard/to-do", label: "Reminders", icon: Bell, premium: false },
   { href: "/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
 ] as const;

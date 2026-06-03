@@ -11,12 +11,18 @@ export type ToBuyItem = {
 };
 
 export type ToBuyCategory =
+  | "meeting"
+  | "pantry"
+  | "errand"
+  | "personal"
+  | "work"
+  | "health"
+  | "other"
+  // Legacy To-Buy categories (kept for backward compatibility)
   | "grocery"
   | "household"
   | "electronics"
-  | "clothing"
-  | "health"
-  | "other";
+  | "clothing";
 
 export const TO_BUY_CATEGORIES: { value: ToBuyCategory; label: string }[] = [
   { value: "grocery", label: "Grocery" },
@@ -24,6 +30,16 @@ export const TO_BUY_CATEGORIES: { value: ToBuyCategory; label: string }[] = [
   { value: "electronics", label: "Electronics" },
   { value: "clothing", label: "Clothing" },
   { value: "health", label: "Health & Personal Care" },
+  { value: "other", label: "Other" },
+];
+
+export const REMINDER_CATEGORIES: { value: ToBuyCategory; label: string }[] = [
+  { value: "meeting", label: "Meeting" },
+  { value: "pantry", label: "Pantry Items" },
+  { value: "errand", label: "Errand" },
+  { value: "personal", label: "Personal" },
+  { value: "work", label: "Work" },
+  { value: "health", label: "Health" },
   { value: "other", label: "Other" },
 ];
 
@@ -99,5 +115,9 @@ export function generateToBuyItemId(): string {
 }
 
 export function getCategoryLabel(key: ToBuyCategory): string {
-  return TO_BUY_CATEGORIES.find((c) => c.value === key)?.label ?? key;
+  return (
+    REMINDER_CATEGORIES.find((c) => c.value === key)?.label ??
+    TO_BUY_CATEGORIES.find((c) => c.value === key)?.label ??
+    "Other"
+  );
 }

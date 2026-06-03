@@ -14,6 +14,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.13",
+    date: "2026-06-03",
+    summary: "To-Do List is now Reminders with category tagging per item.",
+    changes: [
+      { type: "feature", description: "Renamed 'To-Do List' to 'Reminders' with a new Bell icon across the sidebar and page." },
+      { type: "feature", description: "Each reminder item can now be tagged with a category: Meeting, Pantry Items, Errand, Personal, Work, Health, or Other." },
+      { type: "improvement", description: "Removed the separate To-Buy page from the sidebar — the /dashboard/to-buy URL now redirects to Reminders." },
+      { type: "improvement", description: "New reminder items default to the Personal category instead of Grocery." },
+    ],
+  },
+  {
     version: "1.5.12",
     date: "2026-05-23",
     summary: "Failed auto-debits are now tracked as a first-class status on planned expenses, with daily retries until paid.",

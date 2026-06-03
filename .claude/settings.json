@@ -3,7 +3,8 @@
     "allow": [
       "Bash(echo \"exit=$?\")",
       "Bash(git show *)",
-      "Bash(cd \"c:\\\\Work\\\\MyProjects\\\\fin-selfhelp\" && cp /tmp/bills_ours.txt src/components/dashboard/bills-board.tsx && echo \"done\")"
+      "Bash(cd \"c:\\\\Work\\\\MyProjects\\\\fin-selfhelp\" && cp /tmp/bills_ours.txt src/components/dashboard/bills-board.tsx && echo \"done\")",
+      "Bash(Get-ChildItem \"c:\\\\Work\\\\MyProjects\\\\fin-selfhelp\\\\src\\\\app\" -Filter \"*to-do*\" -Recurse)"
     ],
     "additionalDirectories": [
       "\\tmp"

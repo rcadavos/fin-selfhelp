@@ -13,8 +13,17 @@ import {
   saveToDoItems,
   clearToDoLocalStorage,
   generateToBuyItemId,
+  REMINDER_CATEGORIES,
   type ToBuyItem,
+  type ToBuyCategory,
 } from "@/lib/to-buy-storage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { replaceMyToBuyOnServer } from "@/actions/to-buy-db";
 import { replaceMyToDoOnServer } from "@/actions/to-do-db";
 import { queryKeys } from "@/lib/query/keys";
@@ -31,10 +40,35 @@ import { HoverPopover } from "@/components/ui/hover-popover";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { parseYmdToLocalDate } from "@/components/ui/date-picker";
 import { formatYmdLocal } from "@/lib/expense-due-date";
-import { Trash2, Check, ShoppingCart, ClipboardList, CalendarDays, Lock } from "lucide-react";
+import { Trash2, Check, ShoppingCart, Bell, CalendarDays, Lock } from "lucide-react";
 import { FREE_TIER_MAX_LIST_ITEMS } from "@/lib/subscription-tier";
 
 export type ToBuyListMode = "buy" | "do";
+
+function CategorySelect({
+  value,
+  onChange,
+}: {
+  value: ToBuyCategory;
+  onChange: (cat: ToBuyCategory) => void;
+}) {
+  const known = REMINDER_CATEGORIES.find((c) => c.value === value);
+  const label = known?.label ?? "Other";
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as ToBuyCategory)}>
+      <SelectTrigger className="h-6 w-auto min-w-[4rem] max-w-[8rem] rounded-full border border-border/60 bg-muted px-2 py-0 text-[10px] font-medium text-muted-foreground shadow-none focus:ring-0 focus:ring-offset-0 [&>svg]:h-3 [&>svg]:w-3">
+        <SelectValue>{label}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {REMINDER_CATEGORIES.map((cat) => (
+          <SelectItem key={cat.value} value={cat.value} className="text-xs">
+            {cat.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function orderItemsLikeNotes(list: ToBuyItem[]): ToBuyItem[] {
   const open = list.filter((i) => !i.checked);
@@ -212,9 +246,9 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       getLocal: getToDoItems,
       saveLocal: saveToDoItems,
       clearLocal: clearToDoLocalStorage,
-      title: "To-Do List",
-      subtitle: "Check tasks off when they are done, then delete to remove them. You can also add its target date to keep track of when you want to get them done.",
-      ListIcon: ClipboardList,
+      title: "Reminders",
+      subtitle: "Add your reminders and tasks. Check them off when done, assign a category to stay organized, and set a target date to track when things need to happen.",
+      ListIcon: Bell,
     } as const;
   }, [mode]);
 
@@ -269,7 +303,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       name,
       quantity: 1,
       estimatedPrice: "",
-      category: "grocery",
+      category: mode === "do" ? "personal" : "grocery",
       checked: false,
       createdAt: new Date().toISOString(),
     };
@@ -297,6 +331,10 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   function commitTargetDate(id: string, targetDate: string) {
     const normalized = targetDate.trim() ? targetDate.trim() : null;
     persist(items.map((it) => (it.id === id ? { ...it, targetDate: normalized } : it)));
+  }
+
+  function commitCategory(id: string, category: ToBuyCategory) {
+    persist(items.map((it) => (it.id === id ? { ...it, category } : it)));
   }
 
   if (loading || !user || listQuery.isPending) {
@@ -350,6 +388,12 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
                     item={item}
                     onCommit={commitName}
                   />
+                  {mode === "do" && !item.checked ? (
+                    <CategorySelect
+                      value={item.category}
+                      onChange={(cat) => commitCategory(item.id, cat)}
+                    />
+                  ) : null}
                   {mode === "do" && (!item.checked || item.targetDate) ? (
                     <TargetDatePickerIcon
                       value={item.targetDate}

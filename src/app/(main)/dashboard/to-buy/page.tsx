@@ -1,5 +1,5 @@
-import { ToBuyListPage } from "@/components/pages/to-buy-list-page";
+import { redirect } from "next/navigation";
 
 export default function ToBuyPage() {
-  return <ToBuyListPage mode="buy" />;
+  redirect("/dashboard/to-do");
 }
