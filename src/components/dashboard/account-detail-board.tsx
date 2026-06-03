@@ -103,18 +103,26 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
     });
   }
 
+  // Sort newest date first, then newest created_at first within each date.
+  const sortedTxs = useMemo(() => (
+    [...txData.transactions].sort((a, b) => {
+      const dateDiff = b.occurred_at.slice(0, 10).localeCompare(a.occurred_at.slice(0, 10));
+      return dateDiff !== 0 ? dateDiff : b.created_at.localeCompare(a.created_at);
+    })
+  ), [txData.transactions]);
+
   const txBalances = useMemo(() => {
     let running = 0;
-    return txData.transactions.map((tx) => {
+    return sortedTxs.map((tx) => {
       const after = txData.balance - running;
       running += tx.amount;
       return { before: after - tx.amount, after };
     });
-  }, [txData]);
+  }, [sortedTxs, txData.balance]);
 
   const txGroups = useMemo(() => {
     const groups: Array<{ date: string; entries: Array<{ tx: AccountTransactionRow; idx: number }> }> = [];
-    txData.transactions.forEach((tx, idx) => {
+    sortedTxs.forEach((tx, idx) => {
       const date = tx.occurred_at.slice(0, 10);
       const last = groups[groups.length - 1];
       if (last && last.date === date) {
@@ -124,7 +132,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       }
     });
     return groups;
-  }, [txData.transactions]);
+  }, [sortedTxs]);
 
   function handleDeleteTransaction() {
     if (!deletingTxId) return;

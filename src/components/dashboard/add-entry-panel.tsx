@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import type { AccountTransactionRow } from "@/actions/account-transactions";
@@ -78,6 +79,7 @@ export function AddEntryPanel({
   initialCategory?: string;
   initialVehicleId?: string;
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: categories = [] } = useQuery(categoriesQueryOptions());
@@ -183,6 +185,9 @@ export function AddEntryPanel({
     e.preventDefault();
     if (!tabValid[tab]) return;
 
+    const categoryLabel = categories.find(c => c.id === expCategory)?.label ?? expCategory;
+    const expDisplayName = expName.trim() || categoryLabel;
+
     const balancesKey = accountBalancesQueryOptions().queryKey;
     const prevBalances = queryClient.getQueryData<Record<string, number>>(balancesKey);
 
@@ -200,7 +205,7 @@ export function AddEntryPanel({
       }));
       queryClient.setQueryData<{ transactions: AccountTransactionRow[]; balance: number }>(txKey, (old) => {
         if (!old) return old;
-        const tx: AccountTransactionRow = { id: tempId, account_id: sharedAccountId, type: "expense", amount: -expParsedAmt, description: expName.trim(), transfer_group_id: null, occurred_at: expDate + "T00:00:00", created_at: now };
+        const tx: AccountTransactionRow = { id: tempId, account_id: sharedAccountId, type: "expense", amount: -expParsedAmt, description: expDisplayName, transfer_group_id: null, occurred_at: expDate + "T00:00:00", created_at: now };
         return { transactions: [tx, ...old.transactions], balance: old.balance - expParsedAmt };
       });
     } else if (tab === "income") {
@@ -231,18 +236,21 @@ export function AddEntryPanel({
       }));
     }
 
-    // Close immediately
+    // Close + redirect immediately (optimistic)
     onClose();
+    if (sharedAccountId) {
+      router.push(`/dashboard/accounts/${sharedAccountId}`);
+    }
 
     // ── Async server call ─────────────────────────────────────────────────
     void (async () => {
       let err: string | null = null;
 
       if (tab === "expense") {
-        const res = await addExpense(expCategory || "other", expParsedAmt, expName.trim(), expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
+        const res = await addExpense(expCategory || "other", expParsedAmt, expDisplayName, expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
         if (res.error) { err = res.error; }
         else {
-          const txRes = await createAccountExpense({ accountId: sharedAccountId, amount: expParsedAmt, description: expName.trim(), occurredAt: expDate });
+          const txRes = await createAccountExpense({ accountId: sharedAccountId, amount: expParsedAmt, description: expDisplayName, occurredAt: expDate });
           if (txRes.error) err = txRes.error;
         }
         if (!err) {
