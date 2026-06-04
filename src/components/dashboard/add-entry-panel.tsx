@@ -125,7 +125,17 @@ export function AddEntryPanel({
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => amountRef.current?.focus(), 350);
+    // Wait for the Sheet animation to finish and Radix focus-trap to settle,
+    // then focus the amount input and scroll it into view so it stays visible
+    // above the mobile keyboard.
+    const t = setTimeout(() => {
+      requestAnimationFrame(() => {
+        const el = amountRef.current;
+        if (!el) return;
+        el.focus({ preventScroll: true });
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }, 450);
     return () => clearTimeout(t);
   }, [open, tab]);
 
@@ -322,7 +332,7 @@ export function AddEntryPanel({
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="ae-amount" className="text-xs text-muted-foreground">Amount</Label>
                 <input
-                  id="ae-amount" type="number" min="0.01" step="any"
+                  id="ae-amount" type="number" inputMode="decimal" min="0.01" step="any"
                   value={expAmount} onChange={(e) => setExpAmount(e.target.value)}
                   placeholder="₱0.00" ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -424,7 +434,7 @@ export function AddEntryPanel({
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="inc-amount" className="text-xs text-muted-foreground">Amount</Label>
                 <input
-                  id="inc-amount" type="number" min="0.01" step="any"
+                  id="inc-amount" type="number" inputMode="decimal" min="0.01" step="any"
                   value={incAmount} onChange={(e) => setIncAmount(e.target.value)}
                   placeholder="₱0.00" ref={amountRef}
                   className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
