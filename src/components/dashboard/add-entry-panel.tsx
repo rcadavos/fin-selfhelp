@@ -42,7 +42,7 @@ import {
 import { accountTransactionsQueryOptions, invalidateAccountTransactions } from "@/lib/query/account-transactions";
 import { queryKeys } from "@/lib/query/keys";
 import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, roundToCents } from "@/lib/utils";
 
 export type EntryTab = "expense" | "income" | "adjustment" | "transfer";
 
@@ -96,7 +96,7 @@ export function AddEntryPanel({
 
   function handleAccountChange(id: string) {
     setSharedAccountId(id);
-    setAdjNewBalance(id && balances[id] !== undefined ? String(balances[id]) : "");
+    setAdjNewBalance(id && balances[id] !== undefined ? roundToCents(balances[id]).toFixed(2) : "");
   }
 
   // ── Expense state ─────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ export function AddEntryPanel({
     setTab(initialTab ?? "expense");
     const defaultAccountId = accountId ?? "";
     setSharedAccountId(defaultAccountId);
-    setAdjNewBalance(defaultAccountId && balances[defaultAccountId] !== undefined ? String(balances[defaultAccountId]) : "");
+    setAdjNewBalance(defaultAccountId && balances[defaultAccountId] !== undefined ? roundToCents(balances[defaultAccountId]).toFixed(2) : "");
     setExpName(""); setExpAmount(""); setExpCategory(initialCategory ?? "");
     setExpNote(""); setExpDate(todayYmd());
     setExpVehicleId(initialVehicleId ?? ""); setExpVehicleCategory("");
@@ -161,9 +161,9 @@ export function AddEntryPanel({
     Number.isFinite(expParsedAmt) && expParsedAmt > 0 &&
     expBalance !== null && expParsedAmt > expBalance;
 
-  const adjCurrentBalance = sharedAccountId ? (balances[sharedAccountId] ?? 0) : 0;
+  const adjCurrentBalance = roundToCents(sharedAccountId ? (balances[sharedAccountId] ?? 0) : 0);
   const adjParsed = parseFloat(adjNewBalance);
-  const adjDelta = Number.isFinite(adjParsed) ? adjParsed - adjCurrentBalance : null;
+  const adjDelta = Number.isFinite(adjParsed) ? roundToCents(adjParsed - adjCurrentBalance) : null;
 
   const txToAccounts = accounts.filter((a) => a.id !== sharedAccountId);
   const txParsedAmount = parseFloat(txAmount);

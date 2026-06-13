@@ -14,6 +14,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.14",
+    date: "2026-06-13",
+    summary: "Account adjustment modal no longer shows long floating-point balances.",
+    changes: [
+      { type: "fix", description: "The Adjustment modal's New Balance field now prefills the account's current balance rounded to 2 decimal places, instead of a long value like 1234.5599999999999. The computed adjustment difference is also rounded to cents." },
+    ],
+  },
+  {
     version: "1.5.13",
     date: "2026-06-03",
     summary: "To-Do List is now Reminders with category tagging per item.",
