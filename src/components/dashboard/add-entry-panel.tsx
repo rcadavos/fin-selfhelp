@@ -94,9 +94,15 @@ export function AddEntryPanel({
   // ── Shared account (carried across all tabs) ─────────────────────────────
   const [sharedAccountId, setSharedAccountId] = useState(accountId ?? "");
 
+  // ── Derived: is the selected account "untracked" (not included in net balance) ──
+  const selectedAccount = accounts.find((a) => a.id === sharedAccountId);
+  const isUntrackedAccount = selectedAccount ? !selectedAccount.include_in_net_balance : false;
+
   function handleAccountChange(id: string) {
     setSharedAccountId(id);
     setAdjNewBalance(id && balances[id] !== undefined ? roundToCents(balances[id]).toFixed(2) : "");
+    // Reset "show in history" whenever account changes — will only re-enable if user explicitly checks it
+    setExpShowInHistory(false);
   }
 
   // ── Expense state ─────────────────────────────────────────────────────────
@@ -107,6 +113,7 @@ export function AddEntryPanel({
   const [expDate, setExpDate] = useState(todayYmd);
   const [expVehicleId, setExpVehicleId] = useState(initialVehicleId ?? "");
   const [expVehicleCategory, setExpVehicleCategory] = useState("");
+  const [expShowInHistory, setExpShowInHistory] = useState(false);
 
   // ── Income state ──────────────────────────────────────────────────────────
   const [incAmount, setIncAmount] = useState("");
@@ -147,7 +154,7 @@ export function AddEntryPanel({
     setAdjNewBalance(defaultAccountId && balances[defaultAccountId] !== undefined ? roundToCents(balances[defaultAccountId]).toFixed(2) : "");
     setExpName(""); setExpAmount(""); setExpCategory(initialCategory ?? "");
     setExpNote(""); setExpDate(todayYmd());
-    setExpVehicleId(initialVehicleId ?? ""); setExpVehicleCategory("");
+    setExpVehicleId(initialVehicleId ?? ""); setExpVehicleCategory(""); setExpShowInHistory(false);
     setIncAmount(""); setIncDescription(""); setIncDate(todayYmd());
     setAdjNotes("");
     setTxTo(""); setTxAmount(""); setTxFee(""); setTxDescription("");
@@ -257,16 +264,22 @@ export function AddEntryPanel({
       let err: string | null = null;
 
       if (tab === "expense") {
-        const res = await addExpense(expCategory || "other", expParsedAmt, expDisplayName, expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
-        if (res.error) { err = res.error; }
-        else {
+        // For untracked accounts with "Show in expense history" unchecked, skip the global expense entry
+        const addToHistory = !isUntrackedAccount || expShowInHistory;
+        if (addToHistory) {
+          const res = await addExpense(expCategory || "other", expParsedAmt, expDisplayName, expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
+          if (res.error) { err = res.error; }
+        }
+        if (!err) {
           const txRes = await createAccountExpense({ accountId: sharedAccountId, amount: expParsedAmt, description: expDisplayName, occurredAt: expDate });
           if (txRes.error) err = txRes.error;
         }
         if (!err) {
           invalidateAccountQueries(queryClient);
-          queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
-          invalidateVehicleQueriesIfTransportAffected(queryClient, expCategory || "other");
+          if (addToHistory) {
+            queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
+            invalidateVehicleQueriesIfTransportAffected(queryClient, expCategory || "other");
+          }
           invalidateAccountTransactions(queryClient, sharedAccountId);
         }
       } else if (tab === "income") {
@@ -425,6 +438,22 @@ export function AddEntryPanel({
                   className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
+
+              {isUntrackedAccount && (
+                <label htmlFor="exp-show-history" className="flex cursor-pointer items-center gap-2.5 rounded-md border border-input bg-muted/40 px-3 py-2.5">
+                  <input
+                    id="exp-show-history"
+                    type="checkbox"
+                    checked={expShowInHistory}
+                    onChange={(e) => setExpShowInHistory(e.target.checked)}
+                    className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+                  />
+                  <span className="text-sm leading-tight">
+                    Show in expense history
+                    <span className="block text-xs text-muted-foreground">By default, untracked account expenses are only visible here.</span>
+                  </span>
+                </label>
+              )}
             </>
           )}
 
