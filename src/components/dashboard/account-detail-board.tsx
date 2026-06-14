@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { BackLink } from "@/components/app/back-link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
 import {
   AlertTriangle,
   ArrowDownCircle,
@@ -40,6 +41,7 @@ import {
 } from "@/lib/query/account-transactions";
 import {
   accountsQueryOptions,
+  accountBalancesQueryOptions,
   invalidateAccountQueries,
 } from "@/lib/query/accounts";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -78,6 +80,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
+  const { showError } = useSnackbar();
 
   const [account, setAccount] = useState<AccountRow>(initialAccount);
   const [addEntryTab, setAddEntryTab] = useState<EntryTab | null>(null);
@@ -136,12 +139,42 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
   function handleDeleteTransaction() {
     if (!deletingTxId) return;
-    startTransition(async () => {
-      await deleteAccountTransaction(deletingTxId);
-      setDeletingTxId(null);
-      invalidateAccountTransactions(queryClient, account.id);
-      invalidateAccountQueries(queryClient);
-    });
+
+    const txKey = accountTransactionsQueryOptions(account.id).queryKey;
+    const balancesKey = accountBalancesQueryOptions().queryKey;
+    const prevTx = queryClient.getQueryData(txKey);
+    const prevBalances = queryClient.getQueryData(balancesKey);
+
+    const txToDelete = txData.transactions.find((t) => t.id === deletingTxId);
+
+    // Optimistically remove the entry and adjust balance before the server responds
+    if (txToDelete) {
+      queryClient.setQueryData<{ transactions: AccountTransactionRow[]; balance: number }>(txKey, (old) => {
+        if (!old) return old;
+        return {
+          transactions: old.transactions.filter((t) => t.id !== deletingTxId),
+          balance: old.balance - txToDelete.amount,
+        };
+      });
+      queryClient.setQueryData<Record<string, number>>(balancesKey, (old = {}) => ({
+        ...old,
+        [account.id]: (old[account.id] ?? 0) - txToDelete.amount,
+      }));
+    }
+
+    setDeletingTxId(null);
+
+    void (async () => {
+      const res = await deleteAccountTransaction(deletingTxId);
+      if (res?.error) {
+        queryClient.setQueryData(txKey, prevTx);
+        queryClient.setQueryData(balancesKey, prevBalances);
+        showError(res.error);
+      } else {
+        invalidateAccountTransactions(queryClient, account.id);
+        invalidateAccountQueries(queryClient);
+      }
+    })();
   }
 
   function handleEditAccount(form: AccountFormState) {
@@ -364,7 +397,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
         onOpenChange={(v) => !v && setDeletingTxId(null)}
         title="Delete entry?"
         description="This entry will be removed and the balance recalculated. Transfers will remove both legs."
-        confirmLabel={isPending ? "Deleting…" : "Delete"}
+        confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDeleteTransaction}
       />

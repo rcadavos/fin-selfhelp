@@ -293,8 +293,11 @@ export function AddEntryPanel({
       } else {
         const res = await createAccountTransfer({ fromAccountId: sharedAccountId, toAccountId: txTo, amount: txParsedAmount, description: txDescription.trim() || undefined });
         if (res.error) { err = res.error; }
-        else {
-          if (txParsedFee > 0) await createAccountFee({ accountId: sharedAccountId, amount: txParsedFee, description: txDescription.trim() ? `Transfer fee — ${txDescription.trim()}` : "Transfer fee" });
+        if (!err && txParsedFee > 0) {
+          const feeRes = await createAccountFee({ accountId: sharedAccountId, amount: txParsedFee, description: txDescription.trim() ? `Transfer fee — ${txDescription.trim()}` : "Transfer fee" });
+          if (feeRes.error) err = feeRes.error;
+        }
+        if (!err) {
           invalidateAccountQueries(queryClient);
           invalidateAccountTransactions(queryClient, sharedAccountId);
           invalidateAccountTransactions(queryClient, txTo);
