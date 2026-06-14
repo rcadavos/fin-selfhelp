@@ -293,15 +293,24 @@ export function AddEntryPanel({
       } else {
         const res = await createAccountTransfer({ fromAccountId: sharedAccountId, toAccountId: txTo, amount: txParsedAmount, description: txDescription.trim() || undefined });
         if (res.error) { err = res.error; }
-        if (!err && txParsedFee > 0) {
+        const transferSaved = !err;
+        if (transferSaved && txParsedFee > 0) {
           const feeRes = await createAccountFee({ accountId: sharedAccountId, amount: txParsedFee, description: txDescription.trim() ? `Transfer fee — ${txDescription.trim()}` : "Transfer fee" });
           if (feeRes.error) err = feeRes.error;
         }
-        if (!err) {
+        // Always invalidate when the transfer itself succeeded, even if the fee failed,
+        // so the UI reflects the actual DB state rather than the rolled-back optimistic value.
+        if (transferSaved) {
           invalidateAccountQueries(queryClient);
           invalidateAccountTransactions(queryClient, sharedAccountId);
           invalidateAccountTransactions(queryClient, txTo);
+        } else {
+          // Transfer itself failed — roll back
+          queryClient.setQueryData(balancesKey, prevBalances);
+          queryClient.setQueryData(txKey, prevTx);
         }
+        if (err) showError(err);
+        return; // transfer branch handles its own err/rollback above
       }
 
       if (err) {
