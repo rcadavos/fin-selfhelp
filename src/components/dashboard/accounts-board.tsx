@@ -11,10 +11,17 @@ import { Group } from "@visx/group";
 import { useTooltip } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
-import { Wallet, Plus, AlertTriangle, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Wallet, Plus, AlertTriangle, MoreVertical, ExternalLink, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +39,7 @@ import {
 import {
   createAccount,
   updateAccount,
+  setAccountTracked,
   deleteAccount,
   type AccountRow,
 } from "@/actions/accounts";
@@ -270,11 +278,17 @@ function AccountCard({
   balance,
   hideAmounts,
   onOpen,
+  onEdit,
+  onToggleTracked,
+  onDelete,
 }: {
   account: AccountRow;
   balance: number;
   hideAmounts: boolean;
   onOpen: () => void;
+  onEdit: () => void;
+  onToggleTracked: () => void;
+  onDelete: () => void;
 }) {
   const logoSlug = getBankLogoSlug(account.bank_name);
 
@@ -294,11 +308,55 @@ function AccountCard({
 
       {/* Content */}
       <div className="relative z-10">
-        {/* Go-to link icon */}
-        <div className="absolute right-0 top-0 opacity-0 transition-opacity group-hover:opacity-100">
-          <Button size="icon" variant="ghost" className="h-6 w-6 text-foreground/60 hover:text-foreground" onClick={(e) => { e.stopPropagation(); onOpen(); }} aria-label="Open account">
-            <ExternalLink className="h-3 w-3" />
-          </Button>
+        {/* Options menu */}
+        <div className="absolute right-0 top-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-foreground/60 opacity-60 transition-opacity hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Account options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuItem className="cursor-pointer" onSelect={onOpen}>
+                <ExternalLink className="h-4 w-4" />
+                Open account
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onSelect={onEdit}>
+                <Pencil className="h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onSelect={onToggleTracked}>
+                {account.include_in_net_balance ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    Mark as untracked
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Mark as tracked
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={onDelete}
+                className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Header */}
@@ -466,6 +524,13 @@ export function AccountsBoard() {
     });
   }
 
+  function handleToggleTracked(account: AccountRow) {
+    startTransition(async () => {
+      await setAccountTracked(account.id, !account.include_in_net_balance);
+      invalidate();
+    });
+  }
+
   function handleDelete() {
     if (!deletingId) return;
     startTransition(async () => {
@@ -561,6 +626,9 @@ export function AccountsBoard() {
               balance={balances[acc.id] ?? 0}
               hideAmounts={amountsHidden}
               onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
+              onEdit={() => { setFormError(null); setEditingAccount(acc); }}
+              onToggleTracked={() => handleToggleTracked(acc)}
+              onDelete={() => setDeletingId(acc.id)}
             />
           ))}
         </div>

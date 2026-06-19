@@ -331,6 +331,34 @@ export async function updateAccount(accountId: string, input: AccountInput): Pro
   return {};
 }
 
+export async function setAccountTracked(
+  accountId: string,
+  includeInNetBalance: boolean,
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not logged in." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "Profile not found." };
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({
+      include_in_net_balance: includeInNetBalance,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", accountId)
+    .eq("profile_id", profile.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function deleteAccount(accountId: string): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
