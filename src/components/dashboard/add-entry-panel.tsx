@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -130,21 +130,24 @@ export function AddEntryPanel({
   const [txFee, setTxFee] = useState("");
   const [txDescription, setTxDescription] = useState("");
 
+  // Focus the amount input and scroll it into view. Read the ref at call time so
+  // we always target whichever tab's input is currently mounted.
+  const focusAmount = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = amountRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, []);
+
+  // Re-focus when switching tabs while the panel is open. The initial open (and
+  // the bottom↔right Sheet remount on viewport changes) is handled reliably by
+  // FormPanel's onOpenAutoFocus below, which avoids racing the open animation.
   useEffect(() => {
     if (!open) return;
-    // Wait for the Sheet animation to finish and Radix focus-trap to settle,
-    // then focus the amount input and scroll it into view so it stays visible
-    // above the mobile keyboard.
-    const t = setTimeout(() => {
-      requestAnimationFrame(() => {
-        const el = amountRef.current;
-        if (!el) return;
-        el.focus({ preventScroll: true });
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    }, 450);
-    return () => clearTimeout(t);
-  }, [open, tab]);
+    focusAmount();
+  }, [tab, open, focusAmount]);
 
   useEffect(() => {
     if (!open) return;
@@ -324,7 +327,17 @@ export function AddEntryPanel({
   const ctaLabel = { expense: "Add", income: "Save", adjustment: "Save", transfer: "Transfer" }[tab];
 
   return (
-    <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
+    <FormPanel
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      mobileClassName="h-[90dvh]"
+      onOpenAutoFocus={(e) => {
+        // Prevent Radix from focusing the panel container (or the close button)
+        // so our focus on the amount input is the one that sticks.
+        e.preventDefault();
+        focusAmount();
+      }}
+    >
       <DialogHeader className="hidden lg:flex flex-shrink-0 px-6 pt-6 pb-3">
         <DialogTitle>Add Entry</DialogTitle>
       </DialogHeader>

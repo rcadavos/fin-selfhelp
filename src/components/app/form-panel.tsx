@@ -9,9 +9,21 @@ interface FormPanelProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   className?: string;
+  /**
+   * Extra classes applied only to the mobile (bottom) sheet. Pass `h-[90dvh]`
+   * to make a short form fill the screen from the top — content stays high and
+   * any in-form dropdowns have room to open — instead of hugging the bottom.
+   */
+  mobileClassName?: string;
+  /**
+   * Forwarded to Radix's SheetContent. Fires on every content mount — including
+   * the remount caused by the responsive bottom↔right switch — so callers can
+   * reliably claim focus without racing the open animation.
+   */
+  onOpenAutoFocus?: (event: Event) => void;
 }
 
-export function FormPanel({ open, onOpenChange, children, className }: FormPanelProps) {
+export function FormPanel({ open, onOpenChange, children, className, mobileClassName, onOpenAutoFocus }: FormPanelProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   if (isDesktop) {
@@ -19,6 +31,7 @@ export function FormPanel({ open, onOpenChange, children, className }: FormPanel
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
+          onOpenAutoFocus={onOpenAutoFocus}
           className={cn("flex flex-col p-0 w-[440px] sm:max-w-[440px] overflow-hidden", className)}
         >
           {children}
@@ -31,9 +44,11 @@ export function FormPanel({ open, onOpenChange, children, className }: FormPanel
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
           "flex flex-col p-0 rounded-t-2xl max-h-[90dvh] overflow-hidden",
-          className
+          className,
+          mobileClassName
         )}
       >
         <div className="flex-shrink-0 flex justify-center pt-3 pb-1">
