@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart, ShoppingCart, Calculator, LayoutDashboard, ListChecks, ClipboardList, Target } from "lucide-react";
+import { PieChart, Calculator, LayoutDashboard, ListChecks, Bell, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedTextLoop } from "@/components/landing/animated-text-loop";
 
@@ -36,20 +36,12 @@ const features: {
     iconColor: "text-violet-600 dark:text-violet-400",
   },
   {
-    title: "To-buy list",
+    title: "Reminders",
     description:
-      "Shopping list with estimated prices so you know what you need and what it will cost before you head out.",
-    icon: ShoppingCart,
+      "A categorized checklist for things to buy and tasks to do — with quantities, estimates, and dates so nothing slips through.",
+    icon: Bell,
     iconBg: "bg-amber-500/10",
     iconColor: "text-amber-600 dark:text-amber-400",
-  },
-  {
-    title: "To-do list",
-    description:
-      "Same flexible checklist as to-buy — errands and tasks with quantity and estimates when it helps you plan.",
-    icon: ClipboardList,
-    iconBg: "bg-teal-500/10",
-    iconColor: "text-teal-600 dark:text-teal-400",
   },
   {
     title: "Goal tracker",

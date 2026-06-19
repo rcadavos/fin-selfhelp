@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 const faqs: { q: string; a: string }[] = [
   {
     q: "What is OmniTrak?",
-    a: "A personal finance hub focused on planned expenses and cashflow: track expenses by category, mark what you paid each month, manage goals, use to-buy and to-do lists, and calculators — tuned for everyday use in the Philippines.",
+    a: "A personal finance hub focused on planned expenses and cashflow: track expenses by category, mark what you paid each month, manage goals, set reminders, and use calculators — tuned for everyday use in the Philippines.",
   },
   {
     q: "What does the free plan include?",
-    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, Goals tracking, due dates, and calculators. To-buy and to-do lists are limited to 10 items each on free. Partner sharing, email reminders, unlimited lists, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
+    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, Goals tracking, due dates, and calculators. Reminders are limited to 10 items on free. Partner sharing, email reminders, unlimited reminders, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
   },
   {
     q: "How does Goals work?",
@@ -15,7 +15,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Can my partner see my data?",
-    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your Planned Expenses and/or your to-buy list. They sign in with their own OmniTrak account and get the access you grant; they cannot change your planned expense amounts.",
+    a: "With Pro or Premium (active on your account), you can invite someone by email and choose what they may view—your Planned Expenses and/or your Reminders. They sign in with their own OmniTrak account and get the access you grant; they cannot change your planned expense amounts.",
   },
   {
     q: "What currencies and formats are supported?",
