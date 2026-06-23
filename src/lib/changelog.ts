@@ -19,6 +19,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     summary: "Faster loading feedback across the app — a global progress bar and per-card spinners — plus a fix for the Accounts hydration error and Add Entry / Reminders refinements.",
     changes: [
       { type: "feature", description: "Added a thin progress bar at the top of every screen that appears whenever data is loading (YouTube-style), in the app's green accent." },
+      { type: "improvement", description: "The top progress bar now also shows during page navigation on every route (link clicks, back/forward, and in-app redirects), not just when data is fetching — so switching pages always gives instant loading feedback." },
       { type: "improvement", description: "Clicking an account card now turns its options (⋮) button into a loading spinner while the account page opens, so it's clear the tap registered." },
       { type: "improvement", description: "On mobile, the Add Entry panel now fills the screen from the top (with a tap-to-close gap above) instead of hugging the bottom, so account/category dropdowns have room to open and the Cancel/Save buttons stay pinned at the bottom." },
       { type: "improvement", description: "Updated the landing page (features, plans, FAQ, and animated headline) to reference 'Reminders' instead of the separate 'To-Buy' and 'To-Do' lists, matching the renamed in-app feature." },
