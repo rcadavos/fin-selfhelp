@@ -69,8 +69,10 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 - Always use `useUser()` hook for the current user — never read Supabase session directly in components.
 - Query options live in `src/lib/query/`. Add new ones there.
 - `staleTime: Infinity` is used for subscription status — the cache is cleared by `user-context.tsx` on auth change, so this is intentional.
-- Always use `useSuspenseQuery` (from `@tanstack/react-query`) instead of `useQuery` for data fetching in components — it eliminates `isLoading`/`isPending` branching and guarantees data is defined.
+- **Always use `useSuspenseQuery` (from `@tanstack/react-query`) instead of `useQuery` for data fetching in components.** It eliminates `isLoading`/`isPending` branching, guarantees `data` is defined (so drop `= []`/`= {}` fallbacks on the destructure), and — critically — prevents the "Hydration failed… server rendered text didn't match the client" error that `useQuery` causes when the server renders empty data while the client already has it cached. With Suspense, the first client render is resolved from the same hydrated cache as the server, so they always match.
 - Wrap any component that uses `useSuspenseQuery` in a `<Suspense fallback={…}>` boundary (from `react`) so loading states are handled declaratively at the page or section level, not inline.
+- For SSR pages, the server component must `prefetchQuery` every query the children will read and wrap them in a `<HydrationBoundary state={dehydrate(queryClient)}>` (see `src/app/(main)/dashboard/accounts/page.tsx`). Otherwise `useSuspenseQuery` will fire the server action during SSR and suspend the whole page.
+- **The only acceptable reasons to keep `useQuery`** are: a conditional/dependent query that needs `enabled` (unsupported by `useSuspenseQuery`), or polling/`refetchInterval` UI where you intentionally render a non-suspending loading state. If you reach for `useQuery`, leave a one-line comment saying why. Everything else must be `useSuspenseQuery`.
 
 ### Routing
 - App pages live under `src/app/(main)/dashboard/` and are wrapped by `AppShell`.

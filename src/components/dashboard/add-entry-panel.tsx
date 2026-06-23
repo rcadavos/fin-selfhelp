@@ -576,8 +576,8 @@ export function AddEntryPanel({
                 />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="grid gap-1.5">
+              <div className="grid items-start gap-3 sm:grid-cols-2">
+                <div className="grid content-start gap-1.5">
                   <Label htmlFor="tx-from">From account</Label>
                   {accounts.length > 0 ? (
                     <>
@@ -593,7 +593,7 @@ export function AddEntryPanel({
                     <p className="text-xs text-muted-foreground">No accounts found.</p>
                   )}
                 </div>
-                <div className="grid gap-1.5">
+                <div className="grid content-start gap-1.5">
                   <Label htmlFor="tx-to">To account</Label>
                   {txToAccounts.length > 0 ? (
                     <AccountSelect id="tx-to" accounts={txToAccounts} value={txTo} onChange={setTxTo} placeholder="Select destination" />

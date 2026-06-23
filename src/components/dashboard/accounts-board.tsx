@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { ParentSize } from "@visx/responsive";
 import { scaleLinear, scaleBand } from "@visx/scale";
 import { AxisBottom, AxisLeft } from "@visx/axis";
@@ -11,7 +11,7 @@ import { Group } from "@visx/group";
 import { useTooltip } from "@visx/tooltip";
 import { max } from "d3-array";
 import Image from "next/image";
-import { Wallet, Plus, AlertTriangle, MoreVertical, ExternalLink, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Wallet, Plus, AlertTriangle, MoreVertical, ExternalLink, Pencil, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -277,6 +277,7 @@ function AccountCard({
   account,
   balance,
   hideAmounts,
+  loading,
   onOpen,
   onEdit,
   onToggleTracked,
@@ -285,6 +286,7 @@ function AccountCard({
   account: AccountRow;
   balance: number;
   hideAmounts: boolean;
+  loading: boolean;
   onOpen: () => void;
   onEdit: () => void;
   onToggleTracked: () => void;
@@ -315,11 +317,19 @@ function AccountCard({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 text-foreground/60 opacity-60 transition-opacity hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
+                disabled={loading}
+                className={cn(
+                  "h-7 w-7 text-foreground/60 opacity-60 transition-opacity hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100",
+                  loading && "opacity-100 disabled:opacity-100",
+                )}
                 onClick={(e) => e.stopPropagation()}
-                aria-label="Account options"
+                aria-label={loading ? "Opening account…" : "Account options"}
               >
-                <MoreVertical className="h-4 w-4" />
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <MoreVertical className="h-4 w-4" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -448,10 +458,24 @@ export function AccountsBoard() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
+  // Separate transition for navigation so the clicked card's 3-dots icon can
+  // show a spinner while the account detail route loads (RSC fetch in flight).
+  const [isNavPending, startNavTransition] = useTransition();
+  const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
-  const { data: accounts = [] } = useQuery(accountsQueryOptions());
-  const { data: balances = {} } = useQuery(accountBalancesQueryOptions());
-  const { data: netHistory = [] } = useQuery(netBalanceHistoryQueryOptions(7));
+  const handleOpen = useCallback(
+    (id: string) => {
+      setNavigatingId(id);
+      startNavTransition(() => {
+        router.push(`/dashboard/accounts/${id}`);
+      });
+    },
+    [router],
+  );
+
+  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: balances } = useSuspenseQuery(accountBalancesQueryOptions());
+  const { data: netHistory } = useSuspenseQuery(netBalanceHistoryQueryOptions(7));
 
   const netBalance = useMemo(
     () =>
@@ -625,7 +649,8 @@ export function AccountsBoard() {
               account={acc}
               balance={balances[acc.id] ?? 0}
               hideAmounts={amountsHidden}
-              onOpen={() => router.push(`/dashboard/accounts/${acc.id}`)}
+              loading={isNavPending && navigatingId === acc.id}
+              onOpen={() => handleOpen(acc.id)}
               onEdit={() => { setFormError(null); setEditingAccount(acc); }}
               onToggleTracked={() => handleToggleTracked(acc)}
               onDelete={() => setDeletingId(acc.id)}

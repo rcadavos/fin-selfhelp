@@ -14,6 +14,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.5.15",
+    date: "2026-06-23",
+    summary: "Faster loading feedback across the app — a global progress bar and per-card spinners — plus a fix for the Accounts hydration error and Add Entry / Reminders refinements.",
+    changes: [
+      { type: "feature", description: "Added a thin progress bar at the top of every screen that appears whenever data is loading (YouTube-style), in the app's green accent." },
+      { type: "improvement", description: "Clicking an account card now turns its options (⋮) button into a loading spinner while the account page opens, so it's clear the tap registered." },
+      { type: "improvement", description: "On mobile, the Add Entry panel now fills the screen from the top (with a tap-to-close gap above) instead of hugging the bottom, so account/category dropdowns have room to open and the Cancel/Save buttons stay pinned at the bottom." },
+      { type: "improvement", description: "Updated the landing page (features, plans, FAQ, and animated headline) to reference 'Reminders' instead of the separate 'To-Buy' and 'To-Do' lists, matching the renamed in-app feature." },
+      { type: "fix", description: "Fixed a 'hydration failed' error on the Accounts and account-detail pages. Those pages now read data with useSuspenseQuery so the server and client render identical content on first paint." },
+      { type: "fix", description: "In the Add Entry → Transfer panel, the 'From account' and 'To account' dropdowns no longer drift out of alignment — the balance line under 'From account' used to push the 'To account' dropdown down a row. Both columns now pack to the top so the selectors sit on the same line." },
+      { type: "fix", description: "The Add Entry panel now reliably autofocuses the Amount field when it opens, instead of occasionally leaving it unfocused. Focus is now hooked to the panel's open event rather than a fixed timer, so it survives the responsive layout switch and the open animation." },
+      { type: "fix", description: "Fixed an unnecessary write to the server on every login. Just-loaded preferences were being saved straight back unchanged because the auth/user object updates a couple of times right after sign-in (session re-hydrate and avatar sync). Preferences are now only persisted when their value actually changes." },
+    ],
+  },
+  {
     version: "1.5.14",
     date: "2026-06-13",
     summary: "Account adjustment modal no longer shows long floating-point balances.",

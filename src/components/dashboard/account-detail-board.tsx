@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { BackLink } from "@/components/app/back-link";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import {
   AlertTriangle,
@@ -89,7 +89,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { data: txData = { balance: 0, transactions: [] } } = useQuery(accountTransactionsQueryOptions(account.id));
+  const { data: txData } = useSuspenseQuery(accountTransactionsQueryOptions(account.id));
 
   const animatedBalance = useAnimatedNumber(txData.balance);
 

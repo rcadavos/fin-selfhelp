@@ -48,8 +48,9 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [initialSyncDone, setInitialSyncDone] = useState(false);
   /** When true, incoming DB fetch must not overwrite local edits (e.g. user changed settings before fetch returned). */
   const ignoreFetchRef = useRef(false);
-  /** Skip one server persist right after applying prefs loaded from DB (avoids redundant POST on every page load). */
-  const skipNextPersistRef = useRef(false);
+  /** Serialized prefs last read from / written to the DB. Persist only when the value truly changes — this guards
+   *  against redundant POSTs when the `user`/`loading` references churn on login (SIGNED_IN re-hydrate, avatar sync). */
+  const lastSyncedRef = useRef<string | null>(null);
 
   const prefsQuery = useQuery({
     ...userPreferencesQueryOptions(user?.id),
@@ -98,7 +99,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    skipNextPersistRef.current = true;
+    lastSyncedRef.current = JSON.stringify(prefs);
     setPreferencesState(prefs);
     saveUserPreferences(prefs);
     setClientPreferenceCache(prefs);
@@ -112,10 +113,9 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading || !user || !initialSyncDone) return;
-    if (skipNextPersistRef.current) {
-      skipNextPersistRef.current = false;
-      return;
-    }
+    const serialized = JSON.stringify(preferences);
+    if (serialized === lastSyncedRef.current) return;
+    lastSyncedRef.current = serialized;
     void persistUserPreferences(preferences).then((r) => {
       if (r.error) showError(r.error);
     });

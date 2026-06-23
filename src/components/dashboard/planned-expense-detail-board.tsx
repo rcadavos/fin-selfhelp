@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Bell,
@@ -122,14 +122,14 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
 
   const paidMonth = getCurrentPaidMonth();
 
-  const { data: billsData } = useQuery(billsDataQueryOptions(paidMonth));
+  const { data: billsData } = useSuspenseQuery(billsDataQueryOptions(paidMonth));
   const { data: history = [], refetch: refetchHistory } = useQuery({
     ...billPaymentsHistoryQueryOptions(bill.id),
     select: (d) => d.history,
   });
-  const { data: accounts = [] } = useQuery(accountsQueryOptions());
-  const { data: categories = [] } = useQuery(categoriesQueryOptions());
-  const { data: vehicles = [] } = useQuery(vehiclesQueryOptions());
+  const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
+  const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
   const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
 
   const cat = categories.find((c) => c.id === bill.category_id);
