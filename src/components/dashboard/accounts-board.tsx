@@ -293,6 +293,7 @@ function AccountCard({
   onDelete: () => void;
 }) {
   const logoSlug = getBankLogoSlug(account.bank_name);
+  const isCash = account.bank_name === "Cash";
 
   return (
     <div
@@ -344,27 +345,31 @@ function AccountCard({
                 <Pencil className="h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onSelect={onToggleTracked}>
-                {account.include_in_net_balance ? (
-                  <>
-                    <EyeOff className="h-4 w-4" />
-                    Mark as untracked
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    Mark as tracked
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={onDelete}
-                className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
+              {!isCash && (
+                <>
+                  <DropdownMenuItem className="cursor-pointer" onSelect={onToggleTracked}>
+                    {account.include_in_net_balance ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        Mark as untracked
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        Mark as tracked
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={onDelete}
+                    className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -676,6 +681,7 @@ export function AccountsBoard() {
           onClose={() => setEditingAccount(null)}
           onSave={handleEdit}
           initial={accountToForm(editingAccount)}
+          isCash={editingAccount.bank_name === "Cash"}
           isPending={isPending}
           error={formError}
         />

@@ -226,16 +226,16 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
         }
         subtitle={`${account.bank_name} • Record expenses, income, transfers, and adjustments tied to this account.`}
         actions={
-          account.bank_name !== "Cash" ? (
-            <div className="flex items-center gap-1">
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setFormError(null); setEditOpen(true); }} aria-label="Edit account">
-                <Pencil className="h-4 w-4" />
-              </Button>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setFormError(null); setEditOpen(true); }} aria-label="Edit account">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            {account.bank_name !== "Cash" && (
               <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)} aria-label="Delete account">
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </div>
-          ) : null
+            )}
+          </div>
         }
       />
 
@@ -375,6 +375,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
           onClose={() => setEditOpen(false)}
           onSave={handleEditAccount}
           initial={accountToForm(account)}
+          isCash={account.bank_name === "Cash"}
           isPending={isPending}
           error={formError}
         />

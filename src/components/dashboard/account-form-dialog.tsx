@@ -180,6 +180,7 @@ export function AccountFormDialog({
   initial,
   isPending,
   error,
+  isCash = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -187,6 +188,8 @@ export function AccountFormDialog({
   initial?: AccountFormState;
   isPending: boolean;
   error: string | null;
+  /** The default Cash account: locks identity fields, hides interest/tags, and is always tracked. */
+  isCash?: boolean;
 }) {
   const [form, setForm] = useState<AccountFormState>(initial ?? EMPTY_FORM);
   const [customTag, setCustomTag] = useState("");
@@ -235,7 +238,8 @@ export function AccountFormDialog({
                 placeholder="e.g. Savings, Payroll"
                 value={form.account_alias}
                 onChange={(e) => setForm((p) => ({ ...p, account_alias: e.target.value }))}
-                autoFocus
+                disabled={isCash}
+                autoFocus={!isCash}
               />
             </div>
             <div className="space-y-1.5">
@@ -243,6 +247,7 @@ export function AccountFormDialog({
               <Select
                 value={form.account_type}
                 onValueChange={(v) => setForm((p) => ({ ...p, account_type: v as AccountType }))}
+                disabled={isCash}
               >
                 <SelectTrigger id="acc-type">
                   <SelectValue />
@@ -267,6 +272,7 @@ export function AccountFormDialog({
                   setForm((p) => ({ ...p, bank_name: v, ...(bankColor ? { color: bankColor } : {}) }));
                   setBankSearch("");
                 }}
+                disabled={isCash}
               >
                 <SelectTrigger id="acc-bank">
                   <SelectValue placeholder="Select bank or e-wallet">
@@ -410,7 +416,7 @@ export function AccountFormDialog({
             </div>
           )}
 
-          {!isCredit && (
+          {!isCredit && !isCash && (
           <div className="grid gap-3 sm:grid-cols-2">
 
             <div className="space-y-1.5">
@@ -462,17 +468,21 @@ export function AccountFormDialog({
                   Include in Net Balance
                 </Label>
                 <p className="text-[11px] text-muted-foreground">
-                  Counts this account toward the Net Balance summary and the 7-day chart on /dashboard/accounts.
+                  {isCash
+                    ? "The Cash account is always tracked in your Net Balance."
+                    : "Counts this account toward the Net Balance summary and the 7-day chart on /dashboard/accounts."}
                 </p>
               </div>
               <ToggleSwitch
                 id="acc-include-net"
-                checked={form.include_in_net_balance}
+                checked={isCash ? true : form.include_in_net_balance}
+                disabled={isCash}
                 onCheckedChange={(v) => setForm((p) => ({ ...p, include_in_net_balance: v }))}
               />
             </div>
           )}
 
+          {!isCash && (
           <div className="space-y-2">
             <Label>Tags</Label>
             <div className="flex flex-wrap gap-1.5">
@@ -518,6 +528,7 @@ export function AccountFormDialog({
               </Button>
             </div>
           </div>
+          )}
 
           {(form.bank_name === "" || form.bank_name === "Other") && (
             <div className="space-y-1.5">
