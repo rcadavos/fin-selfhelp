@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -164,13 +165,10 @@ function PlanEditor({ planId, title, description, plan }: PlanEditorProps) {
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label htmlFor={`${planId}-price`}>Price amount</Label>
-            <Input
+            <AmountInput
               id={`${planId}-price`}
-              type="number"
-              min="0"
-              step="0.01"
               value={priceAmount}
-              onChange={(e) => setPriceAmount(e.target.value)}
+              onChange={setPriceAmount}
             />
           </div>
           <div className="grid gap-2">
@@ -206,14 +204,11 @@ function PlanEditor({ planId, title, description, plan }: PlanEditorProps) {
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${planId}-original`}>Original price (optional)</Label>
-          <Input
+          <AmountInput
             id={`${planId}-original`}
-            type="number"
-            min="0"
-            step="0.01"
             placeholder="Leave empty for no strikethrough"
             value={originalPriceAmount}
-            onChange={(e) => setOriginalPriceAmount(e.target.value)}
+            onChange={setOriginalPriceAmount}
           />
         </div>
         <Button onClick={() => updateMutation.mutate()} disabled={!canSave || updateMutation.isPending}>
@@ -306,13 +301,10 @@ function CreatePlanDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="new-plan-price">Price amount</Label>
-              <Input
+              <AmountInput
                 id="new-plan-price"
-                type="number"
-                min="0"
-                step="0.01"
                 value={priceAmount}
-                onChange={(e) => setPriceAmount(e.target.value)}
+                onChange={setPriceAmount}
               />
             </div>
             <div className="grid gap-2">
@@ -348,14 +340,11 @@ function CreatePlanDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
           </div>
           <div className="grid gap-2">
             <Label htmlFor="new-plan-original">Original price (optional)</Label>
-            <Input
+            <AmountInput
               id="new-plan-original"
-              type="number"
-              min="0"
-              step="0.01"
               placeholder="Leave empty for no strikethrough"
               value={originalPriceAmount}
-              onChange={(e) => setOriginalPriceAmount(e.target.value)}
+              onChange={setOriginalPriceAmount}
             />
           </div>
           <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2">

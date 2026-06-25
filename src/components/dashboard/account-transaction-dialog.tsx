@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   DialogFooter,
@@ -119,14 +120,11 @@ export function AccountTransactionDialog({
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="acc-tx-amount">Current Balance</Label>
-                <Input
+                <AmountInput
                   id="acc-tx-amount"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
                   placeholder={currentBalance.toFixed(2)}
                   value={amountText}
-                  onChange={(e) => setAmountText(e.target.value)}
+                  onChange={setAmountText}
                   autoFocus
                 />
                 {amountText !== "" && Number.isFinite(parsedAmount) && parsedAmount !== currentBalance && (
@@ -201,15 +199,11 @@ export function AccountTransactionDialog({
 
               <div className="space-y-1.5">
                 <Label htmlFor="acc-tx-amount">Amount</Label>
-                <Input
+                <AmountInput
                   id="acc-tx-amount"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
                   placeholder="0.00"
                   value={amountText}
-                  onChange={(e) => setAmountText(e.target.value)}
+                  onChange={setAmountText}
                   autoFocus
                 />
               </div>
@@ -335,28 +329,20 @@ export function AccountTransferDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="acc-transfer-amount">Amount</Label>
-              <Input
+              <AmountInput
                 id="acc-transfer-amount"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
                 placeholder="0.00"
                 value={amountText}
-                onChange={(e) => setAmountText(e.target.value)}
+                onChange={setAmountText}
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="acc-transfer-fee">Transfer Fee</Label>
-              <Input
+              <AmountInput
                 id="acc-transfer-fee"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
                 placeholder="Optional"
                 value={feeText}
-                onChange={(e) => setFeeText(e.target.value)}
+                onChange={setFeeText}
               />
             </div>
           </div>

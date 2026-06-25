@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Check, CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -504,30 +505,22 @@ function AccountStep({ bankName, setBankName, accountAlias, setAccountAlias, acc
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="acc-starting-balance">Starting Balance</Label>
-            <Input
+            <AmountInput
               id="acc-starting-balance"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
               placeholder="0.00"
               value={startingBalance}
-              onChange={(e) => setStartingBalance(e.target.value)}
+              onChange={setStartingBalance}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="acc-maintaining-balance">
               Minimum Balance <span className="text-muted-foreground">(optional)</span>
             </Label>
-            <Input
+            <AmountInput
               id="acc-maintaining-balance"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
               placeholder="0.00"
               value={maintainingBalance}
-              onChange={(e) => setMaintainingBalance(e.target.value)}
+              onChange={setMaintainingBalance}
             />
           </div>
         </div>
@@ -594,14 +587,11 @@ function ExpenseStep({ categories, accounts, categoryId, setCategoryId, amount, 
 
         <div className="space-y-2">
           <Label htmlFor="expense-amount">Amount</Label>
-          <Input
+          <AmountInput
             id="expense-amount"
-            type="number"
-            min="0"
-            step="0.01"
             placeholder="0.00"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
           />
         </div>
 

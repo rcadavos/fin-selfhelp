@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
 
@@ -92,14 +92,11 @@ export function PartialPaymentDialog({
           {/* Amount input */}
           <div className="grid gap-1.5">
             <Label htmlFor="partial-amount">Amount to pay now</Label>
-            <Input
+            <AmountInput
               id="partial-amount"
-              type="number"
-              min="0.01"
-              step="0.01"
               placeholder="0.00"
               value={addAmount}
-              onChange={(e) => setAddAmount(e.target.value)}
+              onChange={setAddAmount}
               autoFocus
             />
             {isValidAdd && (

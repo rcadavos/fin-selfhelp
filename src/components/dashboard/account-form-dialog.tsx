@@ -5,6 +5,7 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -370,15 +371,11 @@ export function AccountFormDialog({
           {isCredit ? (
             <div className="space-y-1.5">
               <Label htmlFor="acc-credit-limit">Credit Limit</Label>
-              <Input
+              <AmountInput
                 id="acc-credit-limit"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-                placeholder="e.g. 50000.00"
+                placeholder="e.g. 50,000.00"
                 value={form.credit_limit}
-                onChange={(e) => setForm((p) => ({ ...p, credit_limit: e.target.value }))}
+                onChange={(v) => setForm((p) => ({ ...p, credit_limit: v }))}
               />
               <p className="text-[11px] text-muted-foreground">
                 Credit accounts aren&apos;t counted in Net Balance.
@@ -388,29 +385,22 @@ export function AccountFormDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="acc-starting-balance">Starting Balance</Label>
-                <Input
+                <AmountInput
                   id="acc-starting-balance"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
                   placeholder="0.00"
                   value={form.starting_balance}
-                  onChange={(e) => setForm((p) => ({ ...p, starting_balance: e.target.value }))}
+                  onChange={(v) => setForm((p) => ({ ...p, starting_balance: v }))}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="acc-maintaining-balance">
                   Maintaining Balance
                 </Label>
-                <Input
+                <AmountInput
                   id="acc-maintaining-balance"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
                   placeholder="Optional min. balance"
                   value={form.maintaining_balance}
-                  onChange={(e) => setForm((p) => ({ ...p, maintaining_balance: e.target.value }))}
+                  onChange={(v) => setForm((p) => ({ ...p, maintaining_balance: v }))}
                 />
               </div>
             </div>

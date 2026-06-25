@@ -8,6 +8,7 @@ import type { AccountTransactionRow } from "@/actions/account-transactions";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -369,11 +370,11 @@ export function AddEntryPanel({
               {/* Amount — bottom border only, centered */}
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="ae-amount" className="text-xs text-muted-foreground">Amount</Label>
-                <input
-                  id="ae-amount" type="number" inputMode="decimal" min="0.01" step="any"
-                  value={expAmount} onChange={(e) => setExpAmount(e.target.value)}
+                <AmountInput
+                  id="ae-amount"
+                  value={expAmount} onChange={setExpAmount}
                   placeholder="₱0.00" ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
                 />
               </div>
 
@@ -487,11 +488,11 @@ export function AddEntryPanel({
             <>
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="inc-amount" className="text-xs text-muted-foreground">Amount</Label>
-                <input
-                  id="inc-amount" type="number" inputMode="decimal" min="0.01" step="any"
-                  value={incAmount} onChange={(e) => setIncAmount(e.target.value)}
+                <AmountInput
+                  id="inc-amount"
+                  value={incAmount} onChange={setIncAmount}
                   placeholder="₱0.00" ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
                 />
               </div>
               {accounts.length > 0 ? (
@@ -523,12 +524,12 @@ export function AddEntryPanel({
             <>
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="adj-balance" className="text-xs text-muted-foreground">New Balance</Label>
-                <input
-                  id="adj-balance" type="number" inputMode="decimal" step="0.01"
+                <AmountInput
+                  id="adj-balance"
                   placeholder={adjCurrentBalance.toFixed(2)}
-                  value={adjNewBalance} onChange={(e) => setAdjNewBalance(e.target.value)}
+                  value={adjNewBalance} onChange={setAdjNewBalance}
                   ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   Enter the actual current balance to record a difference.
@@ -568,11 +569,11 @@ export function AddEntryPanel({
             <>
               <div className="flex flex-col items-center gap-1 pb-2">
                 <Label htmlFor="tx-amount" className="text-xs text-muted-foreground">Amount</Label>
-                <input
-                  id="tx-amount" type="number" inputMode="decimal" step="0.01" min="0"
-                  placeholder="₱0.00" value={txAmount} onChange={(e) => setTxAmount(e.target.value)}
+                <AmountInput
+                  id="tx-amount"
+                  placeholder="₱0.00" value={txAmount} onChange={setTxAmount}
                   ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
                 />
               </div>
 
@@ -607,9 +608,9 @@ export function AddEntryPanel({
 
               <div className="grid gap-1.5">
                 <Label htmlFor="tx-fee">Transfer Fee (optional)</Label>
-                <Input
-                  id="tx-fee" type="number" inputMode="decimal" step="0.01" min="0"
-                  placeholder="0.00" value={txFee} onChange={(e) => setTxFee(e.target.value)}
+                <AmountInput
+                  id="tx-fee"
+                  placeholder="0.00" value={txFee} onChange={setTxFee}
                 />
               </div>
 

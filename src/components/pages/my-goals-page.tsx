@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { FormPanel } from "@/components/app/form-panel";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -963,14 +964,11 @@ export function MyGoalsPage() {
                   Target Amount{" "}
                   <span className="text-xs font-normal text-muted-foreground">(optional)</span>
                 </Label>
-                <Input
+                <AmountInput
                   id="goal-target-amount"
-                  type="number"
-                  min="0.01"
-                  step="any"
                   value={form.target_amount}
-                  onChange={(e) => setForm((f) => ({ ...f, target_amount: e.target.value }))}
-                  placeholder="e.g. 50000"
+                  onChange={(v) => setForm((f) => ({ ...f, target_amount: v }))}
+                  placeholder="e.g. 50,000"
                   className="h-9"
                 />
               </div>
@@ -1190,14 +1188,11 @@ export function MyGoalsPage() {
               <Label htmlFor="deposit-amount">
                 Amount <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <AmountInput
                 id="deposit-amount"
-                type="number"
-                min="0.01"
-                step="any"
                 value={depositForm.amount}
-                onChange={(e) => setDepositForm((f) => ({ ...f, amount: e.target.value }))}
-                placeholder="e.g. 1000"
+                onChange={(v) => setDepositForm((f) => ({ ...f, amount: v }))}
+                placeholder="e.g. 1,000"
                 className="h-9"
                 required
                 autoFocus

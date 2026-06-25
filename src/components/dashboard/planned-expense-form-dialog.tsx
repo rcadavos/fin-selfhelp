@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -235,13 +236,10 @@ export function PlannedExpenseFormDialog({
             </div>
             <div className="grid gap-1.5">
               <Label>Amount</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
+              <AmountInput
                 placeholder="0.00"
                 value={form.amount}
-                onChange={(e) => set("amount", e.target.value)}
+                onChange={(v) => set("amount", v)}
               />
             </div>
           </div>

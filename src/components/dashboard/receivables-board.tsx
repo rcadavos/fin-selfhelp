@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -258,13 +259,10 @@ function ReceivableDialog({
               </div>
               <div className="grid gap-1.5">
                 <Label>Total Amount</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <AmountInput
                   placeholder="0.00"
                   value={form.amount}
-                  onChange={(e) => set("amount", e.target.value)}
+                  onChange={(v) => set("amount", v)}
                 />
               </div>
             </div>
@@ -273,14 +271,10 @@ function ReceivableDialog({
             {editingId && (
               <div className="grid gap-1.5">
                 <Label>Amount paid back</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max={form.amount}
-                  step="0.01"
+                <AmountInput
                   placeholder="0.00"
                   value={form.paidAmount}
-                  onChange={(e) => set("paidAmount", e.target.value)}
+                  onChange={(v) => set("paidAmount", v)}
                 />
                 {amountNum > 0 && (
                   <p className="text-xs text-muted-foreground">
