@@ -8,6 +8,7 @@ export type SearchItem = {
 export const SEARCH_INDEX: SearchItem[] = [
   // ── Navigation ──────────────────────────────────────────────────────────
   { title: "Dashboard", href: "/dashboard", group: "Navigation", keywords: ["home", "overview", "cashflow", "summary", "monthly", "main"] },
+  { title: "Ask AI", href: "/dashboard/assistant", group: "Navigation", keywords: ["ai", "assistant", "chat", "chatbot", "ask", "rag", "documents", "knowledge base", "gpt", "claude", "gemini", "ask omnitrak", "insights", "advisor"] },
   { title: "Expenses", href: "/dashboard/expenses", group: "Navigation", keywords: ["spending", "cost", "money", "track", "my expenses", "expense list"] },
   { title: "Planned Expenses", href: "/dashboard/planned-expenses", group: "Navigation", keywords: ["due date", "payment", "monthly", "recurring", "utility", "bills", "planned expenses"] },
   { title: "Receivables", href: "/dashboard/receivables", group: "Navigation", keywords: ["owed", "iou", "lent", "debt", "borrow", "loan", "collect", "money owed", "receivable", "payable", "owes me"] },

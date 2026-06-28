@@ -57,4 +57,13 @@ export const queryKeys = {
   pendingReceivableLinks: () => [...queryKeys.all, "receivables", "links", "pending"] as const,
   /** Global `app_settings.ocr_scanning_enabled` flag (see `ocrEnabledQueryOptions`). */
   appSettingOcrEnabled: () => [...queryKeys.all, "app-settings", "ocr-enabled"] as const,
+  /** AI Assistant capability + config flags (see `aiAssistantInfoQueryOptions`). */
+  aiAssistantInfo: () => [...queryKeys.all, "ai", "info"] as const,
+  /** Current user's AI knowledge-base documents (see `aiDocumentsQueryOptions`). */
+  aiDocuments: () => [...queryKeys.all, "ai", "documents"] as const,
+  /** Current user's AI chat conversations (see `aiConversationsQueryOptions`). */
+  aiConversations: () => [...queryKeys.all, "ai", "conversations"] as const,
+  /** Messages for a single AI conversation (see `aiMessagesQueryOptions`). */
+  aiMessages: (conversationId: string) =>
+    [...queryKeys.all, "ai", "messages", conversationId] as const,
 };

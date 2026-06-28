@@ -14,6 +14,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.6.0",
+    date: "2026-06-28",
+    summary:
+      "Introducing Ask OmniTrak — a private AI assistant (Premium) that answers questions about your finances and your own uploaded documents, with a knowledge base and a floating chat widget.",
+    changes: [
+      { type: "feature", description: "New Ask OmniTrak AI assistant: chat about your budget, accounts, goals, and spending trends. It reads your live data on demand to answer accurately." },
+      { type: "feature", description: "Knowledge base — upload PDFs, text, or Markdown files, paste notes, or add a website URL, and the assistant can search them to answer your questions (Retrieval-Augmented Generation with citations)." },
+      { type: "feature", description: "Floating assistant widget available across the app, plus a full assistant page with chat history you can revisit or delete." },
+      { type: "feature", description: "Choose your AI model — OpenAI, Claude, or Gemini — from a provider switcher, routed securely through the Vercel AI Gateway." },
+      { type: "improvement", description: "Answers stream in real time and cite the documents they drew from, so you can verify the source." },
+    ],
+  },
+  {
     version: "1.5.15",
     date: "2026-06-23",
     summary: "Faster loading feedback across the app — a global progress bar and per-card spinners — plus a fix for the Accounts hydration error and Add Entry / Reminders refinements.",

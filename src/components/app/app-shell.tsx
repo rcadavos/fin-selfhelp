@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { BottomNavbar } from "@/components/app/bottom-navbar";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
+import { AiChatWidget } from "@/components/app/ai-chat-widget";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <BottomNavbar />
       </div>
       <AddEntryPanel open={addEntryOpen} onClose={() => setAddEntryOpen(false)} />
+      {user ? <AiChatWidget /> : null}
     </div>
   );
 }
