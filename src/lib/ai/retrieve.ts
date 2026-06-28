@@ -15,7 +15,7 @@ export type RetrievalResult = {
 
 const EMPTY: RetrievalResult = { chunks: [], citations: [], contextText: "" };
 
-function toCitations(chunks: MatchedChunk[]): AiCitation[] {
+export function toCitations(chunks: MatchedChunk[]): AiCitation[] {
   const byDoc = new Map<string, AiCitation>();
   for (const c of chunks) {
     const existing = byDoc.get(c.document_id);

@@ -23,6 +23,9 @@ export function AiChatWidget() {
   const { user } = useUser();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // Kept on the (always-mounted) widget so the conversation survives the Sheet
+  // closing/reopening — otherwise each reopen would orphan a new server thread.
+  const [conversationId, setConversationId] = useState<string>();
 
   const { data: info } = useQuery({
     ...aiAssistantInfoQueryOptions(),
@@ -59,7 +62,11 @@ export function AiChatWidget() {
             </SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 px-4 py-3">
-            <AssistantChat compact />
+            <AssistantChat
+              compact
+              conversationId={conversationId}
+              onConversationCreated={setConversationId}
+            />
           </div>
         </SheetContent>
       </Sheet>

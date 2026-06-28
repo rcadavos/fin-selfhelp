@@ -8,8 +8,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getSubscriptionCapabilities } from "@/actions/subscription-capabilities";
 import { getProfileId } from "@/lib/ai/server";
-import { retrieveContext } from "@/lib/ai/retrieve";
+import { retrieveContext, toCitations } from "@/lib/ai/retrieve";
 import { buildAssistantTools } from "@/lib/ai/tools";
+import type { MatchedChunk } from "@/types/ai.types";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { resolveChatModelId, isAiConfigured } from "@/lib/ai/gateway";
 import { MAX_CHAT_STEPS, CHAT_RATE_LIMIT_PER_MINUTE } from "@/lib/constants/ai";
@@ -122,12 +123,15 @@ export async function POST(req: Request) {
     });
   }
 
-  // RAG: retrieve relevant document context for the latest question.
-  const { contextText, citations } = await retrieveContext(
+  // RAG: retrieve relevant document context for the latest question. Citations
+  // are built at the end from BOTH this top-level retrieval and any chunks the
+  // model surfaces via the searchKnowledgeBase tool (collected into toolChunks).
+  const { contextText, chunks: topChunks } = await retrieveContext(
     supabase,
     profileId,
     userText,
   );
+  const toolChunks: MatchedChunk[] = [];
   const { count: readyDocs } = await supabase
     .from("ai_documents")
     .select("id", { count: "exact", head: true })
@@ -141,18 +145,27 @@ export async function POST(req: Request) {
       hasDocuments: (readyDocs ?? 0) > 0,
     }),
     messages: await convertToModelMessages(messages),
-    tools: buildAssistantTools(supabase, profileId),
+    tools: buildAssistantTools(supabase, profileId, toolChunks),
     stopWhen: stepCountIs(MAX_CHAT_STEPS),
     temperature: 0.3,
-    onFinish: async ({ text, usage }) => {
-      await supabase.from("ai_messages").insert({
-        conversation_id: convId,
-        profile_id: profileId,
-        role: "assistant",
-        content: text ?? "",
-        citations,
-        usage: usage ?? null,
-      });
+    onFinish: async ({ steps, usage }) => {
+      // Aggregate text across ALL steps (the event's `text` is only the final
+      // step), so intermediate prose before a tool call isn't dropped.
+      const fullText = steps
+        .flatMap((s) => s.content)
+        .map((p) => (p.type === "text" ? p.text : ""))
+        .join("")
+        .trim();
+      if (fullText) {
+        await supabase.from("ai_messages").insert({
+          conversation_id: convId,
+          profile_id: profileId,
+          role: "assistant",
+          content: fullText,
+          citations: toCitations([...topChunks, ...toolChunks]),
+          usage: usage ?? null,
+        });
+      }
       await supabase
         .from("ai_conversations")
         .update({ updated_at: new Date().toISOString() })
@@ -163,7 +176,12 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     messageMetadata: ({ part }) => {
-      if (part.type === "finish") return { conversationId: convId, citations };
+      if (part.type === "finish") {
+        return {
+          conversationId: convId,
+          citations: toCitations([...topChunks, ...toolChunks]),
+        };
+      }
     },
   });
 }

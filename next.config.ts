@@ -16,6 +16,10 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: true,
+  // Server-only AI ingestion libs: keep them out of the bundler so Node require()s
+  // them at runtime. Avoids webpack failing on firecrawl's optional `undici`
+  // reference and unpdf's `import.meta` usage (which broke the dev compile).
+  serverExternalPackages: ["@mendable/firecrawl-js", "unpdf"],
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns"],
   },

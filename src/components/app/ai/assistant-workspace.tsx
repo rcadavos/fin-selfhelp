@@ -86,6 +86,7 @@ export function AssistantWorkspace() {
   const showChatsList = view === "chats";
   const showChat = !showKnowledge && !showChatsList;
   const showLoading = isLoadingExisting && messagesQuery.isPending;
+  const showLoadError = isLoadingExisting && messagesQuery.isError;
 
   return (
     <div className="container mx-auto flex h-full min-h-0 max-w-6xl flex-col px-4 py-4 sm:py-6">
@@ -166,6 +167,14 @@ export function AssistantWorkspace() {
             {showLoading ? (
               <div className="flex flex-1 items-center justify-center text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : showLoadError ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center text-sm text-muted-foreground">
+                <TriangleAlert className="h-6 w-6 text-amber-500" />
+                <p>Couldn&apos;t load this conversation.</p>
+                <Button variant="outline" size="sm" onClick={() => messagesQuery.refetch()}>
+                  Retry
+                </Button>
               </div>
             ) : (
               <AssistantChat

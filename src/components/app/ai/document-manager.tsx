@@ -302,6 +302,8 @@ function AddDocumentSheet({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
+                // Reset so re-selecting the same file (e.g. after a rejection) still fires onChange.
+                e.target.value = "";
                 if (file) void handleUpload(file);
               }}
             />

@@ -3,7 +3,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chunkText } from "./chunk";
-import { embedTexts } from "./embed";
 
 export type IngestResult = { chunkCount: number; tokenCount: number };
 
@@ -47,6 +46,9 @@ export async function ingestDocumentContent(
     throw new Error("No readable text was found to index.");
   }
 
+  // Lazy-load the embedding stack (pulls in the "ai" SDK) only when we actually
+  // ingest — keeps the common, lightweight actions free of it.
+  const { embedTexts } = await import("./embed");
   const embeddings = await embedTexts(chunks.map((c) => c.content));
 
   const rows = chunks.map((chunk, index) => ({

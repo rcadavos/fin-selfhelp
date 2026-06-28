@@ -7,11 +7,6 @@ import {
   ingestDocumentContent,
   errorMessage,
 } from "@/lib/ai/server";
-import {
-  extractFromBuffer,
-  extractFromUrl,
-  isUrlIngestionConfigured,
-} from "@/lib/ai/extract";
 import { isAiConfigured } from "@/lib/ai/gateway";
 import { MAX_DOCUMENTS_PER_USER, STORAGE_BUCKET } from "@/lib/constants/ai";
 import type {
@@ -23,6 +18,11 @@ import type {
 const PREMIUM_REQUIRED = "AI Assistant is a Premium feature.";
 const NOT_LOGGED_IN = "Not logged in.";
 
+/** Light env check (URL ingestion needs Firecrawl). Avoids importing extract.ts. */
+function urlIngestionConfigured(): boolean {
+  return Boolean(process.env.FIRECRAWL_API_KEY);
+}
+
 /** Capability + config flags the assistant UI needs up front. */
 export async function getAiAssistantInfo(): Promise<{
   hasPremiumAccess: boolean;
@@ -33,7 +33,7 @@ export async function getAiAssistantInfo(): Promise<{
   return {
     hasPremiumAccess: Boolean(caps?.hasPremiumAccess),
     aiConfigured: isAiConfigured(),
-    urlIngestionEnabled: isUrlIngestionConfigured(),
+    urlIngestionEnabled: urlIngestionConfigured(),
   };
 }
 
@@ -126,7 +126,7 @@ export async function ingestUrlDocument(
   } catch {
     return { error: "Please enter a valid URL (including https://)." };
   }
-  if (!isUrlIngestionConfigured()) {
+  if (!urlIngestionConfigured()) {
     return { error: "URL ingestion is not configured (missing FIRECRAWL_API_KEY)." };
   }
 
@@ -154,6 +154,7 @@ export async function ingestUrlDocument(
   }
 
   try {
+    const { extractFromUrl } = await import("@/lib/ai/extract");
     const { text, title } = await extractFromUrl(trimmed);
     await supabase
       .from("ai_documents")
@@ -176,10 +177,15 @@ export async function ingestUploadedDocument(
   title: string,
   mimeType: string,
 ): Promise<{ documentId?: string; error?: string }> {
-  const gate = await assertCanIngest();
-  if ("error" in gate) return { error: gate.error };
-
+  // The client uploads the file to storage BEFORE calling this, so any early
+  // exit must clean up the uploaded object or it's orphaned (no row references it).
   const supabase = await createClient();
+  const gate = await assertCanIngest();
+  if ("error" in gate) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+    return { error: gate.error };
+  }
+
   const { data: doc, error: insertError } = await supabase
     .from("ai_documents")
     .insert({
@@ -192,6 +198,7 @@ export async function ingestUploadedDocument(
     .select("id")
     .single();
   if (insertError || !doc) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
     return { error: insertError?.message ?? "Could not create the document." };
   }
 
@@ -203,6 +210,7 @@ export async function ingestUploadedDocument(
       throw new Error(downloadError?.message ?? "Could not read the uploaded file.");
     }
     const buffer = await file.arrayBuffer();
+    const { extractFromBuffer } = await import("@/lib/ai/extract");
     const text = await extractFromBuffer(buffer, mimeType, storagePath);
     return finishIngestion(gate.profileId, doc.id, text);
   } catch (e) {
@@ -224,7 +232,7 @@ async function finishIngestion(
       documentId,
       text,
     );
-    await supabase
+    const { error: readyError } = await supabase
       .from("ai_documents")
       .update({
         status: "ready",
@@ -234,6 +242,10 @@ async function finishIngestion(
       })
       .eq("id", documentId)
       .eq("profile_id", profileId);
+    // If this fails, chunks are already committed but the doc would be stuck in
+    // 'processing' (and excluded from retrieval). Throw so the catch marks it
+    // 'error' instead — recoverable by deleting + re-adding.
+    if (readyError) throw new Error(readyError.message);
     return { documentId };
   } catch (e) {
     await markDocumentError(documentId, profileId, errorMessage(e));

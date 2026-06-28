@@ -11,10 +11,14 @@ import { loadGoals } from "@/actions/goals";
 import { getMonthlyBreakdown } from "@/actions/expense-payments";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { retrieveContext } from "./retrieve";
+import type { MatchedChunk } from "@/types/ai.types";
 
 export function buildAssistantTools(
   supabase: SupabaseClient,
   profileId: string,
+  /** Optional sink: chunks surfaced by searchKnowledgeBase are pushed here so the
+   *  caller can include them in the answer's citations. */
+  collectedChunks?: MatchedChunk[],
 ) {
   return {
     getFinancialSummary: tool({
@@ -108,6 +112,7 @@ export function buildAssistantTools(
       }),
       execute: async ({ query }) => {
         const { chunks } = await retrieveContext(supabase, profileId, query);
+        if (collectedChunks) collectedChunks.push(...chunks);
         return {
           results: chunks.map((c) => ({
             source: c.document_title,
