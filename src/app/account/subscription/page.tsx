@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useUser } from "@/hooks/use-user";
 import { unsubscribe } from "@/actions/budget";
 import {
@@ -296,12 +297,12 @@ function SubscriptionPageInner() {
   }
 
   if (userLoading || !user) {
-    return <main className="app-main-centered"><p className="text-muted-foreground">Loading…</p></main>;
+    return <main className="app-main-centered"><DashboardSkeleton variant="page" /></main>;
   }
 
   const loading = statusQuery.isPending || paymentsQuery.isPending;
   if (loading) {
-    return <main className="app-main-centered"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></main>;
+    return <main className="app-main-centered"><DashboardSkeleton variant="page" /></main>;
   }
 
   const fetchError = (statusQuery.isError || paymentsQuery.isError)

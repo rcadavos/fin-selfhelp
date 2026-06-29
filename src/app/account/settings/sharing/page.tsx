@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/hooks/use-user";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import {
   listOutgoingShares,
@@ -24,7 +25,7 @@ import {
 import { getBaseUrl } from "@/lib/seo";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
 import { subscriptionStatusQueryOptions } from "@/lib/query/subscription-user";
-import { UsersRound, Link2, Trash2, Ban, ExternalLink, Loader2 } from "lucide-react";
+import { UsersRound, Link2, Trash2, Ban, ExternalLink } from "lucide-react";
 
 
 function permBadges(s: AccountShareRow) {
@@ -317,7 +318,7 @@ export default function SharingSettingsPage() {
   return (
     <Suspense fallback={
       <main className="app-main-centered">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <DashboardSkeleton variant="page" />
       </main>
     }>
       <SharingSettingsContent />

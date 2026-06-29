@@ -95,11 +95,12 @@ export function HeroSection({ className }: HeroSectionProps) {
             Get your life organized — without the stress
           </span>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Your all-in-one personal tracker for everything
+            Your all-in-one finance tracker — now with AI
           </h1>
           <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
-            Track your expenses, planned expenses, goals, and more in one simple
-            app. <br /> No clutter. No confusion. Just clarity.
+            Track expenses, planned expenses, accounts, and goals in one simple app —
+            then ask OmniTrak&rsquo;s built-in AI assistant anything about your money.
+            <br /> No clutter. No confusion. Just clarity.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button

@@ -15,6 +15,7 @@ export const freeBenefits = [
 ];
 
 export const proBenefits = [
+  "Ask OmniTrak — AI assistant for your finances & documents",
   "Email reminders for planned expenses and reminders",
   "Unlimited reminders",
   "Partner sharing (invite by email)",

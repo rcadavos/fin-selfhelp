@@ -15,6 +15,10 @@ const faqs: { q: string; a: string }[] = [
     a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, Goals tracking, due dates, and calculators. Reminders are limited to 10 items on free. Partner sharing, email reminders, unlimited reminders, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
   },
   {
+    q: "Is there an AI assistant?",
+    a: `Yes — "Ask OmniTrak" is a built-in AI assistant available on Pro and Premium (your ${TRIAL_DURATION_DAYS}-day Pro trial includes it). Open it from a floating button on any screen and ask about your budget, accounts, goals, or spending — it answers from your own data. You can also upload documents (PDF, text, Markdown) or add a website link and it will search them to answer, citing the sources. Nothing is shared with other users.`,
+  },
+  {
     q: "How does Goals work?",
     a: "Goals lets you create short-term, long-term, and lifetime goals, filter by achieved or not yet achieved, and mark goals as achieved with progress reflected immediately in your list.",
   },

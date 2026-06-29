@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { PieChart, Calculator, LayoutDashboard, ListChecks, Bell, Target } from "lucide-react";
+import { PieChart, Calculator, LayoutDashboard, ListChecks, Bell, Target, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedTextLoop } from "@/components/landing/animated-text-loop";
 
@@ -11,6 +11,14 @@ const features: {
   iconBg: string;
   iconColor: string;
 }[] = [
+  {
+    title: "Ask OmniTrak — AI assistant",
+    description:
+      "Chat for instant answers about your budget, accounts, goals, and spending — it reads your own data to reply. Upload documents (PDFs, notes, links) and it searches them too, citing its sources. Included with Pro & Premium.",
+    icon: Sparkles,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+  },
   {
     title: "Log expenses daily",
     description:
@@ -68,8 +76,8 @@ export function FeaturesSection({ className }: { className?: string }) {
         <div className="text-center">
           <AnimatedTextLoop />
           <p className="mt-4 text-lg text-muted-foreground">
-            Daily expenses, planned expenses, lists, goals, and calculators — the essentials you expect from a modern
-            finance app, tuned for everyday Filipino household use.
+            An AI assistant, daily expenses, planned expenses, lists, goals, and calculators — the essentials you expect
+            from a modern finance app, tuned for everyday Filipino household use.
           </p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

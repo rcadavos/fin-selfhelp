@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { getBaseUrl } from "@/lib/seo";
 
 export const alt =
-  "OmniTrak — Your all-in-one personal tracker for everything";
+  "OmniTrak — Your all-in-one finance tracker, now with AI";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -193,8 +193,8 @@ export default async function OpenGraphImage() {
                 display: "flex",
               }}
             >
-              Expenses, planned spend, goals, and more — all in one beautifully
-              simple app.
+              Expenses, planned spend, goals, and a built-in AI assistant — all
+              in one beautifully simple app.
             </div>
 
             {/* Feature chips */}
@@ -206,7 +206,7 @@ export default async function OpenGraphImage() {
                 marginBottom: 28,
               }}
             >
-              {["Free to start", "No bank linking", "Works on any device"].map(
+              {["Built-in AI assistant", "Free to start", "No bank linking", "Works on any device"].map(
                 (label) => (
                   <div
                     key={label}

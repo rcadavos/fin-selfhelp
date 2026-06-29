@@ -9,6 +9,7 @@ import { useUser } from "@/hooks/use-user";
 import { ContentHeader } from "@/components/app/content-header";
 import { listAcceptedSharesWithGrantors, type AccountShareRow } from "@/actions/account-sharing";
 import { PartnerAccessInfo } from "@/components/account/partner-access-info";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ShoppingCart, Banknote, UsersRound } from "lucide-react";
 
 type Row = NonNullable<Awaited<ReturnType<typeof listAcceptedSharesWithGrantors>>["rows"]>[number];
@@ -43,7 +44,7 @@ export default function SharedWithMePage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

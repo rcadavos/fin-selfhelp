@@ -374,7 +374,7 @@ export function AddEntryPanel({
                   id="ae-amount"
                   value={expAmount} onChange={setExpAmount}
                   placeholder="₱0.00" ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary"
                 />
               </div>
 
@@ -492,7 +492,7 @@ export function AddEntryPanel({
                   id="inc-amount"
                   value={incAmount} onChange={setIncAmount}
                   placeholder="₱0.00" ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary"
                 />
               </div>
               {accounts.length > 0 ? (
@@ -529,7 +529,7 @@ export function AddEntryPanel({
                   placeholder={adjCurrentBalance.toFixed(2)}
                   value={adjNewBalance} onChange={setAdjNewBalance}
                   ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   Enter the actual current balance to record a difference.
@@ -573,7 +573,7 @@ export function AddEntryPanel({
                   id="tx-amount"
                   placeholder="₱0.00" value={txAmount} onChange={setTxAmount}
                   ref={amountRef}
-                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus:border-primary"
+                  className="w-48 border-0 border-b-2 border-input bg-transparent px-0 py-1 text-center text-2xl md:text-2xl font-bold tabular-nums placeholder:text-muted-foreground/40 outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary"
                 />
               </div>
 

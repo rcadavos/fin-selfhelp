@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { loadSharedExpenseData, type ExpenseEntryRow } from "@/actions/budget";
 import { granteeSharedToggleExpensePayment } from "@/actions/expense-payments";
 import { categoriesQueryOptions } from "@/lib/query/categories";
@@ -100,7 +101,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
   if (loading) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

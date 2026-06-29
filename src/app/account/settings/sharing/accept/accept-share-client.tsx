@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { acceptAccountShare } from "@/actions/account-sharing";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 type InvitePreviewParsed = {
@@ -109,7 +110,7 @@ export function AcceptShareClient() {
   if (loading) {
     return (
       <div className="app-main-centered min-h-[40vh]">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </div>
     );
   }

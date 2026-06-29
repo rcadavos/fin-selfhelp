@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -132,7 +133,7 @@ export default function NotificationsPage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

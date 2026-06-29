@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { Check, Loader2, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -117,7 +118,7 @@ export default function ProfileSecurityPage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

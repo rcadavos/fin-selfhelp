@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
 import { useUserPreferences } from "@/contexts/user-preferences-context";
 import { deleteSelfAccount } from "@/actions/auth";
@@ -46,7 +47,7 @@ export default function SettingsPage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

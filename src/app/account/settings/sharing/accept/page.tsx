@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { AcceptShareClient } from "./accept-share-client";
 
 export default function AcceptSharePage() {
@@ -7,7 +8,7 @@ export default function AcceptSharePage() {
       <Suspense
         fallback={
           <div className="app-main-centered min-h-[40vh]">
-            <p className="text-muted-foreground">Loading…</p>
+            <DashboardSkeleton variant="page" />
           </div>
         }
       >

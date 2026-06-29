@@ -44,9 +44,9 @@ export function AiChatWidget() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open OmniTrak Assistant"
-        className="fixed right-4 bottom-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:right-6 md:bottom-24"
+        className="fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:right-6 md:bottom-24"
       >
-        <Sparkles className="h-5 w-5" />
+        <Sparkles className="h-6 w-6" />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>

@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             {/* Centered search — pointer-events layer so it doesn't block the right-side buttons */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 sm:px-20 md:px-28">
-              <div className="pointer-events-auto w-56 md:w-72">
+              <div className="pointer-events-auto w-72 md:w-[28rem] lg:w-[36rem]">
                 <DesktopSearch />
               </div>
             </div>

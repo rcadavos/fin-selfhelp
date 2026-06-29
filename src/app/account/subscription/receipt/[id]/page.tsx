@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { getPaymentReceiptById, type SubscriptionPaymentRow } from "@/actions/receipts";
 import { formatCurrency } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
-import { Loader2, Download, ArrowLeft } from "lucide-react";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { Download, ArrowLeft } from "lucide-react";
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -48,7 +49,7 @@ export default function ReceiptPage() {
   if (userLoading || !user) {
     return (
       <main className="app-main-centered">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }
@@ -56,7 +57,7 @@ export default function ReceiptPage() {
   if (loading) {
     return (
       <main className="app-main-centered">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

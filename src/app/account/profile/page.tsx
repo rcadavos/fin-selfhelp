@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { updateProfile } from "@/actions/auth";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ProfileAvatarUploader } from "@/components/account/profile-avatar-uploader";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { Gift, Loader2 } from "lucide-react";
 
 const MONTHS = [
@@ -73,7 +74,7 @@ export default function ProfilePage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered min-h-[40vh]">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }

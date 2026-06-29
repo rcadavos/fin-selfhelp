@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 const SITE_NAME = "OmniTrak";
-const DEFAULT_TITLE = "OmniTrak — Your all-in-one personal tracker for everything";
+const DEFAULT_TITLE = "OmniTrak — Your all-in-one finance tracker, now with AI";
 const DEFAULT_DESCRIPTION =
-  "Planned expense tracker and expense dashboard: track planned expenses by category, mark paid each month, to-buy and to-do lists, and calculators — see at a glance where you stand.";
+  "Track expenses, planned expenses, accounts, goals, and reminders in one simple app — plus Ask OmniTrak, a built-in AI assistant that answers questions about your money and your own documents.";
 const TWITTER_HANDLE = ""; // e.g. "@omnitrak" if you have one
 const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID ?? "";
 
@@ -81,6 +81,9 @@ export function buildPageMetadata(meta: PageMeta): Metadata {
     description,
     keywords: [
       "OmniTrak",
+      "AI finance assistant",
+      "AI budgeting assistant",
+      "personal finance AI",
       "personal tracker",
       "bill payment tracker",
       "expense dashboard",

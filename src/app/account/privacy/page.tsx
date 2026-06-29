@@ -11,6 +11,7 @@ import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import { ContentHeader } from "@/components/app/content-header";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { updatePrivacySettings, deleteSelfAccount } from "@/actions/auth";
 import { ArrowUpRight, Download, Loader2, Lock } from "lucide-react";
 
@@ -80,7 +81,7 @@ export default function PrivacyPage() {
   if (loading || !user) {
     return (
       <main className="app-main-centered min-h-[40vh]">
-        <p className="text-muted-foreground">Loading…</p>
+        <DashboardSkeleton variant="page" />
       </main>
     );
   }
