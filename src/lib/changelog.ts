@@ -14,7 +14,7 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.7.0",
+    version: "1.6.1",
     date: "2026-06-29",
     summary:
       "New accounts now start with a 14-day Pro free trial — full Pro access, no card required.",
