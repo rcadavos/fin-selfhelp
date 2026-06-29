@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
+import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
 import { Check, Gem, Sparkles } from "lucide-react";
 
 
@@ -39,13 +40,20 @@ export function SubscribeSection({
           <p className="mt-4 text-lg text-muted-foreground">
             Start free, upgrade to Pro for email reminders and unlimited lists, or Premium for extra modules.
           </p>
+          <div className="mt-6 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
+              🎁 Every new account starts with a {TRIAL_DURATION_DAYS}-day Pro free trial — no card required.
+            </span>
+          </div>
         </div>
 
         <div className="mx-auto flex max-w-5xl flex-wrap items-stretch justify-center gap-6">
           <Card className="flex w-full max-w-sm flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-base">Free</CardTitle>
-              <CardDescription>Track planned expenses and cashflow, no card required.</CardDescription>
+              <CardDescription>
+                Track planned expenses and cashflow, no card required. New accounts get {TRIAL_DURATION_DAYS} days of Pro to start.
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               {freeBenefits.map((f) => (

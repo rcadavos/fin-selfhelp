@@ -62,9 +62,9 @@ export async function POST(req: Request) {
   }
 
   const caps = await getSubscriptionCapabilities();
-  if (!caps?.hasPremiumAccess) {
+  if (!caps?.hasProLevelAccess) {
     return NextResponse.json(
-      { error: "AI Assistant is a Premium feature." },
+      { error: "Ask OmniTrak is available on the Pro and Premium plans." },
       { status: 403 },
     );
   }

@@ -1,9 +1,14 @@
 import { cn } from "@/lib/utils";
+import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
 
 const faqs: { q: string; a: string }[] = [
   {
     q: "What is OmniTrak?",
     a: "A personal finance hub focused on planned expenses and cashflow: track expenses by category, mark what you paid each month, manage goals, set reminders, and use calculators — tuned for everyday use in the Philippines.",
+  },
+  {
+    q: "Do new accounts get a free trial?",
+    a: `Yes. Every new account automatically starts with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required. During the trial you get full Pro access, including email reminders, unlimited reminders, partner sharing, and custom expense categories. When the ${TRIAL_DURATION_DAYS} days are up, you move to the free plan automatically; upgrade anytime to keep Pro features.`,
   },
   {
     q: "What does the free plan include?",

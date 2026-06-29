@@ -14,10 +14,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.7.0",
+    date: "2026-06-29",
+    summary:
+      "New accounts now start with a 14-day Pro free trial — full Pro access, no card required.",
+    changes: [
+      { type: "feature", description: "Every new account automatically gets a 14-day Pro free trial on signup: email reminders, unlimited reminders, partner sharing, and custom expense categories. When the trial ends, accounts move to the free plan automatically." },
+      { type: "improvement", description: "The welcome email now highlights the 14-day Pro free trial and the Pro features it unlocks, with an upgrade link for after the trial." },
+      { type: "improvement", description: "The landing page now promotes the 14-day Pro free trial in the hero, the Plans section, and a new FAQ entry." },
+    ],
+  },
+  {
     version: "1.6.0",
     date: "2026-06-28",
     summary:
-      "Introducing Ask OmniTrak — a private AI assistant (Premium) that answers questions about your finances and your own uploaded documents, with a knowledge base and a floating chat widget.",
+      "Introducing Ask OmniTrak — a private AI assistant for Pro and Premium members that answers questions about your finances and your own uploaded documents, available from a floating button on every screen.",
     changes: [
       { type: "feature", description: "New Ask OmniTrak AI assistant: chat about your budget, accounts, goals, and spending trends. It reads your live data on demand to answer accurately." },
       { type: "feature", description: "Knowledge base — upload PDFs, text, or Markdown files, paste notes, or add a website URL, and the assistant can search them to answer your questions (Retrieval-Augmented Generation with citations)." },

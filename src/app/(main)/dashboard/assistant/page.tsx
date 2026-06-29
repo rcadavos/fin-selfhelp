@@ -13,8 +13,8 @@ import {
 
 export default async function AssistantPage() {
   const caps = await getSubscriptionCapabilities();
-  if (!caps?.hasPremiumAccess) {
-    redirect("/account/subscription/payment?plan=premium");
+  if (!caps?.hasProLevelAccess) {
+    redirect("/account/subscription/payment?plan=pro");
   }
 
   const queryClient = getQueryClient();

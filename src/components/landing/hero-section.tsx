@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
+import { TRIAL_LABEL } from "@/lib/constants/trial";
 import { Loader2 } from "lucide-react";
 
 type HeroSectionProps = {
@@ -136,6 +137,13 @@ export function HeroSection({ className }: HeroSectionProps) {
             </Button>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 font-semibold text-primary">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-primary"
+                aria-hidden
+              />
+              {TRIAL_LABEL}
+            </span>
             <span className="flex items-center gap-1.5">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-emerald-500"

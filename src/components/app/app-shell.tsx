@@ -7,7 +7,6 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { DesktopSearch } from "@/components/app/app-search";
 import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { BottomNavbar } from "@/components/app/bottom-navbar";
@@ -33,20 +32,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="relative z-10 hidden h-14 shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block"
             aria-label="App toolbar"
           >
-            {/* Centered search + Add Entry — pointer-events layer so it doesn't block the right-side buttons */}
+            {/* Centered search — pointer-events layer so it doesn't block the right-side buttons */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 sm:px-20 md:px-28">
-              <div className="pointer-events-auto flex items-center gap-2">
-                <div className="w-56 md:w-72">
-                  <DesktopSearch />
-                </div>
-                <Button
-                  size="sm"
-                  className="gap-1.5 h-8 shrink-0"
-                  onClick={() => setAddEntryOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Entry
-                </Button>
+              <div className="pointer-events-auto w-56 md:w-72">
+                <DesktopSearch />
               </div>
             </div>
             {/* Right actions */}
@@ -68,7 +57,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <BottomNavbar />
       </div>
       <AddEntryPanel open={addEntryOpen} onClose={() => setAddEntryOpen(false)} />
-      {user ? <AiChatWidget /> : null}
+      {user ? (
+        <>
+          {/* Floating Add Entry (desktop) — sits below the Ask AI button.
+              On mobile the bottom navbar already provides the center "+" FAB. */}
+          <button
+            type="button"
+            onClick={() => setAddEntryOpen(true)}
+            aria-label="Add entry"
+            className="fixed right-6 bottom-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 md:flex"
+          >
+            <Plus className="h-7 w-7" strokeWidth={2.5} />
+          </button>
+          <AiChatWidget />
+        </>
+      ) : null}
     </div>
   );
 }

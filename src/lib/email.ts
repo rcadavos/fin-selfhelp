@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
 import { generateUnsubscribeUrl } from "@/lib/email-unsubscribe";
+import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
 
 const UNSUB_PLACEHOLDER = "{{UNSUB_URL}}";
 
@@ -37,6 +38,13 @@ export async function sendWelcomeEmail(params: {
     "",
     "Welcome to OmniTrak — your all-in-one personal finance tracker.",
     "",
+    `🎁 Your account comes with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required.`,
+    `For the next ${TRIAL_DURATION_DAYS} days you get full Pro access, including:`,
+    "• Email reminders for planned expenses and reminders",
+    "• Unlimited reminders",
+    "• Partner sharing (invite by email)",
+    "• Custom expense categories",
+    "",
     "Here's what you can do right away:",
     "• Track your expenses and categorize spending",
     "• Manage recurring bills and never miss a due date",
@@ -46,6 +54,9 @@ export async function sendWelcomeEmail(params: {
     "",
     "Get started here:",
     `${siteUrl}/dashboard`,
+    "",
+    `When your ${TRIAL_DURATION_DAYS}-day trial ends you'll move to the free plan automatically — upgrade anytime to keep Pro features:`,
+    `${siteUrl}/account/subscription`,
     "",
     "If you have any questions, feel free to reach out.",
     "",
@@ -93,6 +104,23 @@ export async function sendWelcomeEmail(params: {
                 <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
                   Your account is all set. OmniTrak helps you stay on top of your finances — tracking expenses, planned expenses, goals, and more in one place.
                 </p>
+              </td>
+            </tr>
+
+            <!-- Pro trial banner -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:16px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;">
+                      <p style="margin:0;font-size:12px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.05em;">🎁 ${TRIAL_DURATION_DAYS}-Day Pro Free Trial</p>
+                      <p style="margin:6px 0 0 0;font-size:15px;font-weight:700;color:#0f172a;">You've got full Pro access for ${TRIAL_DURATION_DAYS} days — no card required.</p>
+                      <p style="margin:8px 0 0 0;font-size:13px;line-height:1.7;color:#475569;">
+                        Until then, enjoy email reminders, unlimited reminders, partner sharing, and custom expense categories. When your trial ends, you'll move to the free plan automatically.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
 
@@ -155,7 +183,7 @@ export async function sendWelcomeEmail(params: {
             <tr>
               <td style="padding:16px 24px 0 24px;">
                 <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;text-align:center;">
-                  Want email reminders for bills and partner sharing? Upgrade to <a href="${siteUrl}/account/subscription" style="color:#16A34A;text-decoration:none;font-weight:600;">Pro</a> anytime.
+                  Love the Pro features during your trial? <a href="${siteUrl}/account/subscription" style="color:#16A34A;text-decoration:none;font-weight:600;">Upgrade to Pro</a> anytime to keep them after your ${TRIAL_DURATION_DAYS} days.
                 </p>
               </td>
             </tr>

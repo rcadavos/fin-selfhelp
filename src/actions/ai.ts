@@ -15,23 +15,20 @@ import type {
   AiMessageRecord,
 } from "@/types/ai.types";
 
-const PREMIUM_REQUIRED = "AI Assistant is a Premium feature.";
 const NOT_LOGGED_IN = "Not logged in.";
+const PRO_REQUIRED = "Ask OmniTrak is available on the Pro and Premium plans.";
 
 /** Light env check (URL ingestion needs Firecrawl). Avoids importing extract.ts. */
 function urlIngestionConfigured(): boolean {
   return Boolean(process.env.FIRECRAWL_API_KEY);
 }
 
-/** Capability + config flags the assistant UI needs up front. */
+/** Config flags the assistant UI needs up front. The assistant is free for all users. */
 export async function getAiAssistantInfo(): Promise<{
-  hasPremiumAccess: boolean;
   aiConfigured: boolean;
   urlIngestionEnabled: boolean;
 }> {
-  const caps = await getSubscriptionCapabilities();
   return {
-    hasPremiumAccess: Boolean(caps?.hasPremiumAccess),
     aiConfigured: isAiConfigured(),
     urlIngestionEnabled: urlIngestionConfigured(),
   };
@@ -67,7 +64,7 @@ async function assertCanIngest(): Promise<
   if (!profileId) return { error: NOT_LOGGED_IN };
 
   const caps = await getSubscriptionCapabilities();
-  if (!caps?.hasPremiumAccess) return { error: PREMIUM_REQUIRED };
+  if (!caps?.hasProLevelAccess) return { error: PRO_REQUIRED };
 
   if (!isAiConfigured()) {
     return { error: "AI is not configured. Add AI_GATEWAY_API_KEY to enable it." };

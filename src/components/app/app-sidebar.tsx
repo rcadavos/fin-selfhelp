@@ -16,7 +16,6 @@ import {
   Wallet,
   Car,
   HandCoins,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
@@ -39,7 +38,6 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
-  { href: "/dashboard/assistant", label: "Ask AI", icon: Sparkles, premium: true },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
   { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false },
