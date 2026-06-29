@@ -49,7 +49,7 @@ export default async function RootLayout({
     "@type": "WebApplication",
     name: "OmniTrak",
     description:
-      "Bill payment tracker and expense dashboard: bills by category, monthly paid status, to-buy and to-do lists, and calculators.",
+      "Personal finance tracker with a built-in AI assistant: expenses, planned expenses, accounts, goals, reminders, and calculators, plus Ask OmniTrak — a private AI assistant for questions about your money and your own documents.",
     url: baseUrl,
     applicationCategory: "FinanceApplication",
   };
