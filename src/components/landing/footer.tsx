@@ -25,18 +25,18 @@ const legalLinks = [
   { href: LEGAL_ROUTES.noSale, label: "We don't sell your data" },
 ] as const;
 
+const columnHeader = "mb-3 font-mono text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground";
+const columnLink = "transition-colors hover:text-primary";
+
 export function Footer({ className }: { className?: string }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer
-      className={cn(
-        "border-t border-border/60 bg-muted/15 px-4 py-12 sm:px-6 lg:px-8",
-        className
-      )}
-    >
-      <div className="mx-auto max-w-6xl">
-        <div className="grid gap-10 border-t border-border/60 pt-12 md:grid-cols-12 md:gap-12">
+    <footer className={cn("border-t border-border bg-background", className)}>
+      <FooterFeedback />
+
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-12 md:gap-12">
           <div className="space-y-4 md:col-span-5">
             <div>
               <p className="text-lg font-semibold tracking-tight text-foreground">OmniTrak</p>
@@ -44,9 +44,6 @@ export function Footer({ className }: { className?: string }) {
                 Your all-in-one personal tracker for planned expenses, cashflow, lists, and more.
               </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              © {year} OmniTrak. All rights reserved.
-            </p>
             <a
               href={PORTFOLIO_URL}
               target="_blank"
@@ -54,25 +51,26 @@ export function Footer({ className }: { className?: string }) {
               className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Developer portfolio
-              <ExternalLink className="size-3.5 opacity-70 transition-opacity group-hover:opacity-100" aria-hidden />
+              <ExternalLink
+                className="size-3.5 opacity-70 transition-opacity group-hover:opacity-100"
+                aria-hidden
+              />
               <span className="sr-only"> (opens in new tab)</span>
             </a>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:col-span-7 lg:gap-12">
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground">
-                Product
-              </p>
-              <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <p className={columnHeader}>Product</p>
+              <ul className="space-y-2.5 text-sm text-foreground">
                 {productLinks.map(({ href, label }) => (
                   <li key={href}>
                     {href.startsWith("#") ? (
-                      <a href={href} className="transition-colors hover:text-foreground">
+                      <a href={href} className={columnLink}>
                         {label}
                       </a>
                     ) : (
-                      <Link href={href} className="transition-colors hover:text-foreground">
+                      <Link href={href} className={columnLink}>
                         {label}
                       </Link>
                     )}
@@ -82,13 +80,11 @@ export function Footer({ className }: { className?: string }) {
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground">
-                Legal
-              </p>
-              <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <p className={columnHeader}>Legal</p>
+              <ul className="space-y-2.5 text-sm text-foreground">
                 {legalLinks.map(({ href, label }) => (
                   <li key={href}>
-                    <Link href={href} className="transition-colors hover:text-foreground">
+                    <Link href={href} className={columnLink}>
                       {label}
                     </Link>
                   </li>
@@ -97,16 +93,11 @@ export function Footer({ className }: { className?: string }) {
             </div>
 
             <div className="col-span-2 sm:col-span-1">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-foreground">
-                Connect
-              </p>
-              <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <p className={columnHeader}>Connect</p>
+              <ul className="space-y-2.5 text-sm text-foreground">
                 {SUPPORT_EMAIL ? (
                   <li>
-                    <a
-                      href={`mailto:${SUPPORT_EMAIL}`}
-                      className="transition-colors hover:text-foreground"
-                    >
+                    <a href={`mailto:${SUPPORT_EMAIL}`} className={columnLink}>
                       {SUPPORT_EMAIL}
                     </a>
                   </li>
@@ -116,7 +107,7 @@ export function Footer({ className }: { className?: string }) {
                     href={PORTFOLIO_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+                    className={cn("inline-flex items-center gap-1", columnLink)}
                   >
                     rgcadavos.dev
                     <ExternalLink className="size-3 opacity-70" aria-hidden />
@@ -125,6 +116,10 @@ export function Footer({ className }: { className?: string }) {
               </ul>
             </div>
           </div>
+        </div>
+
+        <div className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
+          © {year} OmniTrak. All rights reserved.
         </div>
       </div>
     </footer>

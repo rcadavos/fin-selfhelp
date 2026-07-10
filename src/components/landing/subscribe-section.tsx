@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { SubscriptionPlanRow } from "@/actions/subscription-plan";
-import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
-import { Check, Gem, Sparkles } from "lucide-react";
-
+import { TRIAL_DESCRIPTION } from "@/lib/constants/trial";
+import { Check } from "lucide-react";
+import { Amount } from "@/components/passbook/amount";
+import { Stamp } from "@/components/passbook/stamp";
 
 export const freeBenefits = [
   "Unlimited expense & planned expense rows",
+  "Due dates & all core tracking",
   "Reminders (up to 5 items)",
-  "1 planned expense reminder (in-app & email)",
-  "Unlimited reminders — upgrade to Pro",
+  "1 planned-expense reminder (in-app)",
 ];
 
 export const proBenefits = [
@@ -24,6 +24,48 @@ export const proBenefits = [
 
 export const premiumExtra = ["Everything in Pro", "Rent Tracker", "Payment Tracker", "All Future Features"];
 
+function PriceRow({
+  amount,
+  currency,
+  interval,
+  original,
+  onPrimary,
+}: {
+  amount: number;
+  currency: string;
+  interval: string;
+  original: number | null;
+  onPrimary: boolean;
+}) {
+  return (
+    <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      {original != null && (
+        <span
+          className={cn(
+            "font-mono text-sm line-through",
+            onPrimary ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}
+        >
+          {formatCurrency(original, currency)}
+        </span>
+      )}
+      <Amount
+        value={amount}
+        currency={currency}
+        className={cn("text-2xl font-bold", onPrimary ? "text-primary-foreground" : "text-foreground")}
+      />
+      <span
+        className={cn(
+          "font-mono text-xs",
+          onPrimary ? "text-primary-foreground/80" : "text-muted-foreground"
+        )}
+      >
+        / {interval}
+      </span>
+    </div>
+  );
+}
+
 export function SubscribeSection({
   className,
   proPlan,
@@ -33,134 +75,136 @@ export function SubscribeSection({
   proPlan: SubscriptionPlanRow;
   premiumPlan: SubscriptionPlanRow;
 }) {
+  const plans = [
+    {
+      key: "free",
+      name: "Free",
+      amount: 0,
+      currency: proPlan.priceCurrency,
+      interval: proPlan.interval,
+      original: null as number | null,
+      tag: "Track planned expenses and cashflow, no card required.",
+      benefits: freeBenefits,
+      cta: { label: "Create account", href: "/signup" },
+      variant: "outline" as const,
+      highlight: false,
+    },
+    {
+      key: "pro",
+      name: proPlan.name,
+      amount: proPlan.priceAmount,
+      currency: proPlan.priceCurrency,
+      interval: proPlan.interval,
+      original: proPlan.originalPriceAmount,
+      tag: "Full access to My Expenses and Reminders.",
+      benefits: proBenefits,
+      cta: { label: "Get Pro", href: "/account/subscription/payment?plan=pro" },
+      variant: "default" as const,
+      highlight: true,
+    },
+    ...(premiumPlan.enabled
+      ? [
+          {
+            key: "premium",
+            name: premiumPlan.name,
+            amount: premiumPlan.priceAmount,
+            currency: premiumPlan.priceCurrency,
+            interval: premiumPlan.interval,
+            original: premiumPlan.originalPriceAmount,
+            tag: "Pro plus premium-only trackers.",
+            benefits: premiumExtra,
+            cta: { label: "Get Premium", href: "/account/subscription/payment?plan=premium" },
+            variant: "outline" as const,
+            highlight: false,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <section id="subscribe" className={cn("border-t bg-muted/30 px-4 py-16 sm:px-6 lg:px-8", className)}>
+    <section
+      id="subscribe"
+      className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}
+    >
       <div className="mx-auto max-w-6xl">
-        <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Plans</h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Start free, upgrade to Pro for email reminders and unlimited lists, or Premium for extra modules.
-          </p>
-          <div className="mt-6 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-              🎁 Every new account starts with a {TRIAL_DURATION_DAYS}-day Pro free trial — no card required.
-            </span>
-          </div>
-        </div>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+          Plans
+        </h2>
+        <p className="mt-3 max-w-[52ch] text-muted-foreground">
+          Start free. Upgrade to Pro for the AI assistant and email reminders, or Premium for extra
+          trackers.
+        </p>
 
-        <div className="mx-auto flex max-w-5xl flex-wrap items-stretch justify-center gap-6">
-          <Card className="flex w-full max-w-sm flex-col border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base">Free</CardTitle>
-              <CardDescription>
-                Track planned expenses and cashflow, no card required. New accounts get {TRIAL_DURATION_DAYS} days of Pro to start.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
-              {freeBenefits.map((f) => (
-                <div key={f} className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </CardContent>
-            <CardFooter className="mt-auto w-full">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/signup">Create account</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card className="relative flex h-full w-full max-w-sm flex-col overflow-hidden border-primary/60 bg-primary/5 shadow-xl ring-2 ring-primary/20 lg:scale-[1.06] lg:z-10">
-            <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-primary/10" aria-hidden />
-            <div className="absolute left-0 top-0">
-              <span className="inline-flex items-center gap-1 rounded-br-xl bg-orange-500 px-3 py-1 text-xs font-bold text-white">
-                🔥 Most Popular
-              </span>
-            </div>
-            <CardHeader className="pt-8">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                <CardTitle className="text-lg text-foreground">{proPlan.name}</CardTitle>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                {proPlan.originalPriceAmount != null && (
-                  <span className="text-lg text-muted-foreground line-through">
-                    {formatCurrency(proPlan.originalPriceAmount, proPlan.priceCurrency)}
-                  </span>
-                )}
-                <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(proPlan.priceAmount, proPlan.priceCurrency)}
-                </span>
-                <span className="text-sm text-muted-foreground">/{proPlan.interval}</span>
-              </div>
-              <CardDescription className="mt-1">Full access on My Expenses and Reminders</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
-              {proBenefits.map((item) => (
-                <div key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </CardContent>
-            <CardFooter className="relative z-10 mt-auto w-full">
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link href="/account/subscription/payment?plan=pro" className="flex items-center justify-center gap-2">
-                  <span>Get Pro</span>
-                  <span className="font-semibold">
-                    {formatCurrency(proPlan.priceAmount, proPlan.priceCurrency)}/{proPlan.interval}
-                  </span>
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {premiumPlan.enabled && (
-          <Card className="relative flex h-full w-full max-w-sm flex-col overflow-hidden border-sky-500/40 bg-sky-500/[0.06] shadow-sm dark:bg-sky-950/20">
-            <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-sky-500/10" aria-hidden />
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Gem className="h-5 w-5 text-sky-600 dark:text-sky-400" aria-hidden />
-                <CardTitle className="text-lg text-foreground">{premiumPlan.name}</CardTitle>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                {premiumPlan.originalPriceAmount != null && (
-                  <span className="text-lg text-muted-foreground line-through">
-                    {formatCurrency(premiumPlan.originalPriceAmount, premiumPlan.priceCurrency)}
-                  </span>
-                )}
-                <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(premiumPlan.priceAmount, premiumPlan.priceCurrency)}
-                </span>
-                <span className="text-sm text-muted-foreground">/{premiumPlan.interval}</span>
-              </div>
-              <CardDescription className="mt-1">Pro plus premium-only trackers.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
-              {premiumExtra.map((item) => (
-                <div key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </CardContent>
-            <CardFooter className="relative z-10 mt-auto w-full">
-              <Button className="w-full bg-sky-600 text-white hover:bg-sky-600/90 dark:bg-sky-500" asChild>
-                <Link
-                  href="/account/subscription/payment?plan=premium"
-                  className="flex items-center justify-center gap-2"
-                >
-                  <span>Get Premium</span>
-                  <span className="font-semibold">
-                    {formatCurrency(premiumPlan.priceAmount, premiumPlan.priceCurrency)}/{premiumPlan.interval}
-                  </span>
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
+        <div
+          className={cn(
+            "mt-10 grid grid-cols-1 overflow-hidden rounded-md border border-border",
+            plans.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
           )}
+        >
+          {plans.map((plan, i) => (
+            <div
+              key={plan.key}
+              className={cn(
+                "flex flex-col p-6 sm:p-7",
+                i > 0 && "border-t border-border md:border-l md:border-t-0"
+              )}
+            >
+              {plan.highlight ? (
+                <div className="-mx-6 -mt-6 bg-primary px-6 pb-5 pt-6 text-primary-foreground sm:-mx-7 sm:-mt-7 sm:px-7 sm:pt-7">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                    <span className="text-[17px] font-bold">{plan.name}</span>
+                    <Stamp
+                      variant="muted"
+                      className="border-primary-foreground/70 text-primary-foreground"
+                    >
+                      Most popular
+                    </Stamp>
+                  </div>
+                  <PriceRow
+                    amount={plan.amount}
+                    currency={plan.currency}
+                    interval={plan.interval}
+                    original={plan.original}
+                    onPrimary
+                  />
+                  <p className="mt-1.5 text-sm text-primary-foreground/85">{plan.tag}</p>
+                </div>
+              ) : (
+                <div className="border-b border-border pb-5">
+                  <span className="text-[17px] font-bold text-foreground">{plan.name}</span>
+                  <PriceRow
+                    amount={plan.amount}
+                    currency={plan.currency}
+                    interval={plan.interval}
+                    original={plan.original}
+                    onPrimary={false}
+                  />
+                  <p className="mt-1.5 text-sm text-muted-foreground">{plan.tag}</p>
+                </div>
+              )}
+
+              <ul className={cn("flex-1", plan.highlight ? "mt-5" : "mt-4")}>
+                {plan.benefits.map((benefit) => (
+                  <li
+                    key={benefit}
+                    className="flex items-start gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+                  >
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    <span className="text-foreground">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button variant={plan.variant} asChild className="mt-6 h-11 w-full">
+                <Link href={plan.cta.href}>{plan.cta.label}</Link>
+              </Button>
+            </div>
+          ))}
         </div>
+
+        <p className="mt-6 border-t border-border pt-4 text-sm text-muted-foreground">
+          {TRIAL_DESCRIPTION}
+        </p>
       </div>
     </section>
   );

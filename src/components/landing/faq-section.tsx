@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
+import { ChevronDown } from "lucide-react";
 
 const faqs: { q: string; a: string }[] = [
   {
@@ -12,7 +13,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "What does the free plan include?",
-    a: "Yes — you can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, Goals tracking, due dates, and calculators. Reminders are limited to 10 items on free. Partner sharing, email reminders, unlimited reminders, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
+    a: "You can use OmniTrak without a subscription or card: unlimited expense rows, the monthly paid dashboard, Goals tracking, due dates, and calculators. Reminders are limited to 5 items on free. Partner sharing, email reminders, unlimited reminders, and exports require Pro or Premium; Premium adds modules such as rent and payment trackers.",
   },
   {
     q: "Is there an AI assistant?",
@@ -42,29 +43,37 @@ const faqs: { q: string; a: string }[] = [
 
 export function FaqSection({ className }: { className?: string }) {
   return (
-    <section id="faq" className={cn("border-t bg-muted/25 px-4 py-16 sm:px-6 lg:px-8", className)}>
-      <div className="mx-auto max-w-3xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Frequently Asked Questions</h2>
-          <p className="mt-3 text-muted-foreground">Straight answers before you sign up.</p>
+    <section
+      id="faq"
+      className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}
+    >
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-12 lg:gap-14">
+        <div className="lg:col-span-4">
+          <div className="lg:sticky lg:top-24">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+              Frequently asked questions
+            </h2>
+            <p className="mt-3 max-w-[30ch] text-muted-foreground">
+              Straight answers before you sign up.
+            </p>
+          </div>
         </div>
-        <div className="mt-10 space-y-3">
-          {faqs.map(({ q, a }) => (
-            <details
-              key={q}
-              className="group rounded-xl border border-border/80 bg-card px-4 py-1 shadow-sm open:shadow-md transition-shadow"
-            >
-              <summary className="cursor-pointer list-none py-4 font-medium text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
-                <span className="flex items-center justify-between gap-2">
-                  {q}
-                  <span className="text-muted-foreground transition group-open:rotate-180" aria-hidden>
-                    ▼
-                  </span>
-                </span>
-              </summary>
-              <p className="border-t border-border/60 pb-4 pt-2 text-sm leading-relaxed text-muted-foreground">{a}</p>
-            </details>
-          ))}
+
+        <div className="lg:col-span-8">
+          <div className="border-t border-border">
+            {faqs.map(({ q, a }) => (
+              <details key={q} className="group border-b border-border">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-[15px] font-medium text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span>{q}</span>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+                    aria-hidden
+                  />
+                </summary>
+                <p className="max-w-[62ch] pb-4 text-sm leading-relaxed text-muted-foreground">{a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </div>
     </section>

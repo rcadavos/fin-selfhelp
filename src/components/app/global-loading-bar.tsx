@@ -22,7 +22,16 @@ function useRouteChanging() {
   const [changing, setChanging] = useState(false);
 
   useEffect(() => {
-    const start = () => setChanging(true);
+    // Never schedule the React update synchronously. history.pushState can be
+    // invoked from inside React's commit / insertion-effect phase (App Router +
+    // next-themes history sync, Radix dialogs), where scheduling an update throws
+    // "useInsertionEffect must not schedule updates". A macrotask (setTimeout 0)
+    // runs only after the current commit fully unwinds, so the update always
+    // lands outside the forbidden window while still firing before the next route
+    // commits (so ordering vs. the END effect is preserved).
+    const start = () => {
+      window.setTimeout(() => setChanging(true), 0);
+    };
 
     const isInternalNavClick = (e: MouseEvent) => {
       if (e.defaultPrevented) return false;
@@ -54,17 +63,32 @@ function useRouteChanging() {
     // Patch pushState (real forward navigations) but NOT replaceState, which
     // Next.js calls internally for non-navigation history sync and would flash
     // the bar spuriously.
-    const origPush = history.pushState;
-    history.pushState = function (...args) {
-      start();
-      return origPush.apply(this, args as Parameters<typeof history.pushState>);
+    //
+    // Always wrap the NATIVE pushState, never a previous wrapper. Fast Refresh
+    // re-runs this effect, and if we wrapped whatever was currently installed we
+    // would stack wrappers — leaving stale closures on the global that keep
+    // firing the old (pre-fix) handler. Stashing the native fn on window makes
+    // re-patching idempotent and self-healing across hot reloads.
+    const w = window as unknown as {
+      __omnitrakNativePushState?: History["pushState"];
     };
+    const nativePush = w.__omnitrakNativePushState ?? history.pushState;
+    w.__omnitrakNativePushState = nativePush;
+    const patchedPush: History["pushState"] = function (this: History, ...args) {
+      start();
+      return nativePush.apply(
+        this,
+        args as Parameters<History["pushState"]>,
+      );
+    };
+    history.pushState = patchedPush;
 
     document.addEventListener("click", onClick);
     window.addEventListener("popstate", start);
 
     return () => {
-      history.pushState = origPush;
+      // Only restore if ours is still installed (avoid clobbering a newer patch).
+      if (history.pushState === patchedPush) history.pushState = nativePush;
       document.removeEventListener("click", onClick);
       window.removeEventListener("popstate", start);
     };

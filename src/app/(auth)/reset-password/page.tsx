@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronLeft } from "lucide-react";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
+import { AuthShell, PanelStatement, PanelRow, PanelValue } from "@/components/auth/passbook-panel";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -39,56 +38,66 @@ export default function ResetPasswordPage() {
     router.replace("/login?reset=success");
   }
 
+  const panel = (
+    <>
+      <p className="max-w-[34ch] text-[15px] leading-relaxed text-panel-muted">
+        Almost done. Choose a new password you&apos;ll remember — you can always reset it again later.
+      </p>
+      <div className="mt-7">
+        <PanelStatement title="New password" meta="Almost done" label="Setting a new password">
+          <PanelRow label="Reset link" value={<PanelValue>Verified</PanelValue>} />
+          <PanelRow label="Minimum length" value={<PanelValue>6 chars</PanelValue>} />
+          <PanelRow label="Next step" value={<PanelValue>Log in</PanelValue>} last />
+        </PanelStatement>
+      </div>
+    </>
+  );
+
   return (
-    <main className="app-main-centered">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Set new password</CardTitle>
-          <CardDescription>
-            Enter your new password below. You must use the link from your email to get here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                placeholder="At least 6 characters"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Updating…" : "Update password"}
-            </Button>
-          </form>
-          <p className="text-center text-sm text-muted-foreground">
-            <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
-              Back to log in
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-      <Link href="/" className="mt-6 inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" />Back to home
-      </Link>
-    </main>
+    <AuthShell panel={panel}>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Set new password</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Enter your new password below. You must use the link from your email to get here.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="password">New password</Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            autoComplete="new-password"
+            placeholder="At least 6 characters"
+            className="h-11"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirm">Confirm password</Label>
+          <Input
+            id="confirm"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+            minLength={6}
+            autoComplete="new-password"
+            className="h-11"
+          />
+        </div>
+        <Button type="submit" className="h-11 w-full" disabled={loading}>
+          {loading ? "Updating…" : "Update password"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-sm text-muted-foreground">
+        <Link href="/login" className="font-medium text-primary underline underline-offset-4 hover:no-underline">
+          Back to log in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

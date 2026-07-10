@@ -1,66 +1,111 @@
 import { cn } from "@/lib/utils";
+import { Amount } from "@/components/passbook/amount";
+import { Stamp } from "@/components/passbook/stamp";
+import { LedgerRow } from "@/components/passbook/dot-leader";
 
 const steps = [
   {
-    step: 1,
+    num: "01",
     title: "Add your tracked accounts",
-    description:
-      "Start by adding the accounts you use — bank, e-wallet, cash, or credit. Every expense and planned expense gets linked to one, so balances stay in sync and you can see exactly where your money moves.",
+    description: "Cash, e-wallets, bank accounts. Balances stay yours to enter.",
   },
   {
-    step: 2,
+    num: "02",
     title: "Log expenses & planned expenses",
-    description:
-      "Record daily expenses with a date, category, and note. Add recurring planned expenses — monthly, quarterly, or yearly — and set due dates so nothing catches you off guard.",
+    description: "Daily spending plus the bills you already know are coming.",
   },
   {
-    step: 3,
+    num: "03",
     title: "Get reminded, then mark paid",
-    description:
-      "Receive reminders before planned expenses are due. When you've settled one, tap to mark it paid — or log a partial payment if you only covered part of it. Status badges update instantly to show Paid, Partial, Outstanding, or Unpaid.",
+    description: "Due-date nudges arrive early. One tap stamps the bill paid.",
   },
   {
-    step: 4,
+    num: "04",
     title: "Review your monthly summary",
-    description:
-      "Your dashboard shows total expenses, total planned expenses, what's still owed, and payment history across recent months — so you always know exactly where you stand.",
+    description: "Spend, planned vs paid, and savings in one statement view.",
   },
 ];
+
+const miniBars = [
+  { h: "40%", accent: false },
+  { h: "62%", accent: true },
+  { h: "52%", accent: false },
+  { h: "78%", accent: true },
+  { h: "45%", accent: false },
+  { h: "88%", accent: true },
+];
+
+function Vignette({ index }: { index: number }) {
+  return (
+    <div className="mt-4 rounded-md border border-border bg-card p-3 text-xs">
+      {index === 0 && (
+        <LedgerRow label={<span>BPI Savings</span>}>
+          <Amount formatted="₱52,300" className="text-xs" />
+        </LedgerRow>
+      )}
+      {index === 1 && (
+        <LedgerRow label={<span>Groceries</span>}>
+          <Amount formatted="₱1,842.50" className="text-xs" />
+        </LedgerRow>
+      )}
+      {index === 2 && (
+        <div className="flex items-center justify-between">
+          <span>Meralco</span>
+          <Stamp variant="paid">Paid</Stamp>
+        </div>
+      )}
+      {index === 3 && (
+        <div className="flex h-8 items-end gap-1" aria-hidden>
+          {miniBars.map((bar, i) => (
+            <span
+              key={i}
+              className={cn("flex-1 rounded-t-sm", bar.accent ? "bg-primary" : "bg-chart-compare/60")}
+              style={{ height: bar.h }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function HowItWorksSection({ className }: { className?: string }) {
   return (
     <section
       id="how-it-works"
-      className={cn(
-        "border-t bg-muted/30 px-4 py-16 sm:px-6 lg:px-8",
-        className
-      )}
+      className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}
     >
-      <div className="mx-auto max-w-3xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            How it works
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Four steps to a clearer view of your finances.
-          </p>
-        </div>
-        <ul className="mt-12 space-y-0">
-          {steps.map((item, idx) => (
-            <li key={item.step} className="relative flex gap-6 pb-10 last:pb-0">
-              {idx < steps.length - 1 && (
-                <div className="absolute left-5 top-10 h-full w-px bg-gradient-to-b from-primary/40 to-transparent" aria-hidden />
+      <div className="mx-auto max-w-6xl">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+          How it works
+        </h2>
+        <p className="mt-3 max-w-[52ch] text-muted-foreground">
+          Four steps to a clearer view of your finances.
+        </p>
+
+        <div className="mt-10 grid grid-cols-1 border-t border-hairline-strong sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, i) => (
+            <div
+              key={step.num}
+              className={cn(
+                "border-border py-7 pr-5 sm:pr-6",
+                "pl-0",
+                i > 0 && "border-t",
+                i < 2 ? "sm:border-t-0" : "sm:border-t",
+                i % 2 === 0 ? "sm:pl-0" : "sm:border-l sm:pl-6",
+                "lg:border-t-0",
+                i === 0 ? "lg:border-l-0 lg:pl-0" : "lg:border-l lg:pl-6"
               )}
-              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-md shadow-emerald-500/25">
-                {item.step}
+            >
+              <span className="font-mono text-[11px] font-medium tracking-wider text-primary">
+                {step.num}
               </span>
-              <div className="pt-1">
-                <h3 className="font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-1 text-muted-foreground">{item.description}</p>
-              </div>
-            </li>
+              <h3 className="mt-2 text-[15px] font-bold text-foreground">{step.title}</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground">{step.description}</p>
+              <Vignette index={i} />
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </section>
   );

@@ -11,7 +11,7 @@ export const metadata = buildPageMetadata({
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardSkeleton variant="page" />}>
+    <Suspense fallback={<DashboardSkeleton variant="dashboard" />}>
       <ExpenseCashflowPage pageVariant="dashboard" />
     </Suspense>
   );

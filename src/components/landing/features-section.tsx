@@ -1,101 +1,100 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { PieChart, Calculator, LayoutDashboard, ListChecks, Bell, Target, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AnimatedTextLoop } from "@/components/landing/animated-text-loop";
+import { Amount } from "@/components/passbook/amount";
 
-
-const features: {
-  title: string;
-  description: string;
-  icon: typeof LayoutDashboard;
-  iconBg: string;
-  iconColor: string;
-}[] = [
+const features: { name: string; description: string; tag: string }[] = [
   {
-    title: "Ask OmniTrak — AI assistant",
-    description:
-      "Chat for instant answers about your budget, accounts, goals, and spending — it reads your own data to reply. Upload documents (PDFs, notes, links) and it searches them too, citing its sources. Included with Pro & Premium.",
-    icon: Sparkles,
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
+    name: "Log expenses daily",
+    description: "Capture every peso in seconds. Entries group themselves by category as you go.",
+    tag: "Expenses",
   },
   {
-    title: "Log expenses daily",
-    description:
-      "Record any expense with a chosen date, category, and note. The date picker lets you label each entry for any day — past or present — so your spending history stays accurate.",
-    icon: ListChecks,
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    name: "Planned expenses",
+    description: "Recurring bills with due dates, paid stamps, and a full payment history per bill.",
+    tag: "Planned",
   },
   {
-    title: "Planned Expenses & payment tracking",
-    description:
-      "Add monthly, quarterly, or yearly recurring planned expenses with due dates. Mark them paid as you go — status badges show Paid, Outstanding, or Unpaid at a glance, with a monthly summary of what's left.",
-    icon: LayoutDashboard,
-    iconBg: "bg-sky-500/10",
-    iconColor: "text-sky-600 dark:text-sky-400",
+    name: "Smart categories",
+    description: "Spending sorted into clear buckets. Build your own categories on Pro.",
+    tag: "Categories",
   },
   {
-    title: "Smart categories",
-    description:
-      "Grocery, rent, loans, utilities, savings, and more — organized the way Filipino households actually spend.",
-    icon: PieChart,
-    iconBg: "bg-violet-500/10",
-    iconColor: "text-violet-600 dark:text-violet-400",
+    name: "Reminders",
+    description: "In-app nudges before anything is due. Email reminders arrive with Pro.",
+    tag: "Reminders",
   },
   {
-    title: "Reminders",
-    description:
-      "A categorized checklist for things to buy and tasks to do — with quantities, estimates, and dates so nothing slips through.",
-    icon: Bell,
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    name: "Goal tracker",
+    description: "Set a target and fund it kahit paunti-unti. Progress stays visible on your dashboard.",
+    tag: "Goals",
   },
   {
-    title: "Goal tracker",
-    description:
-      "Organize short-term, long-term, and lifetime goals, filter by achieved status, and track progress as you complete each one.",
-    icon: Target,
-    iconBg: "bg-rose-500/10",
-    iconColor: "text-rose-600 dark:text-rose-400",
-  },
-  {
-    title: "Savings & debt calculators",
-    description:
-      "Compound savings and debt payoff timelines with Philippine-focused defaults.",
-    icon: Calculator,
-    iconBg: "bg-blue-500/10",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    name: "Savings & debt calculators",
+    description: "Free tax, savings, and debt-payoff tools. No account needed to use them.",
+    tag: "Calculators",
   },
 ];
 
 export function FeaturesSection({ className }: { className?: string }) {
   return (
-    <section id="features" className={cn("px-4 py-16 sm:px-6 lg:px-8", className)}>
+    <section id="features" className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}>
       <div className="mx-auto max-w-6xl">
-        <div className="text-center">
-          <AnimatedTextLoop />
-          <p className="mt-4 text-lg text-muted-foreground">
-            An AI assistant, daily expenses, planned expenses, lists, goals, and calculators — the essentials you expect
-            from a modern finance app, tuned for everyday Filipino household use.
-          </p>
+        <h2 className="max-w-[20ch] text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+          Everything a household ledger should do
+        </h2>
+        <p className="mt-3 max-w-[52ch] text-muted-foreground">
+          Daily expenses, planned expenses, lists, goals, and calculators, tuned for everyday
+          Filipino household use.
+        </p>
+
+        {/* Ask OmniTrak band */}
+        <div className="mt-9 grid overflow-hidden rounded-md border border-border bg-card lg:grid-cols-11">
+          <div className="flex flex-col justify-center gap-3 p-6 sm:p-8 lg:col-span-5">
+            <h3 className="text-xl font-bold tracking-tight text-foreground">Ask OmniTrak</h3>
+            <p className="max-w-[40ch] text-muted-foreground">
+              A private AI assistant that reads your ledger, not your bank. Ask about spending, due
+              dates, or your own uploaded documents.
+            </p>
+            <span className="mt-1 font-mono text-[11px] uppercase tracking-wider text-primary">
+              Included with Pro and Premium
+            </span>
+          </div>
+          <div
+            className="flex flex-col gap-3 border-t border-border bg-background p-6 sm:p-8 lg:col-span-6 lg:border-l lg:border-t-0"
+            aria-label="Sample assistant conversation"
+          >
+            <p className="max-w-[85%] self-end rounded-md bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
+              How much did we spend on utilities last month?
+            </p>
+            <p className="max-w-[85%] self-start rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+              <Amount formatted="₱5,842" className="text-sm" /> across Meralco, Maynilad, and Globe.
+              That is 8% lower than May.
+            </p>
+            <p className="max-w-[85%] self-end rounded-md bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
+              When is rent due?
+            </p>
+            <p className="max-w-[85%] self-start rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+              Aug 1. You have marked 3 of 3 rent payments paid on time this quarter.
+            </p>
+          </div>
         </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+        {/* Feature statement rows */}
+        <div className="mt-10 border-t border-border">
           {features.map((feature) => (
-            <Card
-              key={feature.title}
-              className="overflow-hidden border-border/60 bg-gradient-to-b from-card to-muted/20 shadow-sm transition-shadow hover:shadow-md"
+            <div
+              key={feature.name}
+              className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1.5 border-b border-border py-5 sm:grid-cols-[minmax(180px,5fr)_7fr_auto] sm:gap-x-8"
             >
-              <CardContent className="p-0">
-                <div className="p-5">
-                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", feature.iconBg)}>
-                    <feature.icon className={cn("h-5 w-5", feature.iconColor)} />
-                  </div>
-                  <h3 className="mt-3 font-semibold text-foreground">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </CardContent>
-            </Card>
+              <span className="text-[17px] font-bold tracking-tight text-foreground">
+                {feature.name}
+              </span>
+              <span className="order-2 col-span-2 text-sm text-muted-foreground sm:order-none sm:col-span-1">
+                {feature.description}
+              </span>
+              <span className="order-1 justify-self-start rounded border border-hairline-strong px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:order-none sm:self-center sm:justify-self-end">
+                {feature.tag}
+              </span>
+            </div>
           ))}
         </div>
       </div>

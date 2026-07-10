@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export function CtaBandSection({ className }: { className?: string }) {
   const { user, loading } = useUser();
@@ -15,63 +15,41 @@ export function CtaBandSection({ className }: { className?: string }) {
     <section
       id="cta"
       className={cn(
-        "relative overflow-hidden border-t px-4 py-16 sm:px-6 lg:px-8",
-        "bg-gradient-to-br from-primary via-emerald-600 to-teal-800 text-primary-foreground",
+        "border-t-2 border-primary bg-panel px-4 py-16 text-panel-foreground sm:px-6 lg:px-8 lg:py-20",
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-24 top-0 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-black/10 blur-2xl" aria-hidden />
-      <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to track it all?</h2>
-        <p className="max-w-xl text-lg text-primary-foreground/90">
-          Track planned expenses, lists, and tasks in one place — open your dashboard in seconds, no bank linking required.
-        </p>
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-[2.4rem]">
+            Ready to track it all?
+          </h2>
+          <p className="mt-3 max-w-[46ch] text-panel-muted">
+            Planned expenses, lists, and goals in one place. Open your dashboard in seconds, no bank
+            linking required.
+          </p>
+        </div>
+        <div className="shrink-0">
           {loading ? (
-            <Button size="lg" variant="secondary" className="min-w-[200px]" disabled>
-              …
+            <Button size="lg" className="h-11 min-w-[13rem]" disabled aria-busy>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             </Button>
-          ) : user ? (
+          ) : (
             <Button
               size="lg"
-              variant="secondary"
-              className="min-w-[200px] gap-2 font-semibold shadow-lg"
               asChild={!navigating}
               disabled={navigating}
+              className="h-11 min-w-[13rem]"
             >
               {navigating ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
-                <Link href="/dashboard" onClick={() => setNavigating(true)}>
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" aria-hidden />
+                <Link href={user ? "/dashboard" : "/signup"} onClick={() => setNavigating(true)}>
+                  {user ? "Go to Dashboard" : "Start free 14-day trial"}
                 </Link>
               )}
             </Button>
-          ) : (
-            <>
-              <Button size="lg" variant="secondary" className="min-w-[200px] font-semibold shadow-lg" asChild>
-                <Link href="/signup">Create free account</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="min-w-[200px] border-white/40 bg-white/10 text-primary-foreground hover:bg-white/20"
-                asChild
-              >
-                <Link href="/login">Log in</Link>
-              </Button>
-            </>
           )}
-          <Button
-            size="lg"
-            variant="ghost"
-            className="min-w-[200px] text-primary-foreground hover:bg-white/10 hover:text-primary-foreground"
-            asChild
-          >
-            <a href="#features">See features</a>
-          </Button>
         </div>
       </div>
     </section>

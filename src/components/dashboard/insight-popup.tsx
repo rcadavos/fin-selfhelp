@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { Flame, X } from "lucide-react";
 import { SiteLogo } from "@/components/app/site-logo";
 import { cn } from "@/lib/utils";
 
@@ -11,19 +11,11 @@ type InsightPopupProps = {
   billsPaidPct?: number;
 };
 
-function FireBadge(_: { count: number }) {
-  return (
-    <span className="relative inline-block leading-none">
-      <span className="text-5xl">🔥</span>
-    </span>
-  );
-}
-
 const FINANCIAL_TIPS = [
-  { emoji: "📊", message: "Review your spending categories to spot savings." },
-  { emoji: "💡", message: "Small daily savings add up — track every peso." },
-  { emoji: "🎯", message: "Set a savings goal and work toward it every month." },
-  { emoji: "📅", message: "Log in daily to stay on top of your finances." },
+  { message: "Review your spending categories to spot savings." },
+  { message: "Small daily savings add up — track every peso." },
+  { message: "Set a savings goal and work toward it every month." },
+  { message: "Log in daily to stay on top of your finances." },
 ];
 
 const STORAGE_KEY = "insight-popup-dismissed";
@@ -93,16 +85,16 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
     <div
       ref={popupRef}
       className={cn(
-        "fixed bottom-20 right-3 z-50 w-60 overflow-hidden rounded-2xl border bg-background shadow-2xl",
+        "fixed bottom-20 right-3 z-50 w-60 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground",
         "md:bottom-5 md:right-5 md:w-72",
-        "transition-all duration-500 ease-out",
+        "transition duration-200 ease-out motion-reduce:transition-none",
         visible
-          ? "translate-y-0 opacity-100 scale-100"
-          : "translate-y-8 opacity-0 scale-95 pointer-events-none"
+          ? "translate-y-0 opacity-100"
+          : "translate-y-4 opacity-0 pointer-events-none"
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-2">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <SiteLogo className="h-6 w-auto max-h-6 md:h-7 md:max-h-7" />
         <button
           type="button"
@@ -115,24 +107,31 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
       </div>
 
       {/* Body */}
-      <div className="px-3 py-3 text-center md:px-5 md:py-5">
+      <div className="px-4 pb-4 pt-3">
         {hasStreak ? (
           <>
-            <div className="flex justify-center mb-1.5">
-              <FireBadge count={streak} />
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/40 text-primary">
+                <Flame className="h-5 w-5" />
+              </span>
+              <p className="font-mono text-2xl font-semibold leading-none tabular-nums">
+                {streak}
+                <span className="ml-1.5 align-middle text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  day streak
+                </span>
+              </p>
             </div>
-            <p className="text-base font-bold text-foreground mt-1 md:text-xl">{streak}-day streak!</p>
-            <p className="mt-1 text-xs text-muted-foreground leading-snug md:mt-1.5 md:text-sm">
+            <p className="mt-3 text-xs leading-snug text-muted-foreground md:text-sm">
               You&apos;re on a roll, {firstName}. Keep logging in every day!
             </p>
           </>
         ) : hasBills ? (
           <>
-            <p className="text-3xl mb-1.5 md:text-4xl md:mb-2">💰</p>
-            <p className="text-base font-bold text-foreground md:text-xl">
-              {billsPaidPct}% planned expenses paid
+            <p className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Planned paid
             </p>
-            <p className="mt-1 text-xs text-muted-foreground leading-snug md:mt-1.5 md:text-sm">
+            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">{billsPaidPct}%</p>
+            <p className="mt-2 text-xs leading-snug text-muted-foreground md:text-sm">
               {billsPaidPct! >= 80
                 ? "You're crushing it this month!"
                 : billsPaidPct! >= 50
@@ -141,10 +140,7 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
             </p>
           </>
         ) : (
-          <>
-            <p className="text-3xl mb-1.5 md:text-4xl md:mb-2">{tip.emoji}</p>
-            <p className="text-xs text-muted-foreground leading-snug md:text-sm">{tip.message}</p>
-          </>
+          <p className="text-xs leading-snug text-muted-foreground md:text-sm">{tip.message}</p>
         )}
       </div>
     </div>
