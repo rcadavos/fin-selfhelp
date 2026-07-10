@@ -107,7 +107,7 @@ export function AssistantWorkspace() {
       </header>
 
       {!info.aiConfigured && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             AI isn&apos;t configured yet. Add <code>AI_GATEWAY_API_KEY</code> to your
@@ -125,7 +125,7 @@ export function AssistantWorkspace() {
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[280px_1fr]">
         {/* Desktop conversations rail */}
-        <aside className="hidden min-h-0 flex-col rounded-xl border bg-card p-3 lg:flex">
+        <aside className="hidden min-h-0 flex-col rounded-lg border bg-card p-3 lg:flex">
           <ConversationsPanel
             selectedId={selectedId}
             onSelect={selectConversation}
@@ -134,7 +134,7 @@ export function AssistantWorkspace() {
         </aside>
 
         {/* Main pane */}
-        <section className="flex min-h-0 flex-col rounded-xl border bg-card p-3">
+        <section className="flex min-h-0 flex-col rounded-lg border bg-card p-3">
           {/* Desktop knowledge toggle */}
           <div className="mb-2 hidden items-center justify-end lg:flex">
             <Button
@@ -170,7 +170,7 @@ export function AssistantWorkspace() {
               </div>
             ) : showLoadError ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center text-sm text-muted-foreground">
-                <TriangleAlert className="h-6 w-6 text-amber-500" />
+                <TriangleAlert className="h-6 w-6 text-warning" />
                 <p>Couldn&apos;t load this conversation.</p>
                 <Button variant="outline" size="sm" onClick={() => messagesQuery.refetch()}>
                   Retry
@@ -208,7 +208,7 @@ function MobileTab({
       onClick={onClick}
       className={cn(
         "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-        active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+        active ? "bg-background text-foreground" : "text-muted-foreground",
       )}
     >
       <Icon className="h-4 w-4" />

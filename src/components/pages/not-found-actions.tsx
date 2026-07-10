@@ -14,13 +14,13 @@ export function NotFoundActions() {
         type="button"
         variant="outline"
         size="lg"
-        className="gap-2 border-border/80 bg-background/60 backdrop-blur-sm shadow-sm"
+        className="gap-2 border-border/80"
         onClick={() => router.back()}
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Go back
       </Button>
-      <Button size="lg" className="gap-2 shadow-md" asChild>
+      <Button size="lg" className="gap-2" asChild>
         <Link href="/">
           <Home className="h-4 w-4" aria-hidden />
           Home

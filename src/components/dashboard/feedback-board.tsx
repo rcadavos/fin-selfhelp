@@ -44,7 +44,7 @@ function StarRating({
             className={cn(
               "h-6 w-6 transition-colors",
               (hovered || value) >= n
-                ? "fill-amber-400 text-amber-400"
+                ? "fill-primary text-primary"
                 : "text-muted-foreground/30",
             )}
           />
@@ -101,15 +101,15 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
     return (
       <div className="space-y-3">
         <div className={cn(
-          "flex items-start gap-3 rounded-xl border p-4",
+          "flex items-start gap-3 rounded-lg border p-4",
           review.status === "approved"
-            ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/40 dark:bg-emerald-950/20"
-            : "border-amber-200 bg-amber-50/60 dark:border-amber-800/40 dark:bg-amber-950/20",
+            ? "border-primary/30 bg-primary/10"
+            : "border-warning/40 bg-warning/10",
         )}>
           <div className="mt-0.5 shrink-0">
             {review.status === "approved"
-              ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-              : <Clock className="h-5 w-5 text-amber-500" />}
+              ? <CheckCircle2 className="h-5 w-5 text-primary" />
+              : <Clock className="h-5 w-5 text-warning" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
@@ -118,7 +118,7 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
             {review.rating != null && (
               <div className="mt-1 flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <Star key={n} className={cn("h-3.5 w-3.5", n <= review.rating! ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20")} />
+                  <Star key={n} className={cn("h-3.5 w-3.5", n <= review.rating! ? "fill-primary text-primary" : "text-muted-foreground/20")} />
                 ))}
               </div>
             )}
@@ -139,8 +139,8 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
 
   if (done) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/20">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+      <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
         <p className="text-sm font-medium">Your review has been submitted and is pending approval. Thank you!</p>
       </div>
     );
@@ -191,9 +191,9 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
       </div>
 
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/20 dark:text-red-400">
+        <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-red-100">
+          <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -236,8 +236,8 @@ function SuggestionSection() {
   if (done) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800/40 dark:bg-emerald-950/20">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
           <p className="text-sm font-medium">Your feedback has been sent. Thank you!</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setDone(false)}>
@@ -263,9 +263,9 @@ function SuggestionSection() {
       </div>
 
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/20 dark:text-red-400">
+        <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <span>{error}</span>
-          <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-red-100">
+          <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -313,7 +313,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
             className={cn(
               "flex-1 sm:flex-none rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
               tab === key
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -323,7 +323,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       </div>
 
       {/* Content */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="rounded-lg border bg-card p-5">
         {tab === "review" ? (
           <ReviewSection initialReview={initialReview} displayName={displayName} />
         ) : (

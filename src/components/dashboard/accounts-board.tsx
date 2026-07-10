@@ -298,7 +298,7 @@ function AccountCard({
   return (
     <div
       onClick={onOpen}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card p-4 transition-colors hover:bg-muted/40"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-4 transition-colors hover:bg-muted/40"
       style={{ borderColor: `${account.color}66` }}
     >
       {/* Softer gradient overlay */}
@@ -363,7 +363,7 @@ function AccountCard({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={onDelete}
-                    className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400"
+                    className="cursor-pointer text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
@@ -408,7 +408,7 @@ function AccountCard({
           )}
 
           {!account.include_in_net_balance && (
-            <span className="rounded-full border border-amber-500/40 bg-amber-50/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 backdrop-blur-sm dark:bg-amber-950/40 dark:text-amber-400">
+            <span className="rounded-full border border-border bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur-sm">
               Untracked
             </span>
           )}
@@ -437,7 +437,7 @@ function AccountCard({
             <p
               className={cn(
                 "text-lg font-bold tabular-nums text-foreground",
-                balance < 0 && !hideAmounts && "text-rose-600 dark:text-rose-400",
+                balance < 0 && !hideAmounts && "text-destructive",
               )}
             >
               {hideAmounts ? "••••••" : formatCurrency(balance, account.currency)}
@@ -446,7 +446,7 @@ function AccountCard({
               account.maintaining_balance > 0 &&
               balance < account.maintaining_balance && (
                 <AlertTriangle
-                  className="h-4 w-4 flex-shrink-0 text-amber-500"
+                  className="h-4 w-4 flex-shrink-0 text-warning"
                   aria-label="Balance below maintaining balance"
                 />
               )}
@@ -587,19 +587,19 @@ export function AccountsBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Accounts</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{accounts.length}</p>
             <p className="text-[11px] text-muted-foreground">
               {accounts.length === 1 ? "Account" : "Accounts"} added
             </p>
           </div>
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Net Balance</p>
             <div className="mt-0.5 flex items-center gap-2">
               <p className={
                 netBalance < 0 && !amountsHidden
-                  ? "text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400"
+                  ? "text-lg font-bold tabular-nums text-destructive"
                   : "text-lg font-bold tabular-nums"
               }>{amountsHidden ? "••••••" : formatCurrency(netBalance)}</p>
               <button
@@ -630,7 +630,7 @@ export function AccountsBoard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="flex h-full min-h-[160px] items-center justify-center rounded-xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
+            <div className="flex h-full min-h-[160px] items-center justify-center rounded-lg border border-dashed bg-muted/20 text-sm text-muted-foreground">
               Add an account to see the chart
             </div>
           )}
@@ -639,7 +639,7 @@ export function AccountsBoard() {
 
       {/* Accounts grid */}
       {accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-10 text-muted-foreground">
           <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
           <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
             <Plus className="mr-1.5 h-4 w-4" />

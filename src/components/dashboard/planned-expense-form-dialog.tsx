@@ -402,7 +402,7 @@ export function PlannedExpenseFormDialog({
             if (hasProAccess) {
               reminderEnabled = true;
               badgeLabel = "Pro / Premium";
-              badgeClass = "bg-primary text-white";
+              badgeClass = "bg-primary text-primary-foreground";
               hintText = "You have unlocked unlimited reminders with your Pro / Premium subscription.";
             } else if (slotLockedByOther) {
               reminderEnabled = false;
@@ -412,7 +412,7 @@ export function PlannedExpenseFormDialog({
             } else if (isThisTheLocked) {
               reminderEnabled = true;
               badgeLabel = "Permanent";
-              badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+              badgeClass = "bg-warning/10 text-warning";
               hintText = "This planned expense permanently holds your free reminder slot.";
             } else {
               const canHaveFree = (initial?.reminderDays?.length ?? 0) > 0 || freeReminderUsed === 0;

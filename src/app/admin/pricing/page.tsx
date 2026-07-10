@@ -157,7 +157,7 @@ function PlanEditor({ planId, title, description, plan }: PlanEditorProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-        {saved && <p className="text-sm text-green-600 dark:text-green-400">Saved.</p>}
+        {saved && <p className="text-sm text-primary">Saved.</p>}
         <div className="grid gap-2">
           <Label htmlFor={`${planId}-name`}>Plan name</Label>
           <Input id={`${planId}-name`} value={name} onChange={(e) => setName(e.target.value)} />

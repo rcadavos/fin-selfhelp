@@ -179,7 +179,7 @@ function PaymentForm({
             onClick={() => { setMethod(id); setCheckoutError(null); setPaymongoError(null); }}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
-              method === id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              method === id ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Icon className="h-4 w-4" />
@@ -325,7 +325,7 @@ function SubscriptionPageInner() {
     <main className="w-full min-w-0 space-y-10 py-2">
       {/* ── banners ── */}
       {justPaid && (
-        <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+        <p className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
           Payment received — your subscription is now active. Thank you!
         </p>
       )}
@@ -339,8 +339,8 @@ function SubscriptionPageInner() {
       {hasPro && (
         <section
           className={cn(
-            "relative overflow-hidden rounded-2xl border p-6 shadow-sm sm:p-8",
-            "border-primary/20 bg-gradient-to-br from-primary/15 via-primary/8 to-background dark:from-primary/20 dark:via-primary/10"
+            "relative overflow-hidden rounded-lg border p-6 sm:p-8",
+            "border-primary/20 bg-primary/5"
           )}
         >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -362,7 +362,7 @@ function SubscriptionPageInner() {
               </p>
             </div>
 
-            <div className="flex min-w-[200px] flex-col gap-3 rounded-xl border border-primary/25 bg-background/80 p-4 backdrop-blur-sm dark:bg-background/40">
+            <div className="flex min-w-[200px] flex-col gap-3 rounded-lg border border-primary/25 bg-background/80 p-4 backdrop-blur-sm dark:bg-background/40">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Summary</p>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm text-muted-foreground">Access</span>
@@ -442,11 +442,11 @@ function SubscriptionPageInner() {
 
           {/* Pro */}
           <Card className={cn(
-            "relative flex flex-col overflow-hidden border-primary/60 shadow-xl ring-2 ring-primary/20 sm:scale-[1.06] sm:z-10",
+            "relative flex flex-col overflow-hidden border-primary/60 ring-2 ring-primary/20 sm:scale-[1.06] sm:z-10",
             hasPro && !hasPremium ? "bg-primary/5" : "bg-primary/[0.03]"
           )}>
             <div className="absolute left-0 top-0">
-              <span className="inline-flex items-center gap-1 rounded-br-xl bg-orange-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
+              <span className="inline-flex items-center gap-1 rounded-br-lg bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                 🔥 Most Popular
               </span>
             </div>
@@ -500,15 +500,15 @@ function SubscriptionPageInner() {
           {/* Premium */}
           {plans?.premium?.enabled && (
           <Card className={cn(
-            "relative flex flex-col overflow-hidden border-sky-500/40",
-            hasPremium ? "bg-sky-500/[0.08] dark:bg-sky-950/20" : "bg-sky-500/[0.04] dark:bg-sky-950/10"
+            "relative flex flex-col overflow-hidden border-border",
+            hasPremium ? "bg-muted/50" : "bg-muted/30"
           )}>
             {!hasPremium && (
-              <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-sky-500/10" aria-hidden />
+              <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-muted" aria-hidden />
             )}
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Gem className="h-4 w-4 text-sky-600 dark:text-sky-400" aria-hidden />
+                <Gem className="h-4 w-4 text-muted-foreground" aria-hidden />
                 <CardTitle className="text-base">{plans?.premium?.name ?? "Premium"}</CardTitle>
                 {hasPremium && <Badge variant="success" className="ml-auto text-xs">Current</Badge>}
               </div>
@@ -528,7 +528,7 @@ function SubscriptionPageInner() {
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm">
               {premiumExtra.map((f) => (
                 <div key={f} className="flex items-start gap-2 text-muted-foreground">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                   <span>{f}</span>
                 </div>
               ))}
@@ -538,7 +538,7 @@ function SubscriptionPageInner() {
                 <p className="text-xs text-muted-foreground">You're on this plan</p>
               ) : (
                 <Button
-                  className="w-full bg-sky-600 text-white hover:bg-sky-600/90 dark:bg-sky-500"
+                  className="w-full"
                   onClick={() => selectPlan("premium")}
                   variant={selectedPlan === "premium" ? "secondary" : "default"}
                 >
@@ -555,7 +555,7 @@ function SubscriptionPageInner() {
 
       {/* ── inline payment form ── */}
       {selectedPlan && (
-        <section ref={paymentRef} className="scroll-mt-6 rounded-2xl border border-border/80 bg-muted/20 p-6 shadow-sm sm:p-8">
+        <section ref={paymentRef} className="scroll-mt-6 rounded-lg border border-border/80 bg-muted/20 p-6 sm:p-8">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-semibold">
@@ -579,7 +579,7 @@ function SubscriptionPageInner() {
             <span className="text-xs text-muted-foreground">{payments.length} payment{payments.length === 1 ? "" : "s"}</span>
           </div>
           <p className="text-sm text-muted-foreground">Open a receipt for your records or taxes.</p>
-          <ul className="divide-y divide-border rounded-xl border bg-card">
+          <ul className="divide-y divide-border rounded-lg border bg-card">
             {payments.map((p) => (
               <li key={p.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="min-w-0 flex-1">

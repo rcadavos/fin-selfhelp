@@ -9,7 +9,7 @@ export default async function UnsubscribedPage({ searchParams }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-16">
-      <div className="mx-auto w-full max-w-md rounded-2xl border bg-card p-8 shadow-sm text-center">
+      <div className="mx-auto w-full max-w-md rounded-lg border bg-card p-8 text-center">
         {error ? (
           <>
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
@@ -26,8 +26,8 @@ export default async function UnsubscribedPage({ searchParams }: Props) {
           </>
         ) : (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
-              <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle2 className="h-7 w-7 text-primary" />
             </div>
             <h1 className="text-xl font-semibold text-foreground">You&apos;ve been unsubscribed</h1>
             <p className="mt-2 text-sm text-muted-foreground">

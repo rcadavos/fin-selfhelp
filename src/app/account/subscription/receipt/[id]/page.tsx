@@ -95,7 +95,7 @@ export default function ReceiptPage() {
         </div>
 
         {/* Receipt content – print-friendly */}
-        <article className="border rounded-lg bg-white text-black p-6 shadow-sm print:shadow-none print:border print:p-6">
+        <article className="border rounded-lg bg-white text-black p-6 print:shadow-none print:border print:p-6">
           <h1 className="text-xl font-semibold mb-1">OmniTrak</h1>
           <p className="text-sm text-neutral-500 mb-6">Payment receipt</p>
 

@@ -87,9 +87,9 @@ import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 const LS_GOAL_ORDER = "goal_order_v1";
 
 function goalTypeDotClass(t: GoalType): string {
-  if (t === "lifetime") return "bg-violet-500";
-  if (t === "long_term") return "bg-sky-500";
-  return "bg-emerald-500";
+  if (t === "lifetime") return "bg-muted-foreground/40";
+  if (t === "long_term") return "bg-muted-foreground/40";
+  return "bg-muted-foreground/40";
 }
 
 type SortableItemProps = {
@@ -168,9 +168,9 @@ function isGoalFullyFunded(g: GoalEntryRow): boolean {
 }
 
 function goalTypeBadgeClass(t: GoalType): string {
-  if (t === "lifetime") return "border-violet-400/60 bg-violet-500/15 text-violet-800 dark:text-violet-200";
-  if (t === "long_term") return "border-sky-400/60 bg-sky-500/15 text-sky-900 dark:text-sky-100";
-  return "border-emerald-400/60 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100";
+  if (t === "lifetime") return "border-border bg-muted text-muted-foreground";
+  if (t === "long_term") return "border-border bg-muted text-muted-foreground";
+  return "border-border bg-muted text-muted-foreground";
 }
 
 function formatMonthYearShort(month: number, year: number): string {
@@ -603,12 +603,12 @@ export function MyGoalsPage() {
         <div
           onClick={() => openEdit(g)}
           className={cn(
-            "flex cursor-pointer select-none items-start gap-2.5 rounded-xl border bg-card p-3 shadow-sm transition-shadow",
-            achieved ? "border-emerald-400/50 bg-emerald-500/5 dark:bg-emerald-900/20" :
-              fullyFunded ? "border-emerald-400/40 bg-emerald-500/5 dark:bg-emerald-900/15" : "",
+            "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border bg-card p-3 transition-shadow",
+            achieved ? "border-primary/50 bg-primary/5" :
+              fullyFunded ? "border-primary/40 bg-primary/5" : "",
             sortable?.isDragging
-              ? "z-50 opacity-50 shadow-lg ring-2 ring-primary/30"
-              : "hover:border-primary/30 hover:shadow-md"
+              ? "z-50 opacity-50 ring-2 ring-primary/30"
+              : "hover:border-primary/30"
           )}
         >
           {/* Drag handle */}
@@ -632,7 +632,7 @@ export function MyGoalsPage() {
             <div className="flex items-center gap-1.5">
               <p className={cn(
                 "truncate text-sm font-medium leading-tight",
-                achieved && "text-emerald-700 dark:text-emerald-300"
+                achieved && "text-primary"
               )}>
                 {g.name}
               </p>
@@ -673,7 +673,7 @@ export function MyGoalsPage() {
                     <div
                       className={cn(
                         "h-full rounded-full transition-all",
-                        fullyFunded ? "bg-emerald-500" : "bg-primary"
+                        fullyFunded ? "bg-primary" : "bg-primary"
                       )}
                       style={{ width: `${pct}%` }}
                     />
@@ -688,7 +688,7 @@ export function MyGoalsPage() {
             {achieved && (
               <Badge
                 variant="outline"
-                className="border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
+                className="border-primary/50 bg-primary/10 text-[10px] text-primary"
               >
                 <PartyPopper className="mr-1 h-2.5 w-2.5" aria-hidden />
                 Done
@@ -697,7 +697,7 @@ export function MyGoalsPage() {
             {fullyFunded && !achieved && (
               <Badge
                 variant="outline"
-                className="border-emerald-500/50 bg-emerald-500/10 text-[10px] text-emerald-800 dark:text-emerald-200"
+                className="border-primary/50 bg-primary/10 text-[10px] text-primary"
               >
                 <PiggyBank className="mr-1 h-2.5 w-2.5" aria-hidden />
                 Funded!
@@ -737,7 +737,7 @@ export function MyGoalsPage() {
                   className="cursor-pointer"
                   onSelect={() => void handleMarkAchievedNow(g)}
                 >
-                  <PartyPopper className="text-emerald-600 dark:text-emerald-400" aria-hidden />
+                  <PartyPopper className="text-primary" aria-hidden />
                   Mark as Achieved
                 </DropdownMenuItem>
               ) : (

@@ -13,19 +13,19 @@ export default function NotFound() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.22),transparent)]"
+        className="pointer-events-none absolute inset-0"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-primary/15 blur-3xl"
+        className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl"
+        className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/5 bg-muted/5"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
         aria-hidden
       />
 
@@ -33,8 +33,8 @@ export default function NotFound() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">Error</p>
         <h1
           className={cn(
-            "select-none bg-gradient-to-br from-primary via-emerald-600 to-teal-700 bg-clip-text text-7xl font-black tracking-tighter text-transparent sm:text-8xl",
-            "drop-shadow-sm dark:from-primary dark:via-emerald-400 dark:to-teal-400"
+            "select-none text-7xl font-black tracking-tighter text-primary",
+            "sm:text-8xl"
           )}
         >
           404
@@ -44,7 +44,7 @@ export default function NotFound() {
           The link may be wrong, or the page was removed. Pick a path below and you&apos;ll be back on track.
         </p>
 
-        <div className="mt-10 w-full max-w-md rounded-2xl border border-border/60 bg-card/40 p-6 shadow-lg backdrop-blur-md dark:bg-card/30">
+        <div className="mt-10 w-full max-w-md rounded-lg border border-border/60 bg-card p-6">
           <NotFoundActions />
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Wrong turn?{" "}

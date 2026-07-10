@@ -117,7 +117,7 @@ export function AccountDropdownMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{triggerNode}</DropdownMenuTrigger>
       <DropdownMenuContent side={side} align={align} className="w-72 overflow-hidden p-0 md:w-60">
-        <DropdownMenuLabel className="bg-gradient-to-br from-primary/90 to-primary/70 px-3 py-3 font-normal text-primary-foreground">
+        <DropdownMenuLabel className="bg-primary px-3 py-3 font-normal text-primary-foreground">
           <div className="flex items-center gap-2.5">
             <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/20 text-primary-foreground ring-1 ring-white/35">
               {showAvatar ? (

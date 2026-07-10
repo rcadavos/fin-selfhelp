@@ -184,7 +184,7 @@ export default function NotificationsPage() {
           {(testMessage || testError || testDebug) && (
             <div className="mt-3 space-y-2">
               {testMessage ? (
-                <p className="rounded-lg border border-emerald-300/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
                   {testMessage}
                 </p>
               ) : null}
@@ -194,7 +194,7 @@ export default function NotificationsPage() {
                 </p>
               ) : null}
               {testDebug ? (
-                <div className="rounded-lg border border-blue-300/30 bg-blue-50 px-3 py-2 space-y-1 text-xs text-blue-700">
+                <div className="rounded-lg border border-border bg-muted px-3 py-2 space-y-1 text-xs text-muted-foreground">
                   <p className="font-mono">Today: {testDebug.todayYmd}</p>
                   <p>Expenses found: {testDebug.expensesCount}</p>
                   <p>To-do items: {testDebug.toDoCount}</p>
@@ -255,7 +255,7 @@ export default function NotificationsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium leading-snug">{n.title}</p>
                       {!n.read ? (
-                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" aria-label="Unread" />
+                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />
                       ) : null}
                     </div>
                     {n.body ? <p className="mt-1 text-sm text-muted-foreground">{n.body}</p> : null}

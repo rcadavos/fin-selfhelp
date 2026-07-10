@@ -306,7 +306,7 @@ function CategoryFormFields({
                 "h-7 w-7 rounded border-2 transition-all",
                 bg,
                 form.bgClass === bg
-                  ? "border-foreground shadow-sm ring-1 ring-foreground/50"
+                  ? "border-foreground ring-1 ring-foreground/50"
                   : "border-transparent hover:border-muted-foreground/50"
               )}
             />

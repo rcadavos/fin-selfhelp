@@ -91,7 +91,7 @@ export function AppHeader({ className }: { className?: string }) {
                       trigger={
                         <Button
                           variant="ghost"
-                          className="h-10 shrink-0 gap-1 rounded-md px-2 hover:bg-slate-200/90 focus-visible:bg-slate-200/90 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:hover:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90"
+                          className="h-10 shrink-0 gap-1 rounded-md px-2 hover:bg-muted focus-visible:bg-muted focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0"
                         >
                           <User className="h-4 w-4" />
                         </Button>

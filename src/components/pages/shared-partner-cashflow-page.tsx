@@ -200,7 +200,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
                             <div
                               className={cn(
                                 "h-full rounded-full transition-all duration-500",
-                                catPct > 40 ? "bg-amber-500" : "bg-primary/60"
+                                catPct > 40 ? "bg-warning" : "bg-primary/60"
                               )}
                               style={{ width: `${catPct}%` }}
                             />
@@ -239,7 +239,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-7 shrink-0 gap-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
+                                      className="h-7 shrink-0 gap-1 bg-primary/10 text-primary hover:bg-primary/20"
                                       onClick={() => void onTogglePaid(entry.id)}
                                       disabled={busy}
                                       title="Mark unpaid"
@@ -286,7 +286,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
       </div>
 
       <Card className="mb-6 overflow-hidden">
-        <div className="h-1 w-full bg-gradient-to-r from-primary via-emerald-400 to-blue-500" />
+        <div className="h-1 w-full bg-primary" />
         <CardHeader>
           <CardTitle className="text-base">Monthly Summary</CardTitle>
         </CardHeader>
@@ -301,13 +301,13 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Bills paid this month</span>
-            <span className={cn("font-bold tabular-nums", totalPaidThisMonth > 0 ? "text-emerald-600" : "")}>
+            <span className={cn("font-bold tabular-nums", totalPaidThisMonth > 0 ? "text-primary" : "")}>
               {formatCurrency(totalPaidThisMonth)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Still unpaid</span>
-            <span className="font-bold tabular-nums text-amber-700 dark:text-amber-300">
+            <span className="font-bold tabular-nums text-warning">
               {formatCurrency(unpaidThisMonth)}
             </span>
           </div>

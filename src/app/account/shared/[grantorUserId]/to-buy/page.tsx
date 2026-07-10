@@ -84,7 +84,7 @@ export default function SharedToBuyPage({ params }: { params: Promise<{ grantorU
           <CardContent className="py-12 text-center text-muted-foreground">No items in this list.</CardContent>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden rounded-lg border bg-card">
           <ul className="divide-y">
             {items.map((item) => {
               const price = parseInt(item.estimatedPrice.replace(/\D/g, ""), 10) || 0;

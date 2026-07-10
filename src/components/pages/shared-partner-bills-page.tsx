@@ -191,14 +191,14 @@ export function SharedPartnerBillsPage({ params }: Props) {
 
       {/* Summary */}
       <div className="flex flex-row gap-3">
-        <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+        <div className="flex-1 rounded-lg border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned – {activeTab}</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(total, "USD")}</p>
           <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
         </div>
-        <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+        <div className="flex-1 rounded-lg border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Remaining</p>
-          <p className={cn("mt-0.5 text-lg font-bold tabular-nums", remaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
+          <p className={cn("mt-0.5 text-lg font-bold tabular-nums", remaining > 0 ? "text-warning" : "")}>
             {formatCurrency(remaining, "USD")}
           </p>
           <p className="text-[11px] text-muted-foreground">{unpaid} unpaid</p>
@@ -215,7 +215,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
                 activeTab === tab
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -244,11 +244,11 @@ export function SharedPartnerBillsPage({ params }: Props) {
                 <div
                   key={bill.id}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border px-4 py-3",
+                    "flex items-center gap-3 rounded-lg border px-4 py-3",
                     isPaid
-                      ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800/50 dark:bg-emerald-950/20"
+                      ? "border-primary/30 bg-primary/5"
                       : isOverdue
-                        ? "border-amber-300 bg-amber-50/60 dark:border-amber-700/50 dark:bg-amber-950/20"
+                        ? "border-warning/40 bg-warning/10"
                         : "border-border bg-card",
                   )}
                 >
@@ -259,8 +259,8 @@ export function SharedPartnerBillsPage({ params }: Props) {
                     aria-label={isPaid ? "Mark unpaid" : "Mark paid"}
                   >
                     {isPaid
-                      ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                      : <Circle className={cn("h-5 w-5", isOverdue && "text-amber-500")} />}
+                      ? <CheckCircle2 className="h-5 w-5 text-primary" />
+                      : <Circle className={cn("h-5 w-5", isOverdue && "text-warning")} />}
                   </button>
 
                   <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
@@ -271,9 +271,9 @@ export function SharedPartnerBillsPage({ params }: Props) {
                         {bill.note ?? cat?.label}
                       </p>
                       {isPaid
-                        ? <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Paid</span>
+                        ? <span className="shrink-0 rounded-full border border-primary/60 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Paid</span>
                         : isOverdue
-                          ? <span className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Outstanding</span>
+                          ? <span className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">Outstanding</span>
                           : <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">Unpaid</span>}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">

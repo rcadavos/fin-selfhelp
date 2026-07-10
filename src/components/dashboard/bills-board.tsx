@@ -326,17 +326,17 @@ function BillRow({
     <div
       onClick={() => router.push(`/dashboard/planned-expenses/${bill.id}`)}
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
+        "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors",
         isPaid
-          ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-400/60 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/50"
+          ? "border-primary/30 bg-primary/10 hover:bg-primary/15"
           : isPartial
-            ? "border-amber-300 bg-amber-50/60 hover:bg-amber-50 dark:border-amber-700/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
+            ? "border-warning/40 bg-warning/10 hover:bg-warning/15"
             : isFailed
-              ? "border-red-400 bg-red-50/80 hover:bg-red-50 dark:border-red-600/60 dark:bg-red-950/30 dark:hover:bg-red-950/40"
+              ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/15"
               : isOverdue
-                ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+                ? "border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
                 : isUpcoming
-                  ? "border-blue-200 bg-blue-50/60 hover:bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+                  ? "border-border bg-muted/30 hover:bg-muted/50"
                   : "border-border bg-card hover:bg-muted/40",
       )}
     >
@@ -372,29 +372,29 @@ function BillRow({
             );
           })()}
           {isPaid ? (
-            <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
               Paid
             </span>
           ) : isPartial ? (
             <span
-              className="shrink-0 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning"
               title={`${formatCurrency(amountPaid, currency)} of ${formatCurrency(bill.amount, currency)}`}
             >
               {formatCurrency(amountPaid, currency)} / {formatCurrency(bill.amount, currency)}
             </span>
           ) : isFailed ? (
             <span
-              className="shrink-0 rounded-full border border-red-500/70 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
+              className="shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive"
               title={failureReason ?? "Auto-debit did not go through."}
             >
               Failed
             </span>
           ) : isOverdue ? (
-            <span className="shrink-0 rounded-full border border-red-400/60 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
+            <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
               Overdue
             </span>
           ) : isUpcoming ? (
-            <span className="shrink-0 rounded-full border border-blue-400/60 bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
               Upcoming
             </span>
           ) : (
@@ -403,7 +403,7 @@ function BillRow({
             </span>
           )}
           {isLockedFreeReminder && (
-            <span className="hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+            <span className="hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
               <Lock className="h-2.5 w-2.5" />
               Reminder
             </span>
@@ -429,7 +429,7 @@ function BillRow({
               </span>
             )}
             {isLockedFreeReminder && (
-              <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                 <Lock className="h-2.5 w-2.5" />
                 Reminder
               </span>
@@ -496,13 +496,13 @@ function BillRow({
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-primary" />
               Mark Paid
             </DropdownMenuItem>
           )}
           {!isPaid && (
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
-              <PiggyBank className="h-4 w-4 text-amber-600" />
+              <PiggyBank className="h-4 w-4 text-warning" />
               {isPartial ? "Add to Payment" : "Add Partial Payment"}
             </DropdownMenuItem>
           )}
@@ -629,7 +629,7 @@ function CategoriesDialog({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{label}</p>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -965,16 +965,16 @@ export function BillsBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">
               <AnimatedAmount value={totalFiltered} currency={currency} />
             </p>
             <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
           </div>
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
-            <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-amber-600 dark:text-amber-400" : "")}>
+            <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-warning" : "")}>
               <AnimatedAmount value={totalRemaining} currency={currency} />
             </p>
             <p className="text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>

@@ -161,7 +161,7 @@ function TargetDatePickerIcon({
         className={cn(
           "h-4 w-4",
           value
-            ? "text-emerald-600 dark:text-emerald-400"
+            ? "text-primary"
             : canEdit
               ? "text-muted-foreground"
               : "text-muted-foreground/60"
@@ -348,7 +348,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
       <ContentHeader title={cfg.title} subtitle={cfg.subtitle} icon={ListIcon} />
       <p className={cn(
         "mb-4 -mt-2 text-[11px] font-medium",
-        hasProAccess ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+        hasProAccess ? "text-primary" : "text-muted-foreground",
       )}>
         {planNote}
       </p>
@@ -361,7 +361,7 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
               key={item.id}
               className={cn(
                 "relative border-b border-border/70 py-3 transition-colors last:border-b-0",
-                isLocked ? "overflow-hidden" : "focus-within:border-emerald-300",
+                isLocked ? "overflow-hidden" : "focus-within:border-primary/40",
               )}
             >
               <div className={cn(

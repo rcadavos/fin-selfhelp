@@ -46,7 +46,7 @@ export function FormPanel({ open, onOpenChange, children, className, mobileClass
         side="bottom"
         onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
-          "flex flex-col p-0 rounded-t-2xl max-h-[90dvh] overflow-hidden",
+          "flex flex-col p-0 rounded-t-lg max-h-[90dvh] overflow-hidden",
           className,
           mobileClassName
         )}

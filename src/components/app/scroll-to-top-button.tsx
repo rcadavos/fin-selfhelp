@@ -65,7 +65,7 @@ export function ScrollToTopButton() {
       title="Back to top"
       onClick={scrollAllToTop}
       className={cn(
-        "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border bg-background/95 shadow-md backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
+        "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border bg-background/95 backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
         "hover:bg-muted",
         visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       )}

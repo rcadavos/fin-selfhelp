@@ -24,16 +24,16 @@ const premiumFeatures = [
     description: "Manage your properties, tenants and track rent payments with ease.",
     icon: Building2,
     href: "/dashboard/rent-tracker",
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-muted-foreground",
+    bg: "bg-muted",
   },
   {
     title: "Payment Tracker",
     description: "Track all your miscellaneous payments and planned expenses in one place.",
     icon: Wallet,
     href: "/dashboard/payment-tracker",
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
+    color: "text-muted-foreground",
+    bg: "bg-muted",
   },
 ];
 
@@ -51,7 +51,7 @@ function PremiumPageContent() {
       />
 
       {!isPremium && (
-        <Card className="mb-8 border-primary/50 bg-primary/5 shadow-md overflow-hidden relative">
+        <Card className="mb-8 border-primary/50 bg-primary/5 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-full -mr-10 -mt-10" />
           <CardHeader>
             <div className="flex items-center gap-2 text-primary">
@@ -89,9 +89,9 @@ function PremiumPageContent() {
       <div className="grid gap-6 sm:grid-cols-2">
         {premiumFeatures.map((feature) => (
           <Link key={feature.title} href={feature.href}>
-            <Card className="h-full transition-all hover:shadow-md hover:border-primary/30 group">
+            <Card className="h-full transition-all hover:border-primary/30 group">
               <CardHeader>
-                <div className={`p-3 rounded-xl w-fit ${feature.bg} mb-2`}>
+                <div className={`p-3 rounded-lg w-fit ${feature.bg} mb-2`}>
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
                 <CardTitle className="flex items-center justify-between">

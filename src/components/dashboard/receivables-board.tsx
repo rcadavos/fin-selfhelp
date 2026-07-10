@@ -126,7 +126,7 @@ function rowToForm(row: ReceivableRow): ReceivableForm {
 function LinkStatusBadge({ status, email }: { status: string; email: string }) {
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+      <span className="inline-flex items-center gap-1 text-xs text-warning">
         <Clock className="h-3 w-3 shrink-0" />
         Awaiting confirmation from <strong className="ml-0.5">{email}</strong>
       </span>
@@ -134,7 +134,7 @@ function LinkStatusBadge({ status, email }: { status: string; email: string }) {
   }
   if (status === "confirmed") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1 text-xs text-primary">
         <CheckCircle2 className="h-3 w-3 shrink-0" />
         Confirmed by <strong className="ml-0.5">{email}</strong>
       </span>
@@ -142,7 +142,7 @@ function LinkStatusBadge({ status, email }: { status: string; email: string }) {
   }
   if (status === "rejected") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+      <span className="inline-flex items-center gap-1 text-xs text-destructive">
         <XCircle className="h-3 w-3 shrink-0" />
         Declined by <strong className="ml-0.5">{email}</strong>
       </span>
@@ -308,7 +308,7 @@ function ReceivableDialog({
 
             {/* ── Link to another OmniTrak account ── */}
             {editingId && (
-              <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
+              <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between text-sm font-medium text-primary/80"
@@ -381,8 +381,8 @@ function ReceivableDialog({
                   <p className={cn(
                     "text-xs",
                     inviteFeedback.kind === "success"
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-primary"
+                      : "text-destructive"
                   )}>
                     {inviteFeedback.message}
                   </p>
@@ -456,11 +456,11 @@ function ReceivableCard({
     <div
       onClick={onEdit}
       className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors",
+        "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-colors",
         status === "paid"
-          ? "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/20"
+          ? "border-primary/30 bg-primary/10 hover:bg-primary/15"
           : isOverdue
-            ? "border-red-300 bg-red-50/60 hover:bg-red-50 dark:border-red-700/50 dark:bg-red-950/20"
+            ? "border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
             : "border-border bg-card hover:bg-muted/40"
       )}
     >
@@ -474,8 +474,8 @@ function ReceivableCard({
         title={status === "paid" ? "Mark unpaid" : "Mark fully paid"}
       >
         {status === "paid"
-          ? <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-          : <Circle className={cn("h-5 w-5", isOverdue ? "text-red-500" : "")} />
+          ? <CheckCircle2 className="h-5 w-5 text-primary" />
+          : <Circle className={cn("h-5 w-5", isOverdue ? "text-destructive" : "")} />
         }
       </button>
 
@@ -487,17 +487,17 @@ function ReceivableCard({
           </p>
 
           {status === "paid" && (
-            <span className="shrink-0 rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
               Collected
             </span>
           )}
           {status === "partial" && (
-            <span className="shrink-0 rounded-full border border-blue-400/60 bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
               Partial
             </span>
           )}
           {status === "unpaid" && isOverdue && (
-            <span className="shrink-0 rounded-full border border-red-400/60 bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
+            <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
               Overdue
             </span>
           )}
@@ -512,7 +512,7 @@ function ReceivableCard({
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground/70">
           {item.borrowed_date && <span>Lent {item.borrowed_date}</span>}
           {item.due_date && status !== "paid" && (
-            <span className={cn(isOverdue && "text-red-500 dark:text-red-400")}>
+            <span className={cn(isOverdue && "text-destructive")}>
               Due {item.due_date}
             </span>
           )}
@@ -531,7 +531,7 @@ function ReceivableCard({
           {formatCurrency(item.amount, currency)}
         </p>
         {status === "partial" && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 tabular-nums">
+          <p className="text-xs text-warning tabular-nums">
             -{formatCurrency(item.paid_amount, currency)} paid
           </p>
         )}
@@ -572,19 +572,19 @@ function PendingLinkBanner({
   token: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 dark:border-amber-700/50 dark:bg-amber-950/20 px-4 py-3">
-      <MailCheck className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+    <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3">
+      <MailCheck className="h-5 w-5 shrink-0 text-warning mt-0.5" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+        <p className="text-sm font-medium text-warning">
           <strong>{ownerName}</strong> says you owe them{" "}
           <strong>{formatCurrency(amount, currency)}</strong>
         </p>
-        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">{description}</p>
+        <p className="text-xs text-warning/80 mt-0.5">{description}</p>
       </div>
       <Button
         size="sm"
         variant="outline"
-        className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 text-xs"
+        className="shrink-0 border-warning/40 text-warning hover:bg-warning/10 text-xs"
         asChild
       >
         <a href={`/dashboard/receivables/invite/${token}`}>Review</a>
@@ -773,24 +773,24 @@ export function ReceivablesBoard() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="rounded-lg border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Total Owed</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums">
             <AnimatedAmount value={totalOwed} currency={currency} />
           </p>
           <p className="text-[11px] text-muted-foreground">{items.length} receivable{items.length !== 1 ? "s" : ""}</p>
         </div>
-        <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="rounded-lg border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Collected</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-primary">
             <AnimatedAmount value={totalCollected} currency={currency} />
           </p>
         </div>
-        <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="rounded-lg border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Outstanding</p>
           <p className={cn(
             "mt-0.5 text-lg font-bold tabular-nums",
-            totalOutstanding > 0 ? "text-amber-600 dark:text-amber-400" : ""
+            totalOutstanding > 0 ? "text-warning" : ""
           )}>
             <AnimatedAmount value={totalOutstanding} currency={currency} />
           </p>

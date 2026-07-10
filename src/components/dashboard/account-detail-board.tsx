@@ -62,18 +62,18 @@ function formatGroupDate(dateStr: string): string {
 function txMeta(
   tx: AccountTransactionRow,
 ): { label: string; iconClass: string; sign: 1 | -1 | 0 } {
-  if (tx.type === "expense") return { label: "Expense", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
-  if (tx.type === "auto_pay") return { label: "Auto Pay", iconClass: "text-violet-600 dark:text-violet-400", sign: -1 };
-  if (tx.type === "fee") return { label: "Fee", iconClass: "text-orange-600 dark:text-orange-400", sign: -1 };
-  if (tx.type === "income") return { label: "Income", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 };
+  if (tx.type === "expense") return { label: "Expense", iconClass: "text-destructive", sign: -1 };
+  if (tx.type === "auto_pay") return { label: "Auto Pay", iconClass: "text-muted-foreground", sign: -1 };
+  if (tx.type === "fee") return { label: "Fee", iconClass: "text-muted-foreground", sign: -1 };
+  if (tx.type === "income") return { label: "Income", iconClass: "text-primary", sign: 1 };
   if (tx.type === "transfer") {
     return tx.amount >= 0
-      ? { label: "Transfer in", iconClass: "text-sky-600 dark:text-sky-400", sign: 1 }
-      : { label: "Transfer out", iconClass: "text-sky-600 dark:text-sky-400", sign: -1 };
+      ? { label: "Transfer in", iconClass: "text-muted-foreground", sign: 1 }
+      : { label: "Transfer out", iconClass: "text-muted-foreground", sign: -1 };
   }
   return tx.amount >= 0
-    ? { label: "Adjustment", iconClass: "text-emerald-600 dark:text-emerald-400", sign: 1 }
-    : { label: "Adjustment", iconClass: "text-rose-600 dark:text-rose-400", sign: -1 };
+    ? { label: "Adjustment", iconClass: "text-primary", sign: 1 }
+    : { label: "Adjustment", iconClass: "text-destructive", sign: -1 };
 }
 
 export function AccountDetailBoard({ account: initialAccount }: { account: AccountRow }) {
@@ -240,11 +240,11 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       />
 
       {/* Balance card */}
-      <div className="rounded-2xl border bg-card px-5 py-5">
+      <div className="rounded-lg border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current balance</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2">
-            <p className={cn("text-3xl font-bold tabular-nums", txData.balance < 0 && !amountsHidden && "text-rose-600 dark:text-rose-400")}>
+            <p className={cn("text-3xl font-bold tabular-nums", txData.balance < 0 && !amountsHidden && "text-destructive")}>
               {amountsHidden ? "••••••" : formatCurrency(animatedBalance)}
             </p>
             <button
@@ -258,7 +258,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
           {account.maintaining_balance != null &&
             account.maintaining_balance > 0 &&
             txData.balance < account.maintaining_balance && (
-              <span className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <span className="flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 Below maintaining balance{amountsHidden ? "" : ` (${formatCurrency(account.maintaining_balance)})`}
               </span>
@@ -271,19 +271,19 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
         {/* Action buttons */}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("expense")}>
-            <ArrowDownCircle className="h-4 w-4 text-rose-500" />
+            <ArrowDownCircle className="h-4 w-4 text-destructive" />
             Add Expense
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("income")}>
-            <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+            <ArrowUpCircle className="h-4 w-4 text-primary" />
             Add Income
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("adjustment")}>
-            <Edit className="h-4 w-4 text-amber-500" />
+            <Edit className="h-4 w-4 text-muted-foreground" />
             Adjustment
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setAddEntryTab("transfer")}>
-            <ArrowLeftRight className="h-4 w-4 text-sky-500" />
+            <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
             Transfer
           </Button>
         </div>
@@ -293,7 +293,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">History</h2>
         {txData.transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No entries yet.</p>
             <p className="max-w-md text-xs">Add an expense, income, adjustment, or transfer to start tracking the balance on this account.</p>
           </div>
@@ -312,7 +312,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
                     return (
                       <li
                         key={tx.id}
-                        className="group flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                        className="group flex items-center gap-3 rounded-lg border bg-card px-4 py-3"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -336,8 +336,8 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
                         </div>
                         <p className={cn(
                           "flex-shrink-0 text-sm font-semibold tabular-nums",
-                          !amountsHidden && tx.amount > 0 && "text-emerald-600 dark:text-emerald-400",
-                          !amountsHidden && tx.amount < 0 && "text-rose-600 dark:text-rose-400",
+                          !amountsHidden && tx.amount > 0 && "text-primary",
+                          !amountsHidden && tx.amount < 0 && "text-destructive",
                         )}>
                           {amountsHidden ? "••••••" : `${tx.amount > 0 ? "+" : tx.amount < 0 ? "−" : ""}${formatCurrency(Math.abs(tx.amount))}`}
                         </p>

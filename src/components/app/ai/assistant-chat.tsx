@@ -201,7 +201,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
+          "max-w-[85%] rounded-lg px-4 py-2.5 text-sm",
           isUser
             ? "rounded-br-sm bg-primary text-primary-foreground"
             : "rounded-bl-sm bg-muted text-foreground",
@@ -248,7 +248,7 @@ function Citations({ items }: { items: AiCitation[] }) {
 function ThinkingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
+      <div className="flex items-center gap-1.5 rounded-lg rounded-bl-sm bg-muted px-4 py-3">
         <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.3s]" />
         <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.15s]" />
         <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/50" />

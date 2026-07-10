@@ -136,7 +136,7 @@ function AdminReviewsContent() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       {r.rating != null && (
                         <span className="flex items-center gap-0.5">
-                          <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                          <Star className="h-4 w-4 fill-warning text-warning" />
                           {r.rating}
                         </span>
                       )}
@@ -255,7 +255,7 @@ function AdminReviewsContent() {
                         className={cn(
                           "rounded p-1.5 transition-colors",
                           editRating !== null && n <= editRating
-                            ? "text-amber-500 hover:text-amber-600"
+                            ? "text-warning hover:text-warning/80"
                             : "text-muted-foreground hover:text-foreground"
                         )}
                         aria-label={`${n} star${n > 1 ? "s" : ""}`}

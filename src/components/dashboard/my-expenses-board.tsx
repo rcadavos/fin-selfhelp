@@ -503,14 +503,14 @@ export function MyExpensesBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - Today</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-primary">
               <AnimatedAmount value={totalToday} />
             </p>
             <p className="text-[11px] text-muted-foreground">{expensesToday.length} item{expensesToday.length !== 1 ? "s" : ""} today</p>
           </div>
-          <div className="flex-1 rounded-xl border bg-card px-4 py-3">
+          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - This Month</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">
               <AnimatedAmount value={totalExpenses} />
@@ -574,9 +574,9 @@ export function MyExpensesBoard() {
 
       {/* Error */}
       {error && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-400">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-3 rounded p-0.5 hover:bg-red-100 dark:hover:bg-red-900/40">
+          <button onClick={() => setError(null)} className="ml-3 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -604,7 +604,7 @@ export function MyExpensesBoard() {
                     <div
                       key={exp.id}
                       onClick={() => { if (!isPending) handleOpenEdit(exp); }}
-                      className={`flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 shadow-sm transition-shadow ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:border-primary/30"}`}
+                      className={`flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-primary/30"}`}
                     >
                       <span
                         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -647,7 +647,7 @@ export function MyExpensesBoard() {
                       <button
                         disabled={isPending}
                         onClick={(e) => { e.stopPropagation(); if (!isPending) handleDelete(exp.id); }}
-                        className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 dark:hover:text-red-400 disabled:pointer-events-none disabled:opacity-50"
+                        className="flex-shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
                         title="Delete"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

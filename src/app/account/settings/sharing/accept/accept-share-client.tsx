@@ -183,7 +183,7 @@ export function AcceptShareClient() {
           )}
           {status === "working" && <p className="text-sm text-muted-foreground">Working…</p>}
           {status === "ok" && (
-            <div className="flex items-start gap-2 text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-start gap-2 text-primary">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
               <p className="text-sm">{message}</p>
             </div>

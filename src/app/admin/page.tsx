@@ -84,7 +84,7 @@ function AdminHomeContent() {
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">All sections</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {sections.map(({ href, title, description, icon: Icon }) => (
-            <Card key={href} className="transition-shadow hover:shadow-md">
+            <Card key={href}>
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">

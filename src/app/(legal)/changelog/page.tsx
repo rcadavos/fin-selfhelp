@@ -19,22 +19,22 @@ const TYPE_CONFIG: Record<
   feature: {
     label: "Feature",
     icon: Zap,
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+    className: "bg-muted text-muted-foreground",
   },
   improvement: {
     label: "Improvement",
     icon: TrendingUp,
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    className: "bg-primary/10 text-primary",
   },
   fix: {
     label: "Fix",
     icon: Wrench,
-    className: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+    className: "bg-warning/10 text-warning",
   },
   hotfix: {
     label: "Hotfix",
     icon: Flame,
-    className: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+    className: "bg-destructive/10 text-destructive",
   },
 };
 
@@ -53,7 +53,7 @@ export default function ChangelogPage() {
 
           {/* Header */}
           <div className="mb-10 mt-6 flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <ScrollText className="h-5 w-5 text-primary" />
             </div>
             <div>

@@ -14,6 +14,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.7.0",
+    date: "2026-07-10",
+    summary:
+      "A brand-new look for OmniTrak — the calm, statement-inspired 'Passbook' design, rolled out across the landing page, sign-in, the dashboard, and every in-app screen in both light and dark mode.",
+    changes: [
+      { type: "feature", description: "Redesigned OmniTrak with a new 'Passbook' visual style inspired by a well-kept printed bank statement: one deep-green ink accent, clean hairline rules, dot-leader rows, status stamps (Paid, Due, Overdue), and aligned banking-grade numbers — no gradients or clutter." },
+      { type: "improvement", description: "New landing page: a two-column hero with a live 'upcoming bills' ledger preview, real top navigation (Features, How it works, Pricing, FAQ), statement-style feature and pricing sections, and a two-column FAQ." },
+      { type: "improvement", description: "New sign-in and sign-up: a split-screen layout with a passbook brand panel, tabbed password / one-time-link sign-in, a clearer password-strength meter, keyboard-accessible controls, and prominent 14-day Pro free trial messaging on sign-up." },
+      { type: "improvement", description: "New dashboard home as a statement view: a tracked-balance header, flat at-a-glance stat cells, a cleaner spending chart in the app's own colors, and an upcoming-bills list with status stamps. Amounts now use aligned tabular figures and no longer jitter." },
+      { type: "improvement", description: "Refreshed every in-app screen — accounts, expenses, planned expenses, receivables, vehicles, goals, reminders, account settings, and admin — with flat hairline cards and a consistent green-and-neutral color system in place of the old multi-color chips, for cleaner, more legible pages in both light and dark mode." },
+      { type: "improvement", description: "New typography: Schibsted Grotesk for text and Geist Mono for all numbers, dates, and amounts." },
+      { type: "fix", description: "Corrected the Free plan description to show one in-app planned-expense reminder; email reminders remain a Pro feature." },
+      { type: "fix", description: "Fixed a rare 'useInsertionEffect must not schedule updates' error that could appear when navigating or opening the cookie-policy dialog; the top loading bar now schedules its updates safely." },
+    ],
+  },
+  {
     version: "1.6.1",
     date: "2026-06-29",
     summary:

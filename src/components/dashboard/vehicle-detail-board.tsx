@@ -242,13 +242,13 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
           </SelectContent>
         </Select>
         <Button size="lg" variant="outline" onClick={() => setAddExpenseOpen(true)} className="gap-1.5">
-          <ArrowDownCircle className="h-4 w-4 text-rose-500" aria-hidden />
+          <ArrowDownCircle className="h-4 w-4 text-destructive" aria-hidden />
           Add Expense
         </Button>
       </div>
 
       {/* Spend summary */}
-      <div className="rounded-2xl border bg-card px-5 py-4">
+      <div className="rounded-lg border bg-card px-5 py-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Spend this month
         </p>
@@ -322,7 +322,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
           History
         </h2>
         {expenseGroups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No entries for this month.</p>
             <p className="max-w-md text-xs">
               Add an expense linked to this vehicle to start tracking its history.
@@ -341,11 +341,11 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
                     return (
                       <li
                         key={e.id}
-                        className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                        className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-destructive">
                               {catLabel ?? "Other"}
                             </span>
                           </div>
@@ -353,7 +353,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
                             <p className="mt-0.5 truncate text-sm">{e.label}</p>
                           )}
                         </div>
-                        <p className="flex-shrink-0 text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                        <p className="flex-shrink-0 text-sm font-semibold tabular-nums text-destructive">
                           −{formatCurrency(e.amount)}
                         </p>
                       </li>

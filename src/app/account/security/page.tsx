@@ -29,10 +29,10 @@ function passwordScore(pw: string): number {
 const STRENGTH_LABEL = ["", "Weak", "Fair", "Good", "Strong"] as const;
 const STRENGTH_COLOR = [
   "bg-border",
-  "bg-red-500",
-  "bg-amber-400",
-  "bg-emerald-400",
-  "bg-emerald-600",
+  "bg-destructive",
+  "bg-warning",
+  "bg-primary/70",
+  "bg-primary",
 ] as const;
 
 export default function ProfileSecurityPage() {
@@ -213,9 +213,9 @@ export default function ProfileSecurityPage() {
                     <span
                       className={cn(
                         "font-medium",
-                        score <= 1 && "text-red-500",
-                        score === 2 && "text-amber-500",
-                        score >= 3 && "text-emerald-600 dark:text-emerald-400"
+                        score <= 1 && "text-destructive",
+                        score === 2 && "text-warning",
+                        score >= 3 && "text-primary"
                       )}
                     >
                       {STRENGTH_LABEL[score]}
@@ -232,7 +232,7 @@ export default function ProfileSecurityPage() {
                       key={rule.label}
                       className={cn(
                         "flex items-center gap-1.5 text-[11px] transition-colors duration-200",
-                        met ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/70"
+                        met ? "text-primary" : "text-muted-foreground/70"
                       )}
                     >
                       <span className="relative h-3 w-3 shrink-0">

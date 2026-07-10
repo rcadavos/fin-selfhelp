@@ -315,26 +315,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   }
 
   const statusBadge = isFullyPaidThisMonth ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+    <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
       <CheckCircle2 className="h-3 w-3" /> Paid this month
     </span>
   ) : isPartiallyPaidThisMonth ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+    <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
       Partial • {formatCurrency(amountPaidThisMonth)} / {formatCurrency(bill.amount)}
     </span>
   ) : isFailedThisMonth ? (
     <span
-      className="inline-flex rounded-full border border-red-500/70 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/50 dark:text-red-200"
+      className="inline-flex rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive"
       title={failureReasonThisMonth ?? "Auto-debit did not go through."}
     >
       Failed
     </span>
   ) : isOverdue ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-red-400/60 bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
+    <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
       Overdue
     </span>
   ) : isUpcoming ? (
-    <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/60 bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
       Upcoming
     </span>
   ) : (
@@ -384,7 +384,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       />
 
       {/* Amount + status + Mark Paid toggle */}
-      <div className="rounded-2xl border bg-card px-5 py-5">
+      <div className="rounded-lg border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
         <div className="mt-1 flex flex-wrap items-baseline gap-3">
           <p className="text-3xl font-bold tabular-nums">{formatCurrency(bill.amount)}</p>
@@ -433,7 +433,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         {isFailedThisMonth && (
           <div
             role="status"
-            className="mt-3 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-50 p-3 text-sm text-red-800 dark:border-red-700/50 dark:bg-red-950/30 dark:text-red-200"
+            className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div className="min-w-0 flex-1">
@@ -473,7 +473,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       </div>
 
       {/* Details */}
-      <div className="rounded-2xl border bg-card px-5 py-5 space-y-3">
+      <div className="rounded-lg border bg-card px-5 py-5 space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</h2>
         <DetailRow icon={<CalendarClock className="h-4 w-4" />} label="Due">
           {dueLabel}
@@ -535,7 +535,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment history</h2>
         {history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No payments recorded yet.</p>
             <p className="max-w-md text-xs">Mark this planned expense paid to record a payment for the current month.</p>
           </div>
@@ -547,17 +547,17 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
               return (
                 <li
                   key={entry.id}
-                  className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+                  className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
                       {isPartialMonth ? (
-                        <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                        <span className="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
                           Partial
                         </span>
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-emerald-400/60 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                           Paid in full
                         </span>
                       )}

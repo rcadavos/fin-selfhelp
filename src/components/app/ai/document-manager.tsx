@@ -92,7 +92,7 @@ export function DocumentManager({
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto [scrollbar-width:thin]">
         {documents.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed bg-muted/20 p-6 text-center text-xs text-muted-foreground">
             No documents yet. Add a file, a website URL, or paste notes so the assistant can use them.
           </div>
         ) : (
@@ -154,7 +154,7 @@ function DocumentRow({ doc, onDelete }: { doc: AiDocument; onDelete: () => void 
 function StatusBadge({ doc }: { doc: AiDocument }) {
   if (doc.status === "ready") {
     return (
-      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1 text-primary">
         <CircleCheck className="h-3 w-3" /> Ready
       </span>
     );
@@ -170,7 +170,7 @@ function StatusBadge({ doc }: { doc: AiDocument }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+    <span className="inline-flex items-center gap-1 text-warning">
       <Loader2 className="h-3 w-3 animate-spin" /> Processing
     </span>
   );
@@ -281,7 +281,7 @@ function AddDocumentSheet({
               disabled={pending}
               onClick={() => fileRef.current?.click()}
               className={cn(
-                "flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/20 px-4 py-10 text-center transition-colors hover:bg-muted/40",
+                "flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-10 text-center transition-colors hover:bg-muted/40",
                 pending && "pointer-events-none opacity-60",
               )}
             >

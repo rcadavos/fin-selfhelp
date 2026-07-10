@@ -537,7 +537,7 @@ export function AddEntryPanel({
                 {adjDelta !== null && adjDelta !== 0 && (
                   <p className={cn(
                     "text-xs font-medium",
-                    adjDelta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                    adjDelta > 0 ? "text-primary" : "text-destructive",
                   )}>
                     Adjustment: {adjDelta > 0 ? "+" : "−"}{formatCurrency(Math.abs(adjDelta))}
                   </p>

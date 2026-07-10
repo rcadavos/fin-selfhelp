@@ -63,9 +63,9 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
       ? "Pro"
       : "Free";
   const subscriptionBadgeClass = subscriptionStatus?.hasPremiumAccess
-    ? "bg-blue-100 text-blue-700 ring-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-400/30"
+    ? "bg-primary text-primary-foreground ring-primary/30"
     : subscriptionStatus?.hasProAccess
-      ? "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30"
+      ? "bg-primary/10 text-primary ring-primary/30"
       : "bg-muted text-muted-foreground ring-border";
 
   if (!user) return null;
@@ -73,7 +73,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
   return (
     <aside
       className={cn(
-        "flex w-64 flex-col overflow-hidden border-r border-border/80 bg-muted/30 shadow-sm backdrop-blur-sm",
+        "flex w-64 flex-col overflow-hidden border-r border-border/80 bg-muted/30 backdrop-blur-sm",
         "fixed left-0 top-0 z-40 h-screen hidden md:flex",
         className
       )}
@@ -111,13 +111,13 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
               <Icon className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">{label}</span>
               {premium ? (
-                <Gem className="h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" aria-label="Premium" />
+                <Gem className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Premium" />
               ) : null}
             </Link>
           );
         })}
       </nav>
-      <div className="w-full shrink-0 border-t bg-white p-3 dark:bg-muted/30">
+      <div className="w-full shrink-0 border-t bg-card p-3">
         <AccountDropdownMenu
           user={user}
           align="start"
@@ -125,7 +125,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           trigger={
             <Button
               variant="ghost"
-              className="h-auto w-full justify-start gap-2 rounded-lg border border-border/60 bg-white px-2 py-2 text-left font-normal shadow-sm hover:bg-slate-50 focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:bg-transparent dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+              className="h-auto w-full justify-start gap-2 rounded-lg border border-border/60 bg-card px-2 py-2 text-left font-normal hover:bg-muted focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:bg-transparent dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
               aria-label="Account menu"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">

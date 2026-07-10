@@ -455,7 +455,7 @@ function AdminNotificationsContent() {
           {sendError && <p className="text-sm text-destructive">{sendError}</p>}
 
           {lastResult && (
-            <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+            <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
               {lastResult.sent > 0 && (
                 <p>
                   Delivered to {lastResult.sent} user

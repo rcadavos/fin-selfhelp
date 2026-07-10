@@ -130,7 +130,7 @@ export function AccountTransactionDialog({
                 {amountText !== "" && Number.isFinite(parsedAmount) && parsedAmount !== currentBalance && (
                   <p className={cn(
                     "text-xs font-medium",
-                    delta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                    delta > 0 ? "text-primary" : "text-destructive",
                   )}>
                     Adjustment: {delta > 0 ? "+" : "−"}{formatCurrency(Math.abs(delta))}
                   </p>

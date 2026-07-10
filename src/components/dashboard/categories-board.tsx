@@ -81,12 +81,12 @@ function CustomCategoryCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-2xl border border-border/60 p-5 shadow-sm transition-shadow hover:shadow-md",
+        "group relative flex flex-col rounded-lg border border-border/60 p-5",
         cat.bgClass || "bg-violet-50 dark:bg-violet-950/30"
       )}
     >
       <div className="mb-3 flex items-start gap-3">
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           <Tag className="h-3.5 w-3.5" />
         </span>
         <h3 className="flex-1 text-base font-semibold leading-snug text-foreground">{cat.label}</h3>
@@ -142,12 +142,12 @@ function GlobalCategoryCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-2xl border border-border/60 p-5 shadow-sm transition-shadow hover:shadow-md",
+        "flex flex-col rounded-lg border border-border/60 p-5",
         cat.bgClass || "bg-sky-50 dark:bg-sky-950/30"
       )}
     >
       <div className="mb-3 flex items-start gap-3">
-        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm">
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           {index + 1}
         </span>
         <h3 className="text-base font-semibold leading-snug text-foreground">{cat.label}</h3>
@@ -173,7 +173,7 @@ function GlobalCategoryCard({
 
 function UpgradeBanner() {
   return (
-    <div className="mb-8 flex flex-col items-start gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="mb-8 flex flex-col items-start gap-4 rounded-lg border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-4 w-4 text-primary" />
@@ -324,7 +324,7 @@ export function CategoriesBoard() {
           </div>
 
           {userCategories.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/20 py-10 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border/60 bg-muted/20 py-10 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <Tag className="h-5 w-5 text-muted-foreground" />
               </div>

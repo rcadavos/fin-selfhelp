@@ -81,7 +81,7 @@ export function PartialPaymentDialog({
               <span className="text-muted-foreground">Remaining</span>
               <span
                 className={`font-semibold tabular-nums ${
-                  remaining > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                  remaining > 0 ? "text-warning" : "text-primary"
                 }`}
               >
                 {formatCurrency(remaining)}
@@ -106,7 +106,7 @@ export function PartialPaymentDialog({
                   {formatCurrency(newAbsolute)}
                 </span>
                 {willOverpay && (
-                  <span className="ml-1 text-amber-600 dark:text-amber-400">
+                  <span className="ml-1 text-warning">
                     — exceeds the bill total by {formatCurrency(newAbsolute - billAmount)}
                   </span>
                 )}
