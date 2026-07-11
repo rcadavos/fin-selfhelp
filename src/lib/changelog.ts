@@ -26,6 +26,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Refreshed every in-app screen — accounts, expenses, planned expenses, receivables, vehicles, goals, reminders, account settings, and admin — with flat hairline cards and a consistent green-and-neutral color system in place of the old multi-color chips, for cleaner, more legible pages in both light and dark mode." },
       { type: "improvement", description: "New typography: Schibsted Grotesk for text and Geist Mono for all numbers, dates, and amounts." },
       { type: "improvement", description: "New OmniTrak logo — a green app-icon mark paired with the wordmark set in the new app font — replacing the old logo image across the app, the sign-in panel, the browser tab, and the install icon." },
+      { type: "improvement", description: "Planned Expenses now shows an 'Auto-debit' indicator on each bill set to pay automatically, so auto-paid bills are easy to spot in the list at a glance (matching the detail page and dashboard)." },
       { type: "fix", description: "Corrected the Free plan description to show one in-app planned-expense reminder; email reminders remain a Pro feature." },
       { type: "fix", description: "Fixed a rare 'useInsertionEffect must not schedule updates' error that could appear when navigating or opening the cookie-policy dialog; the top loading bar now schedules its updates safely." },
     ],

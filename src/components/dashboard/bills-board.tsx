@@ -25,6 +25,7 @@ import {
   LayoutGrid,
   Lock,
   RotateCcw,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -406,6 +407,15 @@ function BillRow({
             <span className="hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
               <Lock className="h-2.5 w-2.5" />
               Reminder
+            </span>
+          )}
+          {bill.is_auto_debit && (
+            <span
+              className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              title="Paid automatically on the due date (auto-debit)"
+            >
+              <Zap className="h-2.5 w-2.5 text-primary" aria-hidden />
+              Auto-debit
             </span>
           )}
         </div>
