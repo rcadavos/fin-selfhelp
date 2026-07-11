@@ -95,7 +95,7 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <SiteLogo className="h-6 w-auto max-h-6 md:h-7 md:max-h-7" />
+        <SiteLogo className="text-base" iconClassName="h-5 w-5" />
         <button
           type="button"
           onClick={close}

@@ -25,6 +25,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "New dashboard home as a statement view: a tracked-balance header, flat at-a-glance stat cells, a cleaner spending chart in the app's own colors, and an upcoming-bills list with status stamps. Amounts now use aligned tabular figures and no longer jitter." },
       { type: "improvement", description: "Refreshed every in-app screen — accounts, expenses, planned expenses, receivables, vehicles, goals, reminders, account settings, and admin — with flat hairline cards and a consistent green-and-neutral color system in place of the old multi-color chips, for cleaner, more legible pages in both light and dark mode." },
       { type: "improvement", description: "New typography: Schibsted Grotesk for text and Geist Mono for all numbers, dates, and amounts." },
+      { type: "improvement", description: "New OmniTrak logo — a green app-icon mark paired with the wordmark set in the new app font — replacing the old logo image across the app, the sign-in panel, the browser tab, and the install icon." },
       { type: "fix", description: "Corrected the Free plan description to show one in-app planned-expense reminder; email reminders remain a Pro feature." },
       { type: "fix", description: "Fixed a rare 'useInsertionEffect must not schedule updates' error that could appear when navigating or opening the cookie-policy dialog; the top loading bar now schedules its updates safely." },
     ],

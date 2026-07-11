@@ -2,24 +2,47 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type SiteLogoProps = {
+  /** Wrapper classes — control gap, color, and text size (defaults to text-lg). */
   className?: string;
+  /** Icon box classes (defaults to h-7 w-7). */
+  iconClassName?: string;
+  /** Render the mark only, no wordmark. */
+  iconOnly?: boolean;
   /** Set `high` for above-the-fold logo (LCP / Lighthouse fetch priority). */
   fetchPriority?: "high" | "low" | "auto";
 };
 
-/** Banner wordmark — `public/omnitrak-logo.png` (top headers). */
-export function SiteLogo({ className, fetchPriority = "auto" }: SiteLogoProps) {
-  const logoSrc = "/omnitrak-logo.png";
+/**
+ * OmniTrak lockup: the chameleon mark (`public/favicon.png`) + the "OmniTrak"
+ * wordmark set in the app font (Schibsted Grotesk). Replaces the old baked
+ * `omnitrak-logo.png` image so the wordmark always matches the product type.
+ */
+export function SiteLogo({
+  className,
+  iconClassName,
+  iconOnly = false,
+  fetchPriority = "auto",
+}: SiteLogoProps) {
   return (
-    <Image
-      src={logoSrc}
-      alt="OmniTrak logo"
-      className={cn("h-9 w-auto max-h-9 object-contain object-left", className)}
-      width={200}
-      height={40}
-      priority={fetchPriority === "high"}
-      fetchPriority={fetchPriority}
-      decoding="async"
-    />
+    <span
+      className={cn(
+        "inline-flex items-center text-2xl font-bold leading-none tracking-tight text-primary",
+        className,
+      )}
+    >
+      <Image
+        src="/favicon.png"
+        alt={iconOnly ? "OmniTrak" : ""}
+        aria-hidden={iconOnly ? undefined : true}
+        width={80}
+        height={80}
+        className={cn("h-10 w-auto shrink-0 object-contain", iconClassName)}
+        priority={fetchPriority === "high"}
+        fetchPriority={fetchPriority}
+        decoding="async"
+        unoptimized
+      />
+      {!iconOnly && <span>OmniTrak</span>}
+    </span>
   );
 }

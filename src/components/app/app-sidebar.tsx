@@ -78,17 +78,17 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
         className
       )}
     >
-      <div className="flex h-14 shrink-0 items-end gap-0.5 border-b px-3 pb-2">
+      <div className="flex h-14 shrink-0 items-end gap-0.5 border-b px-3 pb-1">
         <Link
           href="/"
           className="flex min-w-0 items-center"
           title="Omnitrak"
           aria-label="Omnitrak home"
         >
-          <SiteLogo className="max-w-full" />
+          <SiteLogo className="min-w-0" />
           <span className="sr-only">Omnitrak</span>
         </Link>
-        <span className="shrink-0 select-none text-[10px] text-muted-foreground/50 pl-0.5 pb-0.5">v{APP_VERSION}</span>
+        <span className="shrink-0 select-none text-[10px] text-muted-foreground/50 pl-0.5 pb-2">v{APP_VERSION}</span>
       </div>
       <nav
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"

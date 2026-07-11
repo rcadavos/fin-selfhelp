@@ -14,17 +14,27 @@ import { cn } from "@/lib/utils";
  * (logo + one mono accessory) so brand presence never vanishes on mobile.
  */
 
-/** OmniTrak wordmark. Bright-green logo reads on the near-black-green panel. */
-function BrandLogo({ className, width, height }: { className?: string; width: number; height: number }) {
+/** OmniTrak lockup for the deep-green panel: chameleon mark + wordmark in light ink. */
+function BrandLogo({ className, iconClassName }: { className?: string; iconClassName?: string }) {
   return (
-    <Image
-      src="/omnitrak-logo.png"
-      alt="OmniTrak"
-      width={width}
-      height={height}
-      className={cn("w-auto object-contain", className)}
-      priority
-    />
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 font-bold leading-none tracking-tight text-panel-accent",
+        className,
+      )}
+    >
+      <Image
+        src="/favicon.png"
+        alt=""
+        aria-hidden
+        width={80}
+        height={80}
+        className={cn("h-8 w-auto shrink-0 object-contain", iconClassName)}
+        priority
+        unoptimized
+      />
+      OmniTrak
+    </span>
   );
 }
 
@@ -56,7 +66,7 @@ export function AuthShell({
           aria-label="OmniTrak home"
           className="inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-panel-accent focus-visible:ring-offset-0"
         >
-          <BrandLogo width={122} height={24} className="h-6" />
+          <BrandLogo className="text-base" iconClassName="h-6 w-6" />
         </Link>
         {stripAccessory}
       </div>
@@ -72,7 +82,7 @@ export function AuthShell({
             aria-label="OmniTrak home"
             className="inline-flex w-fit items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-panel-accent focus-visible:ring-offset-0"
           >
-            <BrandLogo width={163} height={32} className="h-8" />
+            <BrandLogo className="text-xl" iconClassName="h-8 w-8" />
           </Link>
 
           <div className="my-10">{panel}</div>
