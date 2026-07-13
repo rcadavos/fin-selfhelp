@@ -63,7 +63,7 @@ export function Header({ className }: HeaderProps) {
                 aria-busy="true"
                 aria-label="Loading account"
               >
-                <span className="hidden h-9 w-[4.25rem] shrink-0 rounded-md bg-muted sm:inline-block" />
+                <span className="inline-block h-9 w-[4.25rem] shrink-0 rounded-md bg-muted" />
                 <span className="inline-block h-9 w-[8.5rem] shrink-0 rounded-md bg-muted" />
               </div>
             ) : user ? (
@@ -78,7 +78,7 @@ export function Header({ className }: HeaderProps) {
               </Button>
             ) : (
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                <Button size="sm" variant="ghost" asChild className="hidden h-9 px-3 sm:inline-flex">
+                <Button size="sm" variant="ghost" asChild className="inline-flex h-9 px-2.5 sm:px-3">
                   <Link href="/login">Log in</Link>
                 </Button>
                 <Button size="sm" asChild className="h-9 shrink-0 px-3.5">

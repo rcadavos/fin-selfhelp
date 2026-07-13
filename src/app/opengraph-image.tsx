@@ -8,6 +8,163 @@ export const alt =
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+/* ============================================================
+   Passbook design tokens (light) — mirrors globals.css :root.
+   One green ink, hairline rules, banking-grade mono numerals.
+   ============================================================ */
+const PAPER = "#F7F8F6"; // --background
+const CARD = "#FCFDFB"; // --card surface
+const INK = "#171D19"; // --foreground
+const MUTED = "#5A6660"; // --muted-foreground
+const GREEN = "#0B6E4F"; // --primary money green
+const BORDER = "#E2E7E2"; // --border hairline
+const HAIR_STRONG = "#C9D2CB"; // --hairline-strong
+const AMBER = "#8A6116"; // --warning amber ink (Due)
+const LEADER = "rgba(90,102,96,0.45)"; // dot-leader ink
+
+/** Every glyph rendered in the image — sent to Google Fonts so it returns a
+ *  subsetted TTF (Satori can't parse the woff2 you'd otherwise get). Includes
+ *  both cases so `text-transform: uppercase` can't produce tofu. */
+const GLYPHS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;/-–—•₱→%&()'";
+
+type FontSpec = { name: string; family: string; weight: 400 | 500 | 700 };
+
+const FONT_SPECS: FontSpec[] = [
+  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 400 },
+  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 500 },
+  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 700 },
+  { name: "Geist Mono", family: "Geist Mono", weight: 400 },
+  { name: "Geist Mono", family: "Geist Mono", weight: 500 },
+];
+
+/** Fetch a single Google Font weight as a TTF ArrayBuffer, subset to GLYPHS.
+ *  Returns null on any failure so the image still renders on next/og's
+ *  bundled default font rather than failing the build. */
+async function loadGoogleFont(
+  spec: FontSpec,
+): Promise<{ name: string; data: ArrayBuffer; weight: number; style: "normal" } | null> {
+  try {
+    const family = spec.family.replace(/ /g, "+");
+    const url = `https://fonts.googleapis.com/css2?family=${family}:wght@${spec.weight}&text=${encodeURIComponent(GLYPHS)}`;
+    const cssRes = await fetch(url);
+    if (!cssRes.ok) return null;
+    const css = await cssRes.text();
+    const src = css.match(
+      /src:\s*url\(([^)]+)\)\s*format\(['"]?(?:opentype|truetype)['"]?\)/,
+    )?.[1];
+    if (!src) return null;
+    const fontRes = await fetch(src);
+    if (!fontRes.ok) return null;
+    return {
+      name: spec.name,
+      data: await fontRes.arrayBuffer(),
+      weight: spec.weight,
+      style: "normal",
+    };
+  } catch {
+    return null;
+  }
+}
+
+const MONO = "Geist Mono";
+const SANS = "Schibsted Grotesk";
+
+/** A single passbook ledger row: label · dot-leader · amount [· stamp]. */
+function LedgerRow({
+  label,
+  amount,
+  stamp,
+  paid = false,
+  total = false,
+  last = false,
+}: {
+  label: string;
+  amount: string;
+  stamp?: { text: string; variant: "paid" | "due" | "scheduled" };
+  paid?: boolean;
+  total?: boolean;
+  last?: boolean;
+}) {
+  const stampStyle =
+    stamp?.variant === "paid"
+      ? { color: GREEN, border: `1px solid ${GREEN}` }
+      : stamp?.variant === "due"
+        ? { color: AMBER, border: `1px solid ${AMBER}` }
+        : { color: MUTED, border: `1px solid ${HAIR_STRONG}` };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-end",
+        padding: total ? "12px 0 0" : last ? "10px 0 0" : "10px 0",
+        borderBottom: total || last ? "none" : `1px solid ${BORDER}`,
+        borderTop: total ? `1px solid ${HAIR_STRONG}` : "none",
+        marginTop: total ? 4 : 0,
+      }}
+    >
+      <span
+        style={{
+          display: "flex",
+          fontFamily: SANS,
+          fontSize: total ? 17 : 15,
+          fontWeight: total ? 700 : 500,
+          lineHeight: 1,
+          color: paid ? MUTED : INK,
+          textDecoration: paid ? "line-through" : "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          display: "flex",
+          flex: 1,
+          minWidth: 16,
+          borderBottom: `2px dashed ${LEADER}`,
+          margin: "0 8px 5px",
+        }}
+      />
+      <span
+        style={{
+          display: "flex",
+          fontFamily: MONO,
+          fontSize: total ? 18 : 15,
+          fontWeight: total ? 500 : 400,
+          lineHeight: 1,
+          color: paid ? MUTED : INK,
+          textDecoration: paid ? "line-through" : "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {amount}
+      </span>
+      {stamp && (
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginLeft: 10,
+            padding: "2px 7px",
+            borderRadius: 4,
+            fontFamily: MONO,
+            fontSize: 10.5,
+            fontWeight: 500,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            ...stampStyle,
+          }}
+        >
+          {stamp.text}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default async function OpenGraphImage() {
   const host = (() => {
     try {
@@ -17,10 +174,16 @@ export default async function OpenGraphImage() {
     }
   })();
 
-  const mascotBuffer = await readFile(
-    join(process.cwd(), "public", "favicon.png"),
-  );
+  const [mascotBuffer, fontResults] = await Promise.all([
+    readFile(join(process.cwd(), "public", "favicon.png")),
+    Promise.all(FONT_SPECS.map(loadGoogleFont)),
+  ]);
   const mascotSrc = `data:image/png;base64,${mascotBuffer.toString("base64")}`;
+  const fonts = fontResults.filter(
+    (f): f is NonNullable<typeof f> => f !== null,
+  );
+
+  const trustLine = "14-day Pro trial • Free to start • No bank linking";
 
   return new ImageResponse(
     (
@@ -30,61 +193,20 @@ export default async function OpenGraphImage() {
           width: "100%",
           display: "flex",
           position: "relative",
-          background:
-            "linear-gradient(135deg, #064e3b 0%, #047857 45%, #0f766e 100%)",
-          fontFamily: "system-ui, sans-serif",
+          background: PAPER,
+          fontFamily: SANS,
           overflow: "hidden",
         }}
       >
-        {/* Ambient blurred glow blobs */}
+        {/* Ruled top edge — the statement's green header rule */}
         <div
           style={{
             position: "absolute",
-            top: -180,
-            left: -160,
-            width: 520,
-            height: 520,
-            borderRadius: 9999,
-            background: "rgba(16, 185, 129, 0.35)",
-            filter: "blur(120px)",
-            display: "flex",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: -200,
-            right: -120,
-            width: 560,
-            height: 560,
-            borderRadius: 9999,
-            background: "rgba(45, 212, 191, 0.25)",
-            filter: "blur(130px)",
-            display: "flex",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: 120,
-            right: 180,
-            width: 260,
-            height: 260,
-            borderRadius: 9999,
-            background: "rgba(255, 255, 255, 0.06)",
-            filter: "blur(60px)",
-            display: "flex",
-          }}
-        />
-
-        {/* Subtle dotted grid texture overlay */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "radial-gradient(rgba(255,255,255,0.08) 1.5px, transparent 1.5px)",
-            backgroundSize: "28px 28px",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 6,
+            background: GREEN,
             display: "flex",
           }}
         />
@@ -96,10 +218,10 @@ export default async function OpenGraphImage() {
             display: "flex",
             width: "100%",
             height: "100%",
-            padding: "64px 72px",
+            padding: "58px 62px 52px",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 48,
+            gap: 46,
           }}
         >
           {/* Left: copy */}
@@ -107,8 +229,8 @@ export default async function OpenGraphImage() {
             style={{
               display: "flex",
               flexDirection: "column",
-              maxWidth: 700,
-              color: "white",
+              flex: 1,
+              maxWidth: 600,
             }}
           >
             {/* Wordmark */}
@@ -116,339 +238,250 @@ export default async function OpenGraphImage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 18,
-                marginBottom: 28,
+                gap: 14,
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={mascotSrc}
                 alt=""
-                width={88}
-                height={88}
-                style={{
-                  objectFit: "contain",
-                  filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.35))",
-                }}
+                width={56}
+                height={56}
+                style={{ objectFit: "contain" }}
               />
               <div
                 style={{
-                  fontSize: 76,
-                  fontWeight: 800,
-                  letterSpacing: "-0.03em",
-                  color: "white",
-                  lineHeight: 1,
-                  textShadow: "0 2px 12px rgba(0,0,0,0.25)",
                   display: "flex",
+                  fontFamily: SANS,
+                  fontSize: 40,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  color: GREEN,
+                  lineHeight: 1,
                 }}
               >
                 OmniTrak
               </div>
             </div>
 
-            {/* Eyebrow pill */}
+            {/* Eyebrow */}
             <div
               style={{
                 display: "flex",
-                alignSelf: "flex-start",
-                padding: "8px 16px",
-                borderRadius: 9999,
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.25)",
-                color: "#d1fae5",
-                fontSize: 20,
-                fontWeight: 600,
-                letterSpacing: "0.08em",
+                marginTop: 30,
+                fontFamily: MONO,
+                fontSize: 14,
+                fontWeight: 500,
+                letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                marginBottom: 22,
+                color: GREEN,
               }}
             >
-              Personal finance • simplified
+              Personal finance • Philippines
             </div>
 
             {/* Headline */}
             <div
               style={{
-                fontSize: 56,
-                fontWeight: 800,
-                lineHeight: 1.05,
-                letterSpacing: "-0.02em",
-                marginBottom: 18,
                 display: "flex",
-                flexDirection: "column",
+                marginTop: 16,
+                fontFamily: SANS,
+                fontSize: 52,
+                fontWeight: 700,
+                lineHeight: 1.08,
+                letterSpacing: "-0.02em",
+                color: INK,
               }}
             >
-              <span style={{ display: "flex" }}>Track everything.</span>
-              <span style={{ display: "flex", color: "#a7f3d0" }}>
-                Stress less.
-              </span>
+              Your all-in-one finance tracker, now with AI
             </div>
 
             {/* Subhead */}
             <div
               style={{
-                fontSize: 26,
-                lineHeight: 1.35,
-                color: "rgba(255,255,255,0.88)",
-                marginBottom: 28,
                 display: "flex",
+                marginTop: 20,
+                maxWidth: 520,
+                fontFamily: SANS,
+                fontSize: 21,
+                fontWeight: 400,
+                lineHeight: 1.4,
+                color: MUTED,
               }}
             >
-              Expenses, planned spend, goals, and a built-in AI assistant — all
-              in one beautifully simple app.
+              Track expenses, planned expenses, accounts, and goals in one simple
+              app. Then ask the built-in assistant anything.
             </div>
 
-            {/* Feature chips */}
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                marginBottom: 28,
-              }}
-            >
-              {["Built-in AI assistant", "Free to start", "No bank linking", "Works on any device"].map(
-                (label) => (
-                  <div
-                    key={label}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "8px 14px",
-                      borderRadius: 9999,
-                      background: "rgba(255,255,255,0.1)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      fontSize: 20,
-                      color: "white",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 9999,
-                        background: "#34d399",
-                        display: "flex",
-                      }}
-                    />
-                    {label}
-                  </div>
-                ),
-              )}
-            </div>
-
-            {/* CTA */}
+            {/* CTA + host */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 18,
+                gap: 20,
+                marginTop: 32,
               }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  padding: "16px 28px",
-                  borderRadius: 14,
-                  background: "white",
-                  color: "#047857",
-                  fontSize: 24,
+                  padding: "13px 24px",
+                  borderRadius: 8,
+                  background: GREEN,
+                  color: PAPER,
+                  fontFamily: SANS,
+                  fontSize: 19,
                   fontWeight: 700,
-                  boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
                 }}
               >
-                Try it free →
+                Start free 14-day trial
               </div>
               {host && (
                 <div
                   style={{
                     display: "flex",
-                    fontSize: 22,
-                    color: "rgba(255,255,255,0.85)",
-                    fontWeight: 500,
+                    fontFamily: MONO,
+                    fontSize: 17,
+                    color: MUTED,
                   }}
                 >
                   {host}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Right: stylized credit card mock (mirrors landing hero) */}
-          <div
-            style={{
-              position: "relative",
-              display: "flex",
-              width: 380,
-              height: 240,
-              flexShrink: 0,
-              transform: "rotate(6deg)",
-            }}
-          >
-            {/* Back card (depth) */}
+            {/* Trust line */}
             <div
               style={{
-                position: "absolute",
-                inset: 0,
-                transform: "translate(18px, 22px) rotate(-10deg)",
-                borderRadius: 22,
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 100%)",
-                border: "1px solid rgba(255,255,255,0.2)",
                 display: "flex",
-              }}
-            />
-            {/* Front card */}
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-                height: "100%",
-                borderRadius: 22,
-                padding: 26,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                background:
-                  "linear-gradient(135deg, #059669 0%, #047857 55%, #0f3d3a 100%)",
-                border: "1px solid rgba(255,255,255,0.25)",
-                boxShadow:
-                  "0 30px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-                color: "white",
-                overflow: "hidden",
+                marginTop: 22,
+                fontFamily: MONO,
+                fontSize: 12,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: MUTED,
               }}
             >
-              <div
+              {trustLine}
+            </div>
+          </div>
+
+          {/* Right: the upcoming-bills ledger (mirrors the landing hero) */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: 452,
+              flexShrink: 0,
+              background: CARD,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 12,
+              padding: "24px 26px",
+              boxShadow: "0 18px 40px rgba(23,29,25,0.10)",
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 12,
+                borderBottom: `1px solid ${BORDER}`,
+              }}
+            >
+              <span
                 style={{
-                  position: "absolute",
-                  top: -40,
-                  right: -40,
-                  width: 160,
-                  height: 160,
-                  borderRadius: 9999,
-                  background: "rgba(255,255,255,0.12)",
                   display: "flex",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  fontFamily: MONO,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: MUTED,
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      letterSpacing: "0.22em",
-                      color: "rgba(255,255,255,0.75)",
-                      textTransform: "uppercase",
-                      display: "flex",
-                    }}
-                  >
-                    OmniTrak
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 20,
-                      fontWeight: 700,
-                      letterSpacing: "-0.01em",
-                      display: "flex",
-                    }}
-                  >
-                    Budget & Goals
-                  </div>
-                </div>
-                <div
-                  style={{
-                    width: 46,
-                    height: 36,
-                    borderRadius: 6,
-                    background:
-                      "linear-gradient(135deg, #fde68a 0%, #f59e0b 100%)",
-                    boxShadow: "inset 0 -3px 6px rgba(0,0,0,0.2)",
-                    display: "flex",
-                  }}
+                Upcoming bills
+              </span>
+              <span
+                style={{
+                  display: "flex",
+                  fontFamily: MONO,
+                  fontSize: 12,
+                  color: MUTED,
+                }}
+              >
+                JUL 2026
+              </span>
+            </div>
+
+            <LedgerRow
+              label="Meralco"
+              amount="₱3,214.57"
+              stamp={{ text: "Due Jul 15", variant: "due" }}
+            />
+            <LedgerRow
+              label="Maynilad"
+              amount="₱486.20"
+              stamp={{ text: "Paid", variant: "paid" }}
+              paid
+            />
+            <LedgerRow
+              label="Globe Fiber"
+              amount="₱1,699.00"
+              stamp={{ text: "Due Jul 18", variant: "due" }}
+            />
+            <LedgerRow
+              label="Netflix"
+              amount="₱549.00"
+              stamp={{ text: "Paid", variant: "paid" }}
+              paid
+            />
+            <LedgerRow
+              label="Pag-IBIG MP2"
+              amount="₱1,000.00"
+              stamp={{ text: "Scheduled", variant: "scheduled" }}
+              last
+            />
+            <LedgerRow label="Still to pay" amount="₱4,913.57" total />
+
+            {/* Footer: 6-month spend sparkline */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 16,
+                paddingTop: 14,
+                borderTop: `1px solid ${BORDER}`,
+              }}
+            >
+              <span
+                style={{
+                  display: "flex",
+                  fontFamily: SANS,
+                  fontSize: 13,
+                  color: MUTED,
+                }}
+              >
+                6-month spend
+              </span>
+              <svg width="84" height="24" viewBox="0 0 84 24" fill="none">
+                <polyline
+                  points="2,18 15,14 28,16 41,9 54,12 67,5 82,8"
+                  stroke={GREEN}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              </div>
-              <div
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: 22,
-                  letterSpacing: "0.22em",
-                  color: "rgba(255,255,255,0.95)",
-                  display: "flex",
-                }}
-              >
-                •••• •••• •••• 0428
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  fontSize: 14,
-                  color: "rgba(255,255,255,0.8)",
-                }}
-              >
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div
-                    style={{
-                      textTransform: "uppercase",
-                      letterSpacing: "0.12em",
-                      display: "flex",
-                    }}
-                  >
-                    Valid
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "monospace",
-                      fontSize: 16,
-                      color: "white",
-                      display: "flex",
-                    }}
-                  >
-                    12/28
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                  }}
-                >
-                  <div
-                    style={{
-                      textTransform: "uppercase",
-                      letterSpacing: "0.12em",
-                      display: "flex",
-                    }}
-                  >
-                    PHP
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: "white",
-                      display: "flex",
-                    }}
-                  >
-                    Full clarity.
-                  </div>
-                </div>
-              </div>
+                <circle cx="82" cy="8" r="2.8" fill={GREEN} />
+              </svg>
             </div>
           </div>
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, ...(fonts.length > 0 ? { fonts } : {}) },
   );
 }
