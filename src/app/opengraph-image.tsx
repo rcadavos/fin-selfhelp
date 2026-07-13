@@ -43,7 +43,12 @@ const FONT_SPECS: FontSpec[] = [
  *  bundled default font rather than failing the build. */
 async function loadGoogleFont(
   spec: FontSpec,
-): Promise<{ name: string; data: ArrayBuffer; weight: number; style: "normal" } | null> {
+): Promise<{
+  name: string;
+  data: ArrayBuffer;
+  weight: FontSpec["weight"];
+  style: "normal";
+} | null> {
   try {
     const family = spec.family.replace(/ /g, "+");
     const url = `https://fonts.googleapis.com/css2?family=${family}:wght@${spec.weight}&text=${encodeURIComponent(GLYPHS)}`;
