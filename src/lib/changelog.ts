@@ -14,6 +14,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.7.1",
+    date: "2026-07-16",
+    summary: "A simpler mobile navigation bar and an easier-to-reach account menu.",
+    changes: [
+      { type: "improvement", description: "Reworked the mobile bottom bar: it now shows Expenses, Planned, Accounts, and a new 'More' button (which opens the full menu) — the old 'Category' shortcut has been removed." },
+      { type: "improvement", description: "Moved your profile and account menu to the top-right of the mobile header, and removed the hamburger menu since everything now lives in 'More' and the account button." },
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-07-10",
     summary:

@@ -8,10 +8,12 @@ import {
   Receipt,
   Plus,
   Wallet,
-  LayoutGrid,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { AppSidebar } from "@/components/app/app-sidebar";
 
 const leftItems = [
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false, excludes: ["/dashboard/expenses/categories"] },
@@ -19,13 +21,13 @@ const leftItems = [
 ];
 
 const rightItems = [
-  { href: "/dashboard/expenses/categories", label: "Category", icon: LayoutGrid, exact: false },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, exact: false },
 ];
 
 export function BottomNavbar() {
   const pathname = usePathname();
   const [addOpen, setAddOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   function NavItem({ href, label, icon: Icon, exact, excludes }: typeof leftItems[number]) {
     const isActive =
@@ -66,6 +68,32 @@ export function BottomNavbar() {
         </div>
 
         {rightItems.map((item) => <NavItem key={item.href} {...item} />)}
+
+        {/* More — opens the full navigation */}
+        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors",
+                moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="More"
+            >
+              <MoreHorizontal className="h-6 w-6" />
+              <span className="text-[10px] font-medium">More</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 border-none p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation Menu</SheetTitle>
+            </SheetHeader>
+            <AppSidebar
+              className="flex h-full !static w-full border-r-0"
+              onNavigate={() => setMoreOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
       </nav>
 
       <AddEntryPanel open={addOpen} onClose={() => setAddOpen(false)} />
