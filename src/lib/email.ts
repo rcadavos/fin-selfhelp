@@ -16,6 +16,48 @@ function unsubscribeFooterHtml(url: string): string {
             </tr>`;
 }
 
+/**
+ * App font stack for emails. Schibsted Grotesk is the OmniTrak UI/brand face;
+ * clients that support web fonts (Apple Mail, iOS Mail) render it, while
+ * Gmail/Outlook silently fall back to Arial. Keep the fallbacks so text is
+ * identical to the old templates where the web font can't load.
+ */
+const EMAIL_FONT_STACK = "'Schibsted Grotesk', Arial, Helvetica, sans-serif";
+
+/** Primary "money green" (--primary in globals.css) — used for the wordmark. */
+const BRAND_GREEN = "#0B6E4F";
+
+/** <head> markup that pulls in the Schibsted Grotesk web font. */
+const FONT_LINK_HTML = `<link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />`;
+
+/**
+ * Email logo lockup: the chameleon mark (`public/favicon.png`) + the "OmniTrak"
+ * wordmark set in the app font (Schibsted Grotesk). Mirrors the in-app
+ * `<SiteLogo>` so emails match the product, and replaces the old baked
+ * `omnitrak-logo.png` image.
+ */
+function logoLockupHtml(
+  siteUrl: string,
+  padding = "32px 24px 16px 24px",
+): string {
+  return `<tr>
+              <td align="center" style="padding:${padding};">
+                <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                  <tr>
+                    <td style="vertical-align:middle;padding-right:10px;">
+                      <img src="${siteUrl}/favicon.png" alt="" width="42" height="40" style="display:block;width:42px;height:40px;border:0;outline:none;text-decoration:none;" />
+                    </td>
+                    <td style="vertical-align:middle;">
+                      <span style="font-family:${EMAIL_FONT_STACK};font-size:28px;font-weight:700;line-height:1;letter-spacing:-0.02em;color:${BRAND_GREEN};">OmniTrak</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>`;
+}
+
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) throw new Error("RESEND_API_KEY must be set");
@@ -69,25 +111,17 @@ export async function sendWelcomeEmail(params: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
     <title>Welcome to OmniTrak</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
 
             <!-- Logo -->
-            <tr>
-              <td align="center" style="padding:32px 24px 16px 24px;">
-                <img
-                  src="${siteUrl}/omnitrak-logo.png"
-                  alt="OmniTrak"
-                  width="160"
-                  style="display:block;width:160px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;"
-                />
-              </td>
-            </tr>
+            ${logoLockupHtml(siteUrl, "32px 24px 16px 24px")}
 
             <!-- Heading -->
             <tr>
@@ -250,20 +284,17 @@ export async function sendPhoneChangedEmail(params: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
     <title>Phone number updated</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
 
             <!-- Logo -->
-            <tr>
-              <td align="center" style="padding:28px 24px 14px 24px;">
-                <img src="${siteUrl}/omnitrak-logo.png" alt="OmniTrak" width="160" style="display:block;width:160px;max-width:100%;height:auto;border:0;" />
-              </td>
-            </tr>
+            ${logoLockupHtml(siteUrl, "28px 24px 14px 24px")}
 
             <!-- Heading -->
             <tr>
@@ -387,20 +418,17 @@ export async function sendReminderEmail(params: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
     <title>OmniTrak reminders</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
 
             <!-- Logo -->
-            <tr>
-              <td align="center" style="padding:28px 24px 14px 24px;">
-                <img src="${siteUrl}/omnitrak-logo.png" alt="OmniTrak" width="160" style="display:block;width:160px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;" />
-              </td>
-            </tr>
+            ${logoLockupHtml(siteUrl, "28px 24px 14px 24px")}
 
             <!-- Heading -->
             <tr>
@@ -500,19 +528,16 @@ function buildAdminBroadcastEmail(params: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
     <title>${subject.replace(/</g, "&lt;")}</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
 
-            <tr>
-              <td align="center" style="padding:28px 24px 14px 24px;">
-                <img src="${siteUrl}/omnitrak-logo.png" alt="OmniTrak" width="160" style="display:block;width:160px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;" />
-              </td>
-            </tr>
+            ${logoLockupHtml(siteUrl, "28px 24px 14px 24px")}
 
             <tr>
               <td style="padding:0 24px 0 24px;text-align:center;">
@@ -707,19 +732,16 @@ export async function sendReceivableInviteEmail(params: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
     <title>Receivable confirmation request</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
       <tr>
         <td align="center">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
 
-            <tr>
-              <td align="center" style="padding:32px 24px 16px 24px;">
-                <img src="${siteUrl}/omnitrak-logo.png" alt="OmniTrak" width="160" style="display:block;width:160px;max-width:100%;height:auto;border:0;" />
-              </td>
-            </tr>
+            ${logoLockupHtml(siteUrl, "32px 24px 16px 24px")}
 
             <tr>
               <td style="padding:0 24px;text-align:center;">
