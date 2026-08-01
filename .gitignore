@@ -39,6 +39,7 @@ next-env.d.ts
 
 # ai / editor tooling
 .ai/
+.claude/
 .cursor/
 .cursorignore
 
