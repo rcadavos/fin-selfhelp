@@ -14,12 +14,29 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.7.2",
+    date: "2026-08-06",
+    summary:
+      "New referral program — invite friends and earn free months of Pro, with a share page in the app and referral reporting in admin.",
+    changes: [
+      { type: "feature", description: "Added a referral program: every account now gets a personal invite link and code. For every 5 friends who sign up through your link you earn 1 free month of Pro, and it stacks — 10 friends is 2 months, 15 is 3." },
+      { type: "feature", description: "Every referred friend who upgrades to a paid plan earns you 1 more free month of Pro, once per friend and stackable, paid on top of your signup milestones." },
+      { type: "feature", description: "New 'Refer & Earn' page under the dashboard with easy sharing: copy your code or link, share straight to WhatsApp, Facebook, X, Telegram or email, use your phone's native share sheet, show a scannable QR code, or send invites to up to 10 email addresses at once (25 per day)." },
+      { type: "feature", description: "The referral page also shows your progress to the next free month, how many friends have joined and upgraded, and a ledger of every free month you have earned." },
+      { type: "feature", description: "New Referrals section in the admin portal: programme totals plus per-referrer counts for signups, paid upgrades, free months granted, and last referral date, with search by email, name, or code." },
+      { type: "feature", description: "Added a new referral-invite email that friends receive when you invite them by email, highlighting the 14-day Pro free trial their account starts with." },
+      { type: "improvement", description: "Referral rewards are granted automatically and extend your Pro access from whenever it currently ends, so unused days are never lost and there is nothing to claim." },
+      { type: "improvement", description: "The landing page now has a referral section with a worked example of how the free months stack, plus a new FAQ entry explaining the program." },
+    ],
+  },
+  {
     version: "1.7.1",
     date: "2026-07-16",
     summary: "A simpler mobile navigation bar and an easier-to-reach account menu.",
     changes: [
       { type: "improvement", description: "Reworked the mobile bottom bar: it now shows Expenses, Planned, Accounts, and a new 'More' button (which opens the full menu) — the old 'Category' shortcut has been removed." },
       { type: "improvement", description: "Moved your profile and account menu to the top-right of the mobile header, and removed the hamburger menu since everything now lives in 'More' and the account button." },
+      { type: "improvement", description: "Updated every email (welcome, reminders, receivable invites, account notifications, and admin broadcasts) to use the new OmniTrak chameleon logo and the app's Schibsted Grotesk wordmark, replacing the old logo image." },
     ],
   },
   {

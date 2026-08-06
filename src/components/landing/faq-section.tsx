@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
+import {
+  REFERRAL_CONVERSION_REWARD_MONTHS,
+  REFERRAL_SIGNUPS_PER_REWARD,
+  REFERRAL_SIGNUP_REWARD_MONTHS,
+} from "@/lib/constants/referral";
 import { ChevronDown } from "lucide-react";
 
 const faqs: { q: string; a: string }[] = [
@@ -10,6 +15,10 @@ const faqs: { q: string; a: string }[] = [
   {
     q: "Do new accounts get a free trial?",
     a: `Yes. Every new account automatically starts with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required. During the trial you get full Pro access, including email reminders, unlimited reminders, partner sharing, and custom expense categories. When the ${TRIAL_DURATION_DAYS} days are up, you move to the free plan automatically; upgrade anytime to keep Pro features.`,
+  },
+  {
+    q: "How does the referral program work?",
+    a: `Every account gets a personal invite link. For every ${REFERRAL_SIGNUPS_PER_REWARD} friends who sign up through it you earn ${REFERRAL_SIGNUP_REWARD_MONTHS} free month of Pro, and that stacks — 10 friends is 2 months, 15 is 3. On top of that, every referred friend who upgrades to a paid plan earns you ${REFERRAL_CONVERSION_REWARD_MONTHS} more free month, once per friend. Rewards are added automatically and extend from whenever your Pro access currently ends, so nothing is wasted and there is nothing to claim.`,
   },
   {
     q: "What does the free plan include?",

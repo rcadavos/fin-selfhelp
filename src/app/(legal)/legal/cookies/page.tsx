@@ -36,6 +36,12 @@ export default function CookiesPage() {
             <strong className="text-foreground">Preferences:</strong> such as display settings you
             choose in the app.
           </li>
+          <li>
+            <strong className="text-foreground">Referrals:</strong> if you arrive through a
+            friend&rsquo;s invite link, we store that referral code in your browser for up to 90 days
+            so their reward can be credited when you create an account. It holds no personal data
+            and is removed once your account is created.
+          </li>
         </ul>
       </section>
       <section className="space-y-3">

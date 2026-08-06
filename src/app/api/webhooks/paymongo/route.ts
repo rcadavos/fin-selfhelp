@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { recordSubscriptionPaymentForUserId } from "@/actions/budget";
 import { saveSubscriptionPaymentReceipt } from "@/actions/receipts";
+import { markReferralConvertedForUserId } from "@/actions/referrals";
 
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 
@@ -69,6 +70,10 @@ async function grantSubscriptionFromIntent(
       paymentIntentId,
       paidAt: new Date(),
     });
+    // The profiles_referral_conversion trigger already pays the referrer when
+    // is_subscriber flips; this call makes the payout explicit and observable
+    // from the webhook. Idempotent, and a no-op when the payer was not referred.
+    await markReferralConvertedForUserId(userId).catch(() => ({}));
   }
 }
 

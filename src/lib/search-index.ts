@@ -17,6 +17,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Reminders", href: "/dashboard/to-do", group: "Navigation", keywords: ["tasks", "checklist", "todo", "task list", "reminders", "meeting", "pantry", "errand", "personal", "work"] },
   { title: "Vehicles", href: "/dashboard/vehicles", group: "Navigation", keywords: ["vehicle", "car", "motorcycle", "fuel", "gas", "transport", "gasoline", "diesel", "plate", "mileage", "vehicle tracker", "maintenance", "parking", "toll", "insurance", "registration"] },
   { title: "Calculators", href: "/calculators", group: "Navigation", keywords: ["math", "compute", "calculate", "financial calculator", "tools"] },
+  { title: "Refer & Earn", href: "/dashboard/referrals", group: "Navigation", keywords: ["referral", "referrals", "refer", "invite", "invite friends", "share", "share link", "invite link", "referral code", "free pro", "free month", "reward", "rewards", "affiliate", "earn"] },
   { title: "Review & Feedback", href: "/dashboard/feedback", group: "Navigation", keywords: ["review", "feedback", "suggestions", "rate", "report", "suggest"] },
   { title: "What's New", href: "/changelog", group: "Navigation", keywords: ["changelog", "release notes", "updates", "version", "bugfix", "hotfix", "new features", "whats new"] },
 

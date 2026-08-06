@@ -4,6 +4,7 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { redirect } from "next/navigation";
 import { sendWelcomeEmail, sendPhoneChangedEmail } from "@/lib/email";
+import { claimPendingReferral, readPendingReferralCode } from "@/actions/referrals";
 
 function normalizeSiteUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
@@ -62,6 +63,11 @@ export async function signUp(formData: FormData) {
     return { error: "Password must be at least 6 characters." };
   }
 
+  // Carry any pending referral code in user_metadata as well as the cookie: the
+  // confirmation email may be opened on a different device, where the cookie set
+  // by the referral link does not exist. See claimPendingReferral().
+  const referralCode = await readPendingReferralCode();
+
   const siteUrl = normalizeSiteUrl();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -71,6 +77,7 @@ export async function signUp(formData: FormData) {
       data: {
         full_name: fullName || undefined,
         welcome_email_pending: true,
+        referral_code_pending: referralCode ?? undefined,
       },
     },
   });
@@ -80,9 +87,11 @@ export async function signUp(formData: FormData) {
   }
 
   // If email confirmation is disabled, Supabase returns a session immediately —
-  // send welcome email now since there's no confirmation step.
+  // send welcome email now since there's no confirmation step. The /auth/callback
+  // referral hook is skipped on this path, so credit the referrer here instead.
   if (data.session) {
     sendWelcomeEmail({ to: email, name: fullName || undefined }).catch(() => {});
+    await claimPendingReferral().catch(() => ({ claimed: false }));
     return { next: "/setup", message: "Account created! Logging you in..." };
   }
 

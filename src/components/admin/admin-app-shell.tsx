@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, MessageSquareText, Lightbulb, Bell, ScanLine } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Bell, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/pricing", label: "Pricing", icon: CreditCard },
+  { href: "/admin/referrals", label: "Referrals", icon: Gift },
   { href: "/admin/ocr", label: "OCR", icon: ScanLine },
   { href: "/admin/reviews", label: "Reviews", icon: MessageSquareText },
   { href: "/admin/suggestions", label: "Suggestions", icon: Lightbulb },

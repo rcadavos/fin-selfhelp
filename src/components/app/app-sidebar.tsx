@@ -10,6 +10,7 @@ import {
   Banknote,
   Bell,
   Gem,
+  Gift,
   Target,
   Receipt,
   MessageSquarePlus,
@@ -46,6 +47,7 @@ const navItems = [
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
   { href: "/dashboard/to-do", label: "Reminders", icon: Bell, premium: false },
   { href: "/calculators", label: "Calculators", icon: Calculator, premium: false },
+  { href: "/dashboard/referrals", label: "Refer & Earn", icon: Gift, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
 ] as const;
 

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { Users, Tags, CreditCard, MessageSquareText, Lightbulb, Loader2, Bell } from "lucide-react";
+import { Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Loader2, Bell } from "lucide-react";
 
 const sections = [
   {
@@ -33,6 +33,12 @@ const sections = [
     title: "Pricing",
     description: "Pro and Premium list prices for checkout and landing.",
     icon: CreditCard,
+  },
+  {
+    href: "/admin/referrals",
+    title: "Referrals",
+    description: "Referral counts, conversions, and free Pro months granted.",
+    icon: Gift,
   },
   {
     href: "/admin/reviews",

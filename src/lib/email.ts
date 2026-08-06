@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
 import { generateUnsubscribeUrl } from "@/lib/email-unsubscribe";
 import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
+import { sanitizeInviterName } from "@/lib/constants/referral";
 
 const UNSUB_PLACEHOLDER = "{{UNSUB_URL}}";
 
@@ -821,5 +822,130 @@ export async function sendReceivableInviteEmail(params: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Receivable invite email failed: ${message}` };
+  }
+}
+
+export async function sendReferralInviteEmail(params: {
+  to: string;
+  inviterName: string;
+  link: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const siteUrl = getBaseUrl();
+  // inviterName comes from user-writable `full_name`, and it reaches the subject
+  // line and the plaintext body where HTML escaping does not apply. Sanitize
+  // again here so no caller can turn this template into a phishing vehicle sent
+  // from our own verified domain.
+  const inviterName = sanitizeInviterName(params.inviterName);
+  const subject = `${inviterName} invited you to OmniTrak`;
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const text = [
+    "Hi,",
+    "",
+    `${inviterName} uses OmniTrak to track bills, spending, and savings — and thought you'd like it too.`,
+    "",
+    `Sign up with their link and your account starts with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required:`,
+    params.link,
+    "",
+    "With OmniTrak you can:",
+    "• Track expenses and categorize your spending",
+    "• Never miss a bill with due-date reminders",
+    "• Set savings goals and watch them grow",
+    "• Keep to-buy and to-do lists in one place",
+    "",
+    "— The OmniTrak Team",
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
+    <title>${esc(inviterName)} invited you to OmniTrak</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+
+            ${logoLockupHtml(siteUrl, "32px 24px 16px 24px")}
+
+            <tr>
+              <td style="padding:0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#0f172a;">
+                  ${esc(inviterName)} invited you to OmniTrak
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+                  <strong>${esc(inviterName)}</strong> uses OmniTrak to stay on top of bills, spending, and savings — and thought you'd find it useful too.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+                      <p style="margin:0;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Your invitation includes</p>
+                      <p style="margin:6px 0 0 0;font-size:16px;font-weight:700;color:${BRAND_GREEN};">${TRIAL_DURATION_DAYS}-day Pro free trial</p>
+                      <p style="margin:4px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">No card required. Move to the free plan automatically when it ends.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:28px 24px 8px 24px;">
+                <a href="${params.link}" style="display:inline-block;background:#16A34A;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;line-height:20px;padding:14px 32px;border-radius:8px;">
+                  Accept invitation &rarr;
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;text-align:center;">
+                  Track expenses &bull; Bill reminders &bull; Savings goals &bull; To-buy and to-do lists
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:20px 24px 28px 24px;">
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">
+                  You received this because ${esc(inviterName)} shared their OmniTrak invite link with you.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject,
+      text,
+      html,
+    });
+    if (error) return { ok: false, error: `Referral invite email failed: ${error.message}` };
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Referral invite email failed: ${message}` };
   }
 }

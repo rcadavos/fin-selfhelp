@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { sendWelcomeEmail } from "@/lib/email";
+import { claimPendingReferral } from "@/actions/referrals";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -19,6 +20,15 @@ export async function GET(request: Request) {
         supabase.auth.updateUser({ data: { welcome_email_pending: null } }).catch(() => {});
         sendWelcomeEmail({ to: user.email, name }).catch(() => {});
       }
+
+      // Every new account reaches here — email confirmation, magic link, and
+      // Google OAuth all land on this callback (OAuth signups never see /setup).
+      // Awaited so the cookie clear rides along on this response; the RPC no-ops
+      // for returning users, so it is safe on every visit.
+      if (user) {
+        await claimPendingReferral().catch(() => ({ claimed: false }));
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

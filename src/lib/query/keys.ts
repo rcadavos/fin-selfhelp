@@ -66,4 +66,8 @@ export const queryKeys = {
   /** Messages for a single AI conversation (see `aiMessagesQueryOptions`). */
   aiMessages: (conversationId: string) =>
     [...queryKeys.all, "ai", "messages", conversationId] as const,
+  /** Current user's referral code, counts, rewards and friends (see `referralSummaryQueryOptions`). */
+  referralSummary: () => [...queryKeys.all, "referrals", "summary"] as const,
+  /** Per-referrer counts for the admin portal (see `adminReferralStatsQueryOptions`). */
+  adminReferralStats: () => [...queryKeys.all, "admin", "referrals"] as const,
 };
