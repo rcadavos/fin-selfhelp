@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -39,7 +39,19 @@ import {
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
 import { confirmUserEmail, setUserSubscription, setUserAdmin, deleteUser, type AdminUserRow } from "@/actions/admin";
-import { Loader2, CreditCard, Shield, ShieldOff, MailCheck, UserRoundX, Trash2, Search } from "lucide-react";
+import {
+  Loader2,
+  CreditCard,
+  Shield,
+  ShieldOff,
+  MailCheck,
+  UserRoundX,
+  Trash2,
+  Search,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+} from "lucide-react";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -49,6 +61,15 @@ function formatDate(iso: string | null): string {
   const dd = String(d.getDate()).padStart(2, "0");
   const yy = String(d.getFullYear()).slice(-2);
   return `${mm}/${dd}/${yy}`;
+}
+
+/** "none" keeps the server order (newest signup first). */
+type ActivitySort = "none" | "desc" | "asc";
+
+function activityTime(iso: string | null): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? null : t;
 }
 
 function subscriptionStatus(row: AdminUserRow): {
@@ -78,6 +99,7 @@ function AdminUsersContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const [search, setSearch] = useState("");
+  const [activitySort, setActivitySort] = useState<ActivitySort>("none");
 
   const setAdminMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
@@ -158,15 +180,33 @@ function AdminUsersContent() {
     },
   });
 
-  const filteredUsers = search.trim()
-    ? users.filter((u) => {
-        const q = search.toLowerCase();
-        return (
-          u.email?.toLowerCase().includes(q) ||
-          u.full_name?.toLowerCase().includes(q)
-        );
-      })
-    : users;
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = q
+      ? users.filter(
+          (u) =>
+            u.email?.toLowerCase().includes(q) ||
+            u.full_name?.toLowerCase().includes(q)
+        )
+      : users;
+
+    if (activitySort === "none") return rows;
+
+    const dir = activitySort === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const at = activityTime(a.last_activity_at);
+      const bt = activityTime(b.last_activity_at);
+      // Users with no recorded activity always sort last, both directions.
+      if (at === null && bt === null) return 0;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return (at - bt) * dir;
+    });
+  }, [users, search, activitySort]);
+
+  function cycleActivitySort() {
+    setActivitySort((prev) => (prev === "none" ? "desc" : prev === "desc" ? "asc" : "none"));
+  }
 
   function openSetPaid(row: AdminUserRow) {
     setPaidUser(row);
@@ -220,7 +260,39 @@ function AdminUsersContent() {
                   <TableHead>Email</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Signed up</TableHead>
-                  <TableHead className="text-right">Last activity</TableHead>
+                  <TableHead
+                    className="text-right"
+                    aria-sort={
+                      activitySort === "asc"
+                        ? "ascending"
+                        : activitySort === "desc"
+                          ? "descending"
+                          : "none"
+                    }
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={cycleActivitySort}
+                      className="-mr-2.5 ml-auto flex font-medium text-muted-foreground"
+                      title={
+                        activitySort === "none"
+                          ? "Sort by last activity (most recent first)"
+                          : activitySort === "desc"
+                            ? "Sort by last activity (oldest first)"
+                            : "Clear sorting"
+                      }
+                    >
+                      Last activity
+                      {activitySort === "desc" ? (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ) : activitySort === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                      )}
+                    </Button>
+                  </TableHead>
                   <TableHead className="text-right">Confirmed</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead className="text-right">Expires</TableHead>
