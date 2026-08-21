@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { REFERRAL_COOKIE_NAME, REFERRAL_QUERY_PARAM } from "@/lib/constants/referral";
 import { rememberReferralCode } from "@/lib/referral-cookie";
+import { isProtectedRoute } from "@/lib/constants/protected-routes";
 
 export async function middleware(request: NextRequest) {
   // A `?ref=CODE` on any URL is remembered here. Middleware runs ahead of the
@@ -21,7 +22,23 @@ export async function middleware(request: NextRequest) {
 
   // updateSession builds and returns its own response, so the referral cookie
   // must be set on that object or it would be discarded.
-  const response = await updateSession(request);
+  const { response, user } = await updateSession(request);
+
+  // Route gate for the protected trees. This lives here rather than in each
+  // layout because only middleware sees the pathname, which is what lets us both
+  // carry the intended destination through `?next=` and exempt the token-addressed
+  // invite pages (see PUBLIC_ROUTE_EXEMPTIONS) that are sent to people with no account.
+  //
+  // GET navigation only: Server Actions resolve from the `Next-Action` header, not
+  // the URL, so this does not protect them — each action guards its own session.
+  if (!user && isProtectedRoute(request.nextUrl.pathname)) {
+    const login = new URL("/login", request.url);
+    login.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+    const redirect = NextResponse.redirect(login);
+    rememberReferralCode(redirect, refCode, existingRef);
+    return redirect;
+  }
+
   rememberReferralCode(response, refCode, existingRef);
   return response;
 }

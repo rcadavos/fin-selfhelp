@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { parseYmToYearMonth, effectiveDueDateInPaidMonth } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { billsDataQueryOptions } from "@/lib/query/bills";
@@ -26,7 +27,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ArrowUp, Eye, EyeOff } from "lucide-react";
+import { ArrowUp, Eye, EyeOff, TriangleAlert } from "lucide-react";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,9 @@ import { DotLeader } from "@/components/passbook/dot-leader";
 export type ExpenseCashflowPageVariant = "dashboard";
 
 const MASK = "••••••";
+
+/** Horizon of the bills-mode "Due in 7 days" cell. */
+const DUE_SOON_DAYS = 7;
 
 const GREETINGS = [
   "Hello",
@@ -109,12 +113,24 @@ export function ExpenseCashflowPage({
   void pageVariant;
 
   const { user } = useUser();
+  // Bills mode drops the accounts, expenses and spending-chart sections, so the four
+  // queries feeding them are conditional — nothing left on the page reads their data.
+  const { isBillsMode, isFeatureEnabled } = useAppMode();
   const paidMonthQueryKey = getCurrentPaidMonth();
-  const expenseDataQuery = useQuery(expenseDataQueryOptions(paidMonthQueryKey));
-  const monthlyBreakdownQuery = useQuery(monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS));
+  const expenseDataQuery = useQuery({
+    ...expenseDataQueryOptions(paidMonthQueryKey),
+    enabled: !isBillsMode,
+  });
+  const monthlyBreakdownQuery = useQuery({
+    ...monthlyBreakdownQueryOptions(EXPENSE_PAYMENT_HISTORY_MONTHS),
+    enabled: !isBillsMode,
+  });
   const billsDataQuery = useQuery(billsDataQueryOptions(paidMonthQueryKey));
-  const accountsQuery = useQuery(accountsQueryOptions());
-  const accountBalancesQuery = useQuery(accountBalancesQueryOptions());
+  const accountsQuery = useQuery({ ...accountsQueryOptions(), enabled: !isBillsMode });
+  const accountBalancesQuery = useQuery({
+    ...accountBalancesQueryOptions(),
+    enabled: !isBillsMode,
+  });
   const streakQuery = useQuery(userStreakQueryOptions());
   const prefsOptional = useUserPreferencesOptional();
 
@@ -124,7 +140,9 @@ export function ExpenseCashflowPage({
       : "en-PH";
 
   const entries = expenseDataQuery.data?.entries ?? [];
-  const paidMonthLabel = expenseDataQuery.data?.paidMonth ?? "";
+  // Falls back to the current paid month so the month heading still renders in bills
+  // mode, where the expense query never runs.
+  const paidMonthLabel = expenseDataQuery.data?.paidMonth ?? paidMonthQueryKey;
   const paidMonthYm = useMemo(
     () => (/^\d{4}-\d{2}$/.test(paidMonthLabel) ? paidMonthLabel : getCurrentPaidMonth()),
     [paidMonthLabel]
@@ -212,7 +230,9 @@ export function ExpenseCashflowPage({
           name: b.note?.trim() || "Planned expense",
           amount: b.amount,
           paid,
-          autoDebit: b.is_auto_debit,
+          // Auto-debit is inert where the mode switches it off, so the row must not claim
+          // "scheduled" — it falls through to the normal due-date stamp instead.
+          autoDebit: b.is_auto_debit && isFeatureEnabled("autoDebit"),
           due: effectiveDueDateInPaidMonth(b.due_date, paidMonthYm),
         };
       })
@@ -222,7 +242,33 @@ export function ExpenseCashflowPage({
           (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity),
       );
   }, [monthBills, paymentAmountByBillId, paidMonthYm]);
-  const visibleBills = billItems.slice(0, 6);
+  // Attention buckets for bills mode, read off the rows the ledger already built.
+  // Overdue follows the bills board convention: unpaid with an effective due date
+  // earlier than today; everything from today to the horizon is "due soon".
+  const { overdueAmount, overdueCount, dueSoonAmount, dueSoonCount } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const horizon = new Date(today);
+    horizon.setDate(horizon.getDate() + DUE_SOON_DAYS);
+    let overdueAmount = 0;
+    let overdueCount = 0;
+    let dueSoonAmount = 0;
+    let dueSoonCount = 0;
+    for (const b of billItems) {
+      if (b.paid || !b.due) continue;
+      if (b.due < today) {
+        overdueAmount += b.amount;
+        overdueCount += 1;
+      } else if (b.due <= horizon) {
+        dueSoonAmount += b.amount;
+        dueSoonCount += 1;
+      }
+    }
+    return { overdueAmount, overdueCount, dueSoonAmount, dueSoonCount };
+  }, [billItems]);
+
+  // The ledger runs full width in bills mode, so it has room for more rows.
+  const visibleBills = billItems.slice(0, isBillsMode ? 10 : 6);
 
   const [amountsHidden, setAmountsHidden] = useState(false);
   useEffect(() => {
@@ -250,7 +296,7 @@ export function ExpenseCashflowPage({
 
         <div className="mt-4 flex items-center gap-2">
           <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Tracked balance
+            {isBillsMode ? "Due this month" : "Tracked balance"}
           </span>
           <button
             type="button"
@@ -265,156 +311,222 @@ export function ExpenseCashflowPage({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="text-3xl font-bold tracking-tight sm:text-4xl">
-            {amountsHidden ? MASK : <Amount value={totalTrackedBalance} />}
+            {amountsHidden ? MASK : <Amount value={isBillsMode ? billsTotal : totalTrackedBalance} />}
           </span>
-          {savedThisMonth > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-xs font-medium text-primary">
-              <ArrowUp className="h-3 w-3" aria-hidden />
-              {amountsHidden ? MASK : <Amount value={savedThisMonth} />}
-              <span className="text-primary/80">saved this month</span>
-            </span>
+          {isBillsMode ? (
+            overdueCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-warning px-2 py-1 text-xs font-medium text-warning">
+                <TriangleAlert className="h-3 w-3" aria-hidden />
+                {amountsHidden ? MASK : <Amount value={overdueAmount} />}
+                <span className="text-warning/80">{overdueCount} overdue</span>
+              </span>
+            )
+          ) : (
+            savedThisMonth > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-xs font-medium text-primary">
+                <ArrowUp className="h-3 w-3" aria-hidden />
+                {amountsHidden ? MASK : <Amount value={savedThisMonth} />}
+                <span className="text-primary/80">saved this month</span>
+              </span>
+            )
           )}
         </div>
 
-        {includedAccountCount > 0 && (
-          <p className="mt-3 flex max-w-xs items-baseline text-sm text-muted-foreground">
-            <span>
-              {includedAccountCount} {includedAccountCount === 1 ? "account" : "accounts"}
-            </span>
-            <DotLeader />
-            <span>{paidMonthDisplay}</span>
-          </p>
+        {isBillsMode ? (
+          monthBills.length > 0 && (
+            <p className="mt-3 flex max-w-xs items-baseline text-sm text-muted-foreground">
+              <span>
+                {monthBills.length}{" "}
+                {monthBills.length === 1 ? "planned expense" : "planned expenses"}
+              </span>
+              <DotLeader />
+              <span>{paidMonthDisplay}</span>
+            </p>
+          )
+        ) : (
+          includedAccountCount > 0 && (
+            <p className="mt-3 flex max-w-xs items-baseline text-sm text-muted-foreground">
+              <span>
+                {includedAccountCount} {includedAccountCount === 1 ? "account" : "accounts"}
+              </span>
+              <DotLeader />
+              <span>{paidMonthDisplay}</span>
+            </p>
+          )
         )}
       </header>
 
       {/* ════════════════════ ROW 2: STAT CELLS ════════════════════ */}
       <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-md border border-border bg-card sm:grid-cols-4">
-        <StatCell
-          href="/dashboard/expenses"
-          label="Spent this month"
-          sub="So far this month"
-          borderClass={CELL_BORDERS[0]}
-        >
-          {amountsHidden ? MASK : <Amount value={dailyAmt} />}
-        </StatCell>
-        <StatCell
-          href="/dashboard/planned-expenses"
-          label="Still to pay"
-          sub={unpaidCount > 0 ? `${unpaidCount} due this month` : "All settled"}
-          dot={billsUnpaid > 0}
-          borderClass={CELL_BORDERS[1]}
-        >
-          {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
-        </StatCell>
-        <StatCell
-          href="/dashboard/planned-expenses"
-          label="Planned paid"
-          sub={`${billsPaidCount}/${monthBills.length} paid this month`}
-          borderClass={CELL_BORDERS[2]}
-        >
-          {amountsHidden ? MASK : <Amount value={billsPaid} />}
-        </StatCell>
-        <StatCell
-          href="/dashboard/accounts"
-          label="Account balance"
-          sub="Total tracked net balance"
-          borderClass={CELL_BORDERS[3]}
-        >
-          {amountsHidden ? MASK : <Amount value={totalTrackedBalance} />}
-        </StatCell>
+        {isBillsMode ? (
+          <>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Still to pay"
+              sub={unpaidCount > 0 ? `${unpaidCount} due this month` : "All settled"}
+              dot={billsUnpaid > 0}
+              borderClass={CELL_BORDERS[0]}
+            >
+              {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Planned paid"
+              sub={`${billsPaidCount}/${monthBills.length} paid this month`}
+              borderClass={CELL_BORDERS[1]}
+            >
+              {amountsHidden ? MASK : <Amount value={billsPaid} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Overdue"
+              sub={overdueCount > 0 ? `${overdueCount} past due` : "None overdue"}
+              dot={overdueCount > 0}
+              borderClass={CELL_BORDERS[2]}
+            >
+              {amountsHidden ? MASK : <Amount value={overdueAmount} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Due in 7 days"
+              sub={dueSoonCount > 0 ? `${dueSoonCount} coming up` : "Nothing this week"}
+              borderClass={CELL_BORDERS[3]}
+            >
+              {amountsHidden ? MASK : <Amount value={dueSoonAmount} />}
+            </StatCell>
+          </>
+        ) : (
+          <>
+            <StatCell
+              href="/dashboard/expenses"
+              label="Spent this month"
+              sub="So far this month"
+              borderClass={CELL_BORDERS[0]}
+            >
+              {amountsHidden ? MASK : <Amount value={dailyAmt} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Still to pay"
+              sub={unpaidCount > 0 ? `${unpaidCount} due this month` : "All settled"}
+              dot={billsUnpaid > 0}
+              borderClass={CELL_BORDERS[1]}
+            >
+              {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/planned-expenses"
+              label="Planned paid"
+              sub={`${billsPaidCount}/${monthBills.length} paid this month`}
+              borderClass={CELL_BORDERS[2]}
+            >
+              {amountsHidden ? MASK : <Amount value={billsPaid} />}
+            </StatCell>
+            <StatCell
+              href="/dashboard/accounts"
+              label="Account balance"
+              sub="Total tracked net balance"
+              borderClass={CELL_BORDERS[3]}
+            >
+              {amountsHidden ? MASK : <Amount value={totalTrackedBalance} />}
+            </StatCell>
+          </>
+        )}
       </div>
 
       {/* ════════════════════ ROW 3: CHART + UPCOMING BILLS ════════════════════ */}
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        {/* Chart — 2/3 */}
-        <section className="rounded-md border border-border bg-card lg:col-span-2" aria-label="Spending, last 6 months">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
-            <div>
-              <h2 className="text-base font-bold tracking-tight">Spending, last 6 months</h2>
-              <p className="text-xs text-muted-foreground">Planned vs actual • savings excluded</p>
+      <div className={cn("mt-5 grid gap-5", !isBillsMode && "lg:grid-cols-3")}>
+        {/* Chart — 2/3. Dropped in bills mode, where the ledger takes the full row. */}
+        {!isBillsMode && (
+          <section className="rounded-md border border-border bg-card lg:col-span-2" aria-label="Spending, last 6 months">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
+              <div>
+                <h2 className="text-base font-bold tracking-tight">Spending, last 6 months</h2>
+                <p className="text-xs text-muted-foreground">Planned vs actual • savings excluded</p>
+              </div>
+              <div className="flex gap-4" aria-hidden>
+                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <i className="h-2.5 w-2.5 rounded-[2px] bg-chart-compare" />
+                  Planned
+                </span>
+                <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <i className="h-2.5 w-2.5 rounded-[2px] bg-primary" />
+                  Spent
+                </span>
+              </div>
             </div>
-            <div className="flex gap-4" aria-hidden>
-              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                <i className="h-2.5 w-2.5 rounded-[2px] bg-chart-compare" />
-                Planned
-              </span>
-              <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                <i className="h-2.5 w-2.5 rounded-[2px] bg-primary" />
-                Spent
-              </span>
-            </div>
-          </div>
-          <div className="p-3 sm:p-4">
-            {(() => {
-              if (monthlyBreakdownQuery.isPending) {
-                return <Skeleton className="h-[220px] w-full" />;
-              }
-              const breakdown = monthlyBreakdownQuery.data ?? [];
-              const hasData = breakdown.some(
-                (r) => r.bills > 0 || r.billsPaid > 0 || r.expenses > 0 || r.savings > 0,
-              );
-              if (!breakdown.length || !hasData) {
-                return (
-                  <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-                    No spending recorded yet.
-                  </div>
+            <div className="p-3 sm:p-4">
+              {(() => {
+                if (monthlyBreakdownQuery.isPending) {
+                  return <Skeleton className="h-[220px] w-full" />;
+                }
+                const breakdown = monthlyBreakdownQuery.data ?? [];
+                const hasData = breakdown.some(
+                  (r) => r.bills > 0 || r.billsPaid > 0 || r.expenses > 0 || r.savings > 0,
                 );
-              }
-              const chartData = breakdown.map((r) => ({
-                month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
-                Planned: r.bills,
-                Spent: r.expenses + (r.billsPaid ?? 0),
-              }));
-              const fmtY = (v: number) =>
-                amountsHidden ? "•••" : v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
-              const axisTick = {
-                fontSize: 11,
-                fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                fill: "hsl(var(--muted-foreground))",
-              };
-              return (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }} barCategoryGap="28%" barGap={3}>
-                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="month"
-                      tick={axisTick}
-                      tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    <YAxis tickFormatter={fmtY} tick={axisTick} tickLine={false} axisLine={false} width={44} />
-                    <Tooltip
-                      cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        return (
-                          <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground">
-                            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                              {label}
-                            </p>
-                            {payload.map((p) => (
-                              <p key={p.dataKey as string} className="flex items-center justify-between gap-4 leading-5">
-                                <span className="flex items-center gap-2">
-                                  <i className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: p.fill }} />
-                                  {String(p.dataKey)}
-                                </span>
-                                {amountsHidden ? MASK : <Amount formatted={formatCurrency(Number(p.value))} />}
+                if (!breakdown.length || !hasData) {
+                  return (
+                    <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                      No spending recorded yet.
+                    </div>
+                  );
+                }
+                const chartData = breakdown.map((r) => ({
+                  month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
+                  Planned: r.bills,
+                  Spent: r.expenses + (r.billsPaid ?? 0),
+                }));
+                const fmtY = (v: number) =>
+                  amountsHidden ? "•••" : v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`;
+                const axisTick = {
+                  fontSize: 11,
+                  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                  fill: "hsl(var(--muted-foreground))",
+                };
+                return (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }} barCategoryGap="28%" barGap={3}>
+                      <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="month"
+                        tick={axisTick}
+                        tickLine={false}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                      />
+                      <YAxis tickFormatter={fmtY} tick={axisTick} tickLine={false} axisLine={false} width={44} />
+                      <Tooltip
+                        cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null;
+                          return (
+                            <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground">
+                              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                                {label}
                               </p>
-                            ))}
-                          </div>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="Planned" fill="hsl(var(--chart-compare))" radius={[2, 2, 0, 0]} maxBarSize={22} />
-                    <Bar dataKey="Spent" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} maxBarSize={22} />
-                  </BarChart>
-                </ResponsiveContainer>
-              );
-            })()}
-          </div>
-        </section>
+                              {payload.map((p) => (
+                                <p key={p.dataKey as string} className="flex items-center justify-between gap-4 leading-5">
+                                  <span className="flex items-center gap-2">
+                                    <i className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: p.fill }} />
+                                    {String(p.dataKey)}
+                                  </span>
+                                  {amountsHidden ? MASK : <Amount formatted={formatCurrency(Number(p.value))} />}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="Planned" fill="hsl(var(--chart-compare))" radius={[2, 2, 0, 0]} maxBarSize={22} />
+                      <Bar dataKey="Spent" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} maxBarSize={22} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                );
+              })()}
+            </div>
+          </section>
+        )}
 
-        {/* Upcoming bills — 1/3 */}
+        {/* Upcoming bills — 1/3, or the full row in bills mode */}
         <section className="rounded-md border border-border bg-card" aria-label="Upcoming bills">
           <div className="flex items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
             <h2 className="text-base font-bold tracking-tight">Upcoming bills</h2>

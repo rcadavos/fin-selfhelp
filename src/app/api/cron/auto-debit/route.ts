@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { fetchProfileIdsWithFeatureOff } from "@/lib/app-mode-server";
 import { getDueDayOfMonthFromYmd, getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 
@@ -61,10 +62,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: billsErr.message }, { status: 500 });
   }
 
+  // Resolve each bill owners app mode up front, in one scan. Fail CLOSED: continuing
+  // with an empty set would debit accounts for users who switched auto-debit off.
+  const { ids: autoDebitOffProfileIds, error: modeErr } = await fetchProfileIdsWithFeatureOff(
+    supabase,
+    "autoDebit",
+  );
+  if (modeErr) {
+    return NextResponse.json({ error: `App mode lookup failed — ${modeErr}` }, { status: 500 });
+  }
+
   let marked = 0;
   let markedFailed = 0;
   let skippedAlreadyPaid = 0;
   let skippedNotDueToday = 0;
+  let skippedModeDisabled = 0;
   const errors: string[] = [];
 
   /**
@@ -97,6 +109,15 @@ export async function GET(request: Request) {
   }
 
   for (const bill of bills ?? []) {
+    // Auto-debit does not exist in an app mode that switches it off — skip silently.
+    // Never recordFailure() here: a status="failed" row would claim an attempt was
+    // made and will retry, occupy the (bill_id, paid_month) upsert slot, and paint a
+    // red badge for something that was never tried.
+    if (autoDebitOffProfileIds.has(String(bill.profile_id))) {
+      skippedModeDisabled++;
+      continue;
+    }
+
     const due = effectiveDueDate(
       {
         due_date: String(bill.due_date),
@@ -224,6 +245,7 @@ export async function GET(request: Request) {
     markedFailed,
     skippedAlreadyPaid,
     skippedNotDueToday,
+    skippedModeDisabled,
     errors: errors.length ? errors : undefined,
   });
 }

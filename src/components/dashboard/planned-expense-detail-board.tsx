@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppMode } from "@/hooks/use-app-mode";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,7 @@ import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import {
   PlannedExpenseFormDialog,
   billToForm,
+  reminderDaysToPersist,
   type BillFormState,
 } from "@/components/dashboard/planned-expense-form-dialog";
 import {
@@ -113,6 +115,11 @@ function formatPaidAt(iso: string): string {
 export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isFeatureEnabled, isResolved } = useAppMode();
+  const accountsEnabled = isFeatureEnabled("accounts");
+  const autoDebitAvailable = isFeatureEnabled("autoDebit");
+  /** Auto-debit only truly runs once the stored mode has loaded and allows it. */
+  const autoDebitRuns = isResolved && autoDebitAvailable;
   const [isPending, startTransition] = useTransition();
   const [bill, setBill] = useState<BillRow>(initialBill);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -263,7 +270,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
+        reminderDaysToPersist(form, autoDebitAvailable),
         "both",
         form.endDate || undefined,
         form.accountId || null,
@@ -285,16 +292,14 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         end_date: form.endDate || null,
         billing_period: form.billingPeriod,
         due_month: form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
-        reminder_days_before: form.autoDebit
-          ? null
-          : form.reminderDays.length > 0
-            ? form.reminderDays
-            : null,
+        reminder_days_before: reminderDaysToPersist(form, autoDebitAvailable) ?? null,
         reminder_channel: "both",
         account_id: form.accountId || undefined,
         vehicle_id: form.vehicleId || null,
         vehicle_category: form.vehicleCategory || null,
-        is_auto_debit: form.autoDebit,
+        // Mirror what the server actually does: it OMITS the column when the mode does
+        // not offer the toggle, so the stored flag is preserved rather than cleared.
+        is_auto_debit: autoDebitAvailable ? form.autoDebit : prev.is_auto_debit,
       }));
       setEditOpen(false);
       void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
@@ -521,7 +526,9 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         )}
         {bill.is_auto_debit && (
           <DetailRow icon={<Zap className="h-4 w-4" />} label="Auto-debit">
-            Enabled — paid automatically each due date
+            {autoDebitRuns
+              ? "Enabled — paid automatically each due date"
+              : "Still switched on for this bill, but paused in Bills & reminders mode — mark it paid yourself. Turn Full cashflow back on in Settings to resume."}
           </DetailRow>
         )}
         {bill.notes && (

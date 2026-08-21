@@ -5,6 +5,9 @@ import { getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { isFeatureEnabledInMode } from "@/lib/constants/app-mode";
+import { appModeFromPreferencesJson } from "@/lib/user-preferences";
+import { INERT_AUTO_DEBIT_REMINDER_DAYS } from "@/lib/constants/bills";
 
 type ProfileRow = {
   id: string;
@@ -13,6 +16,7 @@ type ProfileRow = {
   subscription_ends_at: string | null;
   subscription_tier: string | null;
   email_unsubscribed: boolean | null;
+  user_preferences: unknown;
 };
 
 type BillReminderRow = {
@@ -23,6 +27,7 @@ type BillReminderRow = {
   due_month: number | null;
   reminder_days_before: number[] | null;
   reminder_channel: string | null;
+  is_auto_debit: boolean;
 };
 
 type ToDoTargetRow = {
@@ -71,7 +76,7 @@ export async function GET(request: Request) {
 
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, user_id, is_subscriber, subscription_ends_at, subscription_tier, email_unsubscribed");
+      .select("id, user_id, is_subscriber, subscription_ends_at, subscription_tier, email_unsubscribed, user_preferences");
     if (profilesError) {
       return NextResponse.json({ error: profilesError.message }, { status: 500 });
     }
@@ -94,12 +99,23 @@ export async function GET(request: Request) {
 
       processedUsers += 1;
 
-      const billsQuery = supabase
+      const autoDebitRuns = isFeatureEnabledInMode(
+        appModeFromPreferencesJson(profile.user_preferences),
+        "autoDebit",
+      );
+
+      let billsQuery = supabase
         .from("bills")
-        .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
-        .eq("profile_id", profile.id)
-        .eq("is_auto_debit", false)
-        .not("reminder_days_before", "is", null);
+        .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel, is_auto_debit")
+        .eq("profile_id", profile.id);
+      // Auto-debit bills are excluded from reminders because the debit cron pays them.
+      // Where the app mode switches auto-debit off, nothing pays them, so they must stay
+      // in — otherwise they get neither a payment nor a reminder.
+      if (autoDebitRuns) {
+        billsQuery = billsQuery
+          .eq("is_auto_debit", false)
+          .not("reminder_days_before", "is", null);
+      }
 
       const authUserPromise = supabase.auth.admin.getUserById(profile.user_id);
 
@@ -125,7 +141,10 @@ export async function GET(request: Request) {
         .from("bill_payments")
         .select("bill_id, paid_month")
         .eq("profile_id", profile.id)
-        .in("paid_month", candidatePaidMonths);
+        .in("paid_month", candidatePaidMonths)
+        // Only a real payment suppresses a reminder. A legacy status="failed" row from
+        // before an app-mode switch would otherwise silence that month permanently.
+        .eq("status", "paid");
 
       const [[{ data: billsRaw }, authUserResult, { data: paidRows }], lockRow] = await Promise.all([
         Promise.all([billsQuery, authUserPromise, paidPaymentsPromise]),
@@ -158,7 +177,17 @@ export async function GET(request: Request) {
       const notificationsToInsert: any[] = [];
 
       for (const bill of (billsRaw ?? []) as BillReminderRow[]) {
-        if (!bill.due_date || !Array.isArray(bill.reminder_days_before) || bill.reminder_days_before.length === 0) {
+        // Auto-debit suppresses reminders only where auto-debit actually RUNS. When the
+        // app mode switches auto-debit off, the bill is paid by nobody, so it falls back
+        // to a due-date reminder. Read-time only: the stored columns are never rewritten,
+        // so switching back to Full cashflow restores auto-debit-wins exactly.
+        const reminderDays =
+          Array.isArray(bill.reminder_days_before) && bill.reminder_days_before.length > 0
+            ? bill.reminder_days_before
+            : !autoDebitRuns && bill.is_auto_debit
+              ? INERT_AUTO_DEBIT_REMINDER_DAYS
+              : [];
+        if (!bill.due_date || reminderDays.length === 0) {
           continue;
         }
         if (!hasProAccess) {
@@ -172,7 +201,7 @@ export async function GET(request: Request) {
         for (const dueThisMonth of candidates) {
           const dueYm = getCurrentPaidMonth(dueThisMonth);
           if (paidBillMonths.has(`${bill.id}:${dueYm}`)) continue;
-          for (const reminderDay of bill.reminder_days_before) {
+          for (const reminderDay of reminderDays) {
             if (reminderDay < 0 || reminderDay > 5) continue;
             const reminderDate = addDays(dueThisMonth, -reminderDay);
             if (formatYmdLocal(reminderDate) !== todayYmd) continue;

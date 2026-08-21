@@ -1,3 +1,10 @@
+import {
+  type AppModeId,
+  DEFAULT_APP_MODE,
+  featureForRoute,
+  isFeatureEnabledInMode,
+} from "@/lib/constants/app-mode";
+
 export type SearchItem = {
   title: string;
   href: string;
@@ -38,7 +45,7 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Security", href: "/account/security", group: "Account", keywords: ["password", "two factor", "2fa", "login security", "change password", "auth"] },
   { title: "Privacy", href: "/account/privacy", group: "Account", keywords: ["visibility", "profile visibility", "phone visibility", "data", "delete account", "export data", "members"] },
   { title: "Subscription & Billing", href: "/account/subscription", group: "Account", keywords: ["plan", "pro", "premium", "billing", "payment", "upgrade", "subscribe", "free", "tier"] },
-  { title: "Settings", href: "/account/settings", group: "Account", keywords: ["preferences", "currency", "format", "locale", "date format", "language", "config"] },
+  { title: "Settings", href: "/account/settings", group: "Account", keywords: ["preferences", "currency", "format", "locale", "date format", "language", "config", "app mode", "bills mode", "simple mode", "cashflow", "bills only", "full cashflow", "hide pages"] },
   { title: "Shared with me", href: "/account/shared", group: "Account", keywords: ["partner", "share", "access", "collaborate", "shared expenses", "invite"] },
   { title: "Notifications", href: "/account/notifications", group: "Account", keywords: ["alerts", "reminders", "email notifications", "push", "notify"] },
 
@@ -48,11 +55,21 @@ export const SEARCH_INDEX: SearchItem[] = [
   { title: "Cookie Policy", href: "/legal/cookies", group: "Legal", keywords: ["cookies", "tracking", "consent"] },
 ];
 
-export function searchItems(query: string, limit = 8): SearchItem[] {
+/**
+ * Whether a mode still shows this entry. Derived from the item's href through the
+ * route table so search can never drift from the sidebar or the route guards.
+ */
+function isItemVisibleInMode(item: SearchItem, mode: AppModeId): boolean {
+  const feature = featureForRoute(item.href);
+  return feature === null || isFeatureEnabledInMode(mode, feature);
+}
+
+export function searchItems(query: string, limit = 8, mode: AppModeId = DEFAULT_APP_MODE): SearchItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
 
-  const scored = SEARCH_INDEX.map((item) => {
+  // Filter before scoring so `limit` still yields a full page of reachable results.
+  const scored = SEARCH_INDEX.filter((item) => isItemVisibleInMode(item, mode)).map((item) => {
     const title = item.title.toLowerCase();
     const keys = (item.keywords ?? []).join(" ").toLowerCase();
     const group = item.group.toLowerCase();

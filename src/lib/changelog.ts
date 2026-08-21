@@ -14,7 +14,33 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.7.2",
+    version: "1.7.4",
+    date: "2026-08-22",
+    summary:
+      "Bills & reminders mode drops auto-debit and stops blocking payments on account balance, plus a round of account-security hardening.",
+    changes: [
+      { type: "improvement", description: "In Bills & reminders mode, marking a planned expense paid or partially paid no longer checks the linked account's balance, so a low tracked balance can never stop you recording a payment you have actually made. Full cashflow mode still warns you before a payment would overdraw an account." },
+      { type: "improvement", description: "Bills & reminders mode no longer offers or runs auto-debit — the toggle is hidden and no bill is ever paid automatically. Your existing auto-debit settings are kept untouched and start working again the moment you switch back to Full cashflow." },
+      { type: "fix", description: "Planned expenses that already had auto-debit switched on no longer go silent in Bills & reminders mode: because nothing pays them automatically there, they now get a due-date reminder like any other bill, and you can set your own reminder days on them." },
+      { type: "fix", description: "Opening any dashboard, account or admin page while signed out now takes you straight to the login page instead of briefly showing an empty app shell — and after you log in you land on the page you were originally trying to reach." },
+      { type: "fix", description: "Shared receivable invite links still open without an account, as intended: the new sign-in requirement deliberately skips them, so someone you invite can review and confirm what they owe you before signing up." },
+      { type: "hotfix", description: "Closed a gap that let a signed-in account switch itself onto a paid plan without paying. Subscriptions can now only be granted by a verified payment from our payment provider." },
+      { type: "hotfix", description: "Subscription payments are now verified more strictly: the payment must actually have completed and must cover the price of the plan being claimed, and a repeated confirmation for the same payment can no longer add extra paid months." },
+      { type: "hotfix", description: "Payment confirmations, receipts, reminder-email sends and referral payouts can no longer be triggered for another person's account — each is now restricted to the account it belongs to." },
+      { type: "improvement", description: "Tightened permissions on several internal database helpers so they can only be used by the app's own trusted background jobs, and stopped one of them from being usable to check whether an email address has an OmniTrak account." },
+      { type: "improvement", description: "Page-view analytics now ignores malformed or oversized page addresses instead of storing them." },
+    ],
+  },
+  {
+    version: "1.7.3",
+    date: "2026-08-14",
+    summary: "Sorting by last activity in the admin Users list.",
+    changes: [
+      { type: "improvement", description: "The admin Users list can now be sorted by last activity date — clicking the 'Last activity' column shows the most recently active accounts first, clicking again shows the least recently active, and a third click restores the default newest-signup order. Accounts with no recorded activity always sort last, and sorting works together with the search box." },
+    ],
+  },
+  {
+    version: "1.7.3",
     date: "2026-08-06",
     summary:
       "New referral program — invite friends and earn free months of Pro, with a share page in the app and referral reporting in admin.",

@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/seo";
 import { sendReferralInviteEmail } from "@/lib/email";
 import { normalizeReferralCode } from "@/lib/referral-cookie";
@@ -216,29 +216,6 @@ export async function claimPendingReferral(): Promise<{ claimed: boolean; error?
 export async function readPendingReferralCode(): Promise<string | null> {
   const cookieStore = await cookies();
   return normalizeReferralCode(cookieStore.get(REFERRAL_COOKIE_NAME)?.value);
-}
-
-/**
- * Server-only conversion hook, called after a successful paid upgrade.
- *
- * The `subscription_payments_referral_conversion` trigger already fires whenever
- * a payment is recorded, so this is a belt-and-braces call for code paths that
- * want the payout to have definitely happened before they return. Idempotent,
- * and reachable only with the service role.
- */
-export async function markReferralConvertedForUserId(
-  userId: string
-): Promise<{ error?: string }> {
-  try {
-    const supabase = createServiceRoleClient();
-    const { error } = await supabase.rpc("mark_referral_converted", {
-      p_referred_user_id: userId,
-    });
-    if (error) return { error: error.message };
-    return {};
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Failed to record referral conversion." };
-  }
 }
 
 // ─── Email invites ────────────────────────────────────────────────────────────

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { isFeatureEnabledInMode } from "@/lib/constants/app-mode";
+import { appModeFromPreferencesJson } from "@/lib/user-preferences";
 import type { ReminderDay } from "@/types/database.types";
 import {
   hasPremiumProductAccess,
@@ -465,10 +467,17 @@ export async function markBillPaid(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, user_preferences")
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "no_profile" };
+
+  // `useAppMode()` is a client hook and cannot be reached from a server action, so
+  // read the stored preference directly. Absent/NULL preferences normalize to "full".
+  const accountsEnabled = isFeatureEnabledInMode(
+    appModeFromPreferencesJson(profile.user_preferences),
+    "accounts",
+  );
 
   const { data: bill, error: billErr } = await supabase
     .from("bills")
@@ -482,7 +491,16 @@ export async function markBillPaid(
   const newAmount = amount == null ? billAmount : Number(amount);
   if (!Number.isFinite(newAmount) || newAmount <= 0) return { error: "invalid_amount" };
 
-  const accountId = (bill.account_id as string | null) ?? null;
+  // A mode without the "accounts" feature switches cashflow tracking off entirely, so
+  // the linked account is ignored: no balance check AND no ledger row. Writing
+  // outflow-only rows in a mode that records no income would fabricate a balance that
+  // is wrong the moment Full cashflow returns. It is also the only variant that is safe
+  // against a dangling bills.account_id (migration 053 dropped that FK while
+  // account_transactions.account_id still references accounts) — skipping just the
+  // balance comparison would push the dangling id into the insert and raise a raw FK
+  // error in the one mode with no accounts UI to repair it.
+  // `bills.account_id` itself is never modified, so switching back restores the link.
+  const accountId = accountsEnabled ? ((bill.account_id as string | null) ?? null) : null;
 
   const { data: existing } = await supabase
     .from("bill_payments")
@@ -699,7 +717,7 @@ export async function addBill(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+    .select("id, is_subscriber, subscription_ends_at, subscription_tier, user_preferences")
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "no_profile" };
@@ -707,6 +725,13 @@ export async function addBill(
   const tier = normalizeDbTier(profile.subscription_tier as string | null);
   const endsIso = profile.subscription_ends_at as string | null;
   const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
+
+  // Server-side guard — see updateBill. A bill created with auto-debit on would start
+  // debiting real money the day the user switches back to Full cashflow.
+  const autoDebitEditable = isFeatureEnabledInMode(
+    appModeFromPreferencesJson(profile.user_preferences),
+    "autoDebit",
+  );
 
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
@@ -747,7 +772,10 @@ export async function addBill(
     account_id: accountId ?? null,
     vehicle_id: resolvedVehicle.vehicle_id,
     vehicle_category: resolvedVehicle.vehicle_category,
-    is_auto_debit: isAutoDebit,
+    // Coerced, not rejected: the field is invisible in this mode, so an error would be
+    // unexplainable. Nothing pre-existed, and a surprise debit after switching to Full
+    // cashflow is worse than an ignored checkbox.
+    is_auto_debit: autoDebitEditable && isAutoDebit,
   });
 
   if (error) return { error: error.message };
@@ -780,7 +808,7 @@ export async function updateBill(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, is_subscriber, subscription_ends_at, subscription_tier")
+    .select("id, is_subscriber, subscription_ends_at, subscription_tier, user_preferences")
     .eq("user_id", user.id)
     .single();
   if (!profile) return { error: "no_profile" };
@@ -788,6 +816,13 @@ export async function updateBill(
   const tier = normalizeDbTier(profile.subscription_tier as string | null);
   const endsIso = profile.subscription_ends_at as string | null;
   const hasProAccess = hasProLevelProductAccess(tier, endsIso, Boolean(profile.is_subscriber));
+
+  // Server-side guard: hiding the checkbox is not a guard, since server actions are
+  // public POST endpoints. Read the owners stored mode rather than trusting the form.
+  const autoDebitEditable = isFeatureEnabledInMode(
+    appModeFromPreferencesJson(profile.user_preferences),
+    "autoDebit",
+  );
 
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
@@ -834,7 +869,9 @@ export async function updateBill(
       account_id: accountId ?? null,
       vehicle_id: resolvedVehicle.vehicle_id,
       vehicle_category: resolvedVehicle.vehicle_category,
-      is_auto_debit: isAutoDebit,
+      // A mode that does not offer the toggle does not get to rewrite it either:
+      // forcing false here would destroy a Full-cashflow setting on an unrelated edit.
+      ...(autoDebitEditable ? { is_auto_debit: isAutoDebit } : {}),
     })
     .eq("id", billId)
     .eq("profile_id", profile.id);

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
-import { recordSubscriptionPaymentForUserId } from "@/actions/budget";
-import { saveSubscriptionPaymentReceipt } from "@/actions/receipts";
-import { markReferralConvertedForUserId } from "@/actions/referrals";
+import {
+  recordSubscriptionPaymentForUserId,
+  saveSubscriptionPaymentReceipt,
+} from "@/lib/billing/grant";
+import { markReferralConvertedForUserId } from "@/lib/referrals/server";
+import { getSubscriptionPlans } from "@/actions/subscription-plan";
 
 const PAYMONGO_API = "https://api.paymongo.com/v1";
 
@@ -38,9 +41,22 @@ function verifySignature(rawBody: string, sigHeader: string | null, secret: stri
   }
 }
 
+/** Centavos a tier must have been charged, mirroring the intent-creation maths in src/actions/paymongo.ts. */
+async function expectedCentavosForTier(tier: "pro" | "premium"): Promise<number | null> {
+  const { pro, premium } = await getSubscriptionPlans();
+  const plan = tier === "premium" ? premium ?? pro : pro;
+  if (!plan) return null;
+  return Math.round(plan.priceAmount * 100);
+}
+
 /**
  * Fetch the payment intent from PayMongo to get user metadata, then grant
  * the subscription and save a receipt.
+ *
+ * Trusts nothing in the webhook body beyond the intent id: the payer and tier
+ * both come from the intent fetched directly from PayMongo, the intent must
+ * actually be `succeeded`, and the amount must cover the claimed tier's price —
+ * otherwise a PHP 20 minimum-amount intent could claim Premium.
  */
 async function grantSubscriptionFromIntent(
   paymentIntentId: string,
@@ -57,37 +73,74 @@ async function grantSubscriptionFromIntent(
   });
   if (!res.ok) return;
   const piJson = await res.json() as Record<string, unknown>;
-  const metadata = ((piJson?.data as Record<string, unknown>)?.attributes as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
+  const attributes = (piJson?.data as Record<string, unknown>)?.attributes as Record<string, unknown> | undefined;
+  const metadata = attributes?.metadata as Record<string, unknown> | undefined;
   const userId = metadata?.user_id as string | undefined;
   const tierRaw = metadata?.subscription_tier as string | undefined;
   const tier: "pro" | "premium" = tierRaw === "premium" ? "premium" : "pro";
-  if (userId) {
-    await recordSubscriptionPaymentForUserId(userId, tier);
-    await saveSubscriptionPaymentReceipt(userId, {
-      amountCents,
-      currency,
-      description,
-      paymentIntentId,
-      paidAt: new Date(),
-    });
-    // The profiles_referral_conversion trigger already pays the referrer when
-    // is_subscriber flips; this call makes the payout explicit and observable
-    // from the webhook. Idempotent, and a no-op when the payer was not referred.
-    await markReferralConvertedForUserId(userId).catch(() => ({}));
+  if (!userId) return;
+
+  // The intent must really be paid. Without this an unpaid or partially-paid
+  // intent id still granted a full month.
+  if (attributes?.status !== "succeeded") {
+    console.warn(
+      `[paymongo webhook] intent ${paymentIntentId} is "${String(attributes?.status)}", not succeeded — not granting.`
+    );
+    return;
   }
+
+  // The amount must cover the tier being claimed. `>=` rather than `===` so a
+  // later price cut cannot reject a payment that was correct when it was made.
+  const paidCentavos = Number(attributes?.amount ?? amountCents) || 0;
+  const expected = await expectedCentavosForTier(tier);
+  if (expected == null) {
+    console.warn(`[paymongo webhook] no plan row for tier "${tier}" — not granting.`);
+    return;
+  }
+  if (paidCentavos < expected) {
+    console.warn(
+      `[paymongo webhook] intent ${paymentIntentId} paid ${paidCentavos} centavos but "${tier}" costs ${expected} — not granting.`
+    );
+    return;
+  }
+
+  // Receipt first: it carries the unique payment_intent_id (migration 093), so a
+  // replayed delivery reports inserted=false here and grants nothing further.
+  const receipt = await saveSubscriptionPaymentReceipt(userId, {
+    amountCents: paidCentavos,
+    currency,
+    description,
+    paymentIntentId,
+    paidAt: new Date(),
+  });
+  if (receipt.error) {
+    console.error(`[paymongo webhook] receipt failed for ${paymentIntentId}: ${receipt.error}`);
+    return;
+  }
+  if (!receipt.inserted) return; // already processed — a replay
+
+  await recordSubscriptionPaymentForUserId(userId, tier);
+  // The profiles_referral_conversion trigger already pays the referrer when
+  // is_subscriber flips; this call makes the payout explicit and observable
+  // from the webhook. Idempotent, and a no-op when the payer was not referred.
+  await markReferralConvertedForUserId(userId).catch(() => ({}));
 }
 
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
 
-    // Verify signature when webhook secret is configured
+    // Fail CLOSED. Previously a missing/empty PAYMONGO_WEBHOOK_SECRET_KEY skipped
+    // verification entirely, so anyone could POST a payment.paid body and be granted
+    // a subscription. An unconfigured webhook is a deployment fault, not open season.
     const webhookSecret = getWebhookSecret();
-    if (webhookSecret) {
-      const sigHeader = request.headers.get("Paymongo-Signature");
-      if (!verifySignature(rawBody, sigHeader, webhookSecret)) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-      }
+    if (!webhookSecret) {
+      console.error("[paymongo webhook] PAYMONGO_WEBHOOK_SECRET_KEY is not set — rejecting.");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+    }
+    const sigHeader = request.headers.get("Paymongo-Signature");
+    if (!verifySignature(rawBody, sigHeader, webhookSecret)) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const body = JSON.parse(rawBody) as Record<string, unknown>;

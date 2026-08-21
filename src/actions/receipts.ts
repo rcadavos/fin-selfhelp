@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export type SubscriptionPaymentRow = {
   id: string;
@@ -11,36 +11,6 @@ export type SubscriptionPaymentRow = {
   paidAt: string;
   createdAt: string;
 };
-
-/** Server-only: save a payment record after successful PayMongo payment (for receipts). Uses service role. */
-export async function saveSubscriptionPaymentReceipt(
-  userId: string,
-  params: {
-    amountCents: number;
-    currency: string;
-    description?: string | null;
-    paymentIntentId?: string | null;
-    paidAt?: Date;
-  }
-): Promise<{ error?: string }> {
-  const supabase = createServiceRoleClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!profile) return { error: "Profile not found." };
-  const { error } = await supabase.from("subscription_payments").insert({
-    profile_id: profile.id,
-    amount_cents: params.amountCents,
-    currency: params.currency,
-    description: params.description?.trim() || null,
-    payment_intent_id: params.paymentIntentId || null,
-    paid_at: (params.paidAt ?? new Date()).toISOString(),
-  });
-  if (error) return { error: error.message };
-  return {};
-}
 
 /** Get current user's payment history for receipts. */
 export async function getMyPaymentHistory(): Promise<{

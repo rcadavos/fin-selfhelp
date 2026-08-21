@@ -16,6 +16,7 @@ import {
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useUser } from "@/hooks/use-user";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
@@ -29,7 +30,25 @@ import {
   LANGUAGE_OPTIONS,
   NUMBER_GROUPING_OPTIONS,
 } from "@/lib/user-preferences";
-import { Settings, Bell, CreditCard, Sparkles, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  type AppModeId,
+  APP_FEATURE_KEYS,
+  APP_MODE_OPTIONS,
+  FEATURE_ROUTE_PREFIXES,
+  getAppModeOption,
+  isFeatureEnabledInMode,
+} from "@/lib/constants/app-mode";
+import { Settings, Bell, CreditCard, Sparkles, AlertTriangle, Loader2, Wallet, Check } from "lucide-react";
+
+/**
+ * How many navigable sections a mode switches off. Derived from the route map so the
+ * hint below the mode cards stays right when features are added or re-grouped.
+ */
+function hiddenSectionCount(mode: AppModeId): number {
+  return APP_FEATURE_KEYS.filter(
+    (key) => FEATURE_ROUTE_PREFIXES[key].length > 0 && !isFeatureEnabledInMode(mode, key)
+  ).length;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -37,7 +56,9 @@ export default function SettingsPage() {
   const { showError } = useSnackbar();
   const { preferences: p, updatePreference, formatCurrency, formatDate, formatTime, formatNumber } =
     useUserPreferences();
+  const { mode: appMode, setMode: setAppMode } = useAppMode();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBillsModeDialog, setShowBillsModeDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -54,6 +75,18 @@ export default function SettingsPage() {
 
   const previewNow = new Date();
   const notifMasterOff = !p.notificationsEnabled;
+  const activeMode = getAppModeOption(appMode);
+  const hiddenSections = hiddenSectionCount(appMode);
+
+  function handleModeSelect(next: AppModeId) {
+    if (next === appMode) return;
+    // Narrowing the app takes pages away, so it asks first; widening only reveals them.
+    if (next === "bills") {
+      setShowBillsModeDialog(true);
+      return;
+    }
+    setAppMode(next);
+  }
 
   async function handleDeleteAccount() {
     setDeleting(true);
@@ -92,6 +125,59 @@ export default function SettingsPage() {
               <CardDescription>How dates, times, money, and numbers are shown across the app.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label id="app-mode-label">App mode</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Choose how much of the app you want to see. Hiding a section never deletes anything.
+                  </p>
+                </div>
+                <div role="group" aria-labelledby="app-mode-label" className="grid gap-3 sm:grid-cols-2">
+                  {APP_MODE_OPTIONS.map((option) => {
+                    const selected = option.value === appMode;
+                    const ModeIcon = option.value === "bills" ? Bell : Wallet;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => handleModeSelect(option.value)}
+                        className={`relative rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          selected ? "border-primary ring-1 ring-primary" : "hover:border-primary/40 hover:bg-muted/40"
+                        }`}
+                      >
+                        {selected && (
+                          <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                            <Check className="h-3 w-3" aria-hidden />
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2 pr-8">
+                          <ModeIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                          <p className="text-sm font-medium">{option.label}</p>
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-primary">{option.tagline}</p>
+                        <p className="mt-2 text-xs text-muted-foreground">{option.description}</p>
+                        <ul className="mt-3 space-y-1">
+                          {option.includes.map((item) => (
+                            <li key={item} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" aria-hidden />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {activeMode.label} mode •{" "}
+                  {hiddenSections > 0
+                    ? `${hiddenSections} ${hiddenSections === 1 ? "section" : "sections"} hidden`
+                    : "nothing hidden"}{" "}
+                  • nothing deleted
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="date-format">Date format</Label>
                 <Select value={p.dateFormat} onValueChange={(v) => updatePreference("dateFormat", v as typeof p.dateFormat)}>
@@ -347,6 +433,16 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={showBillsModeDialog}
+        onOpenChange={setShowBillsModeDialog}
+        title="Switch to Bills & reminders only?"
+        description="Accounts, Expenses, Receivables, Goals and Vehicles will be hidden from navigation and search. Auto-debit also pauses: no planned expense is paid automatically, and those bills switch to due-date reminders instead. Nothing is deleted — switch back to Full cashflow any time and every page, and your auto-debit settings, come back exactly as they were."
+        confirmLabel="Switch to bills mode"
+        cancelLabel="Keep full cashflow"
+        onConfirm={() => setAppMode("bills")}
+      />
 
       <ConfirmDialog
         open={showDeleteDialog}

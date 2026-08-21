@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchItems, type SearchItem } from "@/lib/search-index";
+import { useAppMode } from "@/hooks/use-app-mode";
 
 // ── Shared results list ───────────────────────────────────────────────────
 
@@ -68,8 +69,9 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { mode } = useAppMode();
 
-  const results = searchItems(query);
+  const results = searchItems(query, undefined, mode);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -153,8 +155,9 @@ export function DesktopSearch({ className }: { className?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { mode } = useAppMode();
 
-  const results = searchItems(query);
+  const results = searchItems(query, undefined, mode);
   const showResults = isFocused && (results.length > 0 || query.trim().length > 0);
 
   useEffect(() => {

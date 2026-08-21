@@ -12,6 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useUser } from "@/hooks/use-user";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { AssistantChat } from "@/components/app/ai/assistant-chat";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
 
@@ -19,11 +20,13 @@ import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-u
  * Floating "Ask OmniTrak" launcher mounted app-wide for Pro/Premium members
  * (AI usage incurs cost, so it's gated to paid plans; the 14-day Pro trial
  * counts). Sits above the Add Entry button. Hidden on the full assistant page,
- * which already provides the chat. Its "expand" link opens that full page
- * (history + knowledge base) since the assistant isn't in the sidebar.
+ * which already provides the chat, and in bills mode, which switches the
+ * assistant off. Its "expand" link opens that full page (history + knowledge
+ * base) since the assistant isn't in the sidebar.
  */
 export function AiChatWidget() {
   const { user } = useUser();
+  const { isFeatureEnabled } = useAppMode();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   // Kept on the (always-mounted) widget so the conversation survives the Sheet
@@ -36,7 +39,8 @@ export function AiChatWidget() {
   });
 
   const onAssistantPage = pathname?.startsWith("/dashboard/assistant");
-  if (!user || onAssistantPage || !caps?.hasProLevelAccess) return null;
+  if (!user || onAssistantPage || !caps?.hasProLevelAccess || !isFeatureEnabled("assistant"))
+    return null;
 
   return (
     <>

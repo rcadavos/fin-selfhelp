@@ -30,6 +30,9 @@ import {
 
 type UserPreferencesContextValue = {
   preferences: UserPreferences;
+  /** False until the stored preferences have been resolved for the signed-in user.
+   *  Gate anything destructive (e.g. redirecting off a route) on this. */
+  isSynced: boolean;
   setPreferences: (next: UserPreferences | ((prev: UserPreferences) => UserPreferences)) => void;
   updatePreference: <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => void;
   formatCurrency: (amount: number, currencyOverride?: string) => string;
@@ -166,6 +169,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       preferences,
+      isSynced: initialSyncDone,
       setPreferences,
       updatePreference,
       formatCurrency,
@@ -173,7 +177,16 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       formatTime,
       formatNumber,
     }),
-    [preferences, setPreferences, updatePreference, formatCurrency, formatDate, formatTime, formatNumber]
+    [
+      preferences,
+      initialSyncDone,
+      setPreferences,
+      updatePreference,
+      formatCurrency,
+      formatDate,
+      formatTime,
+      formatNumber,
+    ]
   );
 
   return <UserPreferencesContext.Provider value={value}>{children}</UserPreferencesContext.Provider>;

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Calculator,
@@ -20,6 +22,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
+import { useAppMode } from "@/hooks/use-app-mode";
+import type { AppFeatureKey } from "@/lib/constants/app-mode";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import { APP_VERSION } from "@/lib/version";
@@ -37,23 +41,33 @@ function isSidebarNavActive(pathname: string | null | undefined, href: string): 
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const navItems = [
+type SidebarNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  premium: boolean;
+  /** Left out for pages every app mode keeps visible. */
+  feature?: AppFeatureKey;
+};
+
+const navItems: readonly SidebarNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false },
-  { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false },
-  { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false },
-  { href: "/dashboard/receivables", label: "Receivables", icon: HandCoins, premium: false },
-  { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false },
-  { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false },
-  { href: "/dashboard/to-do", label: "Reminders", icon: Bell, premium: false },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false, feature: "accounts" },
+  { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false, feature: "expenses" },
+  { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false, feature: "bills" },
+  { href: "/dashboard/receivables", label: "Receivables", icon: HandCoins, premium: false, feature: "receivables" },
+  { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false, feature: "vehicles" },
+  { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false, feature: "goals" },
+  { href: "/dashboard/to-do", label: "Reminders", icon: Bell, premium: false, feature: "reminders" },
   { href: "/calculators", label: "Calculators", icon: Calculator, premium: false },
   { href: "/dashboard/referrals", label: "Refer & Earn", icon: Gift, premium: false },
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
-] as const;
+];
 
 export function AppSidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user } = useUser();
+  const { isFeatureEnabled } = useAppMode();
   const { data: subscriptionStatus } = useQuery({
     ...subscriptionStatusQueryOptions(),
     enabled: !!user,
@@ -69,6 +83,11 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
     : subscriptionStatus?.hasProAccess
       ? "bg-primary/10 text-primary ring-primary/30"
       : "bg-muted text-muted-foreground ring-border";
+  // `isFeatureEnabled` is rebuilt only when the app mode changes, so this refilters per mode.
+  const visibleNavItems = useMemo(
+    () => navItems.filter((item) => !item.feature || isFeatureEnabled(item.feature)),
+    [isFeatureEnabled]
+  );
 
   if (!user) return null;
 
@@ -96,7 +115,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"
         aria-label="Main navigation"
       >
-        {navItems.map(({ href, label, icon: Icon, premium }) => {
+        {visibleNavItems.map(({ href, label, icon: Icon, premium }) => {
           const active = isSidebarNavActive(pathname, href);
           return (
             <Link

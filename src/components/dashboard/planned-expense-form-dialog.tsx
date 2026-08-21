@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,22 @@ export function billToForm(bill: BillRow): BillFormState {
   };
 }
 
+/**
+ * Reminder days to persist for a form submission.
+ *
+ * Auto-debit clears reminders because the debit cron pays the bill — but only where
+ * auto-debit actually runs. In an app mode that switches it off, the bill keeps its
+ * reminder days. Shared so every call site agrees; a site left on the old inline
+ * ternary would wipe reminders on that path only.
+ */
+export function reminderDaysToPersist(
+  form: BillFormState,
+  autoDebitAvailable: boolean,
+): number[] | undefined {
+  if (autoDebitAvailable && form.autoDebit) return undefined;
+  return form.reminderDays.length > 0 ? form.reminderDays : undefined;
+}
+
 const REMINDER_OPTIONS = [
   { value: 5, label: "5d" },
   { value: 4, label: "4d" },
@@ -132,6 +149,9 @@ export function PlannedExpenseFormDialog({
   const hasProAccess = capabilities?.hasProLevelAccess ?? false;
   const categories = dbCategories ?? [];
 
+  const { isFeatureEnabled } = useAppMode();
+  const accountsEnabled = isFeatureEnabled("accounts");
+  const autoDebitAvailable = isFeatureEnabled("autoDebit");
   const [form, setForm] = useState<BillFormState>(initial ?? EMPTY_BILL_FORM);
 
   useEffect(() => {
@@ -191,8 +211,9 @@ export function PlannedExpenseFormDialog({
             />
           </div>
 
-          {/* Account */}
-          {accounts.length > 0 && (
+          {/* Account — hidden in an app mode without the accounts feature. form.accountId is
+              left as-is so the stored link round-trips untouched. */}
+          {accountsEnabled && accounts.length > 0 && (
             <div className="grid gap-1.5">
               <Label htmlFor="bill-account">Account</Label>
               <AccountSelect
@@ -367,7 +388,9 @@ export function PlannedExpenseFormDialog({
             </div>
           </div>
 
-          {/* Auto Debit */}
+          {/* Auto Debit — hidden in an app mode that switches it off. The stored flag is
+              left untouched, so it resumes when the mode does. */}
+          {autoDebitAvailable && (
           <label className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors hover:bg-muted/50">
             <input
               type="checkbox"
@@ -388,9 +411,12 @@ export function PlannedExpenseFormDialog({
               </p>
             </div>
           </label>
+          )}
 
-          {/* Row 5 — Reminder (hidden when auto debit is on) */}
-          {!form.autoDebit && (() => {
+          {/* Row 5 — Reminder. Hidden when auto debit is on AND actually runs; a bill whose
+              auto-debit is inert in this app mode must still be able to get a reminder,
+              or the dialog would offer no notification control at all. */}
+          {(!autoDebitAvailable || !form.autoDebit) && (() => {
             const isThisTheLocked = !!lockedFreeReminderBillId && editingBillId === lockedFreeReminderBillId;
             const slotLockedByOther = !!lockedFreeReminderBillId && !isThisTheLocked;
 

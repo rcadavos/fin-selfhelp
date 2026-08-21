@@ -213,10 +213,23 @@ export async function createPayMongoCheckoutSession(
   }
 }
 
-/** Retrieve payment intent status; if succeeded, grant subscription and return status. */
+/**
+ * Retrieve payment intent status; if succeeded, grant subscription and return status.
+ *
+ * Session-guarded and ownership-checked: this is a Server Action reachable by
+ * anyone who has the action id, and it grants a paid subscription, so it must
+ * never act on an intent belonging to somebody else. Callers only ever poll
+ * their own intent, so the check is invisible in normal use.
+ */
 export async function checkPayMongoPaymentStatus(
   paymentIntentId: string
 ): Promise<{ status: "succeeded" | "awaiting_payment" | "failed"; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "failed", error: "Not logged in." };
+
   const secret = getSecretKey();
   if (!secret) return { status: "failed", error: "PayMongo is not configured." };
 
@@ -231,21 +244,31 @@ export async function checkPayMongoPaymentStatus(
     const attrs = json?.data?.attributes;
     const status = attrs?.status;
     if (status === "succeeded") {
-      const { recordSubscriptionPaymentForUserId } = await import("./budget");
-      const { saveSubscriptionPaymentReceipt } = await import("./receipts");
+      const { recordSubscriptionPaymentForUserId, saveSubscriptionPaymentReceipt } =
+        await import("@/lib/billing/grant");
       const userId = attrs?.metadata?.user_id;
       const tierRaw = attrs?.metadata?.subscription_tier;
       const tier = tierRaw === "premium" ? "premium" : "pro";
+      // Only ever grant to the signed-in caller. The intent id is the only input,
+      // so without this anyone could redeem somebody else's succeeded payment.
+      if (userId && userId !== user.id) {
+        return { status: "failed", error: "This payment belongs to another account." };
+      }
       if (userId) {
-        const result = await recordSubscriptionPaymentForUserId(userId, tier);
-        if (result.error) return { status: "succeeded", error: result.error };
-        await saveSubscriptionPaymentReceipt(userId, {
+        // Receipt first — its unique payment_intent_id makes a second poll of the
+        // same intent a no-op instead of granting another month.
+        const receipt = await saveSubscriptionPaymentReceipt(userId, {
           amountCents: attrs?.amount ?? 0,
           currency: attrs?.currency ?? "PHP",
           description: attrs?.description ?? "Pro subscription",
           paymentIntentId,
           paidAt: new Date(),
         });
+        if (receipt.error) return { status: "succeeded", error: receipt.error };
+        if (receipt.inserted) {
+          const result = await recordSubscriptionPaymentForUserId(userId, tier);
+          if (result.error) return { status: "succeeded", error: result.error };
+        }
       }
       return { status: "succeeded" };
     }

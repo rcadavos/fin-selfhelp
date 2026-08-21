@@ -28,10 +28,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const { error } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
   if (error && isStaleRefreshTokenError(error)) {
     await supabase.auth.signOut({ scope: "local" });
   }
 
-  return supabaseResponse;
+  // The caller needs the user too — this getUser() call is the only one on the
+  // request path, so returning it here keeps the route gate free of a second round trip.
+  return { response: supabaseResponse, user: data?.user ?? null };
 }

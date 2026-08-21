@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Check, CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
+import { Bell, Check, CheckCircle2, ChevronRight, Loader2, SkipForward, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -30,10 +30,28 @@ import { createAccount } from "@/actions/accounts";
 import type { AccountType } from "@/actions/accounts";
 import { BANK_GROUPS, getBankColor, getBankLogoSlug } from "@/lib/constants/account-institutions";
 import { ACCOUNT_TYPE_OPTIONS, CURRENCIES } from "@/components/dashboard/account-form-dialog";
+import { APP_MODE_OPTIONS, type AppModeId } from "@/lib/constants/app-mode";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["profile", "account", "expense", "done"] as const;
-type Step = (typeof STEPS)[number];
+type Step = "mode" | "profile" | "account" | "expense" | "done";
+
+const FULL_STEPS: readonly Step[] = ["mode", "profile", "account", "expense", "done"];
+/** Bills mode hides accounts and expenses, so setting them up here would create data the user can't see. */
+const BILLS_STEPS: readonly Step[] = ["mode", "profile", "done"];
+
+const STEP_LABELS: Record<Step, string> = {
+  mode: "Mode",
+  profile: "Profile",
+  account: "Account",
+  expense: "Expense",
+  done: "Done",
+};
+
+const MODE_ICONS: Record<AppModeId, typeof TrendingUp> = {
+  full: TrendingUp,
+  bills: Bell,
+};
 
 const FIX_OPTIONS = [
   { id: "overspending", label: "Overspending every month" },
@@ -60,7 +78,8 @@ export function SetupWizard({ initialName }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { refreshUser } = useUser();
-  const [step, setStep] = useState<Step>("profile");
+  const { mode, isBillsMode, setMode } = useAppMode();
+  const [step, setStep] = useState<Step>("mode");
   const [isPending, startTransition] = useTransition();
 
   // Step 1 — profile
@@ -87,7 +106,8 @@ export function SetupWizard({ initialName }: Props) {
   const { data: categories = [] } = useQuery(categoriesQueryOptions());
   const { data: accounts = [] } = useQuery(accountsQueryOptions());
 
-  const stepIndex = STEPS.indexOf(step);
+  const steps = useMemo(() => (isBillsMode ? BILLS_STEPS : FULL_STEPS), [isBillsMode]);
+  const stepIndex = steps.indexOf(step);
 
   function toggleItem(list: string[], setList: (v: string[]) => void, id: string) {
     setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -99,9 +119,10 @@ export function SetupWizard({ initialName }: Props) {
 
   function handleProfileNext() {
     startTransition(async () => {
-      await completeOnboarding({ fullName: name, goals, fixes });
+      // Bills mode hides Goals, so never create goal rows the user has no page for.
+      await completeOnboarding({ fullName: name, goals: isBillsMode ? [] : goals, fixes });
       await refreshUser();
-      setStep("account");
+      setStep(isBillsMode ? "done" : "account");
     });
   }
 
@@ -109,7 +130,7 @@ export function SetupWizard({ initialName }: Props) {
     startTransition(async () => {
       await completeOnboarding({});
       await refreshUser();
-      setStep("account");
+      setStep(isBillsMode ? "done" : "account");
     });
   }
 
@@ -174,12 +195,8 @@ export function SetupWizard({ initialName }: Props) {
       {/* Step progress */}
       {step !== "done" && (
         <div className="mb-8 flex items-start">
-          {[
-            { label: "Profile" },
-            { label: "Account" },
-            { label: "Expense" },
-          ].map((s, i) => (
-            <div key={i} className="flex items-start">
+          {steps.filter((s) => s !== "done").map((s, i) => (
+            <div key={s} className="flex items-start">
               {i > 0 && (
                 <div className="flex h-8 items-center">
                   <div className={cn("h-px w-10 transition-colors sm:w-14", i <= stepIndex ? "bg-primary" : "bg-border")} />
@@ -200,7 +217,7 @@ export function SetupWizard({ initialName }: Props) {
                   "text-[11px] font-medium",
                   i < stepIndex ? "text-primary" : i === stepIndex ? "text-foreground" : "text-muted-foreground/40",
                 )}>
-                  {s.label}
+                  {STEP_LABELS[s]}
                 </span>
               </div>
             </div>
@@ -209,12 +226,22 @@ export function SetupWizard({ initialName }: Props) {
       )}
 
       <div className="w-full max-w-md">
+        {step === "mode" && (
+          <ModeStep
+            mode={mode}
+            onSelectMode={setMode}
+            onNext={() => setStep("profile")}
+            isPending={isPending}
+          />
+        )}
+
         {step === "profile" && (
           <ProfileStep
             name={name}
             setName={setName}
             fixes={fixes}
             goals={goals}
+            showGoals={!isBillsMode}
             onToggleFix={(id) => toggleItem(fixes, setFixes, id)}
             onToggleGoal={(id) => toggleItem(goals, setGoals, id)}
             onNext={handleProfileNext}
@@ -263,7 +290,7 @@ export function SetupWizard({ initialName }: Props) {
           />
         )}
 
-        {step === "done" && <DoneStep name={name} onFinish={finishAndRedirect} />}
+        {step === "done" && <DoneStep name={name} isBillsMode={isBillsMode} onFinish={finishAndRedirect} />}
       </div>
     </div>
   );
@@ -271,11 +298,88 @@ export function SetupWizard({ initialName }: Props) {
 
 // ─── Step components ──────────────────────────────────────────────────────────
 
+interface ModeStepProps {
+  mode: AppModeId;
+  onSelectMode: (next: AppModeId) => void;
+  onNext: () => void;
+  isPending: boolean;
+}
+
+function ModeStep({ mode, onSelectMode, onNext, isPending }: ModeStepProps) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          How do you want to use OmniTrak?
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          You can change this any time in Settings.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {APP_MODE_OPTIONS.map((option) => {
+            const selected = option.value === mode;
+            const Icon = MODE_ICONS[option.value];
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onSelectMode(option.value)}
+                aria-pressed={selected}
+                className={cn(
+                  "relative flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selected
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border bg-background hover:bg-muted",
+                )}
+              >
+                {selected && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-3 w-3" />
+                  </span>
+                )}
+                <Icon className={cn("h-5 w-5", selected ? "text-primary" : "text-muted-foreground/60")} />
+                <div className="pr-7">
+                  <p className={cn("text-sm font-semibold", selected && "text-primary")}>{option.label}</p>
+                  <p className="text-xs font-medium text-muted-foreground">{option.tagline}</p>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{option.description}</p>
+                <ul className="space-y-1">
+                  {option.includes.map((item) => (
+                    <li key={item} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <CheckCircle2
+                        className={cn("h-3 w-3 shrink-0", selected ? "text-primary" : "text-muted-foreground/30")}
+                      />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Nothing is deleted when you switch — hidden pages just come back.
+        </p>
+      </div>
+
+      <StepFooter
+        onNext={onNext}
+        nextLabel="Continue"
+        isPending={isPending}
+      />
+    </div>
+  );
+}
+
 interface ProfileStepProps {
   name: string;
   setName: (v: string) => void;
   fixes: string[];
   goals: string[];
+  showGoals: boolean;
   onToggleFix: (id: string) => void;
   onToggleGoal: (id: string) => void;
   onNext: () => void;
@@ -283,7 +387,7 @@ interface ProfileStepProps {
   isPending: boolean;
 }
 
-function ProfileStep({ name, setName, fixes, goals, onToggleFix, onToggleGoal, onNext, onSkip, isPending }: ProfileStepProps) {
+function ProfileStep({ name, setName, fixes, goals, showGoals, onToggleFix, onToggleGoal, onNext, onSkip, isPending }: ProfileStepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -320,19 +424,21 @@ function ProfileStep({ name, setName, fixes, goals, onToggleFix, onToggleGoal, o
         </div>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium">What are your goals?</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {GOAL_OPTIONS.map((opt) => (
-            <ToggleChip
-              key={opt.id}
-              label={opt.label}
-              selected={goals.includes(opt.id)}
-              onToggle={() => onToggleGoal(opt.id)}
-            />
-          ))}
+      {showGoals && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">What are your goals?</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {GOAL_OPTIONS.map((opt) => (
+              <ToggleChip
+                key={opt.id}
+                label={opt.label}
+                selected={goals.includes(opt.id)}
+                onToggle={() => onToggleGoal(opt.id)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <StepFooter
         onNext={onNext}
@@ -662,43 +768,62 @@ function ExpenseStep({ categories, accounts, categoryId, setCategoryId, amount, 
   );
 }
 
-function DoneStep({ name, onFinish }: { name: string; onFinish: () => void }) {
+function DoneStep({ name, isBillsMode, onFinish }: { name: string; isBillsMode: boolean; onFinish: () => void }) {
   const firstName = name.trim().split(" ")[0];
   const greeting = firstName ? `You've got this, ${firstName}!` : "You've got this!";
+  const HeroIcon = isBillsMode ? Bell : TrendingUp;
 
   return (
     <div className="flex flex-col items-center gap-8 text-center py-4">
       <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 ring-4 ring-primary/20">
-        <TrendingUp className="h-12 w-12 text-primary" />
+        <HeroIcon className="h-12 w-12 text-primary" />
       </div>
 
       <div className="space-y-3">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{greeting} 🎉</h2>
         <p className="text-base font-medium text-foreground">
-          Your financial journey starts today.
+          {isBillsMode ? "No more missed due dates." : "Your financial journey starts today."}
         </p>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-          Every expense tracked, every account balanced, every goal set — it all adds up.
-          Small consistent actions are what build real financial freedom over time.
+          {isBillsMode
+            ? "Add what's coming up and OmniTrak keeps every due date in front of you. One bill at a time is all it takes to stay ahead."
+            : "Every expense tracked, every account balanced, every goal set — it all adds up. Small consistent actions are what build real financial freedom over time."}
         </p>
       </div>
 
       <div className="w-full max-w-sm rounded-xl border bg-muted/40 px-5 py-4 text-left space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What&apos;s next</p>
-        <ul className="space-y-1.5 text-sm text-foreground">
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Check your dashboard — your expenses are already tracked.
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Add more accounts on the Accounts page to track all your balances.
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            Visit your Goals page to track your savings progress over time.
-          </li>
-        </ul>
+        {isBillsMode ? (
+          <ul className="space-y-1.5 text-sm text-foreground">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Add your first planned expense — rent, utilities, or a subscription.
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Set a due date so it shows up on your dashboard before it&apos;s late.
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Use Reminders for the to-dos and to-buys you keep forgetting.
+            </li>
+          </ul>
+        ) : (
+          <ul className="space-y-1.5 text-sm text-foreground">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Check your dashboard — your expenses are already tracked.
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Add more accounts on the Accounts page to track all your balances.
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              Visit your Goals page to track your savings progress over time.
+            </li>
+          </ul>
+        )}
       </div>
 
       <Button size="lg" className="w-full max-w-sm" onClick={onFinish}>
@@ -733,7 +858,8 @@ function ToggleChip({ label, selected, onToggle }: { label: string; selected: bo
 
 interface StepFooterProps {
   onNext: () => void;
-  onSkip: () => void;
+  /** Omit on steps that always have a valid answer, so no Skip action is rendered. */
+  onSkip?: () => void;
   nextLabel: string;
   isPending: boolean;
   skipLabel?: string;
@@ -741,18 +867,23 @@ interface StepFooterProps {
 
 function StepFooter({ onNext, onSkip, nextLabel, isPending, skipLabel = "Skip for now" }: StepFooterProps) {
   return (
-    <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground"
-        onClick={onSkip}
-        disabled={isPending}
-      >
-        <SkipForward className="mr-1.5 h-3.5 w-3.5" />
-        {skipLabel}
-      </Button>
+    <div className={cn(
+      "flex flex-col gap-2 pt-2 sm:flex-row sm:items-center",
+      onSkip ? "sm:justify-between" : "sm:justify-end",
+    )}>
+      {onSkip && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={onSkip}
+          disabled={isPending}
+        >
+          <SkipForward className="mr-1.5 h-3.5 w-3.5" />
+          {skipLabel}
+        </Button>
+      )}
       <Button
         type="button"
         onClick={onNext}

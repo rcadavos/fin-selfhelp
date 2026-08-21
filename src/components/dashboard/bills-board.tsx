@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useMemo, useEffect, useTransition } from "react";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -95,6 +95,8 @@ import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { VEHICLE_EXPENSE_CATEGORIES, labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import { ADD_PLANNED_EXPENSE_PARAM } from "@/lib/constants/app-mode";
+import { useAppMode } from "@/hooks/use-app-mode";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -171,9 +173,11 @@ function formatDueDay(bill: BillRow, paidMonth: string): string {
 import {
   PlannedExpenseFormDialog as BillDialog,
   billToForm,
+  reminderDaysToPersist,
   EMPTY_BILL_FORM as EMPTY_FORM,
   type BillFormState,
 } from "@/components/dashboard/planned-expense-form-dialog";
+import { AUTO_DEBIT_FAILURE_GENERIC_REASON } from "@/lib/constants/bills";
 
 
 function PiePercentLabel({
@@ -279,7 +283,10 @@ function BillRow({
   onEdit,
   onDelete,
   isLockedFreeReminder,
+  autoDebitEnabled,
 }: {
+  /** False in an app mode that switches auto-debit off — the pill would be a false promise. */
+  autoDebitEnabled: boolean;
   bill: BillRow;
   /** True if amountPaid >= bill.amount. */
   isPaid: boolean;
@@ -386,7 +393,7 @@ function BillRow({
           ) : isFailed ? (
             <span
               className="shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive"
-              title={failureReason ?? "Auto-debit did not go through."}
+              title={failureReason ?? AUTO_DEBIT_FAILURE_GENERIC_REASON}
             >
               Failed
             </span>
@@ -409,7 +416,9 @@ function BillRow({
               Reminder
             </span>
           )}
-          {bill.is_auto_debit && (
+          {/* Hidden where the mode switches auto-debit off: the pill promises the bill pays
+              itself, which would be untrue. The honest state lives on the detail page. */}
+          {bill.is_auto_debit && autoDebitEnabled && (
             <span
               className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
               title="Paid automatically on the due date (auto-debit)"
@@ -663,6 +672,10 @@ type PeriodTab = "monthly" | "quarterly" | "yearly";
 export function BillsBoard() {
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { isFeatureEnabled, isResolved } = useAppMode();
 
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentPaidMonth());
   const paidMonth = selectedMonth;
@@ -694,6 +707,24 @@ export function BillsBoard() {
   /** Mobile: chart body starts collapsed; tap the card header to expand. Desktop always shows the chart. */
   const [showMobileCategoryChart, setShowMobileCategoryChart] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  /**
+   * Bills mode has no quick Add Entry panel, so its FAB deep-links here with `?add=1`.
+   * The flag is read straight into the dialog's open state — no effect to sync — and is
+   * stripped when the dialog closes: left in the URL it would reopen the dialog on every
+   * refresh or back navigation, fighting the user closing it. Because the URL drives it,
+   * tapping the FAB again while already on this page reopens the dialog.
+   */
+  const addRequested = searchParams.get(ADD_PLANNED_EXPENSE_PARAM) === "1";
+  const addDialogOpen = addOpen || addRequested;
+  function closeAddDialog() {
+    setAddOpen(false);
+    if (!addRequested) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(ADD_PLANNED_EXPENSE_PARAM);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
 
   const billsDataQuery = useQuery(billsDataQueryOptions(paidMonth));
   const prefsQuery = useQuery(userPreferencesQueryOptions(user?.id));
@@ -881,7 +912,7 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
+        reminderDaysToPersist(form, isFeatureEnabled("autoDebit")),
         "both",
         form.endDate || undefined,
         form.accountId || null,
@@ -890,7 +921,7 @@ export function BillsBoard() {
         form.autoDebit,
       );
       if (!res.error) {
-        setAddOpen(false);
+        closeAddDialog();
         invalidate();
         invalidateVehicleQueriesIfTransportAffected(queryClient, form.categoryId);
       }
@@ -910,7 +941,7 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        form.autoDebit ? undefined : (form.reminderDays.length > 0 ? form.reminderDays : undefined),
+        reminderDaysToPersist(form, isFeatureEnabled("autoDebit")),
         "both",
         form.endDate || undefined,
         form.accountId || null,
@@ -945,12 +976,28 @@ export function BillsBoard() {
         icon={Receipt}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" aria-label="Categories" asChild>
-              <Link href="/dashboard/expenses/categories">
+            {/* Category management lives under the expenses feature — when it is off,
+                fall back to the read-only per-category breakdown dialog so the button
+                does not point at a route the current mode blocks. */}
+            {isFeatureEnabled("expenses") ? (
+              <Button variant="outline" size="sm" aria-label="Categories" asChild>
+                <Link href="/dashboard/expenses/categories">
+                  <LayoutGrid className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">Categories</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-label="Categories"
+                onClick={() => setCategoriesOpen(true)}
+              >
                 <LayoutGrid className="h-4 w-4" aria-hidden />
                 <span className="hidden sm:inline">Categories</span>
-              </Link>
-            </Button>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
@@ -1094,14 +1141,25 @@ export function BillsBoard() {
                   {toggleError.billNote ? `“${toggleError.billNote}”` : "this planned expense"} needs{" "}
                   {formatCurrency(toggleError.required, currency)}.
                 </p>
+                {/* The server can still reject on balance if the stored mode has not caught up
+                    with the client (optimistic switch, failed persist, another tab), so this
+                    stays reachable — but the old "clear its account" advice no longer applies. */}
+                {!isFeatureEnabled("accounts") && (
+                  <p className="mt-0.5 text-xs text-destructive/90">
+                    Balance checks haven’t caught up with your app mode yet. Reload the page and try again.
+                  </p>
+                )}
               </div>
             ) : (
               <p className="flex-1">{toggleError.message}</p>
             )}
             <div className="flex shrink-0 gap-2">
-              <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                <Link href="/dashboard/accounts">Go to Accounts</Link>
-              </Button>
+              {/* Accounts are hidden in some app modes — never offer a route the mode blocks. */}
+              {isFeatureEnabled("accounts") && (
+                <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <Link href="/dashboard/accounts">Go to Accounts</Link>
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -1141,7 +1199,7 @@ export function BillsBoard() {
                   isPaid={isFullyPaid}
                   isPartial={isPartial}
                   isFailed={isFailed}
-                  failureReason={isFailed ? (failureReasonByBillId[bill.id] ?? null) : null}
+                  failureReason={isFailed ? (isResolved && isFeatureEnabled("accounts") ? (failureReasonByBillId[bill.id] ?? null) : null) : null}
                   amountPaid={amountPaid}
                   isOverdue={isOverdue}
                   isUpcoming={isUpcoming}
@@ -1157,6 +1215,7 @@ export function BillsBoard() {
                   onEdit={() => setEditingBill(bill)}
                   onDelete={() => setDeletingId(bill.id)}
                   isLockedFreeReminder={bill.id === lockedFreeReminderBillId}
+                  autoDebitEnabled={isFeatureEnabled("autoDebit")}
                 />
               );
             })
@@ -1175,10 +1234,10 @@ export function BillsBoard() {
       />
 
       {/* Add dialog */}
-      {addOpen && (
+      {addDialogOpen && (
         <BillDialog
-          open={addOpen}
-          onClose={() => setAddOpen(false)}
+          open={addDialogOpen}
+          onClose={closeAddDialog}
           onSave={handleAdd}
           initial={{ ...EMPTY_FORM, billingPeriod: activeTab }}
           isPending={isPending}

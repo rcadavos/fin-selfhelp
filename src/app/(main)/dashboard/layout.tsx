@@ -21,6 +21,10 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  // The session gate lives in src/middleware.ts (PROTECTED_ROUTE_PREFIXES): it sees the
+  // pathname, so it can carry the intended destination through `?next=` and exempt the
+  // token-addressed invite page under this tree, which is reachable with no account at
+  // all. `user` can therefore legitimately be null here.
   if (user && !user.user_metadata?.onboarding_complete) {
     redirect("/setup");
   }

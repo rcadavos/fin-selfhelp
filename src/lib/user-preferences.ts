@@ -1,3 +1,5 @@
+import { type AppModeId, DEFAULT_APP_MODE, normalizeAppMode } from "@/lib/constants/app-mode";
+
 /**
  * Preferences: primary store is `profiles.user_preferences` (JSON) when logged in;
  * localStorage mirrors for offline / logged-out formatting.
@@ -20,6 +22,8 @@ export type TimeFormatId = "12h" | "24h";
 export type NumberGroupingId = "comma" | "dot";
 
 export type UserPreferences = {
+  /** Which slice of the app is switched on (see `src/lib/constants/app-mode.ts`). */
+  appMode: AppModeId;
   dateFormat: DateFormatId;
   timeFormat: TimeFormatId;
   currency: string;
@@ -31,6 +35,7 @@ export type UserPreferences = {
 };
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  appMode: DEFAULT_APP_MODE,
   dateFormat: "mdy",
   timeFormat: "12h",
   currency: "PHP",
@@ -63,6 +68,7 @@ export function normalizeUserPreferences(raw: unknown): UserPreferences {
   if (!raw || typeof raw !== "object") return base;
   const o = raw as Record<string, unknown>;
 
+  if (o.appMode !== undefined) base.appMode = normalizeAppMode(o.appMode);
   if (typeof o.dateFormat === "string" && DATE_FORMAT_SET.has(o.dateFormat)) {
     base.dateFormat = o.dateFormat as DateFormatId;
   }
@@ -83,6 +89,20 @@ export function normalizeUserPreferences(raw: unknown): UserPreferences {
   if (typeof o.subscriptionAlertsEnabled === "boolean") base.subscriptionAlertsEnabled = o.subscriptionAlertsEnabled;
 
   return base;
+}
+
+/**
+ * App mode straight off a raw `profiles.user_preferences` JSON value. Server-safe:
+ * `useAppMode()` is a client hook, so server actions and cron routes read the column
+ * themselves and normalize it here.
+ *
+ * NULL, `{}` (the column default) and a missing `appMode` key all yield the default
+ * "full" mode, so existing accounts keep todays behaviour. Do not reach for
+ * `normalizeAppMode()` with the whole column — it expects the mode string alone and
+ * would silently answer "full" for everyone.
+ */
+export function appModeFromPreferencesJson(raw: unknown): AppModeId {
+  return normalizeUserPreferences(raw).appMode;
 }
 
 let clientPreferenceCache: UserPreferences = { ...DEFAULT_USER_PREFERENCES };

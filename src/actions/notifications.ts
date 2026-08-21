@@ -211,10 +211,27 @@ type EmailResult = {
   debug?: Record<string, any>;
 };
 
+/**
+ * Sends today's due-bill reminder emails for one user.
+ *
+ * `userId` plus the service-role client would otherwise make this a public POST
+ * endpoint that mails an arbitrary user and — with `includeDebug` — returns their
+ * email address and bill titles to the caller. Its only caller
+ * (src/app/api/notifications/test-expense-trigger/route.ts) passes the id of the
+ * user it already authenticated, so requiring the two to match costs nothing.
+ */
 export async function sendGeneratedProReminderEmailsForToday(
   userId: string,
   options?: { skipReleaseHourCheck?: boolean; includeDebug?: boolean }
 ): Promise<EmailResult> {
+  const authClient = await createClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+  if (!user || user.id !== userId) {
+    return { emailsSent: 0, pendingCount: 0, skipped: true, errors: ["Not authorized."] };
+  }
+
   const supabase = createServiceRoleClient();
 
   const { data: profile } = await supabase
