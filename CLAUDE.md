@@ -18,29 +18,39 @@ OmniTrak is a personal finance self-help app built with:
 1. **`src/lib/changelog.ts`** — add entries to the top release block, or create a new version block
 2. **`src/lib/version.ts`** — bump the version if warranted (semver: patch for fixes, minor for features, major for breaking)
 
-### Versioning guide — automated
+### Versioning guide
 
-Version bumping is **automatic on every `git commit`** via `.githooks/commit-msg`.
+**The top entry of `src/lib/changelog.ts` is the single source of truth for the release number.**
 
-| Commit message prefix | Bump | Example |
-|-----------------------|------|---------|
-| `feat:` or `feat(scope):` | **Minor** — new feature | `1.2.0` → `1.3.0` |
-| Anything else (`fix:`, `hotfix:`, `chore:`, etc.) | **Patch** | `1.2.0` → `1.2.1` |
-| Message contains `[skip bump]` | **None** — skipped | (no change) |
+`.githooks/pre-commit` runs `scripts/sync-version.mjs`, which copies that version into
+`package.json` and `src/lib/version.ts` and stages them. It is a no-op when they already
+agree, so a commit that adds no changelog entry changes no version.
 
-The hook updates both `package.json` and `src/lib/version.ts` and auto-stages them into the commit.
+To cut a release, either set the version on the new changelog entry by hand, or run:
 
-**Manual overrides** (run before committing):
 ```bash
-npm run version:patch   # force a patch bump
-npm run version:minor   # force a minor bump
-npm run version:major   # force a major bump
+npm run version:patch   # bug fix, UI tweak, copy change, improvement
+npm run version:minor   # new page, new email, new user-facing feature
+npm run version:major   # breaking change / full rewrite
 ```
 
-**Rule of thumb:**
-- New page, new email, new user-facing feature → commit starts with `feat:` → minor
-- Bug fix, UI tweak, copy change, improvement → any other prefix → patch
-- Breaking change / full rewrite → run `npm run version:major` first
+These raise the version on the **top changelog entry** and sync the other two files.
+
+**The commit message prefix does not affect the version.** Pick the prefix that describes
+the change (`fix:`, `chore:`, `refactor:`, `feat:` …) and choose the release size
+separately, above.
+
+Two traps this layout exists to avoid — do not reintroduce either:
+
+- **Never move version syncing into `commit-msg`.** A `git add` there does not reach the
+  commit being created; git has already snapshotted the index. The old hook printed a
+  bump it never committed and left the version files staged for the *next* commit, so the
+  app shipped a commit whose `version.ts` said `1.7.5` while its own changelog entry
+  announced `1.8.0`.
+- **Never locate the changelog entry by searching for the current version string.** When
+  the new top entry already carries the target version, that search falls through to an
+  older entry and renames an already-released one, leaving two entries claiming the same
+  release. Target the top entry by position instead.
 
 ### Changelog entry format
 

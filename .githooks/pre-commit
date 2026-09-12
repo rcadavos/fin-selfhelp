@@ -1,0 +1,19 @@
+#!/bin/sh
+# Keeps package.json and src/lib/version.ts in step with the top entry of
+# src/lib/changelog.ts, which is the source of truth for the release number.
+#
+# This lives in pre-commit, NOT commit-msg: a `git add` inside commit-msg does
+# not reach the commit being created, so the old hook printed a bump it never
+# actually committed and left the version files staged for the NEXT commit.
+#
+# Bump the version by editing the changelog entry, or with:
+#   npm run version:patch | version:minor | version:major
+
+set -e
+
+node scripts/sync-version.mjs
+
+# Only stage them when sync actually changed something.
+if ! git diff --quiet -- package.json src/lib/version.ts; then
+  git add package.json src/lib/version.ts
+fi
