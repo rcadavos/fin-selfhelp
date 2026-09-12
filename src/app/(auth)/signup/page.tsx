@@ -178,7 +178,7 @@ export default function SignUpPage() {
     <AuthShell panel={panel} stripAccessory={stripAccessory}>
       {submitted ? (
         <div role="status" className="w-full">
-          <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-md border border-primary bg-primary/[0.08] text-primary">
+          <div className="mb-5 inline-flex h-12 w-12 items-center justify-center surface border border-primary bg-primary/[0.08] text-primary">
             <Mail className="h-6 w-6" aria-hidden />
           </div>
           <h2
@@ -232,7 +232,7 @@ export default function SignUpPage() {
             {formError ? (
               <div
                 role="alert"
-                className="rounded-md border border-destructive/50 px-3 py-2.5 text-sm text-destructive"
+                className="surface border border-destructive/50 px-3 py-2.5 text-sm text-destructive"
               >
                 {formError}
               </div>
@@ -299,7 +299,7 @@ export default function SignUpPage() {
                   onClick={() => setShowPassword((v) => !v)}
                   aria-pressed={showPassword}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
                 </button>

@@ -22,6 +22,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on planned expenses, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
       { type: "fix", description: "The back-to-top button now has a visible outline in both light and dark mode. It was asking for a border but never got a colour, so it drew a transparent one and the button faded into whatever was behind it." },
       { type: "improvement", description: "On phones, pop-up dialogs now slide up from the bottom of the screen as a sheet instead of appearing in the middle — closer to your thumb, with a grab handle at the top, and long ones scroll inside themselves rather than running off the screen. On tablets and desktop they stay centred." },
+      { type: "improvement", description: "Rounded the last square corners on the sign-in and sign-up pages: the Password / One-time link switcher, the message and warning panels, the show-password button, and the logo tile." },
     ],
   },
   {

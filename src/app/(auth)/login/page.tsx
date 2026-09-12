@@ -204,7 +204,7 @@ function LoginContent() {
       <div
         role="tablist"
         aria-label="Sign-in method"
-        className="mt-6 grid grid-cols-2 gap-1 rounded-md border border-hairline-strong bg-card p-1"
+        className="mt-6 grid grid-cols-2 gap-1 surface border border-hairline-strong bg-card p-1"
       >
         {(["password", "otp"] as const).map((tab) => {
           const active = authTab === tab;
@@ -223,7 +223,7 @@ function LoginContent() {
               onClick={() => selectTab(tab)}
               onKeyDown={handleTabKeyDown}
               className={cn(
-                "h-9 rounded-[4px] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "h-9 rounded-[10px] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -236,7 +236,7 @@ function LoginContent() {
       {unconfirmedEmail ? (
         <div
           role="alert"
-          className="mt-4 flex gap-3 rounded-md border border-warning/50 bg-warning/10 px-3 py-2.5 text-sm text-warning"
+          className="mt-4 flex gap-3 surface border border-warning/50 bg-warning/10 px-3 py-2.5 text-sm text-warning"
         >
           <Mail className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
@@ -248,7 +248,7 @@ function LoginContent() {
         <div
           role={formMessage.type === "error" ? "alert" : "status"}
           className={cn(
-            "mt-4 rounded-md border px-3 py-2.5 text-sm",
+            "mt-4 surface border px-3 py-2.5 text-sm",
             formMessage.type === "error"
               ? "border-destructive/50 text-destructive"
               : "border-primary/40 bg-primary/[0.08] text-primary"
@@ -300,7 +300,7 @@ function LoginContent() {
               onClick={() => setShowPassword((v) => !v)}
               aria-pressed={showPassword}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
             </button>
