@@ -219,7 +219,7 @@ function ReceivableDialog({
           onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <ScrollFadeBody className="space-y-4 px-6 pb-4">
+          <ScrollFadeBody className="space-y-5 px-6 pb-4">
 
             {/* Debtor name */}
             <div className="grid gap-1.5">
@@ -398,7 +398,7 @@ function ReceivableDialog({
 
           </ScrollFadeBody>
 
-          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
             <div className="flex w-full gap-2">
               {editingId && onDelete && (
                 <Button

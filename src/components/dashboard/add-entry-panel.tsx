@@ -362,7 +362,7 @@ export function AddEntryPanel({
       </div>
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ScrollFadeBody className="space-y-4 px-6 pb-4 pt-2">
+        <ScrollFadeBody className="space-y-5 px-6 pb-4 pt-2">
 
           {/* ── Expense ── */}
           {tab === "expense" && (
@@ -405,7 +405,7 @@ export function AddEntryPanel({
                 <Input id="ae-name" value={expName} onChange={(e) => setExpName(e.target.value)} placeholder="e.g. Groceries, Netflix (optional)" />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="ae-category">Category</Label>
                   <Select value={expCategory} onValueChange={setExpCategory}>
@@ -422,7 +422,7 @@ export function AddEntryPanel({
               </div>
 
               {expCategory === "transport" && vehicles.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-1.5">
                     <Label htmlFor="ae-vehicle">Vehicle (optional)</Label>
                     <Select
@@ -577,7 +577,7 @@ export function AddEntryPanel({
                 />
               </div>
 
-              <div className="grid items-start gap-3 sm:grid-cols-2">
+              <div className="grid items-start gap-4 sm:grid-cols-2">
                 <div className="grid content-start gap-1.5">
                   <Label htmlFor="tx-from">From account</Label>
                   {accounts.length > 0 ? (
@@ -623,7 +623,7 @@ export function AddEntryPanel({
 
         </ScrollFadeBody>
 
-        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
           <div className="flex w-full gap-2">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancel

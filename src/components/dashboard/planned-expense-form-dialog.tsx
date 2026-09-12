@@ -198,7 +198,7 @@ export function PlannedExpenseFormDialog({
         </DialogHeader>
 
         <form onSubmit={(e) => { e.preventDefault(); if (isValid) onSave(form); }} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollFadeBody className="space-y-4 px-6 pb-4">
+          <ScrollFadeBody className="space-y-5 px-6 pb-4">
           {/* Row 1 — Name */}
           <div className="grid gap-1.5">
             <Label htmlFor="bill-name">Name</Label>
@@ -228,7 +228,7 @@ export function PlannedExpenseFormDialog({
           )}
 
           {/* Row 2 — Category + Amount */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Category</Label>
               <Select
@@ -267,7 +267,7 @@ export function PlannedExpenseFormDialog({
 
           {/* Vehicle + vehicle category — Transport & Commute only */}
           {form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID && vehicles.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label>Vehicle (optional)</Label>
                 <Select
@@ -354,7 +354,7 @@ export function PlannedExpenseFormDialog({
           </div>
 
           {/* Row 4 — Due Date + End Date */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Due Date</Label>
               <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
@@ -490,7 +490,7 @@ export function PlannedExpenseFormDialog({
           })()}
 
           </ScrollFadeBody>
-          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
             <div className="flex w-full gap-2">
               {editingBillId && onDelete && (
                 <Button type="button" variant="ghost" size="icon" className="flex-none text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete} disabled={isPending}>

@@ -128,9 +128,9 @@ export function EditExpenseDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollFadeBody className="space-y-4 px-6 pb-4">
+          <ScrollFadeBody className="space-y-5 px-6 pb-4">
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-exp-amount">Amount</Label>
                 <AmountInput
@@ -167,7 +167,7 @@ export function EditExpenseDialog({
               </p>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="edit-exp-category">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
@@ -193,7 +193,7 @@ export function EditExpenseDialog({
             </div>
 
             {category === "transport" && vehicles.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-1.5">
                   <Label htmlFor="edit-exp-vehicle">Vehicle (optional)</Label>
                   <Select
@@ -248,7 +248,7 @@ export function EditExpenseDialog({
             {error && <p className="text-sm text-destructive">{error}</p>}
           </ScrollFadeBody>
 
-          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
             <div className="flex w-full gap-2">
               {onDelete && entry && (
                 <Button

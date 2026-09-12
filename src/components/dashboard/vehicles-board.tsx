@@ -255,7 +255,7 @@ export function VehicleDialog({
           <DialogTitle>{editingId ? "Edit Vehicle" : "Add Vehicle"}</DialogTitle>
         </DialogHeader>
 
-        <ScrollFadeBody className="space-y-4 px-6 py-2">
+        <ScrollFadeBody className="space-y-5 px-6 py-2">
           {/* Name */}
           <div className="space-y-1.5">
             <Label>
@@ -375,7 +375,7 @@ export function VehicleDialog({
           {editingId && <LinkedPlannedExpenses vehicleId={editingId} />}
         </ScrollFadeBody>
 
-        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
           <div className="flex w-full gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
               Cancel

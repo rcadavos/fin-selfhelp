@@ -922,7 +922,7 @@ export function MyGoalsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <ScrollFadeBody className="space-y-4 px-6 pb-4">
+            <ScrollFadeBody className="space-y-5 px-6 pb-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-1">
                 <Label htmlFor="goal-name">
@@ -1139,7 +1139,7 @@ export function MyGoalsPage() {
               </div>
             )}
             </ScrollFadeBody>
-            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+            <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
               <div className="flex w-full items-center gap-2">
                 {editingId ? (
                   <Button
@@ -1183,7 +1183,7 @@ export function MyGoalsPage() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleDepositSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollFadeBody className="space-y-4 px-6 pb-4">
+          <ScrollFadeBody className="space-y-5 px-6 pb-4">
             <div className="space-y-2">
               <Label htmlFor="deposit-amount">
                 Amount <span className="text-destructive">*</span>
@@ -1226,7 +1226,7 @@ export function MyGoalsPage() {
               />
             </div>
           </ScrollFadeBody>
-          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+          <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
             <div className="flex w-full gap-2">
               <Button
                 type="button"

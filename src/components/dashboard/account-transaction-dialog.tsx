@@ -115,7 +115,7 @@ export function AccountTransactionDialog({
           <p className="text-xs text-muted-foreground">{copy.help}</p>
         </DialogHeader>
 
-        <ScrollFadeBody className="space-y-4 px-6">
+        <ScrollFadeBody className="space-y-5 px-6">
           {mode === "adjustment" ? (
             <>
               <div className="space-y-1.5">
@@ -228,7 +228,7 @@ export function AccountTransactionDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
         </ScrollFadeBody>
 
-        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
           <div className="flex w-full gap-2">
             <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isPending}>
               Cancel
@@ -299,7 +299,7 @@ export function AccountTransferDialog({
           </p>
         </DialogHeader>
 
-        <ScrollFadeBody className="space-y-4 px-6">
+        <ScrollFadeBody className="space-y-5 px-6">
           <div className="space-y-1.5">
             <Label>Destination account</Label>
             {otherAccounts.length === 0 ? (
@@ -360,7 +360,7 @@ export function AccountTransferDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
         </ScrollFadeBody>
 
-        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3">
+        <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">
           <div className="flex w-full gap-2">
             <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isPending}>
               Cancel
