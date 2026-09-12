@@ -101,7 +101,7 @@ export function BillsHero({
             type="button"
             onClick={onMarkPaid}
             disabled={isPending}
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-panel-accent px-4 py-2.5 text-[13.5px] font-semibold text-panel transition-[filter] hover:brightness-110 disabled:opacity-60 sm:rounded-md"
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-panel-accent px-4 py-2.5 text-[13.5px] font-semibold text-panel transition-[filter] hover:brightness-110 disabled:opacity-60"
           >
             <Check className="size-4" strokeWidth={3} aria-hidden />
             Mark paid
@@ -110,7 +110,7 @@ export function BillsHero({
             type="button"
             onClick={onPartialPayment}
             disabled={isPending}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-panel-foreground/30 px-4 py-2.5 text-[13.5px] font-semibold text-panel-foreground transition-colors hover:bg-panel-foreground/10 disabled:opacity-60 sm:rounded-md"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-panel-foreground/30 px-4 py-2.5 text-[13.5px] font-semibold text-panel-foreground transition-colors hover:bg-panel-foreground/10 disabled:opacity-60"
           >
             Part payment
           </button>

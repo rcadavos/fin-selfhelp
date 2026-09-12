@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { Stamp, type StampVariant } from "@/components/passbook/stamp";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +28,29 @@ const STATUS_LABEL: Record<PlannedExpenseStatus, string> = {
   due: "Due",
   scheduled: "Scheduled",
   paid: "Paid",
+};
+
+/**
+ * A day's own state, from the bills falling on it — the most urgent one wins, so
+ * a day holding one overdue bill and two settled ones still reads as overdue.
+ * "All paid" is the exception worth showing positively rather than as an absence.
+ */
+type DayStatus = "paid" | "overdue" | "partial" | "due" | "scheduled";
+
+function dayStatusFor(rows: PlannedExpenseRow[]): DayStatus {
+  if (rows.every((r) => r.status === "paid")) return "paid";
+  if (rows.some((r) => r.status === "overdue" || r.status === "failed")) return "overdue";
+  if (rows.some((r) => r.status === "partial")) return "partial";
+  if (rows.some((r) => r.status === "due")) return "due";
+  return "scheduled";
+}
+
+const DAY_TONE: Record<DayStatus, string> = {
+  paid: "border-primary/30 bg-primary/15 text-primary",
+  overdue: "border-destructive/30 bg-destructive/15 text-destructive",
+  partial: "border-warning/30 bg-warning/15 text-warning",
+  due: "border-warning/25 bg-warning/10 text-warning",
+  scheduled: "border-border bg-muted text-foreground",
 };
 
 const STATUS_STAMP: Record<PlannedExpenseStatus, StampVariant> = {
@@ -100,19 +124,29 @@ export function MonthCalendar({
           const dayRows = byDay.get(day) ?? [];
           const isToday = todayDay === day;
           const isPast = todayDay !== null && day < todayDay;
+          const status = dayRows.length > 0 ? dayStatusFor(dayRows) : null;
           const cellClass = cn(
-            "flex aspect-square min-h-[30px] w-full flex-col items-center justify-center gap-0.5 surface border border-transparent font-mono text-[11px]",
-            isToday && "border-primary font-semibold text-primary",
-            isPast && !isToday && "opacity-55",
-            dayRows.length > 0 && !isToday && "bg-accent/40",
+            // rounded-lg, not the surface token: these are ~40px squares, and the
+            // card radius reads as a blob at that size.
+            "flex aspect-square min-h-[30px] w-full flex-col items-center justify-center gap-0.5 rounded-lg border font-mono text-[11px]",
+            status ? DAY_TONE[status] : "border-transparent",
+            // Only dim empty past days — a settled day has earned its colour.
+            !status && isPast && "opacity-55",
+            // A ring rather than a border, so today reads on top of a status colour
+            // instead of overwriting its border.
+            isToday && "font-semibold ring-1 ring-primary",
           );
           const cellInner = (
             <>
               {day}
-              <span className="flex h-[5px] items-center gap-px">
-                {dayRows.slice(0, 3).map((row) => (
-                  <i key={row.bill.id} className={cn("block size-1 rounded-full", DOT_TONE[row.status])} />
-                ))}
+              <span className="flex h-3 items-center justify-center gap-px">
+                {status === "paid" ? (
+                  <Check className="size-3 text-primary" strokeWidth={3} aria-hidden />
+                ) : (
+                  dayRows.slice(0, 3).map((row) => (
+                    <i key={row.bill.id} className={cn("block size-1 rounded-full", DOT_TONE[row.status])} />
+                  ))
+                )}
               </span>
             </>
           );
