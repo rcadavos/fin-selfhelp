@@ -78,7 +78,7 @@ function QRPhPanel({
   return (
     <div className="flex flex-col items-center gap-4">
       {!paymongoQr?.qrImageDataUrl ? (
-        <div className="flex min-h-[180px] w-full flex-col items-center justify-center gap-3 rounded-lg border bg-muted/30 p-6">
+        <div className="flex min-h-[180px] w-full flex-col items-center justify-center gap-3 surface border bg-muted/30 p-6">
           {notConfigured ? (
             <p className="text-center text-sm text-muted-foreground">
               QR PH is not configured on this server.
@@ -96,7 +96,7 @@ function QRPhPanel({
           )}
         </div>
       ) : (
-        <div className="flex min-h-[220px] items-center justify-center rounded-lg border bg-white p-4">
+        <div className="flex min-h-[220px] items-center justify-center surface border bg-white p-4">
           <Image src={paymongoQr.qrImageDataUrl} alt="Scan to pay via QR PH" width={220} height={220} className="object-contain" unoptimized />
         </div>
       )}
@@ -160,7 +160,7 @@ function PaymentForm({
   return (
     <div className="space-y-4">
       {selectedPlan && (
-        <div className="flex items-baseline justify-between rounded-lg border bg-muted/30 px-4 py-3">
+        <div className="flex items-baseline justify-between surface border bg-muted/30 px-4 py-3">
           <span className="text-sm text-muted-foreground">
             {checkoutPlan === "premium" ? "Premium" : "Pro"} subscription
           </span>
@@ -171,14 +171,14 @@ function PaymentForm({
       )}
 
       {/* Method tabs */}
-      <div className="flex rounded-lg border bg-muted/30 p-1">
+      <div className="flex surface border bg-muted/30 p-1">
         {methodTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => { setMethod(id); setCheckoutError(null); setPaymongoError(null); }}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-medium transition-colors",
               method === id ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -325,12 +325,12 @@ function SubscriptionPageInner() {
     <main className="w-full min-w-0 space-y-10 py-2">
       {/* ── banners ── */}
       {justPaid && (
-        <p className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
+        <p className="surface border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-primary">
           Payment received — your subscription is now active. Thank you!
         </p>
       )}
       {fetchError && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{fetchError}</p>
+        <p className="surface border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{fetchError}</p>
       )}
 
       <ContentHeader title="Subscription" subtitle="Your plan, billing, and payment history." icon={Sparkles} />
@@ -339,7 +339,7 @@ function SubscriptionPageInner() {
       {hasPro && (
         <section
           className={cn(
-            "relative overflow-hidden rounded-lg border p-6 sm:p-8",
+            "relative overflow-hidden surface border p-6 sm:p-8",
             "border-primary/20 bg-primary/5"
           )}
         >
@@ -362,7 +362,7 @@ function SubscriptionPageInner() {
               </p>
             </div>
 
-            <div className="flex min-w-[200px] flex-col gap-3 rounded-lg border border-primary/25 bg-background/80 p-4 backdrop-blur-sm dark:bg-background/40">
+            <div className="flex min-w-[200px] flex-col gap-3 surface border border-primary/25 bg-background/80 p-4 backdrop-blur-sm dark:bg-background/40">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Summary</p>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm text-muted-foreground">Access</span>
@@ -555,7 +555,7 @@ function SubscriptionPageInner() {
 
       {/* ── inline payment form ── */}
       {selectedPlan && (
-        <section ref={paymentRef} className="scroll-mt-6 rounded-lg border border-border/80 bg-muted/20 p-6 sm:p-8">
+        <section ref={paymentRef} className="scroll-mt-6 surface border border-border/80 bg-muted/20 p-6 sm:p-8">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-semibold">
@@ -579,7 +579,7 @@ function SubscriptionPageInner() {
             <span className="text-xs text-muted-foreground">{payments.length} payment{payments.length === 1 ? "" : "s"}</span>
           </div>
           <p className="text-sm text-muted-foreground">Open a receipt for your records or taxes.</p>
-          <ul className="divide-y divide-border rounded-lg border bg-card">
+          <ul className="divide-y divide-border surface border bg-card">
             {payments.map((p) => (
               <li key={p.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="min-w-0 flex-1">
@@ -599,7 +599,7 @@ function SubscriptionPageInner() {
       )}
 
       <div className="pt-2">
-        <Button variant="ghost" asChild className="h-auto px-0 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" asChild className="-ml-2.5 text-muted-foreground hover:text-foreground">
           <Link href="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
