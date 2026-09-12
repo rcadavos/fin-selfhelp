@@ -37,7 +37,7 @@ const miniBars = [
 
 function Vignette({ index }: { index: number }) {
   return (
-    <div className="mt-4 rounded-md border border-border bg-card p-3 text-xs">
+    <div className="mt-4 surface border border-border bg-card p-3 text-xs">
       {index === 0 && (
         <LedgerRow label={<span>BPI Savings</span>}>
           <Amount formatted="₱52,300" className="text-xs" />

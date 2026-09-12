@@ -347,7 +347,7 @@ function CreatePlanDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               onChange={setOriginalPriceAmount}
             />
           </div>
-          <div className="flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+          <div className="flex items-center justify-between surface border border-border/60 bg-muted/30 px-3 py-2">
             <div className="space-y-0.5">
               <Label htmlFor="new-plan-enabled" className="text-sm font-medium">
                 Enabled

@@ -45,7 +45,7 @@ export function CalculatorsSection({ className }: { className?: string }) {
             <Link
               key={href}
               href={href}
-              className="group flex flex-col rounded-md border border-border bg-card p-6 transition-colors hover:border-primary"
+              className="group flex flex-col surface border border-border bg-card p-6 transition-colors hover:border-primary"
             >
               <h3 className="text-base font-bold text-foreground">{title}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">

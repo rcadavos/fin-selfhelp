@@ -151,11 +151,11 @@ export function FooterFeedback({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("bg-muted/40 rounded-lg mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8", className)}>
+    <div className={cn("bg-muted/40 surface mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8", className)}>
       <h3 className="mb-6 text-center text-lg font-semibold text-foreground">Suggestions & Reviews</h3>
       <div className="grid gap-8 sm:grid-cols-2">
         {/* Suggestion form */}
-        <div className="rounded-lg border bg-background p-4">
+        <div className="surface border bg-background p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-3">
             <MessageSquare className="h-4 w-4" />
             <span className="text-sm font-medium">Leave a suggestion</span>
@@ -180,7 +180,7 @@ export function FooterFeedback({ className }: { className?: string }) {
                 value={suggestionContent}
                 onChange={(e) => setSuggestionContent(e.target.value)}
                 rows={3}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 required
                 minLength={2}
               />
@@ -201,7 +201,7 @@ export function FooterFeedback({ className }: { className?: string }) {
         </div>
 
         {/* Review form */}
-        <div className="rounded-lg border bg-background p-4">
+        <div className="surface border bg-background p-4">
           <div className="flex items-center gap-2 text-muted-foreground mb-3">
             <Star className="h-4 w-4" />
             <span className="text-sm font-medium">Write a review</span>
@@ -216,7 +216,7 @@ export function FooterFeedback({ className }: { className?: string }) {
               <p className="text-sm text-muted-foreground">{reviewEligibility.reason}</p>
               {myReview && (
                 <div className="space-y-2">
-                  <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+                  <div className="surface border bg-muted/20 p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-sm font-medium">
                         {myReview.author_name || "Anonymous"}
@@ -290,7 +290,7 @@ export function FooterFeedback({ className }: { className?: string }) {
                           <Label htmlFor="edit-my-content">Your review</Label>
                           <textarea
                             id="edit-my-content"
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            className="flex min-h-[80px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             placeholder="Share your experience..."
@@ -366,7 +366,7 @@ export function FooterFeedback({ className }: { className?: string }) {
                   value={reviewContent}
                   onChange={(e) => setReviewContent(e.target.value)}
                   rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   required
                   minLength={2}
                 />

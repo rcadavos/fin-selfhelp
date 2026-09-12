@@ -1,6 +1,6 @@
 {
   "name": "omni-trak",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack --port 3003",
@@ -9,9 +9,9 @@
     "lint": "next lint",
     "build:celebration-png": "node scripts/svg-celebration-to-png.mjs",
     "prepare": "git config core.hooksPath .githooks",
-    "version:patch": "node scripts/bump-version.mjs patch && git add package.json src/lib/version.ts",
-    "version:minor": "node scripts/bump-version.mjs minor && git add package.json src/lib/version.ts",
-    "version:major": "node scripts/bump-version.mjs major && git add package.json src/lib/version.ts"
+    "version:patch": "node scripts/bump-version.mjs patch && git add package.json src/lib/version.ts src/lib/changelog.ts",
+    "version:minor": "node scripts/bump-version.mjs minor && git add package.json src/lib/version.ts src/lib/changelog.ts",
+    "version:major": "node scripts/bump-version.mjs major && git add package.json src/lib/version.ts src/lib/changelog.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.5",

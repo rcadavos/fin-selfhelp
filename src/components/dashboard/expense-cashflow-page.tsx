@@ -303,7 +303,7 @@ export function ExpenseCashflowPage({
             onClick={toggleAmountsHidden}
             aria-pressed={amountsHidden}
             aria-label={amountsHidden ? "Show amounts" : "Hide amounts"}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-primary aria-pressed:text-primary"
+            className="inline-flex h-8 w-8 items-center justify-center surface border border-border text-muted-foreground transition-colors hover:border-primary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-primary aria-pressed:text-primary"
           >
             {amountsHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -315,7 +315,7 @@ export function ExpenseCashflowPage({
           </span>
           {isBillsMode ? (
             overdueCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-warning px-2 py-1 text-xs font-medium text-warning">
+              <span className="inline-flex items-center gap-1 rounded-lg border border-warning px-2 py-1 text-xs font-medium text-warning">
                 <TriangleAlert className="h-3 w-3" aria-hidden />
                 {amountsHidden ? MASK : <Amount value={overdueAmount} />}
                 <span className="text-warning/80">{overdueCount} overdue</span>
@@ -323,7 +323,7 @@ export function ExpenseCashflowPage({
             )
           ) : (
             savedThisMonth > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-xs font-medium text-primary">
+              <span className="inline-flex items-center gap-1 rounded-lg border border-primary px-2 py-1 text-xs font-medium text-primary">
                 <ArrowUp className="h-3 w-3" aria-hidden />
                 {amountsHidden ? MASK : <Amount value={savedThisMonth} />}
                 <span className="text-primary/80">saved this month</span>
@@ -499,7 +499,7 @@ export function ExpenseCashflowPage({
                         content={({ active, payload, label }) => {
                           if (!active || !payload?.length) return null;
                           return (
-                            <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground">
+                            <div className="surface border border-border bg-popover px-3 py-2 text-xs text-popover-foreground">
                               <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                                 {label}
                               </p>

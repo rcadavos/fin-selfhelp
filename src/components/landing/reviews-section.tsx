@@ -66,7 +66,7 @@ export function ReviewsSection({
           </div>
 
           {avgRating !== null && (
-            <div className="flex items-center gap-4 self-start rounded-md border border-border bg-card px-4 py-3 sm:self-auto">
+            <div className="flex items-center gap-4 self-start surface border border-border bg-card px-4 py-3 sm:self-auto">
               <span className="figure text-3xl text-foreground">{avgRating.toFixed(1)}</span>
               <div>
                 <Stars value={Math.round(avgRating)} />
@@ -95,7 +95,7 @@ export function ReviewsSection({
             {rest.map((review) => (
               <figure
                 key={review.id}
-                className="flex h-full flex-col rounded-md border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
+                className="flex h-full flex-col surface border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
               >
                 {review.rating ? <Stars value={review.rating} className="mb-3" /> : null}
                 <blockquote className="flex-1 text-[15px] leading-relaxed text-foreground">

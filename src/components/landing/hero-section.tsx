@@ -20,7 +20,7 @@ const trustItems = [TRIAL_LABEL, "Free to start", "No bank linking", "Works on a
 function HeroLedger() {
   return (
     <div
-      className="rounded-md border border-border bg-card p-5 sm:p-6"
+      className="surface border border-border bg-card p-5 sm:p-6"
       aria-label="Sample upcoming bills ledger"
     >
       <div className="flex items-baseline justify-between border-b border-border pb-3">

@@ -63,8 +63,8 @@ export function Header({ className }: HeaderProps) {
                 aria-busy="true"
                 aria-label="Loading account"
               >
-                <span className="inline-block h-9 w-[4.25rem] shrink-0 rounded-md bg-muted" />
-                <span className="inline-block h-9 w-[8.5rem] shrink-0 rounded-md bg-muted" />
+                <span className="inline-block h-9 w-[4.25rem] shrink-0 rounded-xl bg-muted" />
+                <span className="inline-block h-9 w-[8.5rem] shrink-0 rounded-xl bg-muted" />
               </div>
             ) : user ? (
               <Button size="sm" asChild={!navigating} disabled={navigating} className="h-9 shrink-0">

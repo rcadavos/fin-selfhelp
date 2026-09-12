@@ -47,7 +47,7 @@ export function FeaturesSection({ className }: { className?: string }) {
         </p>
 
         {/* Ask OmniTrak band */}
-        <div className="mt-9 grid overflow-hidden rounded-md border border-border bg-card lg:grid-cols-11">
+        <div className="mt-9 grid overflow-hidden surface border border-border bg-card lg:grid-cols-11">
           <div className="flex flex-col justify-center gap-3 p-6 sm:p-8 lg:col-span-5">
             <h3 className="text-xl font-bold tracking-tight text-foreground">Ask OmniTrak</h3>
             <p className="max-w-[40ch] text-muted-foreground">
@@ -62,17 +62,17 @@ export function FeaturesSection({ className }: { className?: string }) {
             className="flex flex-col gap-3 border-t border-border bg-background p-6 sm:p-8 lg:col-span-6 lg:border-l lg:border-t-0"
             aria-label="Sample assistant conversation"
           >
-            <p className="max-w-[85%] self-end rounded-md bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
+            <p className="max-w-[85%] self-end surface bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
               How much did we spend on utilities last month?
             </p>
-            <p className="max-w-[85%] self-start rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+            <p className="max-w-[85%] self-start surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
               <Amount formatted="₱5,842" className="text-sm" /> across Meralco, Maynilad, and Globe.
               That is 8% lower than May.
             </p>
-            <p className="max-w-[85%] self-end rounded-md bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
+            <p className="max-w-[85%] self-end surface bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
               When is rent due?
             </p>
-            <p className="max-w-[85%] self-start rounded-md border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+            <p className="max-w-[85%] self-start surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
               Aug 1. You have marked 3 of 3 rent payments paid on time this quarter.
             </p>
           </div>

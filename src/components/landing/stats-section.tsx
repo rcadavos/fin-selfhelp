@@ -79,7 +79,7 @@ export function StatsSection({ className }: { className?: string }) {
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 overflow-hidden surface border border-border sm:grid-cols-4">
           {STAT_CARDS.map(({ key, label, staticDisplay }, i) => {
             const est = staticDisplay ? null : roundedEstimate(stats[key as keyof PlatformStats] ?? 0);
             const value = staticDisplay ?? `${est!.value.toLocaleString()}${est!.showPlus ? "+" : ""}`;

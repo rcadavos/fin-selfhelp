@@ -137,7 +137,7 @@ export function SubscribeSection({
 
         <div
           className={cn(
-            "mt-10 grid grid-cols-1 overflow-hidden rounded-md border border-border",
+            "mt-10 grid grid-cols-1 overflow-hidden surface border border-border",
             plans.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
           )}
         >

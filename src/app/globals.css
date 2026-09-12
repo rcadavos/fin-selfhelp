@@ -103,29 +103,19 @@
   /* ---- Passbook primitives (reused across marketing + app) ---- */
 
   /**
-   * Card/panel corner radius. Mobile is deliberately rounder than desktop: on a
-   * phone the card reads as a tappable object, on desktop as a crisp ledger sheet.
+   * Card/panel corner radius — the same on every screen. OmniTrak is a mobile-first
+   * app, so a card reads as a tappable object everywhere rather than softening on a
+   * phone and sharpening into a ledger sheet on desktop.
    * Use in place of `rounded-md` on any full-width card, panel, or stat surface.
    */
   .surface {
     border-radius: 0.875rem;
-  }
-  @media (min-width: 640px) {
-    .surface {
-      border-radius: var(--radius);
-    }
   }
 
   /** Top-only `.surface`, for a header that sits flush in a `.surface` card. */
   .surface-t {
     border-top-left-radius: 0.875rem;
     border-top-right-radius: 0.875rem;
-  }
-  @media (min-width: 640px) {
-    .surface-t {
-      border-top-left-radius: var(--radius);
-      border-top-right-radius: var(--radius);
-    }
   }
 
   /**

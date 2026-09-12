@@ -60,7 +60,7 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }) {
           <div
             key={item.id}
             className={cn(
-              "pointer-events-auto flex items-center justify-between gap-3 rounded-lg border px-4 py-3 shadow-lg",
+              "pointer-events-auto flex items-center justify-between gap-3 surface border px-4 py-3 shadow-lg",
               item.variant === "error" &&
                 "border-destructive/50 bg-destructive/10 text-destructive",
               item.variant === "success" &&

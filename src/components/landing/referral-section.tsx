@@ -82,7 +82,7 @@ export function ReferralSection({ className }: { className?: string }) {
 
           {/* Worked example, in the app's own statement style. */}
           <div className="lg:col-span-5">
-            <div className="rounded-md border border-border bg-card p-5">
+            <div className="surface border border-border bg-card p-5">
               <p className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                 Example
               </p>

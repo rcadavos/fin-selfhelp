@@ -78,7 +78,7 @@ export function HtmlEditor({
   ] as const;
 
   return (
-    <div className={cn("rounded-md border border-input bg-transparent", className)}>
+    <div className={cn("rounded-xl border border-input bg-transparent", className)}>
       <div className="flex flex-wrap items-center gap-1 border-b px-2 py-1.5">
         {tools.map(({ label, icon: Icon, onClick }) => (
           <button

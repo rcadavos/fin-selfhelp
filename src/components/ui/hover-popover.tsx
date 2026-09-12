@@ -76,7 +76,7 @@ export function HoverPopover({
       {open && (
         <div
           className={cn(
-            "absolute top-full z-50 w-64 max-w-[calc(100vw-2rem)] rounded-md px-3 py-2.5 text-sm shadow-lg",
+            "absolute top-full z-50 w-64 max-w-[calc(100vw-2rem)] rounded-xl px-3 py-2.5 text-sm shadow-lg",
             "bg-black text-white",
             alignClass,
             contentClassName

@@ -14,6 +14,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.8.1",
+    date: "2026-09-12",
+    summary: "Rounded corners everywhere, on desktop as well as phones.",
+    changes: [
+      { type: "improvement", description: "Cards, panels and dashboard modules now keep their rounded corners on desktop instead of sharpening. OmniTrak is a mobile-first app, so a card should read the same on a laptop as it does in your hand." },
+      { type: "improvement", description: "The landing page is rounded on every screen size — the feature cards, pricing table, stats band, calculators, reviews, the hero ledger and the assistant chat bubbles." },
+      { type: "improvement", description: "Buttons, menus, dropdowns, date pickers, dialogs, text fields and toasts now share the same rounded language, so nothing looks sharp next to a rounded card." },
+    ],
+  },
+  {
     version: "1.8.0",
     date: "2026-09-12",
     summary: "Planned Expenses rebuilt around when things are due, and whether you can cover them.",

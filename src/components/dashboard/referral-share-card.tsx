@@ -135,7 +135,7 @@ export function ReferralShareCard({
             Referral code
           </Label>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <code className="flex-1 rounded-md border border-border bg-muted px-3 py-2.5 font-mono text-lg font-bold tracking-[0.2em] text-foreground">
+            <code className="flex-1 surface border border-border bg-muted px-3 py-2.5 font-mono text-lg font-bold tracking-[0.2em] text-foreground">
               {code}
             </code>
             <CopyButton
@@ -153,7 +153,7 @@ export function ReferralShareCard({
             Share link
           </Label>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <code className="block min-w-0 flex-1 truncate rounded-md border border-border bg-muted px-3 py-2.5 text-xs text-foreground sm:text-sm">
+            <code className="block min-w-0 flex-1 truncate surface border border-border bg-muted px-3 py-2.5 text-xs text-foreground sm:text-sm">
               {link}
             </code>
             <CopyButton
@@ -199,7 +199,7 @@ export function ReferralShareCard({
           </div>
 
           {showQr && (
-            <div className="mt-3 flex flex-col items-center gap-2 rounded-md border border-border bg-card p-4">
+            <div className="mt-3 flex flex-col items-center gap-2 surface border border-border bg-card p-4">
               {/* White surround doubles as the QR quiet zone, so marginSize stays 0. */}
               <div className="rounded-md bg-white p-4">
                 <QRCodeSVG

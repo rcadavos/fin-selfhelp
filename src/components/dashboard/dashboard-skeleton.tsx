@@ -38,7 +38,7 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
         <Skeleton className="mt-3 h-3 w-44" />
 
         {/* Stat cells */}
-        <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 overflow-hidden surface border border-border sm:grid-cols-4">
           {CELL_BORDERS.map((border, i) => (
             <div key={i} className={cn("p-4 sm:p-5", border)}>
               <Skeleton className="h-3 w-20" />
@@ -50,7 +50,7 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
 
         {/* Chart + bills */}
         <div className="mt-5 grid gap-5 lg:grid-cols-3">
-          <div className="rounded-md border border-border lg:col-span-2">
+          <div className="surface border border-border lg:col-span-2">
             <div className="border-b border-border p-4 sm:p-5">
               <Skeleton className="h-4 w-44" />
               <Skeleton className="mt-2 h-3 w-56" />
@@ -59,7 +59,7 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
               <Skeleton className="h-[220px] w-full" />
             </div>
           </div>
-          <div className="rounded-md border border-border">
+          <div className="surface border border-border">
             <div className="border-b border-border p-4 sm:p-5">
               <Skeleton className="h-4 w-28" />
             </div>
