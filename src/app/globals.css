@@ -102,6 +102,69 @@
 
   /* ---- Passbook primitives (reused across marketing + app) ---- */
 
+  /**
+   * Card/panel corner radius. Mobile is deliberately rounder than desktop: on a
+   * phone the card reads as a tappable object, on desktop as a crisp ledger sheet.
+   * Use in place of `rounded-md` on any full-width card, panel, or stat surface.
+   */
+  .surface {
+    border-radius: 0.875rem;
+  }
+  @media (min-width: 640px) {
+    .surface {
+      border-radius: var(--radius);
+    }
+  }
+
+  /** Top-only `.surface`, for a header that sits flush in a `.surface` card. */
+  .surface-t {
+    border-top-left-radius: 0.875rem;
+    border-top-right-radius: 0.875rem;
+  }
+  @media (min-width: 640px) {
+    .surface-t {
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+    }
+  }
+
+  /**
+   * Expands a small control's tap area to the 44px touch minimum without changing
+   * how big it looks. The pseudo-element is part of the button's own box, so taps
+   * landing on it register on the button. Touch pointers only — a mouse is precise
+   * and an invisible 44px target would steal clicks from neighbouring controls.
+   */
+  @media (pointer: coarse) {
+    .tap-target {
+      position: relative;
+    }
+    .tap-target::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  /**
+   * Flex/grid children default to `min-width: auto`, which means a `.figure`
+   * inside them (white-space: nowrap) can never shrink below its full unwrapped
+   * width — the row then forces the page wider than the viewport, or gets clipped
+   * by an `overflow-hidden` ancestor. Apply to any cell that holds an amount.
+   */
+  .fit-figure {
+    min-width: 0;
+  }
+  .fit-figure > .figure,
+  .fit-figure .figure {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* Banking-grade numerals: mono, tabular, peso + decimals de-emphasized. */
   .figure {
     font-family: var(--font-geist-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;

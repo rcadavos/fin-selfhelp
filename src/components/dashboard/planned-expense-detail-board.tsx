@@ -488,20 +488,24 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
             {new Date(bill.end_date).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
           </DetailRow>
         )}
-        <DetailRow icon={<Wallet className="h-4 w-4" />} label="Account">
-          {account ? (
-            <Link
-              href={`/dashboard/accounts/${account.id}`}
-              className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium hover:bg-muted"
-              style={{ borderColor: `${account.color}55`, color: account.color }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: account.color }} />
-              {account.account_alias}
-            </Link>
-          ) : (
-            <span className="text-muted-foreground">Not linked</span>
-          )}
-        </DetailRow>
+        {/* Accounts are off in bills mode: the stored account_id is untouched, but the
+            badge linked to /dashboard/accounts, a route that mode blocks — a dead end. */}
+        {accountsEnabled && (
+          <DetailRow icon={<Wallet className="h-4 w-4" />} label="Account">
+            {account ? (
+              <Link
+                href={`/dashboard/accounts/${account.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium hover:bg-muted"
+                style={{ borderColor: `${account.color}55`, color: account.color }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: account.color }} />
+                {account.account_alias}
+              </Link>
+            ) : (
+              <span className="text-muted-foreground">Not linked</span>
+            )}
+          </DetailRow>
+        )}
         {vehicle && (
           <DetailRow icon={<Car className="h-4 w-4" />} label="Vehicle">
             <span
@@ -568,7 +572,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
                           Paid in full
                         </span>
                       )}
-                      {entry.account_alias && (
+                      {accountsEnabled && entry.account_alias && (
                         <span
                           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                           style={{

@@ -57,7 +57,11 @@ export function NotificationsMenu() {
           ) : null}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[min(100vw-2rem,22rem)] p-0">
+      <DropdownMenuContent
+        align="end"
+        collisionPadding={8}
+        className="w-[min(calc(100vw-1rem),22rem)] p-0"
+      >
         {unreadItems.length > 0 && unreadCount > 0 ? (
           <div className="flex items-center justify-end gap-2 px-3 py-2">
             <Button
@@ -78,7 +82,7 @@ export function NotificationsMenu() {
         <div className="max-h-[min(60vh,20rem)] overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center px-3 py-4">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={32} height={32} />
+              <Image src="/favicon.png" alt="" aria-hidden className="h-8 w-8 animate-breathing" width={32} height={32} />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-center text-sm text-destructive">

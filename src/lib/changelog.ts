@@ -14,6 +14,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.7.5",
+    date: "2026-09-09",
+    summary: "Mobile layout fixes across the dashboard and planned expenses, plus softer corners on phones.",
+    changes: [
+      { type: "fix", description: "Amounts on the dashboard no longer get cut off on phones. Large balances used to be clipped mid-number because a peso figure can never wrap, and the summary tiles had no room to shrink — they now scale down and fit whatever the amount is." },
+      { type: "fix", description: "The Planned Expenses page no longer scrolls sideways on a phone. The two summary cards sat in a fixed side-by-side row that could grow wider than the screen once the amounts got long enough." },
+      { type: "improvement", description: "Cards, tiles and planned-expense rows now have noticeably rounder corners on phones and stay crisp on desktop, so the app feels more like an app in your hand and more like a ledger on a big screen." },
+      { type: "improvement", description: "The three-dot menu on each planned expense is easier to hit on a touchscreen — the button looks the same but now has a full-size tap area, so it no longer takes two tries with a thumb." },
+      { type: "improvement", description: "The mobile 'Add Planned Expense' button is now just 'Add', so it stops crowding the month picker next to it on narrow screens." },
+      { type: "improvement", description: "In Bills & reminders mode, planned expenses no longer show an account badge. Accounts are switched off in that mode, so naming one was noise on every row — your saved account link is kept and reappears the moment you switch back to Full cashflow." },
+      { type: "fix", description: "In Bills & reminders mode, a planned expense's detail page no longer shows an Account row whose badge led to the Accounts page — a page that mode deliberately blocks, so tapping it bounced you back to the dashboard. Account labels are also hidden from that bill's payment history there." },
+      { type: "improvement", description: "Rounder corners on phones now reach the rest of the app, not just cards: buttons, dropdowns, menus, the Spending by category panel and the Monthly/Quarterly/Yearly switcher all soften on a phone and stay crisp on desktop, where nothing has changed." },
+      { type: "improvement", description: "The month picker on Planned Expenses now reads 'Sep 2026' instead of 'September 2026', so the button and its dropdown stay the same width whichever month you pick instead of resizing as you scroll the list." },
+      { type: "fix", description: "Closing the month picker no longer leaves four faint corner marks floating around it. A leftover focus outline was being drawn with no thickness but a 2px gap, which became visible once the corners got rounder; it is now only drawn for keyboard users, flush to the button." },
+      { type: "fix", description: "The notifications panel no longer sits flush against the edge of a phone screen, and its loading spinner is no longer rendered five times too large — the OmniTrak mark briefly filled the whole panel while notifications loaded." },
+      { type: "fix", description: "Page titles no longer disappear on a phone when a page has wide buttons beside them. On Notifications the 'Notifications' heading was being squeezed away to nothing and the buttons still ran off the edge of the screen; buttons now drop to their own line when they don't fit." },
+      { type: "fix", description: "Tidied the Notifications page layout: the list was wrapped in an invisible panel that pushed text flush against its edges, so the page now spaces its heading, summary line and notifications consistently." },
+    ],
+  },
+  {
     version: "1.7.4",
     date: "2026-08-22",
     summary:

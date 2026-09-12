@@ -309,8 +309,8 @@ export function ExpenseCashflowPage({
           </button>
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="fit-figure text-3xl font-bold tracking-tight sm:text-4xl">
             {amountsHidden ? MASK : <Amount value={isBillsMode ? billsTotal : totalTrackedBalance} />}
           </span>
           {isBillsMode ? (
@@ -357,7 +357,7 @@ export function ExpenseCashflowPage({
       </header>
 
       {/* ════════════════════ ROW 2: STAT CELLS ════════════════════ */}
-      <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-md border border-border bg-card sm:grid-cols-4">
+      <div className="surface mt-6 grid grid-cols-2 overflow-hidden border border-border bg-card sm:grid-cols-4">
         {isBillsMode ? (
           <>
             <StatCell
@@ -438,7 +438,7 @@ export function ExpenseCashflowPage({
       <div className={cn("mt-5 grid gap-5", !isBillsMode && "lg:grid-cols-3")}>
         {/* Chart — 2/3. Dropped in bills mode, where the ledger takes the full row. */}
         {!isBillsMode && (
-          <section className="rounded-md border border-border bg-card lg:col-span-2" aria-label="Spending, last 6 months">
+          <section className="surface min-w-0 border border-border bg-card lg:col-span-2" aria-label="Spending, last 6 months">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
               <div>
                 <h2 className="text-base font-bold tracking-tight">Spending, last 6 months</h2>
@@ -527,7 +527,7 @@ export function ExpenseCashflowPage({
         )}
 
         {/* Upcoming bills — 1/3, or the full row in bills mode */}
-        <section className="rounded-md border border-border bg-card" aria-label="Upcoming bills">
+        <section className="surface min-w-0 overflow-hidden border border-border bg-card" aria-label="Upcoming bills">
           <div className="flex items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
             <h2 className="text-base font-bold tracking-tight">Upcoming bills</h2>
             <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -543,11 +543,11 @@ export function ExpenseCashflowPage({
             <>
               {visibleBills.map((b) => (
                 <div key={b.id} className="flex items-baseline gap-2 border-b border-border px-4 py-3 sm:px-5">
-                  <span className={cn("min-w-0 truncate text-sm font-medium", b.paid && "text-muted-foreground line-through")}>
+                  <span className={cn("min-w-0 flex-shrink truncate text-sm font-medium", b.paid && "text-muted-foreground line-through")}>
                     {b.name}
                   </span>
                   <DotLeader />
-                  <span className={cn(b.paid && "text-muted-foreground line-through")}>
+                  <span className={cn("shrink-0 text-sm", b.paid && "text-muted-foreground line-through")}>
                     {amountsHidden ? MASK : <Amount value={b.amount} />}
                   </span>
                   <Stamp
@@ -618,16 +618,16 @@ function StatCell({
     <Link
       href={href}
       className={cn(
-        "p-4 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:p-5",
+        "fit-figure p-4 transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:p-5",
         borderClass,
       )}
     >
-      <p className={CELL_LABEL}>
+      <p className={cn(CELL_LABEL, "min-w-0")}>
         {dot ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" aria-hidden /> : null}
-        {label}
+        <span className="truncate">{label}</span>
       </p>
-      <p className="mt-2 text-lg font-semibold">{children}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
+      <p className="fit-figure mt-2 text-base font-semibold sm:text-lg">{children}</p>
+      <p className="mt-1 truncate text-xs text-muted-foreground">{sub}</p>
     </Link>
   );
 }

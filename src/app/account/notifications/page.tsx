@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -174,27 +173,27 @@ export default function NotificationsPage() {
         }
       />
 
-      <Card className="border-0 shadow-none">
-        <CardHeader className="px-0">
-          <CardDescription>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
             {unreadCount > 0
               ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}.`
               : "You're all caught up."}
-          </CardDescription>
+          </p>
           {(testMessage || testError || testDebug) && (
             <div className="mt-3 space-y-2">
               {testMessage ? (
-                <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
+                <p className="surface border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">
                   {testMessage}
                 </p>
               ) : null}
               {testError ? (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <p className="surface border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {testError}
                 </p>
               ) : null}
               {testDebug ? (
-                <div className="rounded-lg border border-border bg-muted px-3 py-2 space-y-1 text-xs text-muted-foreground">
+                <div className="surface border border-border bg-muted px-3 py-2 space-y-1 text-xs text-muted-foreground">
                   <p className="font-mono">Today: {testDebug.todayYmd}</p>
                   <p>Expenses found: {testDebug.expensesCount}</p>
                   <p>To-do items: {testDebug.toDoCount}</p>
@@ -213,8 +212,8 @@ export default function NotificationsPage() {
               ) : null}
             </div>
           )}
-        </CardHeader>
-        <CardContent className="space-y-2 px-0">
+        </div>
+        <div className="space-y-2">
           {isLoading ? (
             <div className="space-y-3">
               <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
@@ -222,11 +221,11 @@ export default function NotificationsPage() {
               <div className="h-3 w-1/2 animate-pulse rounded bg-muted/80" />
             </div>
           ) : error ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <p className="surface border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
               {error.message || "Could not load notifications."}
             </p>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+            <div className="flex flex-col items-center gap-2 surface border border-dashed py-10 text-center">
               <BellOff className="h-10 w-10 text-muted-foreground/60" aria-hidden />
               <p className="text-sm font-medium text-foreground">No notifications yet</p>
               <p className="text-xs text-muted-foreground">
@@ -244,7 +243,7 @@ export default function NotificationsPage() {
                     key={n.id}
                     type="button"
                     className={cn(
-                      "w-full rounded-lg border px-4 py-3 text-left transition-colors",
+                      "w-full surface border px-4 py-3 text-left transition-colors",
                       n.read
                         ? "border-border bg-card hover:bg-muted/40"
                         : "border-primary/30 bg-primary/5 hover:bg-primary/10"
@@ -265,8 +264,8 @@ export default function NotificationsPage() {
               </section>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

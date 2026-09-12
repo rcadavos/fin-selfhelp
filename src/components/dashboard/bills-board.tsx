@@ -284,9 +284,15 @@ function BillRow({
   onDelete,
   isLockedFreeReminder,
   autoDebitEnabled,
+  accountsEnabled,
 }: {
   /** False in an app mode that switches auto-debit off — the pill would be a false promise. */
   autoDebitEnabled: boolean;
+  /**
+   * False in an app mode that switches accounts off. The stored `account_id` is kept
+   * untouched, but naming an account the user cannot open anywhere else is noise.
+   */
+  accountsEnabled: boolean;
   bill: BillRow;
   /** True if amountPaid >= bill.amount. */
   isPaid: boolean;
@@ -334,7 +340,7 @@ function BillRow({
     <div
       onClick={() => router.push(`/dashboard/planned-expenses/${bill.id}`)}
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors",
+        "surface flex cursor-pointer items-center gap-3 border px-4 py-3 transition-colors",
         isPaid
           ? "border-primary/30 bg-primary/10 hover:bg-primary/15"
           : isPartial
@@ -458,7 +464,7 @@ function BillRow({
       </div>
 
       {/* Account badge — desktop only */}
-      {bill.account_id && accountMap[bill.account_id] && (
+      {accountsEnabled && bill.account_id && accountMap[bill.account_id] && (
         <span
           className="hidden sm:inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{
@@ -472,7 +478,7 @@ function BillRow({
 
       {/* Amount + account badge below on mobile */}
       <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
-        {bill.account_id && accountMap[bill.account_id] && (
+        {accountsEnabled && bill.account_id && accountMap[bill.account_id] && (
           <span
             className="sm:hidden inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
             style={{
@@ -499,7 +505,7 @@ function BillRow({
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 flex-shrink-0 self-center text-muted-foreground hover:text-foreground"
+            className="tap-target h-7 w-7 flex-shrink-0 self-center text-muted-foreground hover:text-foreground"
             onClick={(e) => e.stopPropagation()}
             disabled={isPending}
             aria-label="Planned expense actions"
@@ -687,7 +693,9 @@ export function BillsBoard() {
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       opts.push({
         value: ym,
-        label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        // Short month keeps every option the same width, so the trigger and the
+        // dropdown never resize as you move between months.
+        label: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
       });
     }
     return opts;
@@ -1022,19 +1030,19 @@ export function BillsBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums">
+          <div className="surface min-w-0 flex-1 border bg-card px-4 py-3">
+            <p className="truncate text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
+            <p className="mt-0.5 truncate text-base font-bold tabular-nums sm:text-lg">
               <AnimatedAmount value={totalFiltered} currency={currency} />
             </p>
-            <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
           </div>
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
-            <p className={cn("mt-0.5 text-lg font-bold tabular-nums", totalRemaining > 0 ? "text-warning" : "")}>
+          <div className="surface min-w-0 flex-1 border bg-card px-4 py-3">
+            <p className="truncate text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
+            <p className={cn("mt-0.5 truncate text-base font-bold tabular-nums sm:text-lg", totalRemaining > 0 ? "text-warning" : "")}>
               <AnimatedAmount value={totalRemaining} currency={currency} />
             </p>
-            <p className="text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>
+            <p className="truncate text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>
           </div>
         </div>
 
@@ -1076,7 +1084,11 @@ export function BillsBoard() {
         <div className="mb-3 space-y-2 sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-2 sm:space-y-0">
           <div className="flex items-center justify-between gap-2 sm:justify-start">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
+              {/* ring-offset-0 matters: the primitive sets ring-offset-2, and with
+                  ring-0 that offset still paints a stray 2px shadow on focus — which
+                  is what you see when the dropdown closes and focus returns here.
+                  focus-visible keeps a real ring for keyboard users only. */}
+              <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="start">
@@ -1087,13 +1099,15 @@ export function BillsBoard() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={() => setAddOpen(true)} size="lg" className="gap-1.5 sm:hidden">
+            <Button onClick={() => setAddOpen(true)} size="lg" className="shrink-0 gap-1.5 sm:hidden">
               <Plus className="h-4 w-4" />
-              Add Planned Expense
+              Add
             </Button>
           </div>
 
-          <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5 sm:w-auto sm:justify-self-center">
+          {/* `surface` (14px/6px) minus the 2px padding lands exactly on the inner
+              buttons' 12px/4px radius, so the group nests cleanly at both sizes. */}
+          <div className="surface inline-flex w-full items-center gap-0.5 border bg-background p-0.5 sm:w-auto sm:justify-self-center">
             {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
               <Button
                 key={tab}
@@ -1216,6 +1230,7 @@ export function BillsBoard() {
                   onDelete={() => setDeletingId(bill.id)}
                   isLockedFreeReminder={bill.id === lockedFreeReminderBillId}
                   autoDebitEnabled={isFeatureEnabled("autoDebit")}
+                  accountsEnabled={isFeatureEnabled("accounts")}
                 />
               );
             })
