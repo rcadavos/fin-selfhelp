@@ -25,31 +25,24 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-const dialogContentPlacement = {
-  center:
-    "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
-  bottom:
-    "bottom-6 left-[50%] top-auto max-h-[min(90dvh,calc(100dvh-3rem))] w-[min(100%,calc(100vw-2rem))] translate-x-[-50%] translate-y-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
-} as const;
-
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     showClose?: boolean;
-    placement?: keyof typeof dialogContentPlacement;
   }
->(({ className, children, showClose = true, placement = "center", ...props }, ref) => (
+>(({ className, children, showClose = true, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         "fixed z-50 grid w-full max-w-[min(32rem,calc(100vw-2rem))] gap-4 surface border bg-background py-6 px-6 pb-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        dialogContentPlacement[placement],
-        // Phones get a bottom sheet instead of a centred modal: it sits under the
-        // thumb, and a sheet sliding up off the bottom edge is the gesture people
-        // already expect from a phone. These come after the placement classes so
-        // the max-sm variants win inside the media query.
+        // Centred on tablet and up.
+        "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        // Phones get a bottom sheet instead: it sits under the thumb, and a sheet
+        // sliding up off the bottom edge is the gesture people already expect from
+        // a phone. These come after the centring classes so the max-sm variants
+        // win inside the media query.
         "max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:w-full max-sm:max-w-none",
         "max-sm:translate-x-0 max-sm:translate-y-0",
         "max-sm:rounded-b-none max-sm:rounded-t-2xl",
