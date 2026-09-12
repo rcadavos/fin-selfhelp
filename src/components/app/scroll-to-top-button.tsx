@@ -65,8 +65,12 @@ export function ScrollToTopButton() {
       title="Back to top"
       onClick={scrollAllToTop}
       className={cn(
-        "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border bg-background/95 backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
-        "hover:bg-muted",
+        // border-hairline-strong, not a bare `border`: the Button base sets
+        // border-transparent, and width/colour are separate classes, so `border`
+        // alone survives the merge as a 1px *transparent* edge — invisible in
+        // both themes. The token is legible on either ground by design.
+        "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border border-hairline-strong bg-background/95 shadow-lg backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
+        "hover:border-primary hover:bg-muted",
         visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       )}
     >

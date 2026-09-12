@@ -20,6 +20,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       { type: "improvement", description: "Status labels — Paid, Overdue, Auto, Scheduled and the rest — are now rounded pills, matching the account and vehicle chips that sit next to them on the same row instead of looking square beside them." },
       { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on planned expenses, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
+      { type: "fix", description: "The back-to-top button now has a visible outline in both light and dark mode. It was asking for a border but never got a colour, so it drew a transparent one and the button faded into whatever was behind it." },
     ],
   },
   {
