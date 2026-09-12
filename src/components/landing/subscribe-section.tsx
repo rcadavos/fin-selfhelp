@@ -137,16 +137,19 @@ export function SubscribeSection({
 
         <div
           className={cn(
-            "mt-10 grid grid-cols-1 overflow-hidden surface border border-border",
+            "mt-10 grid grid-cols-1 gap-4",
             plans.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
           )}
         >
-          {plans.map((plan, i) => (
+          {plans.map((plan) => (
             <div
               key={plan.key}
               className={cn(
-                "flex flex-col p-6 sm:p-7",
-                i > 0 && "border-t border-border md:border-l md:border-t-0"
+                // overflow-hidden matters: the highlighted plan's header bleeds to
+                // the card edge with negative margins, and needs clipping to the
+                // card's own rounded corners now that each plan is its own card.
+                "surface flex flex-col overflow-hidden border bg-card p-6 shadow-sm sm:p-7",
+                plan.highlight ? "border-primary shadow-md" : "border-border"
               )}
             >
               {plan.highlight ? (
