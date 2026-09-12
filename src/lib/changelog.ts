@@ -18,6 +18,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-12",
     summary: "Badges and status labels are rounded too.",
     changes: [
+      { type: "feature", description: "The Expenses page now tells you whether a month is heavy. It shows what you have spent, what that projects to by month end, and how that compares with your own recent months — so the total means something without you doing the arithmetic." },
+      { type: "improvement", description: "Each day in the list now carries its own total and a bar showing it against the heaviest day, so you can see what a day cost without adding it up." },
+      { type: "improvement", description: "Added search and tappable category filters to Expenses. The category chips show the same breakdown the pie chart did and narrow the list as well, so the old chart is gone — the full breakdown still lives on the Categories page." },
+      { type: "improvement", description: "Larger expenses now stand out in the list instead of every row looking the same, so the few entries that actually moved the month are easy to spot." },
+      { type: "improvement", description: "Removed the 'Expenses — Today' figure. It read zero every morning and peaked at bedtime, so it measured the hour more than the habit; the new pace line covers it." },
       { type: "improvement", description: "Status labels — Paid, Overdue, Auto, Scheduled and the rest — are now rounded pills, matching the account and vehicle chips that sit next to them on the same row instead of looking square beside them." },
       { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on planned expenses, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
       { type: "fix", description: "The back-to-top button now has a visible outline in both light and dark mode. It was asking for a border but never got a colour, so it drew a transparent one and the button faded into whatever was behind it." },

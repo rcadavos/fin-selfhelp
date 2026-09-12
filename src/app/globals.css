@@ -112,12 +112,6 @@
     border-radius: 0.875rem;
   }
 
-  /** Top-only `.surface`, for a header that sits flush in a `.surface` card. */
-  .surface-t {
-    border-top-left-radius: 0.875rem;
-    border-top-right-radius: 0.875rem;
-  }
-
   /**
    * Expands a small control's tap area to the 44px touch minimum without changing
    * how big it looks. The pseudo-element is part of the button's own box, so taps
