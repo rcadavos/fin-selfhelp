@@ -344,7 +344,9 @@ export function ToBuyListPage({ mode }: { mode: ToBuyListMode }) {
   const ListIcon = cfg.ListIcon;
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 py-8 md:px-6">
+    // max-w-3xl from md up, matching the planned-expenses board — lg (512px)
+    // left a lot of empty desktop either side of what is a full-width list.
+    <div className="mx-auto w-full max-w-lg px-4 py-8 md:max-w-3xl md:px-6">
       <ContentHeader title={cfg.title} subtitle={cfg.subtitle} icon={ListIcon} />
       <p className={cn(
         "mb-4 -mt-2 text-[11px] font-medium",
