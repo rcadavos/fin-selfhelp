@@ -1,48 +1,20 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useMemo, useEffect, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  Bell,
-  Car,
-  CheckCircle2,
-  MoreHorizontal,
-  Pencil,
-  PiggyBank,
-  Plus,
-  Trash2,
-  Receipt,
-  Download,
-  LayoutGrid,
-  Lock,
-  RotateCcw,
-  Zap,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Bell, Download, LayoutGrid, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -52,23 +24,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DatePicker } from "@/components/ui/date-picker";
 import { useUser } from "@/hooks/use-user";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
-import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
 import { queryKeys } from "@/lib/query/keys";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import {
-  getDueDayOfMonthFromYmd,
-  effectiveDueDateInPaidMonth,
-  parseYmToYearMonth,
-} from "@/lib/expense-due-date";
 import { formatCurrency, cn } from "@/lib/utils";
-import { SpendingByCategoryCollapsibleCard } from "@/components/dashboard/spending-by-category-collapsible-card";
 import { ContentHeader } from "@/components/app/content-header";
-import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
   toggleBillPayment,
@@ -76,100 +39,26 @@ import {
   addBill,
   updateBill,
   deleteBill,
-  type BillRow,
+  type BillRow as BillRowModel,
   type BillsData,
 } from "@/actions/bills";
 import { PartialPaymentDialog } from "@/components/dashboard/partial-payment-dialog";
 import { type AccountRow } from "@/actions/accounts";
-import { accountsQueryOptions, invalidateAccountQueries } from "@/lib/query/accounts";
-import { AccountSelect } from "@/components/app/account-select";
+import {
+  accountsQueryOptions,
+  accountBalancesQueryOptions,
+  invalidateAccountQueries,
+} from "@/lib/query/accounts";
 import {
   vehiclesQueryOptions,
   buildVehicleColorMap,
   invalidateVehicleQueriesIfTransportAffected,
 } from "@/lib/query/vehicles";
-import { type VehicleRow } from "@/actions/vehicles";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
-import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
-import { VEHICLE_EXPENSE_CATEGORIES, labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
 import { ADD_PLANNED_EXPENSE_PARAM } from "@/lib/constants/app-mode";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { DashboardSkeleton } from "./dashboard-skeleton";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-const BILLING_PERIOD_LABELS: Record<string, string> = {
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  yearly: "Yearly",
-};
-
-function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
-}
-
-function getCategoryDotColor(bgClass: string): string {
-  const match = bgClass.match(/bg-(\w+)-\d+/);
-  if (!match) return "#94a3b8";
-  return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
-}
-
-function effectiveBillDueDate(bill: BillRow, today: Date, paidMonthYm: string): Date | null {
-  const dueDay = getDueDayOfMonthFromYmd(bill.due_date);
-  if (!dueDay) return null;
-  const ym = parseYmToYearMonth(paidMonthYm);
-
-  if (bill.billing_period === "yearly") {
-    const dueMonth1 = bill.due_month ?? 1;
-    const year = ym?.year ?? today.getFullYear();
-    const lastDay = new Date(year, dueMonth1, 0).getDate();
-    return new Date(year, dueMonth1 - 1, Math.min(dueDay, lastDay));
-  }
-
-  if (bill.billing_period === "quarterly") {
-    const qStartMonth = ym
-      ? Math.floor((ym.month1to12 - 1) / 3) * 3
-      : Math.floor(today.getMonth() / 3) * 3; // 0, 3, 6, or 9
-    const year = ym?.year ?? today.getFullYear();
-    const lastDay = new Date(year, qStartMonth + 1, 0).getDate();
-    return new Date(year, qStartMonth, Math.min(dueDay, lastDay));
-  }
-
-  return effectiveDueDateInPaidMonth(bill.due_date, paidMonthYm);
-}
-
-function formatDueDay(bill: BillRow, paidMonth: string): string {
-  if (bill.billing_period === "yearly") {
-    const day = getDueDayOfMonthFromYmd(bill.due_date);
-    const monthName = MONTH_NAMES[(bill.due_month ?? 1) - 1] ?? "";
-    return `${monthName} ${day}`;
-  }
-  if (bill.billing_period === "quarterly") {
-    const day = getDueDayOfMonthFromYmd(bill.due_date);
-    const ym = parseYmToYearMonth(paidMonth);
-    if (!ym || !day) return "—";
-    const quarter = Math.floor((ym.month1to12 - 1) / 3) + 1;
-    const qStartMonthName = MONTH_NAMES[Math.floor((ym.month1to12 - 1) / 3) * 3];
-    return `Q${quarter} • ${qStartMonthName} ${day}`;
-  }
-  const eff = effectiveDueDateInPaidMonth(bill.due_date, paidMonth);
-  if (!eff) return "—";
-  return `Due ${eff.getDate()} ${MONTH_NAMES[eff.getMonth()]}`;
-}
-
-// ─── Bill dialog ─────────────────────────────────────────────────────────────
-// The form dialog itself lives in planned-expense-form-dialog.tsx so it can be
-// reused from the detail page.
 import {
   PlannedExpenseFormDialog as BillDialog,
   billToForm,
@@ -177,386 +66,35 @@ import {
   EMPTY_BILL_FORM as EMPTY_FORM,
   type BillFormState,
 } from "@/components/dashboard/planned-expense-form-dialog";
-import { AUTO_DEBIT_FAILURE_GENERIC_REASON } from "@/lib/constants/bills";
-
-
-function PiePercentLabel({
-  cx, cy, midAngle, innerRadius, outerRadius, percent,
-}: {
-  cx?: number; cy?: number; midAngle?: number;
-  innerRadius?: number; outerRadius?: number; percent?: number;
-}) {
-  if (percent === undefined || percent < 0.05) return null;
-  if (cx === undefined || cy === undefined || midAngle === undefined || innerRadius === undefined || outerRadius === undefined) return null;
-  const RADIAN = Math.PI / 180;
-  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-}
-
-function BillsPieChart({ bills, currency, categories }: { bills: BillRow[]; currency: string; categories: CatList }) {
-  const data = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const b of bills) map.set(b.category_id, (map.get(b.category_id) ?? 0) + b.amount);
-    return Array.from(map.entries())
-      .map(([id, value]) => ({
-        name: categories.find((c) => c.id === id)?.label ?? id,
-        value,
-        color: getCategoryDotColor(categories.find((c) => c.id === id)?.bgClass ?? ""),
-      }))
-      .filter((d) => d.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [bills, categories]);
-
-  if (!data.length) return null;
-
-  return (
-    <div className="[&_svg]:outline-none">
-      <ResponsiveContainer width="100%" height={150}>
-        <PieChart style={{ outline: "none" }}>
-          <Pie
-            style={{ outline: "none" }}
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="35%"
-            cy="50%"
-            innerRadius={35}
-            outerRadius={55}
-            paddingAngle={2}
-            labelLine={false}
-            label={PiePercentLabel}
-          >
-            {data.map((d, i) => (
-              <Cell key={i} fill={d.color} style={{ outline: "none" }} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value) => {
-              const total = data.reduce((s, d) => s + d.value, 0);
-              const pct = total > 0 ? ((Number(value) / total) * 100).toFixed(0) : 0;
-              return [`${pct}% : ${formatCurrency(Number(value ?? 0), currency)}`, ""];
-            }}
-            contentStyle={{ fontSize: 12 }}
-          />
-          <Legend
-            layout="vertical"
-            align="right"
-            verticalAlign="middle"
-            iconType="circle"
-            iconSize={8}
-            formatter={(value) => (
-              <span className="text-xs text-foreground">{value}</span>
-            )}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ─── Bill row ─────────────────────────────────────────────────────────────────
-
-function BillRow({
-  bill,
-  isPaid,
-  isPartial,
-  isFailed,
-  failureReason,
-  amountPaid,
-  isOverdue,
-  isUpcoming,
-  isPending,
-  currency,
-  paidMonth,
-  accountMap,
-  vehicleMap,
-  vehicleColorMap,
-  categories,
-  onToggle,
-  onPartialClick,
-  onEdit,
-  onDelete,
-  isLockedFreeReminder,
-  autoDebitEnabled,
-  accountsEnabled,
-}: {
-  /** False in an app mode that switches auto-debit off — the pill would be a false promise. */
-  autoDebitEnabled: boolean;
-  /**
-   * False in an app mode that switches accounts off. The stored `account_id` is kept
-   * untouched, but naming an account the user cannot open anywhere else is noise.
-   */
-  accountsEnabled: boolean;
-  bill: BillRow;
-  /** True if amountPaid >= bill.amount. */
-  isPaid: boolean;
-  /** True if 0 < amountPaid < bill.amount. */
-  isPartial: boolean;
-  /** True if the auto-debit attempt for this month did not go through. */
-  isFailed: boolean;
-  /** Failure reason text from the failed bill_payments row, if any. */
-  failureReason: string | null;
-  /** Amount actually paid this month for this bill (0 if no payment row). */
-  amountPaid: number;
-  isOverdue: boolean;
-  isUpcoming: boolean;
-  isPending: boolean;
-  currency: string;
-  paidMonth: string;
-  accountMap: Record<string, AccountRow>;
-  vehicleMap: Record<string, VehicleRow>;
-  vehicleColorMap: Record<string, string>;
-  categories: CatList;
-  /** Full-paid toggle: marks fully paid if unpaid, removes the row if any payment exists. */
-  onToggle: () => void;
-  /** Opens the partial-payment dialog for this bill. */
-  onPartialClick: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  isLockedFreeReminder?: boolean;
-}) {
-  const router = useRouter();
-  const cat = categories.find((c) => c.id === bill.category_id);
-  const dotColor = getCategoryDotColor(cat?.bgClass ?? "");
-  const dueDateLabel = formatDueDay(bill, paidMonth);
-  const reminderLabel = (() => {
-    const days = bill.reminder_days_before;
-    if (!days?.length) return null;
-    const beforeDays = days.filter((d) => d !== 0).sort((a, b) => b - a);
-    const hasDueDate = days.includes(0);
-    const parts: string[] = [];
-    if (beforeDays.length > 0) parts.push(`${beforeDays.map((d) => `${d}d`).join(", ")} before`);
-    if (hasDueDate) parts.push("Due date");
-    return parts.join(", ");
-  })();
-
-  return (
-    <div
-      onClick={() => router.push(`/dashboard/planned-expenses/${bill.id}`)}
-      className={cn(
-        "surface flex cursor-pointer items-center gap-3 border px-4 py-3 transition-colors",
-        isPaid
-          ? "border-primary/30 bg-primary/10 hover:bg-primary/15"
-          : isPartial
-            ? "border-warning/40 bg-warning/10 hover:bg-warning/15"
-            : isFailed
-              ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/15"
-              : isOverdue
-                ? "border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
-                : isUpcoming
-                  ? "border-border bg-muted/30 hover:bg-muted/50"
-                  : "border-border bg-card hover:bg-muted/40",
-      )}
-    >
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p
-            className={cn(
-              "truncate text-sm font-medium",
-              isPaid && "line-through text-muted-foreground",
-            )}
-          >
-            {bill.note ?? cat?.label}
-          </p>
-          {bill.vehicle_id && vehicleMap[bill.vehicle_id] && (() => {
-            const color = vehicleColorMap[bill.vehicle_id!] ?? "#6b7280";
-            const vCatFull = labelForVehicleExpenseCategory(bill.vehicle_category);
-            const vCatShort = vCatFull
-              ? (vCatFull.includes(" (") ? vCatFull.slice(0, vCatFull.indexOf(" (")) : vCatFull)
-              : null;
-            const vehicleLine =
-              vCatShort != null
-                ? `${vehicleMap[bill.vehicle_id!].name} • ${vCatShort}`
-                : vehicleMap[bill.vehicle_id!].name;
-            return (
-              <span
-                className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                style={{ backgroundColor: `${color}22`, color, border: `1px solid ${color}55` }}
-              >
-                <Car className="h-2.5 w-2.5" />
-                {vehicleLine}
-              </span>
-            );
-          })()}
-          {isPaid ? (
-            <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-              Paid
-            </span>
-          ) : isPartial ? (
-            <span
-              className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning"
-              title={`${formatCurrency(amountPaid, currency)} of ${formatCurrency(bill.amount, currency)}`}
-            >
-              {formatCurrency(amountPaid, currency)} / {formatCurrency(bill.amount, currency)}
-            </span>
-          ) : isFailed ? (
-            <span
-              className="shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive"
-              title={failureReason ?? AUTO_DEBIT_FAILURE_GENERIC_REASON}
-            >
-              Failed
-            </span>
-          ) : isOverdue ? (
-            <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
-              Overdue
-            </span>
-          ) : isUpcoming ? (
-            <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              Upcoming
-            </span>
-          ) : (
-            <span className="shrink-0 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              Unpaid
-            </span>
-          )}
-          {isLockedFreeReminder && (
-            <span className="hidden sm:inline-flex shrink-0 items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-              <Lock className="h-2.5 w-2.5" />
-              Reminder
-            </span>
-          )}
-          {/* Hidden where the mode switches auto-debit off: the pill promises the bill pays
-              itself, which would be untrue. The honest state lives on the detail page. */}
-          {bill.is_auto_debit && autoDebitEnabled && (
-            <span
-              className="shrink-0 inline-flex items-center gap-0.5 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-              title="Paid automatically on the due date (auto-debit)"
-            >
-              <Zap className="h-2.5 w-2.5 text-primary" aria-hidden />
-              Auto-debit
-            </span>
-          )}
-        </div>
-        <p className="truncate text-xs text-muted-foreground">
-          <span style={{ color: dotColor }}>{cat?.label}</span>
-          {dueDateLabel && <span className="hidden sm:inline text-muted-foreground/60"> • {dueDateLabel}</span>}
-          {reminderLabel && (
-            <span className="hidden sm:inline-flex items-center gap-0.5 text-muted-foreground/60">
-              &nbsp;•&nbsp;<Bell className="inline h-2.5 w-2.5" />{" "}{reminderLabel}
-            </span>
-          )}
-        </p>
-        {cat && (dueDateLabel || reminderLabel || isLockedFreeReminder) && (
-          <div className="sm:hidden flex flex-wrap items-center gap-1.5 mt-0.5">
-            {dueDateLabel && (
-              <span className="text-xs text-muted-foreground/60">{dueDateLabel}</span>
-            )}
-            {reminderLabel && (
-              <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground/60">
-                <Bell className="h-3 w-3" />{reminderLabel}
-              </span>
-            )}
-            {isLockedFreeReminder && (
-              <span className="inline-flex items-center gap-0.5 rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                <Lock className="h-2.5 w-2.5" />
-                Reminder
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Account badge — desktop only */}
-      {accountsEnabled && bill.account_id && accountMap[bill.account_id] && (
-        <span
-          className="hidden sm:inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-          style={{
-            backgroundColor: `${accountMap[bill.account_id].color}22`,
-            color: accountMap[bill.account_id].color,
-          }}
-        >
-          {accountMap[bill.account_id].account_alias}
-        </span>
-      )}
-
-      {/* Amount + account badge below on mobile */}
-      <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
-        {accountsEnabled && bill.account_id && accountMap[bill.account_id] && (
-          <span
-            className="sm:hidden inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={{
-              backgroundColor: `${accountMap[bill.account_id].color}22`,
-              color: accountMap[bill.account_id].color,
-            }}
-          >
-            {accountMap[bill.account_id].account_alias}
-          </span>
-        )}
-        <p
-          className={cn(
-            "text-sm font-semibold tabular-nums",
-            isPaid && "text-muted-foreground line-through",
-          )}
-        >
-          {formatCurrency(bill.amount, currency)}
-        </p>
-      </div>
-
-      {/* Actions: 3-dot menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="tap-target h-7 w-7 flex-shrink-0 self-center text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
-            disabled={isPending}
-            aria-label="Planned expense actions"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          {isPaid ? (
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-              <RotateCcw className="h-4 w-4" />
-              Mark Unpaid
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Mark Paid
-            </DropdownMenuItem>
-          )}
-          {!isPaid && (
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
-              <PiggyBank className="h-4 w-4 text-warning" />
-              {isPartial ? "Add to Payment" : "Add Partial Payment"}
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-            <Pencil className="h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-            Remove
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
-// ─── Export helpers ──────────────────────────────────────────────────────────
+import {
+  buildPlannedExpenseRows,
+  groupPlannedExpenses,
+  summarisePlannedExpenses,
+  buildAccountCoverage,
+} from "@/lib/planned-expenses/grouping";
+import { URGENCY_LABELS } from "@/lib/constants/planned-expenses";
+import { ExpenseRow } from "@/components/dashboard/planned-expenses/expense-row";
+import { ExpenseGroup } from "@/components/dashboard/planned-expenses/expense-group";
+import { Runway } from "@/components/dashboard/planned-expenses/runway";
+import { CoveragePanel } from "@/components/dashboard/planned-expenses/coverage-panel";
+import { BillsHero } from "@/components/dashboard/planned-expenses/bills-hero";
+import { MonthCalendar } from "@/components/dashboard/planned-expenses/month-calendar";
 
 type CatList = Array<{ id: string; label: string; bgClass: string }>;
+
+function getCategoryDotColor(bgClass: string): string {
+  const match = bgClass.match(/bg-(\w+)-\d+/);
+  if (!match) return "#94a3b8";
+  return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
+}
 
 function getCategoryLabel(id: string, categories: CatList): string {
   return categories.find((c) => c.id === id)?.label ?? id;
 }
 
-function exportBillsToCSV(bills: BillRow[], paidIds: Set<string>, currency: string, categories: CatList): void {
+// ─── Export helpers ──────────────────────────────────────────────────────────
+
+function exportBillsToCSV(bills: BillRowModel[], paidIds: Set<string>, categories: CatList): void {
   const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const rows = bills.map((b) => [
@@ -577,7 +115,7 @@ function exportBillsToCSV(bills: BillRow[], paidIds: Set<string>, currency: stri
   document.body.removeChild(link);
 }
 
-function exportBillsToExcel(bills: BillRow[], paidIds: Set<string>, currency: string, categories: CatList): void {
+function exportBillsToExcel(bills: BillRowModel[], paidIds: Set<string>, categories: CatList): void {
   const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const headerRow = headers.map((h) => `<th>${esc(h)}</th>`).join("");
@@ -614,7 +152,7 @@ function CategoriesDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  bills: BillRow[];
+  bills: BillRowModel[];
   paymentAmountByBillId: Record<string, number>;
   currency: string;
   categories: CatList;
@@ -645,12 +183,10 @@ function CategoriesDialog({
           <div className="divide-y">
             {grouped.map(({ id, label, total, paid, count }) => {
               const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-              const dotColor = getCategoryDotColor(
-                categories.find((c) => c.id === id)?.bgClass ?? ""
-              );
+              const dotColor = getCategoryDotColor(categories.find((c) => c.id === id)?.bgClass ?? "");
               return (
                 <div key={id} className="flex items-center gap-3 py-3">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
+                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{label}</p>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -659,7 +195,9 @@ function CategoriesDialog({
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold tabular-nums">{formatCurrency(total, currency)}</p>
-                    <p className="text-[11px] text-muted-foreground">{count} planned expense{count !== 1 ? "s" : ""}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {count} planned expense{count !== 1 ? "s" : ""}
+                    </p>
                   </div>
                 </div>
               );
@@ -673,15 +211,15 @@ function CategoriesDialog({
 
 // ─── Main board ──────────────────────────────────────────────────────────────
 
-type PeriodTab = "monthly" | "quarterly" | "yearly";
-
 export function BillsBoard() {
   const { user } = useUser();
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isFeatureEnabled, isResolved } = useAppMode();
+  const { isFeatureEnabled, isBillsMode } = useAppMode();
+  const accountsEnabled = isFeatureEnabled("accounts");
+  const autoDebitEnabled = isFeatureEnabled("autoDebit");
 
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentPaidMonth());
   const paidMonth = selectedMonth;
@@ -692,19 +230,20 @@ export function BillsBoard() {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       opts.push({
-        value: ym,
         // Short month keeps every option the same width, so the trigger and the
         // dropdown never resize as you move between months.
+        value: ym,
         label: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
       });
     }
     return opts;
   }, []);
-  const [activeTab, setActiveTab] = useState<PeriodTab>("monthly");
+
   const [addOpen, setAddOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [editingBill, setEditingBill] = useState<BillRow | null>(null);
-  const [partialBill, setPartialBill] = useState<BillRow | null>(null);
+  const [settledCollapsed, setSettledCollapsed] = useState(true);
+  const [editingBill, setEditingBill] = useState<BillRowModel | null>(null);
+  const [partialBill, setPartialBill] = useState<BillRowModel | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [toggleError, setToggleError] = useState<
@@ -712,16 +251,12 @@ export function BillsBoard() {
     | { kind: "generic"; message: string }
     | null
   >(null);
-  /** Mobile: chart body starts collapsed; tap the card header to expand. Desktop always shows the chart. */
-  const [showMobileCategoryChart, setShowMobileCategoryChart] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   /**
    * Bills mode has no quick Add Entry panel, so its FAB deep-links here with `?add=1`.
-   * The flag is read straight into the dialog's open state — no effect to sync — and is
-   * stripped when the dialog closes: left in the URL it would reopen the dialog on every
-   * refresh or back navigation, fighting the user closing it. Because the URL drives it,
-   * tapping the FAB again while already on this page reopens the dialog.
+   * The flag is read straight into the dialog's open state and stripped when it closes:
+   * left in the URL it would reopen the dialog on every refresh or back navigation.
    */
   const addRequested = searchParams.get(ADD_PLANNED_EXPENSE_PARAM) === "1";
   const addDialogOpen = addOpen || addRequested;
@@ -734,94 +269,90 @@ export function BillsBoard() {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
+  // useQuery (not Suspense): the board renders its own skeleton while this settles.
   const billsDataQuery = useQuery(billsDataQueryOptions(paidMonth));
   const prefsQuery = useQuery(userPreferencesQueryOptions(user?.id));
-  const accountsQuery = useQuery(accountsQueryOptions());
+  const accountsQuery = useQuery({ ...accountsQueryOptions(), enabled: accountsEnabled });
+  const balancesQuery = useQuery({ ...accountBalancesQueryOptions(), enabled: accountsEnabled });
   const vehiclesQuery = useQuery(vehiclesQueryOptions());
-  const accounts = accountsQuery.data ?? [];
-  const vehicles = vehiclesQuery.data ?? [];
+  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
+
+  const accounts = useMemo(() => accountsQuery.data ?? [], [accountsQuery.data]);
+  const vehicles = useMemo(() => vehiclesQuery.data ?? [], [vehiclesQuery.data]);
   const accountMap = useMemo(
     () => Object.fromEntries(accounts.map((a) => [a.id, a])) as Record<string, AccountRow>,
     [accounts]
   );
-  const vehicleMap = useMemo(
-    () => Object.fromEntries(vehicles.map((v) => [v.id, v])),
-    [vehicles]
-  );
+  const vehicleMap = useMemo(() => Object.fromEntries(vehicles.map((v) => [v.id, v])), [vehicles]);
   const vehicleColorMap = useMemo(() => buildVehicleColorMap(vehicles), [vehicles]);
-  const { data: dbCategories } = useSuspenseQuery(categoriesQueryOptions());
   const categories: CatList = useMemo(
     () => (dbCategories ?? []).map((c) => ({ id: c.id, label: c.label, bgClass: c.bgClass })),
     [dbCategories]
   );
   const currency = prefsQuery.data?.currency ?? DEFAULT_USER_PREFERENCES.currency;
-  const bills = billsDataQuery.data?.bills ?? [];
-  const paidIds = useMemo(() => new Set(billsDataQuery.data?.paidBillIds ?? []), [billsDataQuery.data?.paidBillIds]);
+
+  const bills = useMemo(() => billsDataQuery.data?.bills ?? [], [billsDataQuery.data?.bills]);
+  const paidIds = useMemo(
+    () => new Set(billsDataQuery.data?.paidBillIds ?? []),
+    [billsDataQuery.data?.paidBillIds]
+  );
   const failedIds = useMemo(
     () => new Set(billsDataQuery.data?.failedBillIds ?? []),
-    [billsDataQuery.data?.failedBillIds],
+    [billsDataQuery.data?.failedBillIds]
   );
-  const failureReasonByBillId = billsDataQuery.data?.failureReasonByBillId ?? {};
-  const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
+  const paymentAmountByBillId = useMemo(
+    () => billsDataQuery.data?.paymentAmountByBillId ?? {},
+    [billsDataQuery.data?.paymentAmountByBillId]
+  );
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
-    [bills],
+    [bills]
   );
 
-  // Filtered by tab
-  const filteredBills = useMemo(
-    () => bills.filter((b) => b.billing_period === activeTab),
-    [bills, activeTab],
+  // ── Derived board model ────────────────────────────────────────────────────
+  // Every panel below reads these same rows, so a subtotal can never disagree
+  // with the list it sits above.
+  const rows = useMemo(
+    () => buildPlannedExpenseRows({ bills, paymentAmountByBillId, failedBillIds: failedIds, paidMonth }),
+    [bills, paymentAmountByBillId, failedIds, paidMonth]
   );
-
-  // Sorted: outstanding → unpaid → paid, then by due date within each group
-  const sortedFilteredBills = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    function statusRank(bill: BillRow): number {
-      const amountPaid = paymentAmountByBillId[bill.id] ?? 0;
-      const isFullyPaid = amountPaid > 0 && amountPaid >= bill.amount;
-      const isPartial = amountPaid > 0 && !isFullyPaid;
-      if (isFullyPaid) return 5;
-      if (isPartial) return 4;
-      if (failedIds.has(bill.id)) return 0; // failed auto-debit floats to the top
-      const eff = effectiveBillDueDate(bill, today, paidMonth);
-      if (eff && eff < today) return 1; // overdue
-      if (eff && eff > today) return 3; // upcoming
-      return 2; // unpaid (due today or no due date)
+  const groups = useMemo(() => groupPlannedExpenses(rows), [rows]);
+  const summary = useMemo(() => summarisePlannedExpenses(rows), [rows]);
+  const coverage = useMemo(
+    () =>
+      accountsEnabled
+        ? buildAccountCoverage({ rows, accounts, balances: balancesQuery.data ?? {} })
+        : [],
+    [accountsEnabled, rows, accounts, balancesQuery.data]
+  );
+  const shortfallByAccountId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of coverage) {
+      if (c.accountId && c.shortfall > 0) map.set(c.accountId, c.shortfall);
     }
+    return map;
+  }, [coverage]);
 
-    function dueTime(bill: BillRow): number {
-      return effectiveBillDueDate(bill, today, paidMonth)?.getTime() ?? Infinity;
-    }
-
-    return [...filteredBills].sort((a, b) => {
-      const rankDiff = statusRank(a) - statusRank(b);
-      if (rankDiff !== 0) return rankDiff;
-      return dueTime(a) - dueTime(b);
-    });
-  }, [filteredBills, paymentAmountByBillId, paidMonth, failedIds]);
-
-  // Summary — reactive to active tab. paidAmt sums actual amount_paid so a
-  // partial payment reduces "Remaining" by its real value, not the full bill amount.
-  const { totalFiltered, totalRemaining, unpaidCount } = useMemo(() => {
-    const total = filteredBills.reduce((s, b) => s + b.amount, 0);
-    const paidAmt = filteredBills.reduce((s, b) => s + (paymentAmountByBillId[b.id] ?? 0), 0);
+  const monthMeta = useMemo(() => {
+    const [yearStr, monthStr] = paidMonth.split("-");
+    const year = Number(yearStr);
+    const month0 = Number(monthStr) - 1;
+    const monthDate = new Date(year, month0, 1);
+    const now = new Date();
     return {
-      totalFiltered: total,
-      totalRemaining: Math.max(0, total - paidAmt),
-      unpaidCount: filteredBills.filter((b) => !paidIds.has(b.id)).length,
+      year,
+      month0,
+      monthLabel: monthDate.toLocaleDateString("en-PH", { month: "long" }),
+      daysInMonth: new Date(year, month0 + 1, 0).getDate(),
+      todayDay: now.getFullYear() === year && now.getMonth() === month0 ? now.getDate() : null,
     };
-  }, [filteredBills, paidIds, paymentAmountByBillId]);
+  }, [paidMonth]);
 
-  // Tab counts
-  const tabCounts = useMemo(() => ({
-    monthly: bills.filter((b) => b.billing_period === "monthly").length,
-    quarterly: bills.filter((b) => b.billing_period === "quarterly").length,
-    yearly: bills.filter((b) => b.billing_period === "yearly").length,
-  }), [bills]);
+  // Bills mode opens on the single most urgent unsettled bill; the rest queue behind it.
+  const unsettled = useMemo(() => rows.filter((r) => r.bucket !== "settled"), [rows]);
+  const heroRow = unsettled[0] ?? null;
+  const heroQueue = unsettled.slice(1, 4);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
@@ -831,9 +362,6 @@ export function BillsBoard() {
     const queryKey = queryKeys.billData(paidMonth);
     const snapshot = queryClient.getQueryData(queryKey);
 
-    // Optimistic flip — keep paidBillIds and paymentAmountByBillId in sync
-    // so the stat cards reflect the change immediately. Marking paid also
-    // clears any 'failed' marker for this month.
     queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
       if (!old) return old;
       const wasPaid = old.paidBillIds.includes(billId);
@@ -879,7 +407,6 @@ export function BillsBoard() {
       }
     } else {
       invalidate();
-      // Bill payment auto-creates an account transaction + expense entry when an account is linked.
       invalidateAccountQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
     }
@@ -920,7 +447,7 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        reminderDaysToPersist(form, isFeatureEnabled("autoDebit")),
+        reminderDaysToPersist(form, autoDebitEnabled),
         "both",
         form.endDate || undefined,
         form.accountId || null,
@@ -949,7 +476,7 @@ export function BillsBoard() {
         form.billingPeriod,
         form.billingPeriod === "yearly" ? parseInt(form.dueMonth, 10) : undefined,
         undefined,
-        reminderDaysToPersist(form, isFeatureEnabled("autoDebit")),
+        reminderDaysToPersist(form, autoDebitEnabled),
         "both",
         form.endDate || undefined,
         form.accountId || null,
@@ -976,21 +503,24 @@ export function BillsBoard() {
     });
   }
 
+  const labelVariant = isBillsMode ? "bills" : "full";
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <ContentHeader
         title="Planned Expenses"
-        subtitle="Manage your planned expenses, bills, due dates, and mark them as paid when you settle up."
+        subtitle={
+          summary.totalCount > 0
+            ? `${summary.totalCount} this month. ${summary.settledCount} settled.`
+            : "Everything you've committed to this month."
+        }
         icon={Receipt}
         actions={
           <div className="flex items-center gap-2">
-            {/* Category management lives under the expenses feature — when it is off,
-                fall back to the read-only per-category breakdown dialog so the button
-                does not point at a route the current mode blocks. */}
             {isFeatureEnabled("expenses") ? (
               <Button variant="outline" size="sm" aria-label="Categories" asChild>
                 <Link href="/dashboard/expenses/categories">
-                  <LayoutGrid className="h-4 w-4" aria-hidden />
+                  <LayoutGrid className="size-4" aria-hidden />
                   <span className="hidden sm:inline">Categories</span>
                 </Link>
               </Button>
@@ -1002,22 +532,22 @@ export function BillsBoard() {
                 aria-label="Categories"
                 onClick={() => setCategoriesOpen(true)}
               >
-                <LayoutGrid className="h-4 w-4" aria-hidden />
+                <LayoutGrid className="size-4" aria-hidden />
                 <span className="hidden sm:inline">Categories</span>
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="size-3.5" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportBillsToCSV(bills, paidIds, currency, categories)}>
+                <DropdownMenuItem onClick={() => exportBillsToCSV(bills, paidIds, categories)}>
                   Export as CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportBillsToExcel(bills, paidIds, currency, categories)}>
+                <DropdownMenuItem onClick={() => exportBillsToExcel(bills, paidIds, categories)}>
                   Export as Excel
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -1026,219 +556,195 @@ export function BillsBoard() {
         }
       />
 
-      {/* Summary: stats + pie chart */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {/* Stat cards */}
-        <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="surface min-w-0 flex-1 border bg-card px-4 py-3">
-            <p className="truncate text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned - {activeTab}</p>
-            <p className="mt-0.5 truncate text-base font-bold tabular-nums sm:text-lg">
-              <AnimatedAmount value={totalFiltered} currency={currency} />
-            </p>
-            <p className="truncate text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
-          </div>
-          <div className="surface min-w-0 flex-1 border bg-card px-4 py-3">
-            <p className="truncate text-xs font-semibold tracking-wide text-muted-foreground">Planned - Remaining</p>
-            <p className={cn("mt-0.5 truncate text-base font-bold tabular-nums sm:text-lg", totalRemaining > 0 ? "text-warning" : "")}>
-              <AnimatedAmount value={totalRemaining} currency={currency} />
-            </p>
-            <p className="truncate text-[11px] text-muted-foreground">{unpaidCount} unpaid</p>
-          </div>
-        </div>
-
-        {/* Pie chart (mobile: tap section header to expand; desktop: always visible) */}
-        <div className="sm:w-2/3">
-          {billsDataQuery.isPending ? (
-            <SpendingByCategoryCollapsibleCard
-              expanded={showMobileCategoryChart}
-              onToggle={() => setShowMobileCategoryChart((v) => !v)}
-              panelId="planned-spending-by-category-body"
-            >
-              <Skeleton className="h-[160px] w-full" />
-            </SpendingByCategoryCollapsibleCard>
-          ) : bills.length > 0 ? (
-            <SpendingByCategoryCollapsibleCard
-              expanded={showMobileCategoryChart}
-              onToggle={() => setShowMobileCategoryChart((v) => !v)}
-              panelId="planned-spending-by-category-body"
-            >
-              <BillsPieChart bills={filteredBills} currency={currency} categories={categories} />
-            </SpendingByCategoryCollapsibleCard>
-          ) : (
-            <SpendingByCategoryCollapsibleCard
-              expanded={showMobileCategoryChart}
-              onToggle={() => setShowMobileCategoryChart((v) => !v)}
-              dashed
-              panelId="planned-spending-by-category-body"
-            >
-              <div className="flex min-h-[160px] items-center justify-center text-sm text-muted-foreground">
-                Add a planned expense to see the chart
-              </div>
-            </SpendingByCategoryCollapsibleCard>
-          )}
-        </div>
-      </div>
-
-      {/* Month selector + Tabs + list */}
-      <div>
-        <div className="mb-3 space-y-2 sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-2 sm:space-y-0">
-          <div className="flex items-center justify-between gap-2 sm:justify-start">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              {/* ring-offset-0 matters: the primitive sets ring-offset-2, and with
-                  ring-0 that offset still paints a stray 2px shadow on focus — which
-                  is what you see when the dropdown closes and focus returns here.
-                  focus-visible keeps a real ring for keyboard users only. */}
-              <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                {monthOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setAddOpen(true)} size="lg" className="shrink-0 gap-1.5 sm:hidden">
-              <Plus className="h-4 w-4" />
-              Add
-            </Button>
-          </div>
-
-          {/* `surface` (14px/6px) minus the 2px padding lands exactly on the inner
-              buttons' 12px/4px radius, so the group nests cleanly at both sizes. */}
-          <div className="surface inline-flex w-full items-center gap-0.5 border bg-background p-0.5 sm:w-auto sm:justify-self-center">
-            {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
-              <Button
-                key={tab}
-                type="button"
-                size="sm"
-                variant={activeTab === tab ? "secondary" : "ghost"}
-                className="group h-9 flex-1 px-3 text-sm capitalize sm:flex-none"
-                onClick={() => setActiveTab(tab)}
-              >
-                <span className="inline-flex items-center gap-1">
-                  <span>{tab}</span>
-                  <Badge
-                    variant={activeTab === tab ? "default" : "secondary"}
-                    className={cn(
-                      "h-5 min-w-5 px-1.5 text-[11px] transition-colors",
-                      activeTab === tab
-                        ? "bg-background text-foreground border-border group-hover:bg-background group-hover:text-foreground"
-                        : "group-hover:bg-background group-hover:text-foreground group-hover:border-border"
-                    )}
-                  >
-                    {tabCounts[tab]}
-                  </Badge>
-                </span>
-              </Button>
+      {/* Month + add */}
+      <div className="flex items-center justify-between gap-2">
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          {/* ring-offset-0 matters: the primitive sets ring-offset-2, and with ring-0
+              that offset still paints a stray 2px shadow on focus. */}
+          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {monthOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
             ))}
-          </div>
-
-          <Button onClick={() => setAddOpen(true)} size="lg" className="hidden gap-1.5 sm:inline-flex">
-            <Plus className="h-4 w-4" />
-            Add Planned Expense
-          </Button>
-        </div>
-
-        {toggleError && (
-          <div
-            role="alert"
-            className="mb-3 flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
-          >
-            {toggleError.kind === "insufficient_balance" ? (
-              <div className="flex-1">
-                <p className="font-semibold">Insufficient account balance</p>
-                <p className="mt-0.5 text-xs text-destructive/90">
-                  {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
-                  {formatCurrency(toggleError.available, currency)} available, but{" "}
-                  {toggleError.billNote ? `“${toggleError.billNote}”` : "this planned expense"} needs{" "}
-                  {formatCurrency(toggleError.required, currency)}.
-                </p>
-                {/* The server can still reject on balance if the stored mode has not caught up
-                    with the client (optimistic switch, failed persist, another tab), so this
-                    stays reachable — but the old "clear its account" advice no longer applies. */}
-                {!isFeatureEnabled("accounts") && (
-                  <p className="mt-0.5 text-xs text-destructive/90">
-                    Balance checks haven’t caught up with your app mode yet. Reload the page and try again.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="flex-1">{toggleError.message}</p>
-            )}
-            <div className="flex shrink-0 gap-2">
-              {/* Accounts are hidden in some app modes — never offer a route the mode blocks. */}
-              {isFeatureEnabled("accounts") && (
-                <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                  <Link href="/dashboard/accounts">Go to Accounts</Link>
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setToggleError(null)}
-              >
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {billsDataQuery.isPending ? (
-            <DashboardSkeleton variant="form" />
-          ) : sortedFilteredBills.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-              <Receipt className="h-8 w-8 opacity-30" />
-              <p className="text-sm">No {activeTab} planned expenses yet.</p>
-            </div>
-          ) : (
-            sortedFilteredBills.map((bill) => {
-              const today = new Date(); today.setHours(0, 0, 0, 0);
-              const eff = effectiveBillDueDate(bill, today, paidMonth);
-              const amountPaid = paymentAmountByBillId[bill.id] ?? 0;
-              const isFullyPaid = amountPaid >= bill.amount && amountPaid > 0;
-              const isPartial = amountPaid > 0 && amountPaid < bill.amount;
-              const hasAnyPayment = amountPaid > 0;
-              const isFailed = !hasAnyPayment && failedIds.has(bill.id);
-              const isOverdue = !hasAnyPayment && !isFailed && !!eff && eff < today;
-              const isUpcoming = !hasAnyPayment && !isFailed && !!eff && eff > today;
-              return (
-                <BillRow
-                  key={bill.id}
-                  bill={bill}
-                  isPaid={isFullyPaid}
-                  isPartial={isPartial}
-                  isFailed={isFailed}
-                  failureReason={isFailed ? (isResolved && isFeatureEnabled("accounts") ? (failureReasonByBillId[bill.id] ?? null) : null) : null}
-                  amountPaid={amountPaid}
-                  isOverdue={isOverdue}
-                  isUpcoming={isUpcoming}
-                  isPending={pendingIds.has(bill.id)}
-                  currency={currency}
-                  paidMonth={paidMonth}
-                  accountMap={accountMap}
-                  vehicleMap={vehicleMap}
-                  vehicleColorMap={vehicleColorMap}
-                  categories={categories}
-                  onToggle={() => handleToggle(bill.id)}
-                  onPartialClick={() => { setToggleError(null); setPartialBill(bill); }}
-                  onEdit={() => setEditingBill(bill)}
-                  onDelete={() => setDeletingId(bill.id)}
-                  isLockedFreeReminder={bill.id === lockedFreeReminderBillId}
-                  autoDebitEnabled={isFeatureEnabled("autoDebit")}
-                  accountsEnabled={isFeatureEnabled("accounts")}
-                />
-              );
-            })
-          )}
-        </div>
+          </SelectContent>
+        </Select>
+        <Button onClick={() => setAddOpen(true)} size="lg" className="shrink-0 gap-1.5">
+          <Plus className="size-4" />
+          Add
+        </Button>
       </div>
 
-      {/* Categories dialog */}
+      {billsDataQuery.isPending ? (
+        <DashboardSkeleton variant="form" />
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+          <Receipt className="size-8 opacity-30" />
+          <p className="text-sm">No planned expenses this month.</p>
+        </div>
+      ) : (
+        <>
+          {/* ── The month, at a glance ── */}
+          {isBillsMode ? (
+            <>
+              <BillsHero
+                next={heroRow}
+                queue={heroQueue}
+                currency={currency}
+                isPending={heroRow ? pendingIds.has(heroRow.bill.id) : false}
+                onMarkPaid={() => heroRow && handleToggle(heroRow.bill.id)}
+                onPartialPayment={() => {
+                  if (!heroRow) return;
+                  setToggleError(null);
+                  setPartialBill(heroRow.bill);
+                }}
+              />
+              <MonthCalendar
+                rows={rows}
+                summary={summary}
+                currency={currency}
+                monthLabel={monthMeta.monthLabel}
+                year={monthMeta.year}
+                month0={monthMeta.month0}
+                todayDay={monthMeta.todayDay}
+              />
+            </>
+          ) : (
+            <>
+              <Runway
+                rows={rows}
+                summary={summary}
+                currency={currency}
+                monthLabel={monthMeta.monthLabel}
+                daysInMonth={monthMeta.daysInMonth}
+                todayDay={monthMeta.todayDay}
+              />
+              {coverage.length > 0 && <CoveragePanel coverage={coverage} currency={currency} />}
+            </>
+          )}
+
+          {/* Reminders are one of only two features in bills mode, so the free
+              ceiling is worth naming rather than hiding behind a locked pill. */}
+          {isBillsMode && lockedFreeReminderBillId && (
+            <div className="surface flex items-center gap-2.5 border border-dashed border-warning/50 bg-warning/[0.07] p-3">
+              <Bell className="size-4 shrink-0 text-warning" aria-hidden />
+              <span className="min-w-0 flex-1 text-[12.5px]">
+                You&rsquo;re using your one free reminder
+                <small className="mt-px block text-[11.5px] text-muted-foreground">
+                  Pro sets a reminder on every planned expense.
+                </small>
+              </span>
+              <Button asChild size="sm" variant="outline" className="shrink-0 border-warning/50 text-warning hover:bg-warning/10 hover:text-warning">
+                <Link href="/dashboard/premium">See Pro</Link>
+              </Button>
+            </div>
+          )}
+
+          {toggleError && (
+            <div
+              role="alert"
+              className="surface flex flex-col gap-2 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+            >
+              {toggleError.kind === "insufficient_balance" ? (
+                <div className="flex-1">
+                  <p className="font-semibold">Insufficient account balance</p>
+                  <p className="mt-0.5 text-xs text-destructive/90">
+                    {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
+                    {formatCurrency(toggleError.available, currency)} available, but{" "}
+                    {toggleError.billNote ? `“${toggleError.billNote}”` : "this planned expense"} needs{" "}
+                    {formatCurrency(toggleError.required, currency)}.
+                  </p>
+                  {!accountsEnabled && (
+                    <p className="mt-0.5 text-xs text-destructive/90">
+                      Balance checks haven&rsquo;t caught up with your app mode yet. Reload the page and try again.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="flex-1">{toggleError.message}</p>
+              )}
+              <div className="flex shrink-0 gap-2">
+                {accountsEnabled && (
+                  <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    <Link href="/dashboard/accounts">Go to Accounts</Link>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setToggleError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── The ledger, grouped by what needs you ── */}
+          <div className="flex flex-col gap-5">
+            {groups.map((group) => {
+              const isSettled = group.bucket === "settled";
+              const label =
+                group.bucket === "later"
+                  ? `Later in ${monthMeta.monthLabel}`
+                  : URGENCY_LABELS[group.bucket][labelVariant];
+              return (
+                <ExpenseGroup
+                  key={group.bucket}
+                  bucket={group.bucket}
+                  label={label}
+                  count={group.rows.length}
+                  subtotal={group.subtotal}
+                  currency={currency}
+                  collapsible={isSettled}
+                  collapsed={isSettled && settledCollapsed}
+                  onToggleCollapsed={() => setSettledCollapsed((v) => !v)}
+                >
+                  {group.rows.map((row) => {
+                    const cat = categories.find((c) => c.id === row.bill.category_id);
+                    const account = row.bill.account_id ? accountMap[row.bill.account_id] ?? null : null;
+                    const shortfall = row.bill.account_id
+                      ? shortfallByAccountId.get(row.bill.account_id)
+                      : undefined;
+                    return (
+                      <ExpenseRow
+                        key={row.bill.id}
+                        row={row}
+                        currency={currency}
+                        categoryLabel={cat?.label ?? row.bill.category_id}
+                        categoryColor={getCategoryDotColor(cat?.bgClass ?? "")}
+                        accountsEnabled={accountsEnabled}
+                        autoDebitEnabled={autoDebitEnabled}
+                        remindersProminent={isBillsMode}
+                        account={account}
+                        vehicle={row.bill.vehicle_id ? vehicleMap[row.bill.vehicle_id] ?? null : null}
+                        vehicleColor={row.bill.vehicle_id ? vehicleColorMap[row.bill.vehicle_id] ?? null : null}
+                        shortfallNote={
+                          shortfall && row.outstanding > 0 && account
+                            ? `${account.account_alias} is ${formatCurrency(shortfall, currency)} short`
+                            : null
+                        }
+                        isLockedFreeReminder={row.bill.id === lockedFreeReminderBillId}
+                        isPending={pendingIds.has(row.bill.id)}
+                        onToggle={() => handleToggle(row.bill.id)}
+                        onPartialClick={() => { setToggleError(null); setPartialBill(row.bill); }}
+                        onEdit={() => setEditingBill(row.bill)}
+                        onDelete={() => setDeletingId(row.bill.id)}
+                      />
+                    );
+                  })}
+                </ExpenseGroup>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <CategoriesDialog
         open={categoriesOpen}
         onClose={() => setCategoriesOpen(false)}
@@ -1248,13 +754,12 @@ export function BillsBoard() {
         categories={categories}
       />
 
-      {/* Add dialog */}
       {addDialogOpen && (
         <BillDialog
           open={addDialogOpen}
           onClose={closeAddDialog}
           onSave={handleAdd}
-          initial={{ ...EMPTY_FORM, billingPeriod: activeTab }}
+          initial={{ ...EMPTY_FORM }}
           isPending={isPending}
           accounts={accounts}
           vehicles={vehicles}
@@ -1263,7 +768,6 @@ export function BillsBoard() {
         />
       )}
 
-      {/* Edit dialog */}
       {editingBill && (
         <BillDialog
           open={!!editingBill}
@@ -1280,7 +784,6 @@ export function BillsBoard() {
         />
       )}
 
-      {/* Partial payment dialog */}
       {partialBill && (
         <PartialPaymentDialog
           open={!!partialBill}
@@ -1293,7 +796,6 @@ export function BillsBoard() {
         />
       )}
 
-      {/* Delete confirm */}
       <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

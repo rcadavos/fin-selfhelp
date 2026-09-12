@@ -14,6 +14,23 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.8.0",
+    date: "2026-09-12",
+    summary: "Planned Expenses rebuilt around when things are due, and whether you can cover them.",
+    changes: [
+      { type: "feature", description: "Planned Expenses now groups by what needs you — Overdue, Due this week, Later this month, and Settled — each with its own count and running total. The list was always sorted this way underneath; now the reasoning is visible instead of looking arbitrary." },
+      { type: "feature", description: "In Full cashflow mode, a runway across the top plots every planned expense on the month, sized by amount and marked against today, so you can see what lands when at a glance." },
+      { type: "feature", description: "Full cashflow mode also warns you when an account cannot cover what it owes this month — before you tap Mark paid, not after. The affected planned expense says how much that account is short." },
+      { type: "feature", description: "In Bills & reminders mode, the page now opens on the single bill that needs you, with Mark paid attached and the next few queued behind it. Settle it and the next one steps up." },
+      { type: "feature", description: "Bills & reminders mode gained a month calendar showing every due date at a glance, colour-coded by what is overdue, due, scheduled or already paid." },
+      { type: "improvement", description: "Marking something paid is now a single tap on the row itself, instead of opening the three-dot menu and picking Mark paid." },
+      { type: "improvement", description: "The Monthly / Quarterly / Yearly tabs are gone. A quarterly bill due this month is part of this month, so all of them now live on one screen rather than being split across three tabs with a total nobody budgets against." },
+      { type: "improvement", description: "Reminders are now shown on every row in Bills & reminders mode, where they were previously hidden on phones — the mode has only two features and reminders is one of them." },
+      { type: "improvement", description: "Rows are no longer tinted six different colours. Status reads from a stamp, with a coloured edge only on the ones actually behind, so what needs attention stands out instead of the list reading as a quilt." },
+      { type: "improvement", description: "Removed the category pie chart from Planned Expenses. Category share is a year-end question and the chart was collapsed by default on phones anyway; the per-category breakdown is still available from the Categories button." },
+    ],
+  },
+  {
     version: "1.7.5",
     date: "2026-09-09",
     summary: "Mobile layout fixes across the dashboard and planned expenses, plus softer corners on phones.",
