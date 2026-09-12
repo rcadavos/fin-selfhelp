@@ -169,7 +169,7 @@ export default function SignUpPage() {
   );
 
   const stripAccessory = (
-    <span className="shrink-0 whitespace-nowrap rounded border border-panel-accent px-2 py-0.5 font-mono text-[10px] text-panel-accent">
+    <span className="shrink-0 whitespace-nowrap rounded-full border border-panel-accent px-2 py-0.5 font-mono text-[10px] text-panel-accent">
       {TRIAL_LABEL}
     </span>
   );

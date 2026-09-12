@@ -139,7 +139,7 @@ export function AdminReferralsBoard() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
+                      <code className="rounded-full bg-muted px-2 py-1 font-mono text-xs">
                         {row.referralCode ?? "—"}
                       </code>
                     </TableCell>

@@ -187,7 +187,7 @@ export function ExpenseRow({
               <span>Due {dueDate}</span>
             </>
           )}
-          <span className="rounded border border-hairline-strong px-1 py-px font-mono text-[9.5px] tracking-wider">
+          <span className="rounded-full border border-hairline-strong px-1.5 py-px font-mono text-[9.5px] tracking-wider">
             {PERIOD_TAG[bill.billing_period] ?? bill.billing_period}
           </span>
           {remindersProminent && (

@@ -181,7 +181,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
             <Car className="h-7 w-7 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 truncate">{vehicle.name}</span>
             {vehicle.plate_number && (
-              <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-muted-foreground">
+              <span className="shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-muted-foreground">
                 {vehicle.plate_number}
               </span>
             )}

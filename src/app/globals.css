@@ -188,8 +188,9 @@
     font-weight: 500;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    padding: 3px 7px;
-    border-radius: 4px;
+    padding: 3px 8px;
+    /* Pill, matching <Badge> and the account/vehicle chips a stamp sits beside. */
+    border-radius: 999px;
     border: 1px solid;
     white-space: nowrap;
     display: inline-flex;

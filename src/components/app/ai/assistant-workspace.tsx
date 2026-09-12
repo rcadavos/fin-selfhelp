@@ -207,7 +207,7 @@ function MobileTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
         active ? "bg-background text-foreground" : "text-muted-foreground",
       )}
     >

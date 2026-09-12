@@ -14,6 +14,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.8.2",
+    date: "2026-09-12",
+    summary: "Badges and status labels are rounded too.",
+    changes: [
+      { type: "improvement", description: "Status labels — Paid, Overdue, Auto, Scheduled and the rest — are now rounded pills, matching the account and vehicle chips that sit next to them on the same row instead of looking square beside them." },
+      { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on planned expenses, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
+    ],
+  },
+  {
     version: "1.8.1",
     date: "2026-09-12",
     summary: "Rounded corners everywhere, on desktop as well as phones.",

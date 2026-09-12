@@ -258,7 +258,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
           {account.maintaining_balance != null &&
             account.maintaining_balance > 0 &&
             txData.balance < account.maintaining_balance && (
-              <span className="flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+              <span className="flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 Below maintaining balance{amountsHidden ? "" : ` (${formatCurrency(account.maintaining_balance)})`}
               </span>

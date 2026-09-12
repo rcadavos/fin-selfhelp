@@ -207,7 +207,7 @@ function SharingSettingsContent() {
                 <p className="text-xs text-muted-foreground">Access: {permBadges(s)}</p>
                 {s.status === "pending" && (
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <code className="block max-w-full truncate rounded bg-muted px-2 py-1 text-xs">
+                    <code className="block max-w-full truncate rounded-full bg-muted px-2 py-1 text-xs">
                       {`${base}/account/settings/sharing/accept?share=${s.id}&token=${s.invite_token}`}
                     </code>
                     <Button

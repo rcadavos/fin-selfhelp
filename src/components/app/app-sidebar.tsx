@@ -167,7 +167,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
                 <span className="block truncate">{getAccountDisplayName(user)}</span>
                 <span
                   className={cn(
-                    "mt-0.5 inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold leading-none ring-1",
+                    "mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none ring-1",
                     subscriptionBadgeClass
                   )}
                 >

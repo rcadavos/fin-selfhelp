@@ -213,7 +213,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors capitalize",
+                "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors capitalize",
                 activeTab === tab
                   ? "bg-background text-foreground"
                   : "text-muted-foreground hover:text-foreground",

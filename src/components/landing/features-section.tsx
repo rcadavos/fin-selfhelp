@@ -91,7 +91,7 @@ export function FeaturesSection({ className }: { className?: string }) {
               <span className="order-2 col-span-2 text-sm text-muted-foreground sm:order-none sm:col-span-1">
                 {feature.description}
               </span>
-              <span className="order-1 justify-self-start rounded border border-hairline-strong px-1.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:order-none sm:self-center sm:justify-self-end">
+              <span className="order-1 justify-self-start rounded-full border border-hairline-strong px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:order-none sm:self-center sm:justify-self-end">
                 {feature.tag}
               </span>
             </div>
