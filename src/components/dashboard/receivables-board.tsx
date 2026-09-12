@@ -308,7 +308,7 @@ function ReceivableDialog({
 
             {/* ── Link to another OmniTrak account ── */}
             {editingId && (
-              <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
+              <div className="surface border border-dashed border-primary/30 bg-primary/5 p-3 space-y-3">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between text-sm font-medium text-primary/80"
@@ -456,7 +456,7 @@ function ReceivableCard({
     <div
       onClick={onEdit}
       className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-colors",
+        "flex cursor-pointer items-start gap-3 surface border px-4 py-3 transition-colors",
         status === "paid"
           ? "border-primary/30 bg-primary/10 hover:bg-primary/15"
           : isOverdue
@@ -572,7 +572,7 @@ function PendingLinkBanner({
   token: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3">
+    <div className="flex items-start gap-3 surface border border-warning/40 bg-warning/10 px-4 py-3">
       <MailCheck className="h-5 w-5 shrink-0 text-warning mt-0.5" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-warning">
@@ -773,20 +773,20 @@ export function ReceivablesBoard() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border bg-card px-4 py-3">
+        <div className="surface border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Total Owed</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums">
             <AnimatedAmount value={totalOwed} currency={currency} />
           </p>
           <p className="text-[11px] text-muted-foreground">{items.length} receivable{items.length !== 1 ? "s" : ""}</p>
         </div>
-        <div className="rounded-lg border bg-card px-4 py-3">
+        <div className="surface border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Collected</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums text-primary">
             <AnimatedAmount value={totalCollected} currency={currency} />
           </p>
         </div>
-        <div className="rounded-lg border bg-card px-4 py-3">
+        <div className="surface border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Outstanding</p>
           <p className={cn(
             "mt-0.5 text-lg font-bold tabular-nums",
@@ -800,7 +800,7 @@ export function ReceivablesBoard() {
       {/* Tabs + list */}
       <div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full items-center rounded-md border bg-background p-1 sm:w-auto">
+          <div className="flex w-full items-center surface border bg-background p-1 sm:w-auto">
             {TABS.map((tab) => (
               <Button
                 key={tab.value}

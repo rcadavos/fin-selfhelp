@@ -68,7 +68,7 @@ export function PartialPaymentDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Summary block */}
-          <div className="rounded-lg border bg-muted/30 px-3 py-2.5 text-xs">
+          <div className="surface border bg-muted/30 px-3 py-2.5 text-xs">
             <div className="flex justify-between py-0.5">
               <span className="text-muted-foreground">Bill total</span>
               <span className="font-semibold tabular-nums">{formatCurrency(billAmount)}</span>

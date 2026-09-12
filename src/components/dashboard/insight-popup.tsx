@@ -85,7 +85,7 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
     <div
       ref={popupRef}
       className={cn(
-        "fixed bottom-20 right-3 z-50 w-60 overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground",
+        "fixed bottom-20 right-3 z-50 w-60 overflow-hidden surface border border-border bg-popover text-popover-foreground",
         "md:bottom-5 md:right-5 md:w-72",
         "transition duration-200 ease-out motion-reduce:transition-none",
         visible
@@ -111,7 +111,7 @@ export function InsightPopup({ firstName, streak, billsPaidPct }: InsightPopupPr
         {hasStreak ? (
           <>
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/40 text-primary">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center surface border border-primary/40 text-primary">
                 <Flame className="h-5 w-5" />
               </span>
               <p className="font-mono text-2xl font-semibold leading-none tabular-nums">

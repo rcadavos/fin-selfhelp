@@ -389,7 +389,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       />
 
       {/* Amount + status + Mark Paid toggle */}
-      <div className="rounded-lg border bg-card px-5 py-5">
+      <div className="surface border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</p>
         <div className="mt-1 flex flex-wrap items-baseline gap-3">
           <p className="text-3xl font-bold tabular-nums">{formatCurrency(bill.amount)}</p>
@@ -438,7 +438,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         {isFailedThisMonth && (
           <div
             role="status"
-            className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            className="mt-3 flex items-start gap-2 surface border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div className="min-w-0 flex-1">
@@ -456,7 +456,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         {error && (
           <div
             role="alert"
-            className="mt-3 flex items-start justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            className="mt-3 flex items-start justify-between gap-2 surface border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
           >
             <p className="flex-1">{error}</p>
             <div className="flex shrink-0 gap-1">
@@ -478,7 +478,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       </div>
 
       {/* Details */}
-      <div className="rounded-lg border bg-card px-5 py-5 space-y-3">
+      <div className="surface border bg-card px-5 py-5 space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</h2>
         <DetailRow icon={<CalendarClock className="h-4 w-4" />} label="Due">
           {dueLabel}
@@ -546,7 +546,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment history</h2>
         {history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 surface border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No payments recorded yet.</p>
             <p className="max-w-md text-xs">Mark this planned expense paid to record a payment for the current month.</p>
           </div>
@@ -558,7 +558,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
               return (
                 <li
                   key={entry.id}
-                  className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3"
+                  className="flex items-center gap-3 surface border bg-card px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">

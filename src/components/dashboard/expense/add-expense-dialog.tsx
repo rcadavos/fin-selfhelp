@@ -205,7 +205,7 @@ export function AddExpenseDialog({
                 )}
               </div>
             ) : (
-              <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+              <p className="surface border border-dashed px-3 py-3 text-xs text-muted-foreground">
                 No accounts found. Create an account first to track expenses.
               </p>
             )}
@@ -284,7 +284,7 @@ export function AddExpenseDialog({
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Optional note…"
                 rows={2}
-                className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 

@@ -9,7 +9,7 @@ export default async function UnsubscribedPage({ searchParams }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-16">
-      <div className="mx-auto w-full max-w-md rounded-lg border bg-card p-8 text-center">
+      <div className="mx-auto w-full max-w-md surface border bg-card p-8 text-center">
         {error ? (
           <>
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">

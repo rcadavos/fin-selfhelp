@@ -303,7 +303,7 @@ export function AccountTransferDialog({
           <div className="space-y-1.5">
             <Label>Destination account</Label>
             {otherAccounts.length === 0 ? (
-              <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+              <p className="surface border border-dashed px-3 py-3 text-xs text-muted-foreground">
                 You need at least one other account to transfer money. Add another account first.
               </p>
             ) : (

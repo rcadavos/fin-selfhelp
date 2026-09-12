@@ -142,7 +142,7 @@ export default function SettingsPage() {
                         type="button"
                         aria-pressed={selected}
                         onClick={() => handleModeSelect(option.value)}
-                        className={`relative rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        className={`relative surface border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           selected ? "border-primary ring-1 ring-primary" : "hover:border-primary/40 hover:bg-muted/40"
                         }`}
                       >
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                 </Select>
               </div>
 
-              <div className="rounded-lg border bg-muted/40 p-4">
+              <div className="surface border bg-muted/40 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
                 <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                   <div>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between gap-4 surface border p-4">
                 <div className="space-y-1 pr-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" aria-hidden />
@@ -318,7 +318,7 @@ export default function SettingsPage() {
               </div>
 
               <div
-                className={`flex items-center justify-between gap-4 rounded-lg border p-4 ${notifMasterOff ? "opacity-50" : ""}`}
+                className={`flex items-center justify-between gap-4 surface border p-4 ${notifMasterOff ? "opacity-50" : ""}`}
               >
                 <div className="space-y-1 pr-2">
                   <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function SettingsPage() {
               </div>
 
               <div
-                className={`flex items-center justify-between gap-4 rounded-lg border p-4 ${notifMasterOff ? "opacity-50" : ""}`}
+                className={`flex items-center justify-between gap-4 surface border p-4 ${notifMasterOff ? "opacity-50" : ""}`}
               >
                 <div className="space-y-1 pr-2">
                   <div className="flex items-center gap-2">

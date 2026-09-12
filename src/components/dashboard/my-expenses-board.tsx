@@ -503,14 +503,14 @@ export function MyExpensesBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+          <div className="flex-1 surface border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - Today</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums text-primary">
               <AnimatedAmount value={totalToday} />
             </p>
             <p className="text-[11px] text-muted-foreground">{expensesToday.length} item{expensesToday.length !== 1 ? "s" : ""} today</p>
           </div>
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+          <div className="flex-1 surface border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Expenses - This Month</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">
               <AnimatedAmount value={totalExpenses} />
@@ -574,7 +574,7 @@ export function MyExpensesBoard() {
 
       {/* Error */}
       {error && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+        <div className="mb-4 flex items-center justify-between surface border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="ml-3 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-4 w-4" />
@@ -604,7 +604,7 @@ export function MyExpensesBoard() {
                     <div
                       key={exp.id}
                       onClick={() => { if (!isPending) handleOpenEdit(exp); }}
-                      className={`flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-primary/30"}`}
+                      className={`flex items-center gap-2.5 surface border bg-card px-3 py-2.5 transition-colors ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-primary/30"}`}
                     >
                       <span
                         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"

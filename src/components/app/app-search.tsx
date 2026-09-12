@@ -207,7 +207,7 @@ export function DesktopSearch({ className }: { className?: string }) {
           placeholder="Search…"
           autoComplete="off"
           spellCheck={false}
-          className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none ring-offset-background transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none ring-offset-background transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -216,7 +216,7 @@ export function DesktopSearch({ className }: { className?: string }) {
       </div>
 
       {showResults && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[60vh] overflow-y-auto rounded-lg border bg-background shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[60vh] overflow-y-auto surface border bg-background shadow-xl">
           {results.length > 0 ? (
             <SearchResults results={results} activeIndex={activeIndex} onSelect={handleSelect} />
           ) : (

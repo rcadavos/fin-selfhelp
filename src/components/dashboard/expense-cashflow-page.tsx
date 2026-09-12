@@ -315,7 +315,7 @@ export function ExpenseCashflowPage({
           </span>
           {isBillsMode ? (
             overdueCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-lg border border-warning px-2 py-1 text-xs font-medium text-warning">
+              <span className="inline-flex items-center gap-1 surface border border-warning px-2 py-1 text-xs font-medium text-warning">
                 <TriangleAlert className="h-3 w-3" aria-hidden />
                 {amountsHidden ? MASK : <Amount value={overdueAmount} />}
                 <span className="text-warning/80">{overdueCount} overdue</span>
@@ -323,7 +323,7 @@ export function ExpenseCashflowPage({
             )
           ) : (
             savedThisMonth > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-lg border border-primary px-2 py-1 text-xs font-medium text-primary">
+              <span className="inline-flex items-center gap-1 surface border border-primary px-2 py-1 text-xs font-medium text-primary">
                 <ArrowUp className="h-3 w-3" aria-hidden />
                 {amountsHidden ? MASK : <Amount value={savedThisMonth} />}
                 <span className="text-primary/80">saved this month</span>

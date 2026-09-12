@@ -185,18 +185,18 @@ export function SharedPartnerBillsPage({ params }: Props) {
         icon={Receipt}
       />
 
-      <p className="text-xs text-muted-foreground rounded-lg border border-muted/80 bg-muted/20 px-3 py-2">
+      <p className="text-xs text-muted-foreground surface border border-muted/80 bg-muted/20 px-3 py-2">
         Read-only access — you can toggle paid status but cannot add, edit, or delete planned expenses.
       </p>
 
       {/* Summary */}
       <div className="flex flex-row gap-3">
-        <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+        <div className="flex-1 surface border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground capitalize">Planned – {activeTab}</p>
           <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(total, "USD")}</p>
           <p className="text-[11px] text-muted-foreground">{tabCounts[activeTab]} planned expense{tabCounts[activeTab] !== 1 ? "s" : ""}</p>
         </div>
-        <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+        <div className="flex-1 surface border bg-card px-4 py-3">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground">Remaining</p>
           <p className={cn("mt-0.5 text-lg font-bold tabular-nums", remaining > 0 ? "text-warning" : "")}>
             {formatCurrency(remaining, "USD")}
@@ -207,7 +207,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
 
       {/* Tabs + list */}
       <div>
-        <div className="mb-3 flex items-center gap-1 rounded-lg border bg-muted/40 w-fit p-0.5">
+        <div className="mb-3 flex items-center gap-1 surface border bg-muted/40 w-fit p-0.5">
           {(["monthly", "quarterly", "yearly"] as PeriodTab[]).map((tab) => (
             <button
               key={tab}
@@ -244,7 +244,7 @@ export function SharedPartnerBillsPage({ params }: Props) {
                 <div
                   key={bill.id}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg border px-4 py-3",
+                    "flex items-center gap-3 surface border px-4 py-3",
                     isPaid
                       ? "border-primary/30 bg-primary/5"
                       : isOverdue

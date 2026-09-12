@@ -38,7 +38,7 @@ async function AdminLogsInner() {
             ) : (
               <div className="space-y-3">
                 {logs.map((log) => (
-                  <div key={log.id} className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+                  <div key={log.id} className="surface border border-border bg-muted/30 p-3 text-xs">
                     <div className="font-semibold text-foreground mb-1">{log.full_name ?? "Unknown User"}</div>
                     <div className="font-mono break-all text-muted-foreground mb-1">{log.dedupe_key}</div>
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -67,7 +67,7 @@ async function AdminLogsInner() {
             ) : (
               <div className="space-y-3">
                 {notifications.map((notif) => (
-                  <div key={notif.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div key={notif.id} className="surface border border-border bg-muted/30 p-3">
                     <div className="font-semibold text-sm mb-1">{notif.full_name ?? "Unknown User"}</div>
                     <div className="font-medium text-sm mb-1">{notif.title}</div>
                     <div className="text-xs text-muted-foreground mb-2">{notif.body}</div>

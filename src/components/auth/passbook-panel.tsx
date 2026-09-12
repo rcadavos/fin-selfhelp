@@ -128,7 +128,7 @@ export function PanelStatement({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-panel-foreground/15 bg-black/15 p-4" aria-label={label}>
+    <div className="surface border border-panel-foreground/15 bg-black/15 p-4" aria-label={label}>
       <div className="flex items-center justify-between gap-3 border-b border-panel-foreground/15 pb-2.5">
         <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-panel-muted">{title}</span>
         <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-panel-muted">{meta}</span>

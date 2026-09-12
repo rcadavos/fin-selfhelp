@@ -62,7 +62,7 @@ export function BudgetStatusCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/50 p-4">
+        <div className="flex items-center gap-3 surface border bg-muted/50 p-4">
           {isOverdraft && (
             <TrendingDown className="h-8 w-8 shrink-0 text-destructive" />
           )}

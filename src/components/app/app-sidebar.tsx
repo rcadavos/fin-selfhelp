@@ -146,7 +146,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           trigger={
             <Button
               variant="ghost"
-              className="h-auto w-full justify-start gap-2 rounded-lg border border-border/60 bg-card px-2 py-2 text-left font-normal hover:bg-muted focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:bg-transparent dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+              className="h-auto w-full justify-start gap-2 surface border border-border/60 bg-card px-2 py-2 text-left font-normal hover:bg-muted focus-visible:ring-1 focus-visible:ring-border focus-visible:ring-offset-0 dark:bg-transparent dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
               aria-label="Account menu"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">

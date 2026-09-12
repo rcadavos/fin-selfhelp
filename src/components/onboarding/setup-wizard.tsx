@@ -329,7 +329,7 @@ function ModeStep({ mode, onSelectMode, onNext, isPending }: ModeStepProps) {
                 onClick={() => onSelectMode(option.value)}
                 aria-pressed={selected}
                 className={cn(
-                  "relative flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "relative flex flex-col gap-2 surface border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   selected
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
                     : "border-border bg-background hover:bg-muted",
@@ -842,7 +842,7 @@ function ToggleChip({ label, selected, onToggle }: { label: string; selected: bo
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+        "flex items-center gap-2 surface border px-3 py-2.5 text-left text-sm transition-colors",
         selected
           ? "border-primary bg-primary/10 text-primary"
           : "border-border bg-background text-foreground hover:bg-muted",

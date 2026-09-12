@@ -189,7 +189,7 @@ export function ReceiptScannerButton({
               <p className="text-sm text-muted-foreground">
                 Review the detected values, then apply them to the form.
               </p>
-              <dl className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+              <dl className="grid gap-2 surface border bg-muted/30 p-3 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-muted-foreground">Merchant</dt>
                   <dd className="text-right font-medium">

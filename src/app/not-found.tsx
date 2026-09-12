@@ -44,7 +44,7 @@ export default function NotFound() {
           The link may be wrong, or the page was removed. Pick a path below and you&apos;ll be back on track.
         </p>
 
-        <div className="mt-10 w-full max-w-md rounded-lg border border-border/60 bg-card p-6">
+        <div className="mt-10 w-full max-w-md surface border border-border/60 bg-card p-6">
           <NotFoundActions />
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Wrong turn?{" "}

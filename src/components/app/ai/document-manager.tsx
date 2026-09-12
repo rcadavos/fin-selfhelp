@@ -92,7 +92,7 @@ export function DocumentManager({
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto [scrollbar-width:thin]">
         {documents.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+          <div className="surface border border-dashed bg-muted/20 p-6 text-center text-xs text-muted-foreground">
             No documents yet. Add a file, a website URL, or paste notes so the assistant can use them.
           </div>
         ) : (
@@ -125,7 +125,7 @@ export function DocumentManager({
 function DocumentRow({ doc, onDelete }: { doc: AiDocument; onDelete: () => void }) {
   const Icon = SOURCE_ICON[doc.source_type] ?? FileText;
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2.5">
+    <div className="flex items-center gap-3 surface border bg-background px-3 py-2.5">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
         <Icon className="h-4 w-4" />
       </span>
@@ -281,7 +281,7 @@ function AddDocumentSheet({
               disabled={pending}
               onClick={() => fileRef.current?.click()}
               className={cn(
-                "flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-10 text-center transition-colors hover:bg-muted/40",
+                "flex w-full flex-col items-center justify-center gap-2 surface border border-dashed bg-muted/20 px-4 py-10 text-center transition-colors hover:bg-muted/40",
                 pending && "pointer-events-none opacity-60",
               )}
             >
@@ -328,7 +328,7 @@ function AddDocumentSheet({
                 </p>
               </>
             ) : (
-              <div className="rounded-lg border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
+              <div className="surface border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
                 URL ingestion isn&apos;t enabled. Add a <code>FIRECRAWL_API_KEY</code> to turn it on.
               </div>
             )}
@@ -347,7 +347,7 @@ function AddDocumentSheet({
               onChange={(e) => setNoteText(e.target.value)}
               disabled={pending}
               rows={8}
-              className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             />
             <Button onClick={handleText} disabled={pending || !noteText.trim()} className="w-full gap-1.5">
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <StickyNote className="h-4 w-4" />}

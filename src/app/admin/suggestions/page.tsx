@@ -47,7 +47,7 @@ function AdminSuggestionsContent() {
               {(suggestions as SuggestionForAdminRow[]).map((s) => (
                 <li
                   key={s.id}
-                  className="rounded-lg border bg-muted/20 p-4 space-y-1"
+                  className="surface border bg-muted/20 p-4 space-y-1"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
                     {s.email && (

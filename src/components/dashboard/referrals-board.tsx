@@ -169,7 +169,7 @@ export function ReferralsBoard() {
       <ContentHeader title={REFERRAL_HEADLINE} subtitle={REFERRAL_TAGLINE} icon={Gift} />
 
       {/* ── Counts ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-3 sm:divide-x sm:divide-border">
+      <div className="grid grid-cols-1 overflow-hidden surface border border-border bg-card sm:grid-cols-3 sm:divide-x sm:divide-border">
         <StatCell
           icon={Users}
           label="Friends joined"

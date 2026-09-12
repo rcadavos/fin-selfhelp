@@ -122,7 +122,7 @@ function ListsInput({
           {value.map((item, i) => (
             <li
               key={i}
-              className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-1.5 text-sm"
+              className="flex items-center justify-between surface border bg-muted/40 px-3 py-1.5 text-sm"
             >
               <span className="mr-2 flex-1 truncate">{item}</span>
               <button
@@ -322,7 +322,7 @@ function CategoryFormFields({
           placeholder="Short description of what belongs in this category…"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+          className="w-full surface border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
         />
       </div>
       <div className="grid gap-1.5">

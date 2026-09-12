@@ -81,7 +81,7 @@ function CustomCategoryCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-lg border border-border/60 p-5",
+        "group relative flex flex-col surface border border-border/60 p-5",
         cat.bgClass || "bg-violet-50 dark:bg-violet-950/30"
       )}
     >
@@ -142,7 +142,7 @@ function GlobalCategoryCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border border-border/60 p-5",
+        "flex flex-col surface border border-border/60 p-5",
         cat.bgClass || "bg-sky-50 dark:bg-sky-950/30"
       )}
     >
@@ -173,7 +173,7 @@ function GlobalCategoryCard({
 
 function UpgradeBanner() {
   return (
-    <div className="mb-8 flex flex-col items-start gap-4 rounded-lg border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+    <div className="mb-8 flex flex-col items-start gap-4 surface border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <Lock className="h-4 w-4 text-primary" />
@@ -324,7 +324,7 @@ export function CategoriesBoard() {
           </div>
 
           {userCategories.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border/60 bg-muted/20 py-10 text-center">
+            <div className="flex flex-col items-center gap-3 surface border border-dashed border-border/60 bg-muted/20 py-10 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                 <Tag className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -411,7 +411,7 @@ export function CategoriesBoard() {
                 placeholder="Short description (optional)"
                 rows={2}
                 maxLength={200}
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                className="flex min-h-[60px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
               />
             </div>
 

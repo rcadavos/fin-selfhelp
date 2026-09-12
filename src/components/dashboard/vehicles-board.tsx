@@ -143,7 +143,7 @@ function ChartTooltip({
   const items = payload.filter((p) => p.value > 0);
   const total = items.reduce((s, p) => s + p.value, 0);
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-sm min-w-[160px]">
+    <div className="surface border bg-background px-3 py-2 text-xs shadow-sm min-w-[160px]">
       <p className="mb-1 font-medium">{payload[0].payload.name}</p>
       {items.map((p) => (
         <div key={p.name} className="flex items-center justify-between gap-3">
@@ -182,7 +182,7 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
     return (
       <div className="space-y-1.5">
         <Label>Linked Planned Expenses</Label>
-        <p className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        <p className="surface border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
           No planned expenses linked to this vehicle yet.
         </p>
       </div>
@@ -199,7 +199,7 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
             <Link
               key={b.id}
               href="/dashboard/planned-expenses"
-              className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
+              className="flex items-center gap-2 surface border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
             >
               <Receipt className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
@@ -367,7 +367,7 @@ export function VehicleDialog({
               value={form.notes}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("notes", e.target.value)}
               rows={2}
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              className="flex min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
           </div>
 
@@ -415,7 +415,7 @@ function VehicleRow({
   return (
     <div
       onClick={onEdit}
-      className="flex cursor-pointer items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:border-primary/30"
+      className="flex cursor-pointer items-center gap-2.5 surface border bg-card px-3 py-2.5 transition-colors hover:border-primary/30"
     >
       {/* Color dot */}
       <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
@@ -631,7 +631,7 @@ export function VehiclesBoard() {
         <div className="flex flex-col gap-3 sm:flex-row">
           {/* Stat cards */}
           <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-            <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+            <div className="flex-1 surface border bg-card px-4 py-3">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                 Vehicles
               </p>
@@ -640,7 +640,7 @@ export function VehiclesBoard() {
                 {vehicles.length === 1 ? "registered" : "registered"}
               </p>
             </div>
-            <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+            <div className="flex-1 surface border bg-card px-4 py-3">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                 Total Spend
               </p>
@@ -702,7 +702,7 @@ export function VehiclesBoard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex h-full min-h-[160px] items-center justify-center rounded-lg border border-dashed bg-muted/20 text-sm text-muted-foreground">
+              <div className="flex h-full min-h-[160px] items-center justify-center surface border border-dashed bg-muted/20 text-sm text-muted-foreground">
                 No spending recorded for this month
               </div>
             )}
@@ -763,7 +763,7 @@ export function VehiclesBoard() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
+        <div className="flex flex-col items-center justify-center surface border border-dashed py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <Car className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -780,7 +780,7 @@ export function VehiclesBoard() {
 
       {/* Tip banner — only on current month with no spend (likely nothing linked yet) */}
       {hasVehicles && !hasSpend && selectedMonth === CURRENT_MONTH_YM && (
-        <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <div className="surface border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           <strong className="font-medium text-foreground">Tip:</strong>{" "}
           When adding a Planned Expense or Expense under the{" "}
           <em>Transport &amp; Commute</em> category, you can link it to one of your

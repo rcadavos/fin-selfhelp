@@ -240,7 +240,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       />
 
       {/* Balance card */}
-      <div className="rounded-lg border bg-card px-5 py-5">
+      <div className="surface border bg-card px-5 py-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current balance</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">History</h2>
         {txData.transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-10 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 surface border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No entries yet.</p>
             <p className="max-w-md text-xs">Add an expense, income, adjustment, or transfer to start tracking the balance on this account.</p>
           </div>
@@ -312,7 +312,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
                     return (
                       <li
                         key={tx.id}
-                        className="group flex items-center gap-3 rounded-lg border bg-card px-4 py-3"
+                        className="group flex items-center gap-3 surface border bg-card px-4 py-3"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">

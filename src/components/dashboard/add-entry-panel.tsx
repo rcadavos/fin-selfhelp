@@ -345,7 +345,7 @@ export function AddEntryPanel({
 
       {/* Tab bar */}
       <div className="flex-shrink-0 px-6 pb-0">
-        <div className="inline-flex w-full items-center gap-0.5 rounded-md border bg-background p-0.5">
+        <div className="inline-flex w-full items-center gap-0.5 surface border bg-background p-0.5">
           {TABS.map((t) => (
             <Button
               key={t.value}
@@ -395,7 +395,7 @@ export function AddEntryPanel({
                   )}
                 </div>
               ) : (
-                <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+                <p className="surface border border-dashed px-3 py-3 text-xs text-muted-foreground">
                   No accounts found. Create an account first to track expenses.
                 </p>
               )}
@@ -461,12 +461,12 @@ export function AddEntryPanel({
                 <textarea
                   id="ae-note" value={expNote} onChange={(e) => setExpNote(e.target.value)}
                   placeholder="Optional note…" rows={2}
-                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
 
               {isUntrackedAccount && (
-                <label htmlFor="exp-show-history" className="flex cursor-pointer items-center gap-2.5 rounded-md border border-input bg-muted/40 px-3 py-2.5">
+                <label htmlFor="exp-show-history" className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-input bg-muted/40 px-3 py-2.5">
                   <input
                     id="exp-show-history"
                     type="checkbox"
@@ -506,7 +506,7 @@ export function AddEntryPanel({
                   )}
                 </div>
               ) : (
-                <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">No accounts found.</p>
+                <p className="surface border border-dashed px-3 py-3 text-xs text-muted-foreground">No accounts found.</p>
               )}
               <div className="grid gap-1.5">
                 <Label htmlFor="inc-desc">Description (optional)</Label>
@@ -555,7 +555,7 @@ export function AddEntryPanel({
                   />
                 </div>
               ) : (
-                <p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">No accounts found.</p>
+                <p className="surface border border-dashed px-3 py-3 text-xs text-muted-foreground">No accounts found.</p>
               )}
               <div className="grid gap-1.5">
                 <Label htmlFor="adj-notes">Notes (optional)</Label>
@@ -599,7 +599,7 @@ export function AddEntryPanel({
                   {txToAccounts.length > 0 ? (
                     <AccountSelect id="tx-to" accounts={txToAccounts} value={txTo} onChange={setTxTo} placeholder="Select destination" />
                   ) : (
-                    <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                    <p className="surface border border-dashed px-3 py-2 text-xs text-muted-foreground">
                       You need at least one other account.
                     </p>
                   )}

@@ -26,6 +26,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "The plans on the landing page are now three separate cards instead of one block split by dividing lines, with the recommended plan outlined so it stands on its own." },
       { type: "improvement", description: "Rounded the profile menu's items — the panel was already rounded but each row squared off as you hovered it — along with the cards and plan switcher on your Subscription page." },
       { type: "fix", description: "The 'Back to Dashboard' button on the Subscription page had its padding stripped out, so it was cramped and awkward to tap. It now has a normal button's spacing while staying aligned with the text above it." },
+      { type: "improvement", description: "Swept the rest of the app for square corners in one go rather than page by page: Settings, Referrals, Feedback, Vehicles, Receivables, Accounts, Categories, the AI document manager, admin pages and more — 132 panels in all. Text fields were rounded to match other inputs rather than to the card shape." },
+      { type: "feature", description: "Hovering a date on the Planned Expenses calendar now shows what is due that day — each bill with its amount and whether it is due, overdue, part paid or settled. Tapping a date does the same on a phone." },
     ],
   },
   {

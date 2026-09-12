@@ -251,7 +251,7 @@ function AdminNotificationsContent() {
                   type="button"
                   onClick={() => setChannel(value)}
                   className={[
-                    "flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-colors",
+                    "flex flex-col gap-1 surface border px-4 py-3 text-left transition-colors",
                     channel === value
                       ? "border-primary bg-primary/5 text-foreground"
                       : "border-border text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground",
@@ -277,7 +277,7 @@ function AdminNotificationsContent() {
                   type="button"
                   onClick={() => setTarget(value)}
                   className={[
-                    "flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-colors",
+                    "flex flex-col gap-1 surface border px-4 py-3 text-left transition-colors",
                     target === value
                       ? "border-primary bg-primary/5 text-foreground"
                       : "border-border text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground",
@@ -295,7 +295,7 @@ function AdminNotificationsContent() {
 
           {/* User picker — only shown for "specific" */}
           {target === "specific" && (
-            <div className="space-y-2 rounded-lg border p-3">
+            <div className="space-y-2 surface border p-3">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -426,7 +426,7 @@ function AdminNotificationsContent() {
                   placeholder="Additional details shown in the bell menu…"
                   rows={3}
                   maxLength={500}
-                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
             )}
@@ -455,7 +455,7 @@ function AdminNotificationsContent() {
           {sendError && <p className="text-sm text-destructive">{sendError}</p>}
 
           {lastResult && (
-            <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
+            <div className="surface border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
               {lastResult.sent > 0 && (
                 <p>
                   Delivered to {lastResult.sent} user
@@ -508,7 +508,7 @@ function AdminNotificationsContent() {
               . Continue?
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/40 px-4 py-3 space-y-1">
+          <div className="surface border bg-muted/40 px-4 py-3 space-y-1">
             <p className="text-sm font-medium">{title}</p>
             {wantsInApp && inAppBody.trim() && (
               <p className="text-sm text-muted-foreground">{inAppBody}</p>

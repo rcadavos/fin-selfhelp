@@ -137,7 +137,7 @@ export default function ProfilePage() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm text-primary">
+              <div className="flex items-start gap-2 surface border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm text-primary">
                 <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <span>
                   <strong>Birthday perk:</strong> You get <strong>Pro for free</strong> during your birth month every year.

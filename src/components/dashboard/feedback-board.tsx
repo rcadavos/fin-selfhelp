@@ -101,7 +101,7 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
     return (
       <div className="space-y-3">
         <div className={cn(
-          "flex items-start gap-3 rounded-lg border p-4",
+          "flex items-start gap-3 surface border p-4",
           review.status === "approved"
             ? "border-primary/30 bg-primary/10"
             : "border-warning/40 bg-warning/10",
@@ -139,7 +139,7 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
 
   if (done) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
+      <div className="flex items-center gap-3 surface border border-primary/30 bg-primary/10 p-4">
         <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
         <p className="text-sm font-medium">Your review has been submitted and is pending approval. Thank you!</p>
       </div>
@@ -186,12 +186,12 @@ function ReviewSection({ initialReview, displayName }: { initialReview: MyReview
           placeholder="Share your experience with mnitrak…"
           rows={4}
           disabled={saving}
-          className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
 
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="flex items-center justify-between surface border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <span>{error}</span>
           <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-3.5 w-3.5" />
@@ -236,7 +236,7 @@ function SuggestionSection() {
   if (done) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4">
+        <div className="flex items-center gap-3 surface border border-primary/30 bg-primary/10 p-4">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
           <p className="text-sm font-medium">Your feedback has been sent. Thank you!</p>
         </div>
@@ -258,12 +258,12 @@ function SuggestionSection() {
           placeholder="Want to report a bug? Or suggest a feature or improvement? Your feedback helps us make Omnitrak better! We will reward you with subscription if your bug is valid or your suggestion gets implemented."
           rows={5}
           disabled={saving}
-          className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
 
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="flex items-center justify-between surface border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <span>{error}</span>
           <button type="button" onClick={() => setError(null)} className="ml-2 rounded p-0.5 hover:bg-destructive/10">
             <X className="h-3.5 w-3.5" />
@@ -301,7 +301,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 flex items-center gap-1 rounded-lg border bg-muted/40 p-0.5 w-full sm:w-fit">
+      <div className="mb-6 flex items-center gap-1 surface border bg-muted/40 p-0.5 w-full sm:w-fit">
         {([
           { key: "review", label: "Leave a Review" },
           { key: "suggestion", label: "Feedback" },
@@ -323,7 +323,7 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
       </div>
 
       {/* Content */}
-      <div className="rounded-lg border bg-card p-5">
+      <div className="surface border bg-card p-5">
         {tab === "review" ? (
           <ReviewSection initialReview={initialReview} displayName={displayName} />
         ) : (

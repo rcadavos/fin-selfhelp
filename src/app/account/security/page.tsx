@@ -170,7 +170,7 @@ export default function ProfileSecurityPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <div className="surface border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
                 You signed in with Google and don&apos;t have a password yet. Set one below to also sign in with email and password.
               </div>
             )}

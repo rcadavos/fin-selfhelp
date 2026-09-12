@@ -298,7 +298,7 @@ function AccountCard({
   return (
     <div
       onClick={onOpen}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-card p-4 transition-colors hover:bg-muted/40"
+      className="group relative flex cursor-pointer flex-col overflow-hidden surface border bg-card p-4 transition-colors hover:bg-muted/40"
       style={{ borderColor: `${account.color}66` }}
     >
       {/* Softer gradient overlay */}
@@ -587,14 +587,14 @@ export function AccountsBoard() {
       <div className="flex flex-col gap-3 sm:flex-row">
         {/* Stat cards */}
         <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+          <div className="flex-1 surface border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Accounts</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums">{accounts.length}</p>
             <p className="text-[11px] text-muted-foreground">
               {accounts.length === 1 ? "Account" : "Accounts"} added
             </p>
           </div>
-          <div className="flex-1 rounded-lg border bg-card px-4 py-3">
+          <div className="flex-1 surface border bg-card px-4 py-3">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground">Net Balance</p>
             <div className="mt-0.5 flex items-center gap-2">
               <p className={
@@ -630,7 +630,7 @@ export function AccountsBoard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="flex h-full min-h-[160px] items-center justify-center rounded-lg border border-dashed bg-muted/20 text-sm text-muted-foreground">
+            <div className="flex h-full min-h-[160px] items-center justify-center surface border border-dashed bg-muted/20 text-sm text-muted-foreground">
               Add an account to see the chart
             </div>
           )}
@@ -639,7 +639,7 @@ export function AccountsBoard() {
 
       {/* Accounts grid */}
       {accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-10 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-3 surface border border-dashed py-10 text-muted-foreground">
           <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
           <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
             <Plus className="mr-1.5 h-4 w-4" />

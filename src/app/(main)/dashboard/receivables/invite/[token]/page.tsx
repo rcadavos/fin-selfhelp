@@ -126,7 +126,7 @@ export default function ReceivableInvitePage() {
               </p>
             </div>
             {state.preview.notes && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-950/20 px-3 py-2">
+              <div className="surface border border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-950/20 px-3 py-2">
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
                   Note from {state.preview.owner_name}
                 </p>

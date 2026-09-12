@@ -128,7 +128,7 @@ export function AssistantChat({
             }}
             rows={1}
             placeholder="Ask about your finances or documents…"
-            className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
           {busy ? (
             <Button type="button" size="icon" variant="outline" onClick={() => stop()} aria-label="Stop">
@@ -172,7 +172,7 @@ function EmptyState({ compact, onPick }: { compact: boolean; onPick: (q: string)
             key={q}
             type="button"
             onClick={() => onPick(q)}
-            className="rounded-lg border bg-muted/30 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="surface border bg-muted/30 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {q}
           </button>

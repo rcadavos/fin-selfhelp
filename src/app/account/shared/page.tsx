@@ -57,7 +57,7 @@ export default function SharedWithMePage() {
         icon={UsersRound}
         className="mb-4"
       />
-      <div className="mt-4 rounded-lg border border-muted/80 bg-muted/20 p-4">
+      <div className="mt-4 surface border border-muted/80 bg-muted/20 p-4">
         <PartnerAccessInfo />
       </div>
 

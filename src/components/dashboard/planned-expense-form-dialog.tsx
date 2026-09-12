@@ -391,7 +391,7 @@ export function PlannedExpenseFormDialog({
           {/* Auto Debit — hidden in an app mode that switches it off. The stored flag is
               left untouched, so it resumes when the mode does. */}
           {autoDebitAvailable && (
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors hover:bg-muted/50">
+          <label className="flex cursor-pointer items-center gap-3 surface border px-3 py-2.5 transition-colors hover:bg-muted/50">
             <input
               type="checkbox"
               checked={form.autoDebit}
@@ -470,7 +470,7 @@ export function PlannedExpenseFormDialog({
                         onClick={() => reminderEnabled && toggleReminder(value)}
                         disabled={!reminderEnabled}
                         className={cn(
-                          "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
+                          "surface border px-2 py-2 text-xs font-medium transition-colors",
                           isOnDueDate ? "flex-none" : "flex-1",
                           active
                             ? "border-primary bg-primary/10 text-primary"

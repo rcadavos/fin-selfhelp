@@ -603,7 +603,7 @@ export function MyGoalsPage() {
         <div
           onClick={() => openEdit(g)}
           className={cn(
-            "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border bg-card p-3 transition-shadow",
+            "flex cursor-pointer select-none items-start gap-2.5 surface border bg-card p-3 transition-shadow",
             achieved ? "border-primary/50 bg-primary/5" :
               fullyFunded ? "border-primary/40 bg-primary/5" : "",
             sortable?.isDragging
@@ -1076,7 +1076,7 @@ export function MyGoalsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="Reasons, motivations, steps to achieve it…"
                 rows={3}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
 
@@ -1099,7 +1099,7 @@ export function MyGoalsPage() {
                       {deposits.map((d) => (
                         <li
                           key={d.id}
-                          className="flex items-center gap-2 rounded-lg border bg-muted/30 px-2.5 py-2 text-xs"
+                          className="flex items-center gap-2 surface border bg-muted/30 px-2.5 py-2 text-xs"
                         >
                           <span className="w-[90px] flex-shrink-0 text-muted-foreground">
                             {formatDepositDate(d.deposited_at)}

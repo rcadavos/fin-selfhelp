@@ -192,7 +192,7 @@ function SharingSettingsContent() {
             <p className="text-sm text-muted-foreground">No invites yet.</p>
           ) : (
             outgoing.map((s) => (
-              <div key={s.id} className="rounded-lg border p-4 space-y-2">
+              <div key={s.id} className="surface border p-4 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-medium">{s.invite_email}</p>
@@ -286,7 +286,7 @@ function SharingSettingsContent() {
             incoming
               .filter((s) => s.status === "pending")
               .map((s) => (
-                <div key={s.id} className="rounded-lg border p-3 text-sm">
+                <div key={s.id} className="surface border p-3 text-sm">
                   <p className="font-medium">Someone invited you</p>
                   <p className="text-muted-foreground">Access: {permBadges(s)}</p>
                   <p className="mt-2 text-xs text-muted-foreground">

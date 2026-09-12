@@ -124,7 +124,7 @@ function AdminReviewsContent() {
               {reviews.map((r: ReviewForAdminRow) => (
                 <li
                   key={r.id}
-                  className="rounded-lg border bg-muted/20 p-4 space-y-3"
+                  className="surface border bg-muted/20 p-4 space-y-3"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -237,7 +237,7 @@ function AdminReviewsContent() {
                   <Label htmlFor="edit-content">Content</Label>
                   <textarea
                     id="edit-content"
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex min-h-[80px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     placeholder="Your review"
