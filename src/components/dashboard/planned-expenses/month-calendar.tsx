@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Amount } from "@/components/passbook/amount";
+import { Stamp, type StampVariant } from "@/components/passbook/stamp";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { PlannedExpenseRow, PlannedExpenseStatus, PlannedExpenseSummary } from "@/lib/planned-expenses/grouping";
 
@@ -16,6 +19,24 @@ const DOT_TONE: Record<PlannedExpenseStatus, string> = {
 };
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
+
+const STATUS_LABEL: Record<PlannedExpenseStatus, string> = {
+  overdue: "Overdue",
+  failed: "Failed",
+  partial: "Part paid",
+  due: "Due",
+  scheduled: "Scheduled",
+  paid: "Paid",
+};
+
+const STATUS_STAMP: Record<PlannedExpenseStatus, StampVariant> = {
+  overdue: "overdue",
+  failed: "overdue",
+  partial: "due",
+  due: "due",
+  scheduled: "scheduled",
+  paid: "paid",
+};
 
 export function MonthCalendar({
   rows,
@@ -35,6 +56,7 @@ export function MonthCalendar({
   month0: number;
   todayDay: number | null;
 }) {
+  const [openDay, setOpenDay] = useState<number | null>(null);
   const daysInMonth = new Date(year, month0 + 1, 0).getDate();
   const leadingBlanks = new Date(year, month0, 1).getDay();
 
@@ -78,24 +100,75 @@ export function MonthCalendar({
           const dayRows = byDay.get(day) ?? [];
           const isToday = todayDay === day;
           const isPast = todayDay !== null && day < todayDay;
-          return (
-            <span
-              key={day}
-              title={dayRows.length ? dayRows.map((r) => r.bill.note ?? "Planned expense").join(", ") : undefined}
-              className={cn(
-                "flex aspect-square min-h-[30px] flex-col items-center justify-center gap-0.5 rounded border border-transparent font-mono text-[11px]",
-                isToday && "border-primary font-semibold text-primary",
-                isPast && !isToday && "opacity-55",
-                dayRows.length > 0 && !isToday && "bg-accent/40",
-              )}
-            >
+          const cellClass = cn(
+            "flex aspect-square min-h-[30px] w-full flex-col items-center justify-center gap-0.5 surface border border-transparent font-mono text-[11px]",
+            isToday && "border-primary font-semibold text-primary",
+            isPast && !isToday && "opacity-55",
+            dayRows.length > 0 && !isToday && "bg-accent/40",
+          );
+          const cellInner = (
+            <>
               {day}
               <span className="flex h-[5px] items-center gap-px">
                 {dayRows.slice(0, 3).map((row) => (
                   <i key={row.bill.id} className={cn("block size-1 rounded-full", DOT_TONE[row.status])} />
                 ))}
               </span>
-            </span>
+            </>
+          );
+
+          if (dayRows.length === 0) {
+            return (
+              <span key={day} className={cellClass}>
+                {cellInner}
+              </span>
+            );
+          }
+
+          // Radix Popover rather than a title tooltip or a hover-only panel: it
+          // collision-flips near the grid edges, and opening on click as well as
+          // hover means this works on a phone, where this calendar mostly lives.
+          return (
+            <Popover key={day} open={openDay === day} onOpenChange={(o) => setOpenDay(o ? day : null)}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  onMouseEnter={() => setOpenDay(day)}
+                  onMouseLeave={() => setOpenDay((d) => (d === day ? null : d))}
+                  aria-label={`${dayRows.length} planned expense${dayRows.length === 1 ? "" : "s"} due ${monthLabel} ${day}`}
+                  className={cn(
+                    cellClass,
+                    "cursor-pointer transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                >
+                  {cellInner}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="center" sideOffset={6} className="w-56 overflow-hidden p-0">
+                <p className="border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {monthLabel} {day}
+                </p>
+                <ul className="divide-y divide-border">
+                  {dayRows.map((row) => (
+                    <li key={row.bill.id} className="flex items-start justify-between gap-2 px-3 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-medium">
+                          {row.bill.note ?? "Planned expense"}
+                        </span>
+                        <Stamp variant={STATUS_STAMP[row.status]} className="mt-1">
+                          {STATUS_LABEL[row.status]}
+                        </Stamp>
+                      </span>
+                      <Amount
+                        value={row.outstanding > 0 ? row.outstanding : row.bill.amount}
+                        currency={currency}
+                        className="shrink-0 text-[13px]"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
           );
         })}
       </div>
