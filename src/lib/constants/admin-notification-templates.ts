@@ -74,4 +74,36 @@ export const ADMIN_NOTIFICATION_TEMPLATES: AdminNotificationTemplate[] = [
 <p style="margin:0 0 12px;">Stay on top of it — your future self will thank you.</p>
 <p style="margin:16px 0 0;">— The OmniTrak Team</p>`,
   },
+  {
+    id: "redesign-announcement",
+    name: "Redesign + Pro perks",
+    description: "Announces the redesign and the two ways to get Pro free: birth month and referrals.",
+    subject: "OmniTrak has a new look — and two ways to get Pro free",
+    inAppBody:
+      "OmniTrak has been redesigned. Bills now group by what needs you, and Expenses shows whether a month is heavy. Plus two ways to get Pro free: your birth month, and inviting friends.",
+    emailHtml: `<p style="margin:0 0 12px;">Hi there 👋</p>
+<p style="margin:0 0 12px;">OmniTrak has been redesigned around the questions you actually open it to answer.</p>
+
+<h2 style="margin:20px 0 10px;font-size:18px;font-weight:700;color:#0f172a;">What's new</h2>
+<ul style="margin:0 0 16px;padding-left:20px;line-height:1.7;">
+  <li><strong>Bills</strong> group by what needs you — overdue, due this week, later this month — each with its own running total, plus a month calendar showing every due date at a glance. Marking one paid is a single tap on the row.</li>
+  <li><strong>Expenses</strong> now tells you whether a month is heavy: what you've spent, what it projects to by month end, and how that compares with your own recent months.</li>
+</ul>
+
+<h2 style="margin:20px 0 10px;font-size:18px;font-weight:700;color:#0f172a;">Two ways to get Pro free</h2>
+
+<div style="padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin:0 0 12px;">
+  <p style="margin:0;font-size:13px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:0.05em;">1. Your birth month</p>
+  <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#0f172a;">Pro is free for your whole birth month, every year — applied automatically once your birth month is set. Set it on your profile under Account → Profile.</p>
+  <p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:#475569;">Choose carefully: your birth month can only be set once and can't be changed afterwards.</p>
+</div>
+
+<div style="padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:0 0 16px;">
+  <p style="margin:0;font-size:13px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.05em;">2. Invite friends</p>
+  <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#0f172a;">Every 5 friends who join through your link earns you 1 free month of Pro, and every friend who upgrades earns you 1 more. It stacks, with no cap. Grab your link from Refer &amp; Earn in the dashboard.</p>
+</div>
+
+<p style="margin:0 0 12px;">Have a look around — and tell us what you think.</p>
+<p style="margin:16px 0 0;">— The OmniTrak Team</p>`,
+  },
 ];
