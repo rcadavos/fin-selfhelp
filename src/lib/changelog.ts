@@ -18,6 +18,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "A fully paid day on the Bills calendar is now filled with the same green as the Mark paid button, instead of a faint tint that was easy to miss." },
+      { type: "improvement", description: "The 'Needs you now' panel can be dismissed with an X if you want it out of the way. It comes back next time you open the page — it is hidden for the visit, not turned off." },
       { type: "improvement", description: "Renamed Planned Expenses to Bills everywhere — the sidebar, the bottom bar, page headings, dialogs, search, emails and the landing page. It is what everyone called it anyway, and it is shorter on a phone." },
       { type: "improvement", description: "The page now lives at /dashboard/bills. Old links and bookmarks to /dashboard/planned-expenses, including links to a single bill, redirect to the new address." },
       { type: "improvement", description: "On the Expenses page, the 'Planned paid' figure and the 'Planned' bars in the 6-month chart now read 'Bills', matching the rest of the app." },

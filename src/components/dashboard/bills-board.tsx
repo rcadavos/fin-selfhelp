@@ -243,6 +243,8 @@ export function BillsBoard() {
   const [addOpen, setAddOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [settledCollapsed, setSettledCollapsed] = useState(true);
+  // Deliberately not persisted — the panel returns on the next load.
+  const [heroDismissed, setHeroDismissed] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRowModel | null>(null);
   const [partialBill, setPartialBill] = useState<BillRowModel | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -606,7 +608,9 @@ export function BillsBoard() {
           {/* ── The month, at a glance ── */}
           {isBillsMode ? (
             <>
+              {!heroDismissed && (
               <BillsHero
+                onDismiss={() => setHeroDismissed(true)}
                 next={heroRow}
                 queue={heroQueue}
                 currency={currency}
@@ -618,6 +622,7 @@ export function BillsBoard() {
                   setPartialBill(heroRow.bill);
                 }}
               />
+              )}
               <MonthCalendar
                 rows={rows}
                 summary={summary}

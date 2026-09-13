@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Check, PartyPopper } from "lucide-react";
+import { AlertCircle, Check, PartyPopper, X } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
 import { formatCurrency } from "@/lib/utils";
@@ -19,6 +19,7 @@ export function BillsHero({
   currency,
   onMarkPaid,
   onPartialPayment,
+  onDismiss,
   isPending,
 }: {
   /** The most urgent unsettled bill, or null when the month is clear. */
@@ -28,6 +29,8 @@ export function BillsHero({
   currency: string;
   onMarkPaid: () => void;
   onPartialPayment: () => void;
+  /** Hides the panel for this visit only — deliberately not persisted. */
+  onDismiss: () => void;
   isPending: boolean;
 }) {
   const ledgerRule =
@@ -66,14 +69,24 @@ export function BillsHero({
   return (
     <div className={`relative overflow-hidden rounded-[calc(var(--radius)+2px)] bg-panel p-5 text-panel-foreground shadow-[var(--shadow)] ${ledgerRule}`}>
       <div className="relative z-10">
-        <p
-          className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.11em] ${
-            isLate ? "text-[hsl(4.5_69%_72%)]" : "text-panel-accent"
-          }`}
-        >
-          <AlertCircle className="size-3" aria-hidden />
-          {isLate ? "Needs you now" : "Coming up"}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.11em] ${
+              isLate ? "text-[hsl(4.5_69%_72%)]" : "text-panel-accent"
+            }`}
+          >
+            <AlertCircle className="size-3" aria-hidden />
+            {isLate ? "Needs you now" : "Coming up"}
+          </p>
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label="Hide this panel until next visit"
+            className="tap-target -mr-1 -mt-1 flex size-6 shrink-0 items-center justify-center rounded-full text-panel-muted transition-colors hover:bg-panel-foreground/10 hover:text-panel-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
 
         <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">
           {next.bill.note ?? "Bill"}

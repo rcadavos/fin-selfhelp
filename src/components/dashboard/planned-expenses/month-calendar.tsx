@@ -46,7 +46,10 @@ function dayStatusFor(rows: PlannedExpenseRow[]): DayStatus {
 }
 
 const DAY_TONE: Record<DayStatus, string> = {
-  paid: "border-primary/30 bg-primary/15 text-primary",
+  // Solid fill, matching the Mark paid button rather than the tint the other
+  // states use: a fully settled day is the one positive terminal state here, and
+  // it should read as the same green as the button that got it there.
+  paid: "border-primary bg-primary text-primary-foreground",
   overdue: "border-destructive/30 bg-destructive/15 text-destructive",
   partial: "border-warning/30 bg-warning/15 text-warning",
   due: "border-warning/25 bg-warning/10 text-warning",
@@ -141,7 +144,7 @@ export function MonthCalendar({
               {day}
               <span className="flex h-3 items-center justify-center gap-px">
                 {status === "paid" ? (
-                  <Check className="size-3 text-primary" strokeWidth={3} aria-hidden />
+                  <Check className="size-3" strokeWidth={3} aria-hidden />
                 ) : (
                   dayRows.slice(0, 3).map((row) => (
                     <i key={row.bill.id} className={cn("block size-1 rounded-full", DOT_TONE[row.status])} />
