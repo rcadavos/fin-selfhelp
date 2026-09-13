@@ -19,7 +19,7 @@ function BrandLogo({ className, iconClassName }: { className?: string; iconClass
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 font-bold leading-none tracking-tight text-panel-accent",
+        "inline-flex items-center gap-0 font-bold leading-none tracking-tight text-panel-accent",
         className,
       )}
     >
@@ -29,7 +29,7 @@ function BrandLogo({ className, iconClassName }: { className?: string; iconClass
         aria-hidden
         width={80}
         height={80}
-        className={cn("h-8 w-auto shrink-0 object-contain", iconClassName)}
+        className={cn("-mr-1 h-8 w-auto shrink-0 object-contain", iconClassName)}
         priority
         unoptimized
       />

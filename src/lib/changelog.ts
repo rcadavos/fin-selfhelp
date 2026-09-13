@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "Tightened the space between the OmniTrak mark and the wordmark so the logo reads as one lockup — on the landing page, the dashboard header, the sidebar and the sign-in pages." },
       { type: "fix", description: "On the Bills calendar header, the amount left and the word 'left' sit on one line again instead of the word dropping underneath, and the decimals are no longer faded out." },
       { type: "improvement", description: "Options in dropdown menus and pickers now show a hand cursor on hover, so they read as clickable." },
       { type: "improvement", description: "Hovering the circle next to a bill now shows a 'Mark as paid' tooltip, so it is clear what it does before you click it." },

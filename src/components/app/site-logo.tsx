@@ -42,7 +42,11 @@ export function SiteLogo({
         decoding="async"
         unoptimized
       />
-      {!iconOnly && <span>OmniTrak</span>}
+      {/* The lockup sets no gap — the space came from the transparent padding
+          baked into favicon.png, so it takes a negative margin to close rather
+          than a smaller gap. One value here covers the landing header, the app
+          header and the sidebar. */}
+      {!iconOnly && <span className="-ml-1.5">OmniTrak</span>}
     </span>
   );
 }
