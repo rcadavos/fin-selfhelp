@@ -14,7 +14,7 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.9.0",
+    version: "1.8.4",
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
