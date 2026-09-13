@@ -14,7 +14,7 @@ import {
   monthlyBreakdownQueryOptions,
 } from "@/lib/query/expenses";
 import { userStreakQueryOptions } from "@/lib/query/streaks";
-import { InsightPopup } from "@/components/dashboard/insight-popup";
+import { StreakCard } from "@/components/dashboard/streak-card";
 import { cn, formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { getAccountDisplayName } from "@/components/app/account-dropdown-menu";
@@ -217,7 +217,6 @@ export function ExpenseCashflowPage({
   );
 
   const billsUnpaid = Math.max(0, billsTotal - billsPaid);
-  const billsPaidPct = billsTotal > 0 ? Math.min(100, Math.round((billsPaid / billsTotal) * 100)) : 0;
   const unpaidCount = Math.max(0, monthBills.length - billsPaidCount);
 
   // Bills for the upcoming-bills ledger: unpaid (soonest first) before paid.
@@ -526,7 +525,8 @@ export function ExpenseCashflowPage({
           </section>
         )}
 
-        {/* Upcoming bills — 1/3, or the full row in bills mode */}
+        {/* Upcoming bills — 1/3, or the full row in bills mode — with the streak beneath it */}
+        <div className="flex min-w-0 flex-col gap-5">
         <section className="surface min-w-0 overflow-hidden border border-border bg-card" aria-label="Upcoming bills">
           <div className="flex items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
             <h2 className="text-base font-bold tracking-tight">Upcoming bills</h2>
@@ -583,18 +583,12 @@ export function ExpenseCashflowPage({
             </>
           )}
         </section>
-      </div>
 
-      {/* ════════════════════ INSIGHT POPUP ════════════════════ */}
-      {/* Only mount once every query the popup reads from has settled — */}
-      {/* prevents the content from flipping as queries land one by one. */}
-      {user && streakQuery.isSuccess && billsDataQuery.isSuccess && (
-        <InsightPopup
-          firstName={firstName}
-          streak={streakQuery.data?.streak_count ?? 1}
-          billsPaidPct={billsTotal > 0 ? billsPaidPct : undefined}
-        />
-      )}
+        {user && streakQuery.isSuccess && (
+          <StreakCard streak={streakQuery.data?.streak_count ?? 1} firstName={firstName} />
+        )}
+        </div>
+      </div>
     </div>
   );
 }
