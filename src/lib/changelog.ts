@@ -18,6 +18,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "feature", description: "The birthday perk now actually runs: Pro is granted automatically for your whole birth month, every year. Previously the birth month was only stored — nothing ever gave you the free month." },
+      { type: "improvement", description: "Your birth month can now only be set once. It unlocks a free month of Pro every year, so allowing changes would let it be claimed over and over; the field locks after you save it." },
       { type: "improvement", description: "Added an announcement email covering the redesign and the two ways to get Pro free — your birth month, and inviting friends." },
       { type: "improvement", description: "Tightened the space between the OmniTrak mark and the wordmark so the logo reads as one lockup — on the landing page, the dashboard header, the sidebar and the sign-in pages." },
       { type: "fix", description: "On the Bills calendar header, the amount left and the word 'left' sit on one line again instead of the word dropping underneath, and the decimals are no longer faded out." },

@@ -151,10 +151,29 @@ export async function updateProfile(params: {
 
   const prevPhone = (user.user_metadata?.phone as string | undefined)?.trim() ?? user.phone ?? "";
   const newPhone = params.phone.trim();
-  const birthMonth =
+  const requestedBirthMonth =
     typeof params.birthMonth === "number" && params.birthMonth >= 1 && params.birthMonth <= 12
       ? params.birthMonth
       : null;
+
+  /**
+   * birth_month is write-once: the birth-month Pro perk is keyed on it, so an
+   * editable value would be an unlimited Pro generator. A DB trigger enforces
+   * this for real — this read keeps an honest form submission from hitting a
+   * raw database error, and keeps the stored value once set.
+   */
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("birth_month")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const lockedBirthMonth =
+    typeof existingProfile?.birth_month === "number" ? existingProfile.birth_month : null;
+
+  if (lockedBirthMonth !== null && requestedBirthMonth !== lockedBirthMonth) {
+    return { error: "Your birth month is already set and can't be changed." };
+  }
+  const birthMonth = lockedBirthMonth ?? requestedBirthMonth;
 
   const { error } = await supabase.auth.updateUser({
     data: {

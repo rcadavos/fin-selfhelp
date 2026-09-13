@@ -42,6 +42,8 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [birthMonth, setBirthMonth] = useState<number | null>(null);
+  /** True once a birth month is stored — it is write-once, so the field locks. */
+  const [birthMonthLocked, setBirthMonthLocked] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export default function ProfilePage() {
     setPhone(getPhoneForForm(user));
     const bm = user.user_metadata?.birth_month;
     setBirthMonth(typeof bm === "number" ? bm : null);
+    setBirthMonthLocked(typeof bm === "number");
   }, [user]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -125,6 +128,7 @@ export default function ProfilePage() {
               <Select
                 value={birthMonth !== null ? String(birthMonth) : ""}
                 onValueChange={(v) => setBirthMonth(v ? Number(v) : null)}
+                disabled={birthMonthLocked}
               >
                 <SelectTrigger id="birth_month" className="w-full">
                   <SelectValue placeholder="Select your birth month" />
@@ -141,7 +145,9 @@ export default function ProfilePage() {
                 <Gift className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <span>
                   <strong>Birthday perk:</strong> You get <strong>Pro for free</strong> during your birth month every year.
-                  Set your birth month to unlock this automatically.
+                  {birthMonthLocked
+                    ? " It applies automatically — no need to do anything."
+                    : " Choose carefully: your birth month can only be set once and can't be changed afterwards."}
                 </span>
               </div>
             </div>
