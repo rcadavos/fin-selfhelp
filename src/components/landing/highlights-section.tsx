@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 const highlights = [
   {
-    title: "Stay ahead of your planned expenses",
+    title: "Stay ahead of your bills",
     description: "Never miss a due date again.",
   },
   {

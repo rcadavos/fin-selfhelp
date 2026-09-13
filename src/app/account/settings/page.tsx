@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Master switch for planned expense reminders and subscription alerts.
+                    Master switch for bill reminders and subscription alerts.
                   </p>
                 </div>
                 <ToggleSwitch
@@ -324,7 +324,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <Bell className="h-4 w-4 text-primary" aria-hidden />
                     <p id="label-bill" className="text-sm font-medium">
-                      Planned expense reminders
+                      Bill reminders
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -438,7 +438,7 @@ export default function SettingsPage() {
         open={showBillsModeDialog}
         onOpenChange={setShowBillsModeDialog}
         title="Switch to Bills & reminders only?"
-        description="Accounts, Expenses, Receivables, Goals and Vehicles will be hidden from navigation and search. Auto-debit also pauses: no planned expense is paid automatically, and those bills switch to due-date reminders instead. Nothing is deleted — switch back to Full cashflow any time and every page, and your auto-debit settings, come back exactly as they were."
+        description="Accounts, Expenses, Receivables, Goals and Vehicles will be hidden from navigation and search. Auto-debit also pauses: no bill is paid automatically, and those bills switch to due-date reminders instead. Nothing is deleted — switch back to Full cashflow any time and every page, and your auto-debit settings, come back exactly as they were."
         confirmLabel="Switch to bills mode"
         cancelLabel="Keep full cashflow"
         onConfirm={() => setAppMode("bills")}

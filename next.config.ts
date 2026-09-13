@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/savings-calculator", destination: "/dashboard/savings-calculator", permanent: true },
+      // Planned Expenses was renamed to Bills. Old links and bookmarks — including
+      // links to a single bill — still resolve.
+      { source: "/dashboard/planned-expenses", destination: "/dashboard/bills", permanent: true },
+      { source: "/dashboard/planned-expenses/:path*", destination: "/dashboard/bills/:path*", permanent: true },
     ];
   },
   async headers() {

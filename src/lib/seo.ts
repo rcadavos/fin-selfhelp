@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 const SITE_NAME = "OmniTrak";
 const DEFAULT_TITLE = "OmniTrak — Your all-in-one finance tracker, now with AI";
 const DEFAULT_DESCRIPTION =
-  "Track expenses, planned expenses, accounts, goals, and reminders in one simple app — plus Ask OmniTrak, a built-in AI assistant that answers questions about your money and your own documents.";
+  "Track expenses, bills, accounts, goals, and reminders in one simple app — plus Ask OmniTrak, a built-in AI assistant that answers questions about your money and your own documents.";
 const TWITTER_HANDLE = ""; // e.g. "@omnitrak" if you have one
 const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID ?? "";
 

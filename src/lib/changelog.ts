@@ -14,6 +14,24 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.9.0",
+    date: "2026-09-13",
+    summary: "Planned Expenses is now just Bills.",
+    changes: [
+      { type: "improvement", description: "Renamed Planned Expenses to Bills everywhere — the sidebar, the bottom bar, page headings, dialogs, search, emails and the landing page. It is what everyone called it anyway, and it is shorter on a phone." },
+      { type: "improvement", description: "The page now lives at /dashboard/bills. Old links and bookmarks to /dashboard/planned-expenses, including links to a single bill, redirect to the new address." },
+      { type: "improvement", description: "On the Expenses page, the 'Planned paid' figure and the 'Planned' bars in the 6-month chart now read 'Bills', matching the rest of the app." },
+    ],
+  },
+  {
+    version: "1.8.3",
+    date: "2026-09-13",
+    summary: "A bill you just paid stays where you can see it.",
+    changes: [
+      { type: "improvement", description: "Marking a bill paid no longer drops it straight into the collapsed Settled list. It now sits in a new 'Recently paid' section for a week, stamped 'Paid today', 'Paid yesterday' or 'Paid 3 days ago', and only moves down to Settled once a week has passed since you marked it." },
+    ],
+  },
+  {
     version: "1.8.2",
     date: "2026-09-12",
     summary: "Badges and status labels are rounded too.",
@@ -24,7 +42,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Larger expenses now stand out in the list instead of every row looking the same, so the few entries that actually moved the month are easy to spot." },
       { type: "improvement", description: "Removed the 'Expenses — Today' figure. It read zero every morning and peaked at bedtime, so it measured the hour more than the habit; the new pace line covers it." },
       { type: "improvement", description: "Status labels — Paid, Overdue, Auto, Scheduled and the rest — are now rounded pills, matching the account and vehicle chips that sit next to them on the same row instead of looking square beside them." },
-      { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on planned expenses, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
+      { type: "improvement", description: "The same goes for the small labels elsewhere in the app: billing period tags on bills, vehicle tags, sidebar counts, the sharing and referral labels, and the trial badge on sign-up." },
       { type: "fix", description: "The back-to-top button now has a visible outline in both light and dark mode. It was asking for a border but never got a colour, so it drew a transparent one and the button faded into whatever was behind it." },
       { type: "improvement", description: "On phones, pop-up dialogs now slide up from the bottom of the screen as a sheet instead of appearing in the middle — closer to your thumb, with a grab handle at the top, and long ones scroll inside themselves rather than running off the screen. On tablets and desktop they stay centred." },
       { type: "improvement", description: "Rounded the last square corners on the sign-in and sign-up pages: the Password / One-time link switcher, the message and warning panels, the show-password button, and the logo tile." },
@@ -32,12 +50,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Rounded the profile menu's items — the panel was already rounded but each row squared off as you hovered it — along with the cards and plan switcher on your Subscription page." },
       { type: "fix", description: "The 'Back to Dashboard' button on the Subscription page had its padding stripped out, so it was cramped and awkward to tap. It now has a normal button's spacing while staying aligned with the text above it." },
       { type: "improvement", description: "Swept the rest of the app for square corners in one go rather than page by page: Settings, Referrals, Feedback, Vehicles, Receivables, Accounts, Categories, the AI document manager, admin pages and more — 132 panels in all. Text fields were rounded to match other inputs rather than to the card shape." },
-      { type: "feature", description: "Hovering a date on the Planned Expenses calendar now shows what is due that day — each bill with its amount and whether it is due, overdue, part paid or settled. Tapping a date does the same on a phone." },
-      { type: "improvement", description: "Calendar dates on Planned Expenses are now colour-coded by what they hold: green with a tick when everything due that day is paid, red when something is overdue, amber when a payment is due or part paid. The most urgent bill sets the colour, so one overdue bill still shows through on a day that is otherwise settled." },
+      { type: "feature", description: "Hovering a date on the Bills calendar now shows what is due that day — each bill with its amount and whether it is due, overdue, part paid or settled. Tapping a date does the same on a phone." },
+      { type: "improvement", description: "Calendar dates on Bills are now colour-coded by what they hold: green with a tick when everything due that day is paid, red when something is overdue, amber when a payment is due or part paid. The most urgent bill sets the colour, so one overdue bill still shows through on a day that is otherwise settled." },
       { type: "improvement", description: "Forms in the slide-out panels breathe more: extra space between fields and between side-by-side inputs, so a long form is easier to scan." },
       { type: "improvement", description: "Cancel and Save in those panels are now full touch-size buttons rather than the smaller default, which makes them easier to hit on a phone." },
       { type: "improvement", description: "Slide-out panels and mobile drawers open and close more smoothly — they ease out on the way in and back in on the way out, the backdrop now fades in step with the panel instead of snapping, and opening is quicker (was half a second)." },
-      { type: "fix", description: "The Mark paid and Part payment buttons on Planned Expenses stayed square on desktop while everything around them had softened." },
+      { type: "fix", description: "The Mark paid and Part payment buttons on Bills stayed square on desktop while everything around them had softened." },
       { type: "improvement", description: "The Reminders list now uses more of the screen on a desktop — it was capped at a narrow column with a lot of empty space either side." },
     ],
   },
@@ -54,34 +72,34 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.8.0",
     date: "2026-09-12",
-    summary: "Planned Expenses rebuilt around when things are due, and whether you can cover them.",
+    summary: "Bills rebuilt around when things are due, and whether you can cover them.",
     changes: [
-      { type: "feature", description: "Planned Expenses now groups by what needs you — Overdue, Due this week, Later this month, and Settled — each with its own count and running total. The list was always sorted this way underneath; now the reasoning is visible instead of looking arbitrary." },
-      { type: "feature", description: "In Full cashflow mode, a runway across the top plots every planned expense on the month, sized by amount and marked against today, so you can see what lands when at a glance." },
-      { type: "feature", description: "Full cashflow mode also warns you when an account cannot cover what it owes this month — before you tap Mark paid, not after. The affected planned expense says how much that account is short." },
+      { type: "feature", description: "Bills now groups by what needs you — Overdue, Due this week, Later this month, and Settled — each with its own count and running total. The list was always sorted this way underneath; now the reasoning is visible instead of looking arbitrary." },
+      { type: "feature", description: "In Full cashflow mode, a runway across the top plots every bill on the month, sized by amount and marked against today, so you can see what lands when at a glance." },
+      { type: "feature", description: "Full cashflow mode also warns you when an account cannot cover what it owes this month — before you tap Mark paid, not after. The affected bill says how much that account is short." },
       { type: "feature", description: "In Bills & reminders mode, the page now opens on the single bill that needs you, with Mark paid attached and the next few queued behind it. Settle it and the next one steps up." },
       { type: "feature", description: "Bills & reminders mode gained a month calendar showing every due date at a glance, colour-coded by what is overdue, due, scheduled or already paid." },
       { type: "improvement", description: "Marking something paid is now a single tap on the row itself, instead of opening the three-dot menu and picking Mark paid." },
       { type: "improvement", description: "The Monthly / Quarterly / Yearly tabs are gone. A quarterly bill due this month is part of this month, so all of them now live on one screen rather than being split across three tabs with a total nobody budgets against." },
       { type: "improvement", description: "Reminders are now shown on every row in Bills & reminders mode, where they were previously hidden on phones — the mode has only two features and reminders is one of them." },
       { type: "improvement", description: "Rows are no longer tinted six different colours. Status reads from a stamp, with a coloured edge only on the ones actually behind, so what needs attention stands out instead of the list reading as a quilt." },
-      { type: "improvement", description: "Removed the category pie chart from Planned Expenses. Category share is a year-end question and the chart was collapsed by default on phones anyway; the per-category breakdown is still available from the Categories button." },
+      { type: "improvement", description: "Removed the category pie chart from Bills. Category share is a year-end question and the chart was collapsed by default on phones anyway; the per-category breakdown is still available from the Categories button." },
     ],
   },
   {
     version: "1.7.5",
     date: "2026-09-09",
-    summary: "Mobile layout fixes across the dashboard and planned expenses, plus softer corners on phones.",
+    summary: "Mobile layout fixes across the dashboard and bills, plus softer corners on phones.",
     changes: [
       { type: "fix", description: "Amounts on the dashboard no longer get cut off on phones. Large balances used to be clipped mid-number because a peso figure can never wrap, and the summary tiles had no room to shrink — they now scale down and fit whatever the amount is." },
-      { type: "fix", description: "The Planned Expenses page no longer scrolls sideways on a phone. The two summary cards sat in a fixed side-by-side row that could grow wider than the screen once the amounts got long enough." },
-      { type: "improvement", description: "Cards, tiles and planned-expense rows now have noticeably rounder corners on phones and stay crisp on desktop, so the app feels more like an app in your hand and more like a ledger on a big screen." },
-      { type: "improvement", description: "The three-dot menu on each planned expense is easier to hit on a touchscreen — the button looks the same but now has a full-size tap area, so it no longer takes two tries with a thumb." },
-      { type: "improvement", description: "The mobile 'Add Planned Expense' button is now just 'Add', so it stops crowding the month picker next to it on narrow screens." },
-      { type: "improvement", description: "In Bills & reminders mode, planned expenses no longer show an account badge. Accounts are switched off in that mode, so naming one was noise on every row — your saved account link is kept and reappears the moment you switch back to Full cashflow." },
-      { type: "fix", description: "In Bills & reminders mode, a planned expense's detail page no longer shows an Account row whose badge led to the Accounts page — a page that mode deliberately blocks, so tapping it bounced you back to the dashboard. Account labels are also hidden from that bill's payment history there." },
+      { type: "fix", description: "The Bills page no longer scrolls sideways on a phone. The two summary cards sat in a fixed side-by-side row that could grow wider than the screen once the amounts got long enough." },
+      { type: "improvement", description: "Cards, tiles and bill rows now have noticeably rounder corners on phones and stay crisp on desktop, so the app feels more like an app in your hand and more like a ledger on a big screen." },
+      { type: "improvement", description: "The three-dot menu on each bill is easier to hit on a touchscreen — the button looks the same but now has a full-size tap area, so it no longer takes two tries with a thumb." },
+      { type: "improvement", description: "The mobile 'Add Bill' button is now just 'Add', so it stops crowding the month picker next to it on narrow screens." },
+      { type: "improvement", description: "In Bills & reminders mode, bills no longer show an account badge. Accounts are switched off in that mode, so naming one was noise on every row — your saved account link is kept and reappears the moment you switch back to Full cashflow." },
+      { type: "fix", description: "In Bills & reminders mode, a bill's detail page no longer shows an Account row whose badge led to the Accounts page — a page that mode deliberately blocks, so tapping it bounced you back to the dashboard. Account labels are also hidden from that bill's payment history there." },
       { type: "improvement", description: "Rounder corners on phones now reach the rest of the app, not just cards: buttons, dropdowns, menus, the Spending by category panel and the Monthly/Quarterly/Yearly switcher all soften on a phone and stay crisp on desktop, where nothing has changed." },
-      { type: "improvement", description: "The month picker on Planned Expenses now reads 'Sep 2026' instead of 'September 2026', so the button and its dropdown stay the same width whichever month you pick instead of resizing as you scroll the list." },
+      { type: "improvement", description: "The month picker on Bills now reads 'Sep 2026' instead of 'September 2026', so the button and its dropdown stay the same width whichever month you pick instead of resizing as you scroll the list." },
       { type: "fix", description: "Closing the month picker no longer leaves four faint corner marks floating around it. A leftover focus outline was being drawn with no thickness but a 2px gap, which became visible once the corners got rounder; it is now only drawn for keyboard users, flush to the button." },
       { type: "fix", description: "The notifications panel no longer sits flush against the edge of a phone screen, and its loading spinner is no longer rendered five times too large — the OmniTrak mark briefly filled the whole panel while notifications loaded." },
       { type: "fix", description: "Page titles no longer disappear on a phone when a page has wide buttons beside them. On Notifications the 'Notifications' heading was being squeezed away to nothing and the buttons still ran off the edge of the screen; buttons now drop to their own line when they don't fit." },
@@ -94,9 +112,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     summary:
       "Bills & reminders mode drops auto-debit and stops blocking payments on account balance, plus a round of account-security hardening.",
     changes: [
-      { type: "improvement", description: "In Bills & reminders mode, marking a planned expense paid or partially paid no longer checks the linked account's balance, so a low tracked balance can never stop you recording a payment you have actually made. Full cashflow mode still warns you before a payment would overdraw an account." },
+      { type: "improvement", description: "In Bills & reminders mode, marking a bill paid or partially paid no longer checks the linked account's balance, so a low tracked balance can never stop you recording a payment you have actually made. Full cashflow mode still warns you before a payment would overdraw an account." },
       { type: "improvement", description: "Bills & reminders mode no longer offers or runs auto-debit — the toggle is hidden and no bill is ever paid automatically. Your existing auto-debit settings are kept untouched and start working again the moment you switch back to Full cashflow." },
-      { type: "fix", description: "Planned expenses that already had auto-debit switched on no longer go silent in Bills & reminders mode: because nothing pays them automatically there, they now get a due-date reminder like any other bill, and you can set your own reminder days on them." },
+      { type: "fix", description: "Bills that already had auto-debit switched on no longer go silent in Bills & reminders mode: because nothing pays them automatically there, they now get a due-date reminder like any other bill, and you can set your own reminder days on them." },
       { type: "fix", description: "Opening any dashboard, account or admin page while signed out now takes you straight to the login page instead of briefly showing an empty app shell — and after you log in you land on the page you were originally trying to reach." },
       { type: "fix", description: "Shared receivable invite links still open without an account, as intended: the new sign-in requirement deliberately skips them, so someone you invite can review and confirm what they owe you before signing up." },
       { type: "hotfix", description: "Closed a gap that let a signed-in account switch itself onto a paid plan without paying. Subscriptions can now only be granted by a verified payment from our payment provider." },
@@ -135,7 +153,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-16",
     summary: "A simpler mobile navigation bar and an easier-to-reach account menu.",
     changes: [
-      { type: "improvement", description: "Reworked the mobile bottom bar: it now shows Expenses, Planned, Accounts, and a new 'More' button (which opens the full menu) — the old 'Category' shortcut has been removed." },
+      { type: "improvement", description: "Reworked the mobile bottom bar: it now shows Expenses, Bills, Accounts, and a new 'More' button (which opens the full menu) — the old 'Category' shortcut has been removed." },
       { type: "improvement", description: "Moved your profile and account menu to the top-right of the mobile header, and removed the hamburger menu since everything now lives in 'More' and the account button." },
       { type: "improvement", description: "Updated every email (welcome, reminders, receivable invites, account notifications, and admin broadcasts) to use the new OmniTrak chameleon logo and the app's Schibsted Grotesk wordmark, replacing the old logo image." },
     ],
@@ -150,11 +168,11 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "New landing page: a two-column hero with a live 'upcoming bills' ledger preview, real top navigation (Features, How it works, Pricing, FAQ), statement-style feature and pricing sections, and a two-column FAQ." },
       { type: "improvement", description: "New sign-in and sign-up: a split-screen layout with a passbook brand panel, tabbed password / one-time-link sign-in, a clearer password-strength meter, keyboard-accessible controls, and prominent 14-day Pro free trial messaging on sign-up." },
       { type: "improvement", description: "New dashboard home as a statement view: a tracked-balance header, flat at-a-glance stat cells, a cleaner spending chart in the app's own colors, and an upcoming-bills list with status stamps. Amounts now use aligned tabular figures and no longer jitter." },
-      { type: "improvement", description: "Refreshed every in-app screen — accounts, expenses, planned expenses, receivables, vehicles, goals, reminders, account settings, and admin — with flat hairline cards and a consistent green-and-neutral color system in place of the old multi-color chips, for cleaner, more legible pages in both light and dark mode." },
+      { type: "improvement", description: "Refreshed every in-app screen — accounts, expenses, bills, receivables, vehicles, goals, reminders, account settings, and admin — with flat hairline cards and a consistent green-and-neutral color system in place of the old multi-color chips, for cleaner, more legible pages in both light and dark mode." },
       { type: "improvement", description: "New typography: Schibsted Grotesk for text and Geist Mono for all numbers, dates, and amounts." },
       { type: "improvement", description: "New OmniTrak logo — a green app-icon mark paired with the wordmark set in the new app font — replacing the old logo image across the app, the sign-in panel, the browser tab, and the install icon." },
-      { type: "improvement", description: "Planned Expenses now shows an 'Auto-debit' indicator on each bill set to pay automatically, so auto-paid bills are easy to spot in the list at a glance (matching the detail page and dashboard)." },
-      { type: "fix", description: "Corrected the Free plan description to show one in-app planned-expense reminder; email reminders remain a Pro feature." },
+      { type: "improvement", description: "Bills now shows an 'Auto-debit' indicator on each bill set to pay automatically, so auto-paid bills are easy to spot in the list at a glance (matching the detail page and dashboard)." },
+      { type: "fix", description: "Corrected the Free plan description to show one in-app bill reminder; email reminders remain a Pro feature." },
       { type: "fix", description: "Fixed a rare 'useInsertionEffect must not schedule updates' error that could appear when navigating or opening the cookie-policy dialog; the top loading bar now schedules its updates safely." },
     ],
   },
@@ -220,13 +238,13 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.5.12",
     date: "2026-05-23",
-    summary: "Failed auto-debits are now tracked as a first-class status on planned expenses, with daily retries until paid.",
+    summary: "Failed auto-debits are now tracked as a first-class status on bills, with daily retries until paid.",
     changes: [
-      { type: "feature", description: "When an auto-debit doesn't go through (insufficient balance, missing linked account, or insert failure), the planned expense now shows a red Failed badge for the month, with the reason on hover." },
+      { type: "feature", description: "When an auto-debit doesn't go through (insufficient balance, missing linked account, or insert failure), the bill now shows a red Failed badge for the month, with the reason on hover." },
       { type: "feature", description: "Failed auto-debits retry automatically on each daily cron run until the bill is paid or the month rolls over — no need to manually re-trigger." },
-      { type: "improvement", description: "Planned expense detail page shows a Failed callout with the specific reason and surfaces failed attempts in the payment history." },
+      { type: "improvement", description: "Bill detail page shows a Failed callout with the specific reason and surfaces failed attempts in the payment history." },
       { type: "improvement", description: "Marking a failed bill as paid (via the list dropdown or the detail page) now replaces the failure with a real payment and creates the linked account transaction." },
-      { type: "improvement", description: "Failed planned expenses sort to the top of the list so they're easy to spot and resolve." },
+      { type: "improvement", description: "Failed bills sort to the top of the list so they're easy to spot and resolve." },
     ],
   },
   {
@@ -246,9 +264,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.5.10",
     date: "2026-05-17",
-    summary: "Planned expense list rows cleaned up — all per-row actions moved into a single 3-dot menu.",
+    summary: "Bill list rows cleaned up — all per-row actions moved into a single 3-dot menu.",
     changes: [
-      { type: "improvement", description: "Removed the inline Mark Paid / Add Partial buttons and the trailing Edit / Remove icons from each row in the Planned Expenses list." },
+      { type: "improvement", description: "Removed the inline Mark Paid / Add Partial buttons and the trailing Edit / Remove icons from each row in the Bills list." },
       { type: "improvement", description: "Added a 3-dot menu on the upper right of each row with: Mark Paid (or Mark Unpaid), Add Partial Payment (or Add to Payment when already partial), Edit, and Remove." },
       { type: "improvement", description: "Reminder label now groups the 'before due date' days together — e.g. '5, 4, 3d before, Due date' instead of '5d before, 4d before, 3d before, Due date' — so the row stays compact on mobile." },
     ],
@@ -256,13 +274,13 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.5.9",
     date: "2026-05-13",
-    summary: "Each planned expense now has its own detail page with payment history and inline edit.",
+    summary: "Each bill now has its own detail page with payment history and inline edit.",
     changes: [
-      { type: "feature", description: "New route /dashboard/planned-expenses/[billId] shows amount, due date, linked account/vehicle, reminders, and a full month-by-month payment history. Mirrors the /dashboard/accounts/[accountId] pattern." },
-      { type: "feature", description: "Edit button on the detail page opens the same Planned Expense form used by the list — extracted into a shared dialog component so list and detail page stay in sync." },
+      { type: "feature", description: "New route /dashboard/bills/[billId] shows amount, due date, linked account/vehicle, reminders, and a full month-by-month payment history. Mirrors the /dashboard/accounts/[accountId] pattern." },
+      { type: "feature", description: "Edit button on the detail page opens the same Bill form used by the list — extracted into a shared dialog component so list and detail page stay in sync." },
       { type: "feature", description: "Mark Paid (and Unmark) for the current month is available right on the detail page, with the same insufficient-funds guard the list uses." },
       { type: "feature", description: "Payment history list lets you unmark any past month — the linked account transaction and expense entry are cleaned up via cascade." },
-      { type: "improvement", description: "Clicking a row in the Planned Expenses list now navigates to the detail page (matches the Accounts list behavior)." },
+      { type: "improvement", description: "Clicking a row in the Bills list now navigates to the detail page (matches the Accounts list behavior)." },
       { type: "improvement", description: "Added a Pencil button to each row so editing stays one click away from the list view." },
     ],
   },
@@ -340,7 +358,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "feature", description: "Every new user now starts with a real 'Cash' account auto-created alongside their profile. Existing users have a Cash account backfilled, and prior references to the static Cash UUID are migrated to the real per-user account." },
       { type: "improvement", description: "Removed the built-in Cash and Borrowed placeholder accounts from /dashboard/accounts. Every account on the list is now a real DB row that can be edited, tagged, recolored, or deleted." },
       { type: "feature", description: "Clicking an account on /dashboard/accounts now opens a per-account detail page at /dashboard/accounts/[accountId] — the future home for that account's expense, income, transfer, and adjustment entries. A separate edit (pencil) icon keeps editing one click away from the list." },
-      { type: "feature", description: "Each account at /dashboard/accounts/[accountId] now has its own ledger. Add Expense, Add Income, Adjustment, and Transfer to another account directly on the wallet page. The current balance is computed from these entries (independent of expenses or planned expenses that merely tag the account)." },
+      { type: "feature", description: "Each account at /dashboard/accounts/[accountId] now has its own ledger. Add Expense, Add Income, Adjustment, and Transfer to another account directly on the wallet page. The current balance is computed from these entries (independent of expenses or bills that merely tag the account)." },
       { type: "feature", description: "Transfers create a paired entry on both accounts so balances stay in sync. Deleting one leg of a transfer deletes the other automatically." },
       { type: "feature", description: "Account history list with per-entry delete. Adjustments support both 'add to balance' and 'subtract from balance' directions." },
       { type: "improvement", description: "Edit and Delete buttons for the account itself now live in the top-right of the account detail page. Confirm dialogs replace inline prompts." },
@@ -386,7 +404,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.4.24",
     date: "2026-05-04",
-    summary: "Expenses and Planned Expenses: collapsible spending-by-category chart on small screens.",
+    summary: "Expenses and Bills: collapsible spending-by-category chart on small screens.",
     changes: [
       {
         type: "improvement",
@@ -396,24 +414,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         type: "improvement",
         description:
-          "On /dashboard/planned-expenses, the same Spending by category header + chevron collapse behavior applies on mobile, with the shared collapsible card component used by both pages.",
+          "On /dashboard/bills, the same Spending by category header + chevron collapse behavior applies on mobile, with the shared collapsible card component used by both pages.",
       },
       {
         type: "improvement",
         description:
-          "Restructured the Add/Edit Expense modals so the title and close (X) button stay pinned at the top and Cancel/Save stay pinned at the bottom while the form body scrolls — matches the Planned Expense modal layout. Mobile users can no longer lose access to the title or action buttons when the on-screen keyboard opens.",
+          "Restructured the Add/Edit Expense modals so the title and close (X) button stay pinned at the top and Cancel/Save stay pinned at the bottom while the form body scrolls — matches the Bill modal layout. Mobile users can no longer lose access to the title or action buttons when the on-screen keyboard opens.",
       },
     ],
   },
   {
     version: "1.4.23",
     date: "2026-05-04",
-    summary: "Vehicles spend chart uses grouped category bars. Planned transport expenses linked to a vehicle require a vehicle category.",
+    summary: "Vehicles spend chart uses grouped category bars. Transport bills linked to a vehicle require a vehicle category.",
     changes: [
       {
         type: "improvement",
         description:
-          "On /dashboard/vehicles, the spend-by-vehicle bar chart now draws Fuel, Fees, Maintenance, Insurance, Other, and Planned as side-by-side bars per vehicle instead of a single stacked column.",
+          "On /dashboard/vehicles, the spend-by-vehicle bar chart now draws Fuel, Fees, Maintenance, Insurance, Other, and Bills as side-by-side bars per vehicle instead of a single stacked column.",
       },
       {
         type: "fix",
@@ -423,12 +441,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         type: "feature",
         description:
-          "Planned Expenses in Transport & Commute now mirror Expenses: when you link a vehicle, choosing a vehicle category (Fuel, Fees, Maintenance & Repairs, Insurance & Registration) is required before saving.",
+          "Bills in Transport & Commute now mirror Expenses: when you link a vehicle, choosing a vehicle category (Fuel, Fees, Maintenance & Repairs, Insurance & Registration) is required before saving.",
       },
       {
         type: "improvement",
         description:
-          "Vehicle spending charts treat categorized transport planned expenses like categorized expenses (legacy planned rows without a vehicle category still roll into Planned).",
+          "Vehicle spending charts treat categorized transport bills like categorized expenses (legacy bill rows without a vehicle category still roll into Bills).",
       },
     ],
   },
@@ -455,8 +473,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "feature", description: "Added month/year selector on the Vehicles page to filter spending by selected month." },
       { type: "feature", description: "Added vehicle expense categories — Fuel, Fees (Parking, Toll, etc.), Maintenance & Repairs, and Insurance & Registration." },
       { type: "improvement", description: "When a transport expense is linked to a vehicle, a Vehicle Category is now required to better classify the spend." },
-      { type: "improvement", description: "Dashboard, Expenses, and Planned Expenses pages now render stat cards and charts immediately — currency amounts animate from ₱0 to their real values as data loads, and the list shows the OmniTrak breathing logo until ready." },
-      { type: "fix", description: "Fixed recoverable SSR waterfall error on /dashboard/planned-expenses caused by billsDataQueryOptions and userPreferencesQueryOptions calling Server Actions during initial render — switched to useQuery so the queryFn only runs client-side in effects." },
+      { type: "improvement", description: "Dashboard, Expenses, and Bills pages now render stat cards and charts immediately — currency amounts animate from ₱0 to their real values as data loads, and the list shows the OmniTrak breathing logo until ready." },
+      { type: "fix", description: "Fixed recoverable SSR waterfall error on /dashboard/bills caused by billsDataQueryOptions and userPreferencesQueryOptions calling Server Actions during initial render — switched to useQuery so the queryFn only runs client-side in effects." },
       { type: "improvement", description: "Extracted AnimatedAmount (with optional currency prop) and useCountUp into a shared ui component for reuse across pages." },
       { type: "fix", description: "Prefetch the subscription plan in the dashboard layout so the client cache is hydrated before render — eliminates the 'Server Functions cannot be called during initial render' recoverable error." },
     ],
@@ -464,13 +482,13 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.4.20",
     date: "2026-05-03",
-    summary: "Privacy settings page and Bills renamed to Planned Expenses.",
+    summary: "Privacy settings page and Bills renamed to Bills.",
     changes: [
       { type: "feature", description: "Added /account/privacy page with profile visibility settings — toggle whether other subdivision members can see your name/avatar or phone number." },
       { type: "feature", description: "Added account self-deletion from the Privacy danger zone with a confirmation dialog." },
       { type: "improvement", description: "Privacy link in the account dropdown menu now navigates to the dedicated /account/privacy settings page instead of the legal hub." },
-      { type: "improvement", description: "Renamed the Bills feature to Planned Expenses app-wide — navigation, page titles, form dialogs, stat labels, search index, and all marketing copy updated." },
-      { type: "improvement", description: "Route changed from /dashboard/bills to /dashboard/planned-expenses." },
+      { type: "improvement", description: "Renamed the Bills feature to Bills app-wide — navigation, page titles, form dialogs, stat labels, search index, and all marketing copy updated." },
+      { type: "improvement", description: "Route changed from /dashboard/bills to /dashboard/bills." },
       { type: "improvement", description: "Form field 'Billing Period' renamed to 'Recurrence' for clarity." },
     ],
   },

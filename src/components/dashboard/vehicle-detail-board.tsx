@@ -279,14 +279,14 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
         </div>
       </div>
 
-      {/* Linked Planned Expenses */}
+      {/* Linked Bills */}
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Linked Planned Expenses
+          Linked Bills
         </h2>
         {!linkedBills || linkedBills.length === 0 ? (
           <p className="surface border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            No planned expenses linked to this vehicle yet.
+            No bills linked to this vehicle yet.
           </p>
         ) : (
           <div className="flex flex-col gap-1.5">
@@ -295,7 +295,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
               return (
                 <Link
                   key={b.id}
-                  href="/dashboard/planned-expenses"
+                  href="/dashboard/bills"
                   className="flex items-center gap-2 surface border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
                 >
                   <Receipt className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
@@ -383,7 +383,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
             <DialogTitle>Delete vehicle?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This removes the vehicle from your list. Linked planned expenses and expenses will keep their
+            This removes the vehicle from your list. Linked bills and expenses will keep their
             data but will no longer be associated with this vehicle.
           </p>
           <div className="flex gap-2 pt-2">

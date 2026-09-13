@@ -203,7 +203,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       if (res.error === "insufficient_balance" && res.insufficientBalance) {
         const acct = accounts.find((a) => a.id === res.insufficientBalance!.accountId);
         setError(
-          `${acct?.account_alias ?? "This account"} has ${formatCurrency(res.insufficientBalance.available)} available, but this planned expense needs ${formatCurrency(res.insufficientBalance.required)}.`,
+          `${acct?.account_alias ?? "This account"} has ${formatCurrency(res.insufficientBalance.available)} available, but this bill needs ${formatCurrency(res.insufficientBalance.required)}.`,
         );
         return;
       }
@@ -315,7 +315,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         return;
       }
       void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
-      router.push("/dashboard/planned-expenses");
+      router.push("/dashboard/bills");
     });
   }
 
@@ -350,7 +350,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-      <BackLink href="/dashboard/planned-expenses" label="Planned Expenses" />
+      <BackLink href="/dashboard/bills" label="Bills" />
 
       <ContentHeader
         title={
@@ -360,7 +360,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
               style={{ backgroundColor: dotColor }}
               aria-hidden
             />
-            <span className="min-w-0 truncate">{bill.note ?? cat?.label ?? "Planned expense"}</span>
+            <span className="min-w-0 truncate">{bill.note ?? cat?.label ?? "Bill"}</span>
           </span>
         }
         subtitle={`${cat?.label ?? "Uncategorized"} • ${BILLING_PERIOD_LABELS[bill.billing_period] ?? "Monthly"} recurrence`}
@@ -371,7 +371,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
               variant="outline"
               className="h-8 w-8"
               onClick={() => setEditOpen(true)}
-              aria-label="Edit planned expense"
+              aria-label="Edit bill"
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -380,7 +380,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
               variant="outline"
               className="h-8 w-8 text-destructive hover:text-destructive"
               onClick={() => setDeleteOpen(true)}
-              aria-label="Delete planned expense"
+              aria-label="Delete bill"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -548,7 +548,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 surface border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No payments recorded yet.</p>
-            <p className="max-w-md text-xs">Mark this planned expense paid to record a payment for the current month.</p>
+            <p className="max-w-md text-xs">Mark this bill paid to record a payment for the current month.</p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -635,7 +635,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       <PartialPaymentDialog
         open={partialOpen}
         onClose={() => setPartialOpen(false)}
-        billLabel={bill.note ?? cat?.label ?? "Planned expense"}
+        billLabel={bill.note ?? cat?.label ?? "Bill"}
         billAmount={bill.amount}
         alreadyPaid={amountPaidThisMonth}
         onSubmit={handlePartialSubmit}
@@ -645,8 +645,8 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete planned expense?"
-        description="This permanently removes the planned expense and all of its payment history. Linked account transactions and expense entries are also removed."
+        title="Delete bill?"
+        description="This permanently removes the bill and all of its payment history. Linked account transactions and expense entries are also removed."
         confirmLabel={isPending ? "Deleting…" : "Delete"}
         variant="destructive"
         onConfirm={handleDelete}

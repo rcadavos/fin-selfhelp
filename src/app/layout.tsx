@@ -58,7 +58,7 @@ export default async function RootLayout({
     "@type": "WebApplication",
     name: "OmniTrak",
     description:
-      "Personal finance tracker with a built-in AI assistant: expenses, planned expenses, accounts, goals, reminders, and calculators, plus Ask OmniTrak — a private AI assistant for questions about your money and your own documents.",
+      "Personal finance tracker with a built-in AI assistant: expenses, bills, accounts, goals, reminders, and calculators, plus Ask OmniTrak — a private AI assistant for questions about your money and your own documents.",
     url: baseUrl,
     applicationCategory: "FinanceApplication",
   };

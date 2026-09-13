@@ -8,15 +8,15 @@ import { Amount } from "@/components/passbook/amount";
 import { Stamp } from "@/components/passbook/stamp";
 
 export const freeBenefits = [
-  "Unlimited expense & planned expense rows",
+  "Unlimited expense & bill rows",
   "Due dates & all core tracking",
   "Reminders (up to 5 items)",
-  "1 planned-expense reminder (in-app)",
+  "1 bill reminder (in-app)",
 ];
 
 export const proBenefits = [
   "Ask OmniTrak — AI assistant for your finances & documents",
-  "Email reminders for planned expenses and reminders",
+  "Email reminders for bills and reminder lists",
   "Unlimited reminders",
   "Partner sharing (invite by email)",
   "Custom expense categories",
@@ -83,7 +83,7 @@ export function SubscribeSection({
       currency: proPlan.priceCurrency,
       interval: proPlan.interval,
       original: null as number | null,
-      tag: "Track planned expenses and cashflow, no card required.",
+      tag: "Track bills and cashflow, no card required.",
       benefits: freeBenefits,
       cta: { label: "Create account", href: "/signup" },
       variant: "outline" as const,

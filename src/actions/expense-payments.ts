@@ -294,13 +294,13 @@ export async function getMonthlyBreakdown(
   }
 
   const stats: MonthlyBreakdownPoint[] = monthKeys.map((month) => {
-    // Planned expenses: all non-savings bills that are due in this month (any billing period)
+    // Bills: all non-savings bills that are due in this month (any billing period)
     const bills = allBills
       .filter((b) => b.category_id !== "savings" && isBillDueInMonth(b, month))
       .reduce((s, b) => s + Number(b.amount), 0);
 
-    // Planned paid: only count payments for bills that are actually due this month.
-    // Restricting to isBillDueInMonth keeps billsPaid and bills (Planned) in sync —
+    // Bills paid: only count payments for bills that are actually due this month.
+    // Restricting to isBillDueInMonth keeps billsPaid and bills in sync —
     // both cover the same set of bills so the ratio is always meaningful.
     const billsPaid = allBillPayments
       .filter((p) => p.paid_month === month)

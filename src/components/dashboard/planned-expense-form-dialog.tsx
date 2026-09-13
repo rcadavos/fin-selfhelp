@@ -189,7 +189,7 @@ export function PlannedExpenseFormDialog({
   return (
     <FormPanel open={open} onOpenChange={(v) => !v && onClose()}>
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-2">
-          <DialogTitle>{editingBillId ? "Edit Planned Expense" : "Add Planned Expense"}</DialogTitle>
+          <DialogTitle>{editingBillId ? "Edit Bill" : "Add Bill"}</DialogTitle>
           {editingBillId && initial && (
             <p className="text-xs text-muted-foreground">
               {initial.note || "—"} · {formatCurrency(parseFloat(initial.amount) || 0)}
@@ -434,20 +434,20 @@ export function PlannedExpenseFormDialog({
               reminderEnabled = false;
               badgeLabel = "Slot locked";
               badgeClass = "bg-destructive/10 text-destructive";
-              hintText = "Your free reminder slot is permanently assigned to another planned expense. Upgrade to Pro for unlimited reminders.";
+              hintText = "Your free reminder slot is permanently assigned to another bill. Upgrade to Pro for unlimited reminders.";
             } else if (isThisTheLocked) {
               reminderEnabled = true;
               badgeLabel = "Permanent";
               badgeClass = "bg-warning/10 text-warning";
-              hintText = "This planned expense permanently holds your free reminder slot.";
+              hintText = "This bill permanently holds your free reminder slot.";
             } else {
               const canHaveFree = (initial?.reminderDays?.length ?? 0) > 0 || freeReminderUsed === 0;
               reminderEnabled = canHaveFree;
               badgeLabel = freeReminderUsed >= 1 && !canHaveFree ? "1/1 used" : freeReminderUsed >= 1 ? "1/1 free" : "0/1 free";
               badgeClass = freeReminderUsed >= 1 && !canHaveFree ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground";
               hintText = canHaveFree
-                ? "Free plan: 1 planned expense reminder. Once a reminder fires, this slot is permanently assigned to that planned expense."
-                : "Free reminder slot used by another planned expense. Upgrade to Pro for unlimited reminders.";
+                ? "Free plan: 1 bill reminder. Once a reminder fires, this slot is permanently assigned to that bill."
+                : "Free reminder slot used by another bill. Upgrade to Pro for unlimited reminders.";
             }
 
             return (
@@ -502,7 +502,7 @@ export function PlannedExpenseFormDialog({
                   Cancel
                 </Button>
                 <Button type="submit" className={editingBillId ? "flex-1" : "w-1/2"} disabled={!isValid || isPending}>
-                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add planned expense"}
+                  {isPending ? "Saving…" : editingBillId ? "Save changes" : "Add bill"}
                 </Button>
               </div>
             </div>

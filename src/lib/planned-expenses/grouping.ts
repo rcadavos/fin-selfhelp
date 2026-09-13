@@ -1,5 +1,5 @@
 /**
- * Derivations behind the Planned Expenses board.
+ * Derivations behind the Bills board.
  *
  * The board answers "what lands when, and can I cover it?", so rows are bucketed
  * by urgency rather than by billing period: a quarterly bill due in August IS part
@@ -13,7 +13,7 @@ import {
   effectiveDueDateInPaidMonth,
   parseYmToYearMonth,
 } from "@/lib/expense-due-date";
-import { DUE_SOON_DAYS } from "@/lib/constants/planned-expenses";
+import { DUE_SOON_DAYS, SETTLED_AFTER_DAYS } from "@/lib/constants/planned-expenses";
 
 export type PlannedExpenseStatus =
   | "paid"
@@ -23,7 +23,12 @@ export type PlannedExpenseStatus =
   | "due"
   | "scheduled";
 
-export type UrgencyBucket = "overdue" | "week" | "later" | "settled";
+export type UrgencyBucket = "overdue" | "week" | "later" | "recent" | "settled";
+
+/** Both buckets hold bills with nothing outstanding — they differ only in age. */
+export function isFullyPaidBucket(bucket: UrgencyBucket): boolean {
+  return bucket === "recent" || bucket === "settled";
+}
 
 export type PlannedExpenseRow = {
   bill: BillRow;
@@ -34,6 +39,8 @@ export type PlannedExpenseRow = {
   outstanding: number;
   status: PlannedExpenseStatus;
   bucket: UrgencyBucket;
+  /** When this month's payment was recorded, or null when nothing is paid yet. */
+  paidAt: Date | null;
   /** Whole days from today: negative is late, 0 is today. Null when there is no due date. */
   daysFromToday: number | null;
 };
@@ -41,7 +48,7 @@ export type PlannedExpenseRow = {
 export type PlannedExpenseGroup = {
   bucket: UrgencyBucket;
   rows: PlannedExpenseRow[];
-  /** Sum of what is still owed, except for `settled` which sums what was paid. */
+  /** Sum of what is still owed, except for the paid buckets which sum what was paid. */
   subtotal: number;
 };
 
@@ -111,6 +118,8 @@ function daysBetween(from: Date, to: Date): number {
 export type BuildRowsInput = {
   bills: BillRow[];
   paymentAmountByBillId: Record<string, number>;
+  /** ISO timestamps of this month's payments, by bill id. Missing => treated as long settled. */
+  paidAtByBillId?: Record<string, string>;
   failedBillIds: Set<string>;
   paidMonth: string;
   today?: Date;
@@ -119,12 +128,15 @@ export type BuildRowsInput = {
 /**
  * Turns raw bills + this month's payment rows into the board's row model.
  *
- * A bill is only "settled" once nothing is outstanding — a partial payment leaves
+ * A bill is only fully paid once nothing is outstanding — a partial payment leaves
  * it in whichever urgency bucket its due date puts it, because it still needs you.
+ * A fully paid bill then sits in `recent` for SETTLED_AFTER_DAYS before dropping into
+ * the collapsed `settled` section, so today's payment stays where you can see it.
  */
 export function buildPlannedExpenseRows({
   bills,
   paymentAmountByBillId,
+  paidAtByBillId = {},
   failedBillIds,
   paidMonth,
   today = startOfToday(),
@@ -141,6 +153,10 @@ export function buildPlannedExpenseRows({
     const isFailed = !hasAnyPayment && failedBillIds.has(bill.id);
     const due = effectiveBillDueDate(bill, today, paidMonth);
     const daysFromToday = due ? daysBetween(today, due) : null;
+    const paidAtIso = hasAnyPayment ? paidAtByBillId[bill.id] : undefined;
+    const paidAtParsed = paidAtIso ? new Date(paidAtIso) : null;
+    const paidAt = paidAtParsed && !Number.isNaN(paidAtParsed.getTime()) ? paidAtParsed : null;
+    const daysSincePaid = paidAt ? daysBetween(paidAt, today) : null;
 
     const status: PlannedExpenseStatus = isSettled
       ? "paid"
@@ -154,15 +170,21 @@ export function buildPlannedExpenseRows({
               ? "due"
               : "scheduled";
 
+    // A payment with no recorded timestamp is old data — settled, not "just paid".
+    const isRecentlyPaid =
+      isSettled && daysSincePaid !== null && daysSincePaid < SETTLED_AFTER_DAYS;
+
     const bucket: UrgencyBucket = isSettled
-      ? "settled"
+      ? isRecentlyPaid
+        ? "recent"
+        : "settled"
       : isFailed || (due && due < today)
         ? "overdue"
         : due && due <= horizon
           ? "week"
           : "later";
 
-    return { bill, due, amountPaid, outstanding, status, bucket, daysFromToday };
+    return { bill, due, amountPaid, outstanding, status, bucket, paidAt, daysFromToday };
   });
 
   // Soonest first inside a bucket; bills with no due date sink to the bottom.
@@ -173,14 +195,14 @@ export function buildPlannedExpenseRows({
   });
 }
 
-const BUCKET_ORDER: UrgencyBucket[] = ["overdue", "week", "later", "settled"];
+const BUCKET_ORDER: UrgencyBucket[] = ["overdue", "week", "later", "recent", "settled"];
 
-/** Groups rows into the four urgency buckets, dropping any bucket with no rows. */
+/** Groups rows into the urgency buckets, dropping any bucket with no rows. */
 export function groupPlannedExpenses(rows: PlannedExpenseRow[]): PlannedExpenseGroup[] {
   return BUCKET_ORDER.map((bucket) => {
     const bucketRows = rows.filter((r) => r.bucket === bucket);
     const subtotal = bucketRows.reduce(
-      (sum, r) => sum + (bucket === "settled" ? r.amountPaid : r.outstanding),
+      (sum, r) => sum + (isFullyPaidBucket(bucket) ? r.amountPaid : r.outstanding),
       0
     );
     return { bucket, rows: bucketRows, subtotal };
@@ -196,7 +218,7 @@ export function summarisePlannedExpenses(rows: PlannedExpenseRow[]): PlannedExpe
   for (const row of rows) {
     total += row.bill.amount;
     settledAmount += row.amountPaid;
-    if (row.bucket === "settled") settledCount += 1;
+    if (isFullyPaidBucket(row.bucket)) settledCount += 1;
     else partialAmount += row.amountPaid;
   }
 

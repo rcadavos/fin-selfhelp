@@ -55,6 +55,19 @@ function relativeDueLabel(row: PlannedExpenseRow): string | null {
   return `in ${daysFromToday} day${daysFromToday === 1 ? "" : "s"}`;
 }
 
+/**
+ * "Paid today" / "Paid 3 days ago", but only while the row still sits in Recently
+ * paid — once it drops into Settled the exact day stopped mattering.
+ */
+function paidLabel(row: PlannedExpenseRow): string {
+  if (row.bucket !== "recent" || !row.paidAt) return "Paid";
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(row.paidAt)) / 86_400_000);
+  if (days <= 0) return "Paid today";
+  if (days === 1) return "Paid yesterday";
+  return `Paid ${days} days ago`;
+}
+
 /** "3d, 1d before, Due date" — the bill's own reminder schedule, in plain words. */
 export function reminderLabelFor(reminderDays: number[] | null | undefined): string | null {
   if (!reminderDays?.length) return null;
@@ -118,11 +131,11 @@ export function ExpenseRow({
     <div
       role="button"
       tabIndex={0}
-      onClick={() => router.push(`/dashboard/planned-expenses/${bill.id}`)}
+      onClick={() => router.push(`/dashboard/bills/${bill.id}`)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          router.push(`/dashboard/planned-expenses/${bill.id}`);
+          router.push(`/dashboard/bills/${bill.id}`);
         }
       }}
       className={cn(
@@ -162,7 +175,7 @@ export function ExpenseRow({
           ) : relative ? (
             <Stamp variant={STAMP_VARIANT[status]}>{relative}</Stamp>
           ) : isPaid ? (
-            <Stamp variant="paid">Paid</Stamp>
+            <Stamp variant="paid">{paidLabel(row)}</Stamp>
           ) : null}
           {status === "failed" && <Stamp variant="overdue">Auto-debit failed</Stamp>}
           {bill.is_auto_debit && autoDebitEnabled && status !== "failed" && (

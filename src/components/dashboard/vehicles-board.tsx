@@ -126,7 +126,7 @@ const CATEGORY_BARS = [
   { key: "maintenance", label: "Maintenance & Repairs", color: "hsl(var(--primary) / 0.58)" },
   { key: "insurance",   label: "Insurance & Reg.",      color: "hsl(var(--primary) / 0.42)" },
   { key: "other",       label: "Other",                 color: "hsl(var(--chart-compare))" },
-  { key: "planned",     label: "Planned",               color: "hsl(var(--chart-compare) / 0.6)" },
+  { key: "planned",     label: "Bills",                  color: "hsl(var(--chart-compare) / 0.6)" },
 ] as const;
 
 
@@ -164,7 +164,7 @@ function ChartTooltip({
   );
 }
 
-// ─── Linked Planned Expenses (vehicle edit modal) ────────────────────────────
+// ─── Linked Bills (vehicle edit modal) ────────────────────────────
 
 function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
   const { data: bills, isPending } = useQuery(vehicleLinkedBillsQueryOptions(vehicleId));
@@ -172,7 +172,7 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
   if (isPending) {
     return (
       <div className="space-y-1.5">
-        <Label>Linked Planned Expenses</Label>
+        <Label>Linked Bills</Label>
         <p className="text-xs text-muted-foreground">Loading…</p>
       </div>
     );
@@ -181,9 +181,9 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
   if (!bills || bills.length === 0) {
     return (
       <div className="space-y-1.5">
-        <Label>Linked Planned Expenses</Label>
+        <Label>Linked Bills</Label>
         <p className="surface border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-          No planned expenses linked to this vehicle yet.
+          No bills linked to this vehicle yet.
         </p>
       </div>
     );
@@ -191,14 +191,14 @@ function LinkedPlannedExpenses({ vehicleId }: { vehicleId: string }) {
 
   return (
     <div className="space-y-1.5">
-      <Label>Linked Planned Expenses</Label>
+      <Label>Linked Bills</Label>
       <div className="flex flex-col gap-1.5">
         {bills.map((b) => {
           const catLabel = labelForVehicleExpenseCategory(b.vehicle_category);
           return (
             <Link
               key={b.id}
-              href="/dashboard/planned-expenses"
+              href="/dashboard/bills"
               className="flex items-center gap-2 surface border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
             >
               <Receipt className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
@@ -371,7 +371,7 @@ export function VehicleDialog({
             />
           </div>
 
-          {/* Linked planned expenses (edit mode only) */}
+          {/* Linked bills (edit mode only) */}
           {editingId && <LinkedPlannedExpenses vehicleId={editingId} />}
         </ScrollFadeBody>
 
@@ -616,7 +616,7 @@ export function VehiclesBoard() {
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
       <ContentHeader
         title="Vehicles"
-        subtitle="Register your vehicles and track linked planned expenses and expenses with Transportation category."
+        subtitle="Register your vehicles and track linked bills and expenses with Transportation category."
         icon={Car}
       />
 
@@ -782,7 +782,7 @@ export function VehiclesBoard() {
       {hasVehicles && !hasSpend && selectedMonth === CURRENT_MONTH_YM && (
         <div className="surface border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           <strong className="font-medium text-foreground">Tip:</strong>{" "}
-          When adding a Planned Expense or Expense under the{" "}
+          When adding a Bill or Expense under the{" "}
           <em>Transport &amp; Commute</em> category, you can link it to one of your
           vehicles to see per-vehicle spending here.
         </div>
@@ -811,7 +811,7 @@ export function VehiclesBoard() {
             <DialogTitle>Delete vehicle?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This removes the vehicle from your list. Linked planned expenses and expenses will keep their
+            This removes the vehicle from your list. Linked bills and expenses will keep their
             data but will no longer be associated with this vehicle.
           </p>
           <div className="flex gap-2 pt-2">

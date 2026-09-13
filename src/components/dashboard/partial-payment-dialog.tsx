@@ -16,7 +16,7 @@ import { formatCurrency } from "@/lib/utils";
 export type PartialPaymentDialogProps = {
   open: boolean;
   onClose: () => void;
-  /** Display name of the planned expense (note or category label). */
+  /** Display name of the bill (note or category label). */
   billLabel: string;
   /** Bill total — the target full amount. */
   billAmount: number;

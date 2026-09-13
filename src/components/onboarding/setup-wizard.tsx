@@ -797,7 +797,7 @@ function DoneStep({ name, isBillsMode, onFinish }: { name: string; isBillsMode: 
           <ul className="space-y-1.5 text-sm text-foreground">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              Add your first planned expense — rent, utilities, or a subscription.
+              Add your first bill — rent, utilities, or a subscription.
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

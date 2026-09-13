@@ -259,7 +259,7 @@ export async function loadVehicleSpending(month?: string): Promise<{ summaries: 
     summary.entries.push({
       id: String(row.id),
       source: "bill",
-      label: String(row.note ?? row.notes ?? "Planned Expense"),
+      label: String(row.note ?? row.notes ?? "Bill"),
       amount,
       date: String(row.created_at),
       vehicle_category: (row.vehicle_category as string | null) ?? null,
@@ -319,7 +319,7 @@ export async function loadVehicleLinkedBills(
   return {
     bills: (data ?? []).map((row) => ({
       id: String(row.id),
-      label: String(row.note ?? row.notes ?? "Planned Expense"),
+      label: String(row.note ?? row.notes ?? "Bill"),
       amount: Number(row.amount),
       billing_period:
         row.billing_period === "yearly"

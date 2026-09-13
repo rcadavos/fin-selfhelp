@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 const audiences = [
   {
     title: "Households & couples",
-    copy: "On Pro or Premium, share read-only views with a partner so you both see planned expenses and lists — without juggling spreadsheets.",
+    copy: "On Pro or Premium, share read-only views with a partner so you both see bills and lists — without juggling spreadsheets.",
   },
   {
     title: "Busy professionals",
@@ -27,7 +27,7 @@ export function BuiltForSection({ className }: { className?: string }) {
             Built for real routines
           </h2>
           <p className="mt-3 max-w-[38ch] text-muted-foreground">
-            For anyone who wants to track planned expenses, lists, and routines in daily life —
+            For anyone who wants to track bills, lists, and routines in daily life —
             without turning finance into a second job.
           </p>
         </div>

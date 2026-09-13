@@ -314,7 +314,7 @@ export default async function OpenGraphImage() {
                 color: MUTED,
               }}
             >
-              Track expenses, planned expenses, accounts, and goals in one simple
+              Track expenses, bills, accounts, and goals in one simple
               app. Then ask the built-in assistant anything.
             </div>
 

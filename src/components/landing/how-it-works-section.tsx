@@ -11,7 +11,7 @@ const steps = [
   },
   {
     num: "02",
-    title: "Log expenses & planned expenses",
+    title: "Log expenses & bills",
     description: "Daily spending plus the bills you already know are coming.",
   },
   {

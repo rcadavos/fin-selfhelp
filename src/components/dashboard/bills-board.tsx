@@ -71,6 +71,7 @@ import {
   groupPlannedExpenses,
   summarisePlannedExpenses,
   buildAccountCoverage,
+  isFullyPaidBucket,
 } from "@/lib/planned-expenses/grouping";
 import { URGENCY_LABELS } from "@/lib/constants/planned-expenses";
 import { ExpenseRow } from "@/components/dashboard/planned-expenses/expense-row";
@@ -107,7 +108,7 @@ function exportBillsToCSV(bills: BillRowModel[], paidIds: Set<string>, categorie
   const csv = [headers.join(","), ...rows].join("\n");
   const link = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })),
-    download: `planned-expenses-${new Date().toISOString().slice(0, 10)}.csv`,
+    download: `bills-${new Date().toISOString().slice(0, 10)}.csv`,
     style: "display:none",
   });
   document.body.appendChild(link);
@@ -132,7 +133,7 @@ function exportBillsToExcel(bills: BillRowModel[], paidIds: Set<string>, categor
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr>${headerRow}</tr>${dataRows}</table></body></html>`;
   const link = Object.assign(document.createElement("a"), {
     href: URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" })),
-    download: `planned-expenses-${new Date().toISOString().slice(0, 10)}.xls`,
+    download: `bills-${new Date().toISOString().slice(0, 10)}.xls`,
     style: "display:none",
   });
   document.body.appendChild(link);
@@ -175,10 +176,10 @@ function CategoriesDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Planned Expenses by Category</DialogTitle>
+          <DialogTitle>Bills by Category</DialogTitle>
         </DialogHeader>
         {grouped.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No planned expenses yet.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No bills yet.</p>
         ) : (
           <div className="divide-y">
             {grouped.map(({ id, label, total, paid, count }) => {
@@ -196,7 +197,7 @@ function CategoriesDialog({
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold tabular-nums">{formatCurrency(total, currency)}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {count} planned expense{count !== 1 ? "s" : ""}
+                      {count} bill{count !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -304,6 +305,10 @@ export function BillsBoard() {
     () => billsDataQuery.data?.paymentAmountByBillId ?? {},
     [billsDataQuery.data?.paymentAmountByBillId]
   );
+  const paidAtByBillId = useMemo(
+    () => billsDataQuery.data?.paidAtByBillId ?? {},
+    [billsDataQuery.data?.paidAtByBillId]
+  );
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
@@ -314,8 +319,15 @@ export function BillsBoard() {
   // Every panel below reads these same rows, so a subtotal can never disagree
   // with the list it sits above.
   const rows = useMemo(
-    () => buildPlannedExpenseRows({ bills, paymentAmountByBillId, failedBillIds: failedIds, paidMonth }),
-    [bills, paymentAmountByBillId, failedIds, paidMonth]
+    () =>
+      buildPlannedExpenseRows({
+        bills,
+        paymentAmountByBillId,
+        paidAtByBillId,
+        failedBillIds: failedIds,
+        paidMonth,
+      }),
+    [bills, paymentAmountByBillId, paidAtByBillId, failedIds, paidMonth]
   );
   const groups = useMemo(() => groupPlannedExpenses(rows), [rows]);
   const summary = useMemo(() => summarisePlannedExpenses(rows), [rows]);
@@ -350,7 +362,7 @@ export function BillsBoard() {
   }, [paidMonth]);
 
   // Bills mode opens on the single most urgent unsettled bill; the rest queue behind it.
-  const unsettled = useMemo(() => rows.filter((r) => r.bucket !== "settled"), [rows]);
+  const unsettled = useMemo(() => rows.filter((r) => !isFullyPaidBucket(r.bucket)), [rows]);
   const heroRow = unsettled[0] ?? null;
   const heroQueue = unsettled.slice(1, 4);
 
@@ -369,10 +381,13 @@ export function BillsBoard() {
       if (wasPaid) {
         const nextAmounts = { ...old.paymentAmountByBillId };
         delete nextAmounts[billId];
+        const nextPaidAt = { ...old.paidAtByBillId };
+        delete nextPaidAt[billId];
         return {
           ...old,
           paidBillIds: old.paidBillIds.filter((id) => id !== billId),
           paymentAmountByBillId: nextAmounts,
+          paidAtByBillId: nextPaidAt,
         };
       }
       const nextReasons = { ...old.failureReasonByBillId };
@@ -381,6 +396,7 @@ export function BillsBoard() {
         ...old,
         paidBillIds: [...old.paidBillIds, billId],
         paymentAmountByBillId: { ...old.paymentAmountByBillId, [billId]: billAmount },
+        paidAtByBillId: { ...old.paidAtByBillId, [billId]: new Date().toISOString() },
         failedBillIds: old.failedBillIds.filter((id) => id !== billId),
         failureReasonByBillId: nextReasons,
       };
@@ -508,7 +524,7 @@ export function BillsBoard() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
       <ContentHeader
-        title="Planned Expenses"
+        title="Bills"
         subtitle={
           summary.totalCount > 0
             ? `${summary.totalCount} this month. ${summary.settledCount} settled.`
@@ -583,7 +599,7 @@ export function BillsBoard() {
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
           <Receipt className="size-8 opacity-30" />
-          <p className="text-sm">No planned expenses this month.</p>
+          <p className="text-sm">No bills this month.</p>
         </div>
       ) : (
         <>
@@ -634,7 +650,7 @@ export function BillsBoard() {
               <span className="min-w-0 flex-1 text-[12.5px]">
                 You&rsquo;re using your one free reminder
                 <small className="mt-px block text-[11.5px] text-muted-foreground">
-                  Pro sets a reminder on every planned expense.
+                  Pro sets a reminder on every bill.
                 </small>
               </span>
               <Button asChild size="sm" variant="outline" className="shrink-0 border-warning/50 text-warning hover:bg-warning/10 hover:text-warning">
@@ -654,7 +670,7 @@ export function BillsBoard() {
                   <p className="mt-0.5 text-xs text-destructive/90">
                     {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
                     {formatCurrency(toggleError.available, currency)} available, but{" "}
-                    {toggleError.billNote ? `“${toggleError.billNote}”` : "this planned expense"} needs{" "}
+                    {toggleError.billNote ? `“${toggleError.billNote}”` : "this bill"} needs{" "}
                     {formatCurrency(toggleError.required, currency)}.
                   </p>
                   {!accountsEnabled && (
@@ -799,10 +815,10 @@ export function BillsBoard() {
       <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete planned expense?</DialogTitle>
+            <DialogTitle>Delete bill?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will permanently delete the planned expense and all its payment history.
+            This will permanently delete the bill and all its payment history.
           </p>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="w-1/2" onClick={() => setDeletingId(null)} disabled={isPending}>

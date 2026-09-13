@@ -421,7 +421,7 @@ function SubscriptionPageInner() {
           <Card className="flex flex-col border-border/50">
             <CardHeader>
               <CardTitle className="text-base">Free</CardTitle>
-              <CardDescription>Track planned expenses and cashflow, no card required.</CardDescription>
+              <CardDescription>Track bills and cashflow, no card required.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col space-y-2 text-sm text-muted-foreground">
               {freeBenefits.map((f) => (

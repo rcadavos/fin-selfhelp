@@ -54,7 +54,7 @@ const navItems: readonly SidebarNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, premium: false },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, premium: false, feature: "accounts" },
   { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, premium: false, feature: "expenses" },
-  { href: "/dashboard/planned-expenses", label: "Planned Expenses", icon: Receipt, premium: false, feature: "bills" },
+  { href: "/dashboard/bills", label: "Bills", icon: Receipt, premium: false, feature: "bills" },
   { href: "/dashboard/receivables", label: "Receivables", icon: HandCoins, premium: false, feature: "receivables" },
   { href: "/dashboard/vehicles", label: "Vehicles", icon: Car, premium: false, feature: "vehicles" },
   { href: "/dashboard/goals", label: "Goals", icon: Target, premium: false, feature: "goals" },

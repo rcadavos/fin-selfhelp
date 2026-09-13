@@ -83,7 +83,7 @@ export async function sendWelcomeEmail(params: {
     "",
     `🎁 Your account comes with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required.`,
     `For the next ${TRIAL_DURATION_DAYS} days you get full Pro access, including:`,
-    "• Email reminders for planned expenses and reminders",
+    "• Email reminders for bills and reminder lists",
     "• Unlimited reminders",
     "• Partner sharing (invite by email)",
     "• Custom expense categories",
@@ -137,7 +137,7 @@ export async function sendWelcomeEmail(params: {
             <tr>
               <td style="padding:16px 24px 0 24px;">
                 <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
-                  Your account is all set. OmniTrak helps you stay on top of your finances — tracking expenses, planned expenses, goals, and more in one place.
+                  Your account is all set. OmniTrak helps you stay on top of your finances — tracking expenses, bills, goals, and more in one place.
                 </p>
               </td>
             </tr>

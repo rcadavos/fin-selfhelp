@@ -23,7 +23,7 @@ export function buildAssistantTools(
   return {
     getFinancialSummary: tool({
       description:
-        "Get the current month's financial summary: net take-home income, total monthly expenses, amount paid so far, and how many planned expenses are paid. Use for questions about budget, remaining money, or whether the user is on track this month.",
+        "Get the current month's financial summary: net take-home income, total monthly expenses, amount paid so far, and how many bills are paid. Use for questions about budget, remaining money, or whether the user is on track this month.",
       inputSchema: z.object({}),
       execute: async () => {
         const summary = await loadExpenseSummary(getCurrentPaidMonth());

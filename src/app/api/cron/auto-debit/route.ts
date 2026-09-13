@@ -212,7 +212,7 @@ export async function GET(request: Request) {
 
     // Deduct from account when one is linked
     if (accountId) {
-      const description = (bill.note as string | null)?.trim() || "Planned expense (auto debit)";
+      const description = (bill.note as string | null)?.trim() || "Bill (auto debit)";
       const occurredAt = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
       const { error: txErr } = await supabase.from("account_transactions").insert({

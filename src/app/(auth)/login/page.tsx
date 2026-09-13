@@ -161,7 +161,7 @@ function LoginContent() {
   const panel = (
     <>
       <p className="max-w-[34ch] text-[15px] leading-relaxed text-panel-muted">
-        Your ledger is where you left it — expenses, planned expenses, savings, and goals, all in one place.
+        Your ledger is where you left it — expenses, bills, savings, and goals, all in one place.
       </p>
       <div className="mt-7">
         <PanelStatement title="Tracked accounts" meta={today} label="Sample account statement">

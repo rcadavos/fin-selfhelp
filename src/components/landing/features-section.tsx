@@ -8,9 +8,9 @@ const features: { name: string; description: string; tag: string }[] = [
     tag: "Expenses",
   },
   {
-    name: "Planned expenses",
+    name: "Bills",
     description: "Recurring bills with due dates, paid stamps, and a full payment history per bill.",
-    tag: "Planned",
+    tag: "Bills",
   },
   {
     name: "Smart categories",
@@ -42,7 +42,7 @@ export function FeaturesSection({ className }: { className?: string }) {
           Everything a household ledger should do
         </h2>
         <p className="mt-3 max-w-[52ch] text-muted-foreground">
-          Daily expenses, planned expenses, lists, goals, and calculators, tuned for everyday
+          Daily expenses, bills, lists, goals, and calculators, tuned for everyday
           Filipino household use.
         </p>
 

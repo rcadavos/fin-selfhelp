@@ -106,7 +106,7 @@ export function MonthCalendar({
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 px-2.5 pb-2.5" role="grid" aria-label={`${monthLabel} planned expenses`}>
+      <div className="grid grid-cols-7 gap-0.5 px-2.5 pb-2.5" role="grid" aria-label={`${monthLabel} bills`}>
         {DOW.map((d, i) => (
           <span
             key={`${d}-${i}`}
@@ -169,7 +169,7 @@ export function MonthCalendar({
                   type="button"
                   onMouseEnter={() => setOpenDay(day)}
                   onMouseLeave={() => setOpenDay((d) => (d === day ? null : d))}
-                  aria-label={`${dayRows.length} planned expense${dayRows.length === 1 ? "" : "s"} due ${monthLabel} ${day}`}
+                  aria-label={`${dayRows.length} bill${dayRows.length === 1 ? "" : "s"} due ${monthLabel} ${day}`}
                   className={cn(
                     cellClass,
                     "cursor-pointer transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -187,7 +187,7 @@ export function MonthCalendar({
                     <li key={row.bill.id} className="flex items-start justify-between gap-2 px-3 py-2">
                       <span className="min-w-0">
                         <span className="block truncate text-[13px] font-medium">
-                          {row.bill.note ?? "Planned expense"}
+                          {row.bill.note ?? "Bill"}
                         </span>
                         <Stamp variant={STATUS_STAMP[row.status]} className="mt-1">
                           {STATUS_LABEL[row.status]}

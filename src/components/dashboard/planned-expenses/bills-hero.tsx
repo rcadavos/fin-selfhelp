@@ -76,7 +76,7 @@ export function BillsHero({
         </p>
 
         <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">
-          {next.bill.note ?? "Planned expense"}
+          {next.bill.note ?? "Bill"}
         </p>
         <Amount
           value={next.outstanding}
@@ -123,7 +123,7 @@ export function BillsHero({
               {queue.map((row) => (
                 <div key={row.bill.id} className="flex items-baseline text-[12.5px] text-panel-muted">
                   <span className="min-w-0 truncate pb-0.5">
-                    {row.bill.note ?? "Planned expense"}
+                    {row.bill.note ?? "Bill"}
                     {row.due && ` — ${row.due.toLocaleDateString("en-PH", { month: "short", day: "numeric" })}`}
                   </span>
                   <DotLeader className="border-panel-foreground/25" />

@@ -2,7 +2,7 @@
  * App mode — how much of OmniTrak a user wants to see.
  *
  * "full"  — the whole cashflow app: accounts, expenses, receivables, goals, vehicles.
- * "bills" — planned expenses (bills) and reminders only.
+ * "bills" — bills and reminders only.
  *
  * The mode lives on `profiles.user_preferences.appMode` (see `src/lib/user-preferences.ts`)
  * and is read through `useAppMode()`. It only hides navigation and blocks routes — it never
@@ -38,7 +38,7 @@ export const APP_FEATURE_KEYS = [
   "quickAddEntry",
   /** Spend + account-balance stats and the 6-month spending chart on the dashboard. */
   "cashflowStats",
-  /** Auto-debit on planned expenses. Owns no route of its own — see FEATURE_ROUTE_PREFIXES. */
+  /** Auto-debit on bills. Owns no route of its own — see FEATURE_ROUTE_PREFIXES. */
   "autoDebit",
 ] as const;
 export type AppFeatureKey = (typeof APP_FEATURE_KEYS)[number];
@@ -59,7 +59,7 @@ export function isFeatureEnabledInMode(mode: AppModeId, feature: AppFeatureKey):
  * Features with no page of their own map to an empty list.
  */
 export const FEATURE_ROUTE_PREFIXES: Record<AppFeatureKey, readonly string[]> = {
-  bills: ["/dashboard/planned-expenses"],
+  bills: ["/dashboard/bills"],
   reminders: ["/dashboard/to-do", "/dashboard/to-buy"],
   accounts: ["/dashboard/accounts"],
   expenses: ["/dashboard/expenses", "/dashboard/my-expenses"],
@@ -72,7 +72,7 @@ export const FEATURE_ROUTE_PREFIXES: Record<AppFeatureKey, readonly string[]> = 
   quickAddEntry: [],
   cashflowStats: [],
   /**
-   * Auto-debit on planned expenses: the form toggle, its badges, and the nightly
+   * Auto-debit on bills: the form toggle, its badges, and the nightly
    * /api/cron/auto-debit run. Off means the stored `bills.is_auto_debit` flag is
    * INERT — never acted on, never rewritten — so it returns exactly as it was when
    * the mode does. Bills whose auto-debit is inert fall back to due-date reminders.
@@ -102,8 +102,8 @@ export function isRouteBlockedInMode(mode: AppModeId, pathname: string | null | 
 /** Where a blocked route sends the user. */
 export const APP_MODE_FALLBACK_ROUTE = "/dashboard";
 
-/** Deep link that opens the Add planned expense dialog on the bills page. */
-export const ADD_PLANNED_EXPENSE_ROUTE = "/dashboard/planned-expenses?add=1";
+/** Deep link that opens the Add bill dialog on the bills page. */
+export const ADD_PLANNED_EXPENSE_ROUTE = "/dashboard/bills?add=1";
 /** Query flag `ADD_PLANNED_EXPENSE_ROUTE` sets, read by the bills board. */
 export const ADD_PLANNED_EXPENSE_PARAM = "add";
 
@@ -125,7 +125,7 @@ export const APP_MODE_OPTIONS: readonly AppModeOption[] = [
     includes: [
       "Accounts & balances",
       "Expenses",
-      "Planned expenses",
+      "Bills",
       "Receivables",
       "Goals",
       "Vehicles",
@@ -138,7 +138,7 @@ export const APP_MODE_OPTIONS: readonly AppModeOption[] = [
     tagline: "Just never miss a payment",
     description:
       "A lighter app focused on what's due. Cashflow tracking stays switched off — nothing is deleted, so you can turn it back on any time.",
-    includes: ["Planned expenses", "Reminders", "Due-date alerts"],
+    includes: ["Bills", "Reminders", "Due-date alerts"],
   },
 ];
 

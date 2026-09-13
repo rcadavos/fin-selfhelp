@@ -67,7 +67,7 @@ function resolveBillVehicleFields(
   }
   const raw = vehicleCategory?.trim() || null;
   if (!raw || !isVehicleExpenseCategoryValue(raw)) {
-    return { error: "Select a vehicle category when linking this planned expense to a vehicle." };
+    return { error: "Select a vehicle category when linking this bill to a vehicle." };
   }
   return { vehicle_id: vid, vehicle_category: raw };
 }
@@ -99,11 +99,17 @@ export type BillsData = {
   paidBillIds: string[];
   /**
    * For every bill with a paid payment row this month, the actual amount_paid.
-   * Use this (rather than bill.amount) to compute "Planned paid" totals so
+   * Use this (rather than bill.amount) to compute "Bills paid" totals so
    * partial payments are reflected accurately. Missing key => no payment.
    * Failed rows are not present here (amount_paid is always 0 for them).
    */
   paymentAmountByBillId: Record<string, number>;
+  /**
+   * When each of this month's payments was recorded, as an ISO timestamp, by bill id.
+   * The board uses it to keep a freshly paid bill out of the collapsed Settled
+   * section for a week. Failed rows are not present here.
+   */
+  paidAtByBillId: Record<string, string>;
   /** Bill IDs whose auto-debit failed for this month and has not yet been resolved. */
   failedBillIds: string[];
   /** Failure reason text by bill id for the current month. */
@@ -148,7 +154,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       .order("created_at", { ascending: true }),
     supabase
       .from("bill_payments")
-      .select("bill_id, amount_paid, status, failure_reason")
+      .select("bill_id, amount_paid, status, failure_reason, paid_at")
       .eq("profile_id", profile.id)
       .eq("paid_month", month),
     supabase
@@ -233,6 +239,11 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       (paymentRows ?? [])
         .filter((r) => (r.status ?? "paid") === "paid")
         .map((r) => [String(r.bill_id), Number(r.amount_paid ?? 0)]),
+    ),
+    paidAtByBillId: Object.fromEntries(
+      (paymentRows ?? [])
+        .filter((r) => (r.status ?? "paid") === "paid" && r.paid_at != null)
+        .map((r) => [String(r.bill_id), String(r.paid_at)]),
     ),
     failedBillIds: (paymentRows ?? [])
       .filter((r) => r.status === "failed")
@@ -446,7 +457,7 @@ async function getAccountAvailableBalance(
 }
 
 /**
- * Mark a planned expense as paid (fully or partially) for the given month.
+ * Mark a bill as paid (fully or partially) for the given month.
  * - If `amount` is omitted, defaults to the bill's full amount.
  * - If a payment row already exists, this updates it to the new absolute amount
  *   and adjusts the linked account_transaction/expense_entry by the delta. The
@@ -530,7 +541,7 @@ export async function markBillPaid(
     }
   }
 
-  const description = (bill.note as string | null)?.trim() || "Planned expense";
+  const description = (bill.note as string | null)?.trim() || "Bill";
   const occurredAt = new Date().toISOString();
 
   if (existing) {
@@ -538,7 +549,14 @@ export async function markBillPaid(
     // 'failed' status carried over from a prior auto-debit attempt.
     const { error: updErr } = await supabase
       .from("bill_payments")
-      .update({ amount_paid: newAmount, status: "paid", failure_reason: null })
+      .update({
+        amount_paid: newAmount,
+        status: "paid",
+        failure_reason: null,
+        // A row that was not already paid (a failed auto-debit) is being paid now, so
+        // its settled clock starts today. An existing paid row keeps its original date.
+        ...(previousStatus === "paid" ? {} : { paid_at: occurredAt }),
+      })
       .eq("id", existing.id);
     if (updErr) return { error: updErr.message };
 
@@ -579,7 +597,7 @@ export async function markBillPaid(
       }
     }
 
-    revalidatePath("/dashboard/planned-expenses");
+    revalidatePath("/dashboard/bills");
     revalidatePath("/dashboard/accounts");
     revalidatePath("/dashboard/expenses");
     return { paid: true, amountPaid: newAmount };
@@ -615,7 +633,7 @@ export async function markBillPaid(
     }
   }
 
-  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/bills");
   revalidatePath("/dashboard/accounts");
   revalidatePath("/dashboard/expenses");
   return { paid: true, amountPaid: newAmount };
@@ -651,7 +669,7 @@ export async function unmarkBillPaid(
 
   // Cascading FK on bill_payment_id removes the linked account_transaction.
   await supabase.from("bill_payments").delete().eq("id", existing.id);
-  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/bills");
   revalidatePath("/dashboard/accounts");
   revalidatePath("/dashboard/expenses");
   return { paid: false, amountPaid: 0 };
@@ -779,7 +797,7 @@ export async function addBill(
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/bills");
   revalidatePath("/dashboard/fuel");
   revalidatePath("/dashboard/vehicles");
   return {};
@@ -877,7 +895,7 @@ export async function updateBill(
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/bills");
   revalidatePath("/dashboard/fuel");
   revalidatePath("/dashboard/vehicles");
   return {};
@@ -902,7 +920,7 @@ export async function deleteBill(billId: string): Promise<{ error?: string }> {
     .eq("profile_id", profile.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/planned-expenses");
+  revalidatePath("/dashboard/bills");
   revalidatePath("/dashboard/vehicles");
   return {};
 }

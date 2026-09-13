@@ -33,7 +33,7 @@ const MODE_ITEMS: Record<AppModeId, { left: BottomNavItem[]; right: BottomNavIte
   full: {
     left: [
       { href: "/dashboard/expenses", label: "Expenses", icon: Banknote, exact: false, excludes: ["/dashboard/expenses/categories"] },
-      { href: "/dashboard/planned-expenses", label: "Planned", icon: Receipt, exact: false },
+      { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
     ],
     right: [
       { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, exact: false },
@@ -41,7 +41,7 @@ const MODE_ITEMS: Record<AppModeId, { left: BottomNavItem[]; right: BottomNavIte
   },
   bills: {
     left: [
-      { href: "/dashboard/planned-expenses", label: "Planned", icon: Receipt, exact: false },
+      { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
       { href: "/dashboard/to-do", label: "Reminders", icon: Bell, exact: false },
     ],
     right: [
@@ -103,7 +103,7 @@ export function BottomNavbar() {
             <Link
               href={ADD_PLANNED_EXPENSE_ROUTE}
               className={fabClassName}
-              aria-label="Add planned expense"
+              aria-label="Add bill"
             >
               <Plus className="h-7 w-7" strokeWidth={2.5} />
             </Link>

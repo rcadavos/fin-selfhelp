@@ -25,7 +25,7 @@ export function CtaBandSection({ className }: { className?: string }) {
             Ready to track it all?
           </h2>
           <p className="mt-3 max-w-[46ch] text-panel-muted">
-            Planned expenses, lists, and goals in one place. Open your dashboard in seconds, no bank
+            Bills, lists, and goals in one place. Open your dashboard in seconds, no bank
             linking required.
           </p>
         </div>

@@ -125,7 +125,7 @@ export function HeroSection({ className }: HeroSectionProps) {
               Your all-in-one finance tracker, now with AI
             </h1>
             <p className="mt-5 max-w-[44ch] text-lg text-muted-foreground">
-              Track expenses, planned expenses, accounts, and goals in one simple app. Then ask the
+              Track expenses, bills, accounts, and goals in one simple app. Then ask the
               built-in assistant anything.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">

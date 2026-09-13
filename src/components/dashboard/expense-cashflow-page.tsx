@@ -109,7 +109,7 @@ export function ExpenseCashflowPage({
 }) {
   // pageVariant is kept for backwards compatibility with the dashboard page,
   // but only "dashboard" is supported now. The recurring-expense feature lives
-  // in /dashboard/planned-expenses; the per-entry list lives in /dashboard/expenses.
+  // in /dashboard/bills; the per-entry list lives in /dashboard/expenses.
   void pageVariant;
 
   const { user } = useUser();
@@ -227,7 +227,7 @@ export function ExpenseCashflowPage({
         const paid = Number(paymentAmountByBillId[b.id] ?? 0) > 0;
         return {
           id: b.id,
-          name: b.note?.trim() || "Planned expense",
+          name: b.note?.trim() || "Bill",
           amount: b.amount,
           paid,
           // Auto-debit is inert where the mode switches it off, so the row must not claim
@@ -337,7 +337,7 @@ export function ExpenseCashflowPage({
             <p className="mt-3 flex max-w-xs items-baseline text-sm text-muted-foreground">
               <span>
                 {monthBills.length}{" "}
-                {monthBills.length === 1 ? "planned expense" : "planned expenses"}
+                {monthBills.length === 1 ? "bill" : "bills"}
               </span>
               <DotLeader />
               <span>{paidMonthDisplay}</span>
@@ -361,7 +361,7 @@ export function ExpenseCashflowPage({
         {isBillsMode ? (
           <>
             <StatCell
-              href="/dashboard/planned-expenses"
+              href="/dashboard/bills"
               label="Still to pay"
               sub={unpaidCount > 0 ? `${unpaidCount} due this month` : "All settled"}
               dot={billsUnpaid > 0}
@@ -370,15 +370,15 @@ export function ExpenseCashflowPage({
               {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
             </StatCell>
             <StatCell
-              href="/dashboard/planned-expenses"
-              label="Planned paid"
+              href="/dashboard/bills"
+              label="Bills paid"
               sub={`${billsPaidCount}/${monthBills.length} paid this month`}
               borderClass={CELL_BORDERS[1]}
             >
               {amountsHidden ? MASK : <Amount value={billsPaid} />}
             </StatCell>
             <StatCell
-              href="/dashboard/planned-expenses"
+              href="/dashboard/bills"
               label="Overdue"
               sub={overdueCount > 0 ? `${overdueCount} past due` : "None overdue"}
               dot={overdueCount > 0}
@@ -387,7 +387,7 @@ export function ExpenseCashflowPage({
               {amountsHidden ? MASK : <Amount value={overdueAmount} />}
             </StatCell>
             <StatCell
-              href="/dashboard/planned-expenses"
+              href="/dashboard/bills"
               label="Due in 7 days"
               sub={dueSoonCount > 0 ? `${dueSoonCount} coming up` : "Nothing this week"}
               borderClass={CELL_BORDERS[3]}
@@ -406,7 +406,7 @@ export function ExpenseCashflowPage({
               {amountsHidden ? MASK : <Amount value={dailyAmt} />}
             </StatCell>
             <StatCell
-              href="/dashboard/planned-expenses"
+              href="/dashboard/bills"
               label="Still to pay"
               sub={unpaidCount > 0 ? `${unpaidCount} due this month` : "All settled"}
               dot={billsUnpaid > 0}
@@ -415,8 +415,8 @@ export function ExpenseCashflowPage({
               {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
             </StatCell>
             <StatCell
-              href="/dashboard/planned-expenses"
-              label="Planned paid"
+              href="/dashboard/bills"
+              label="Bills paid"
               sub={`${billsPaidCount}/${monthBills.length} paid this month`}
               borderClass={CELL_BORDERS[2]}
             >
@@ -442,12 +442,12 @@ export function ExpenseCashflowPage({
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
               <div>
                 <h2 className="text-base font-bold tracking-tight">Spending, last 6 months</h2>
-                <p className="text-xs text-muted-foreground">Planned vs actual • savings excluded</p>
+                <p className="text-xs text-muted-foreground">Bills vs actual • savings excluded</p>
               </div>
               <div className="flex gap-4" aria-hidden>
                 <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   <i className="h-2.5 w-2.5 rounded-[2px] bg-chart-compare" />
-                  Planned
+                  Bills
                 </span>
                 <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   <i className="h-2.5 w-2.5 rounded-[2px] bg-primary" />
@@ -473,7 +473,7 @@ export function ExpenseCashflowPage({
                 }
                 const chartData = breakdown.map((r) => ({
                   month: new Date(`${r.month}-01`).toLocaleDateString("en-PH", { month: "short" }),
-                  Planned: r.bills,
+                  Bills: r.bills,
                   Spent: r.expenses + (r.billsPaid ?? 0),
                 }));
                 const fmtY = (v: number) =>
@@ -516,7 +516,7 @@ export function ExpenseCashflowPage({
                           );
                         }}
                       />
-                      <Bar dataKey="Planned" fill="hsl(var(--chart-compare))" radius={[2, 2, 0, 0]} maxBarSize={22} />
+                      <Bar dataKey="Bills" fill="hsl(var(--chart-compare))" radius={[2, 2, 0, 0]} maxBarSize={22} />
                       <Bar dataKey="Spent" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} maxBarSize={22} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -537,7 +537,7 @@ export function ExpenseCashflowPage({
 
           {monthBills.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground sm:px-5">
-              No planned expenses this month.
+              No bills this month.
             </div>
           ) : (
             <>
@@ -575,8 +575,8 @@ export function ExpenseCashflowPage({
 
               {billItems.length > visibleBills.length && (
                 <div className="border-t border-border px-4 py-3 sm:px-5">
-                  <Link href="/dashboard/planned-expenses" className="text-xs font-medium text-primary hover:underline">
-                    View all planned expenses
+                  <Link href="/dashboard/bills" className="text-xs font-medium text-primary hover:underline">
+                    View all bills
                   </Link>
                 </div>
               )}
