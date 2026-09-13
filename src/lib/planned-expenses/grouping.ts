@@ -195,7 +195,13 @@ export function buildPlannedExpenseRows({
   });
 }
 
-const BUCKET_ORDER: UrgencyBucket[] = ["overdue", "week", "later", "recent", "settled"];
+/**
+ * What needs you, soonest first — then what you just dealt with, then the rest.
+ * `recent` sits directly after `week` rather than further down: it is the
+ * receipt for the action you just took, so it belongs next to the things you
+ * are still acting on, not buried below the end of the month.
+ */
+const BUCKET_ORDER: UrgencyBucket[] = ["overdue", "week", "recent", "later", "settled"];
 
 /** Groups rows into the urgency buckets, dropping any bucket with no rows. */
 export function groupPlannedExpenses(rows: PlannedExpenseRow[]): PlannedExpenseGroup[] {

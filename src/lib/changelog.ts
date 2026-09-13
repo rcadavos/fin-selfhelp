@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "Moved 'Recently paid' up to sit directly under 'This week' on the Bills page, so a bill you just settled stays next to the ones still waiting rather than sitting below the end of the month." },
       { type: "improvement", description: "Moved the settled progress bar on the Bills calendar up under the month and the amount left, so the summary of the month sits together at the top instead of being stranded below the grid." },
       { type: "improvement", description: "A fully paid day on the Bills calendar is now filled with the same green as the Mark paid button, instead of a faint tint that was easy to miss." },
       { type: "improvement", description: "The 'Needs you now' panel can be dismissed with an X if you want it out of the way. It comes back next time you open the page — it is hidden for the visit, not turned off." },
