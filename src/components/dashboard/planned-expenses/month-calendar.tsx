@@ -109,7 +109,17 @@ export function MonthCalendar({
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 px-2.5 pb-2.5" role="grid" aria-label={`${monthLabel} bills`}>
+      <div className="flex items-center gap-2.5 border-b border-border px-3.5 pb-2.5">
+        <div className="flex h-[5px] flex-1 overflow-hidden rounded-full bg-muted">
+          <i className="h-full bg-primary transition-[width] duration-500" style={{ width: `${settledPct * 100}%` }} />
+          <i className="h-full bg-warning/75 transition-[width] duration-500" style={{ width: `${partialPct * 100}%` }} />
+        </div>
+        <span className="whitespace-nowrap font-mono text-[10.5px] text-muted-foreground">
+          {summary.settledCount} of {summary.totalCount} settled
+        </span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-0.5 px-2.5 pb-2.5 pt-2.5" role="grid" aria-label={`${monthLabel} bills`}>
         {DOW.map((d, i) => (
           <span
             key={`${d}-${i}`}
@@ -208,16 +218,6 @@ export function MonthCalendar({
             </Popover>
           );
         })}
-      </div>
-
-      <div className="flex items-center gap-2.5 border-t border-border px-3.5 py-2.5">
-        <div className="flex h-[5px] flex-1 overflow-hidden rounded-full bg-muted">
-          <i className="h-full bg-primary transition-[width] duration-500" style={{ width: `${settledPct * 100}%` }} />
-          <i className="h-full bg-warning/75 transition-[width] duration-500" style={{ width: `${partialPct * 100}%` }} />
-        </div>
-        <span className="whitespace-nowrap font-mono text-[10.5px] text-muted-foreground">
-          {summary.settledCount} of {summary.totalCount} settled
-        </span>
       </div>
     </div>
   );
