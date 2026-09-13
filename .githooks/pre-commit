@@ -11,6 +11,11 @@
 
 set -e
 
+# Refuses an accidental release: two version blocks in one commit, or a
+# minor/major bump whose block holds nothing marked as a feature.
+# Override a deliberate exception with OMNITRAK_ALLOW_VERSION_JUMP=1.
+node scripts/check-version-bump.mjs
+
 node scripts/sync-version.mjs
 
 # Only stage them when sync actually changed something.

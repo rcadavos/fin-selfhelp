@@ -15,8 +15,30 @@ OmniTrak is a personal finance self-help app built with:
 
 ### Files to update
 
-1. **`src/lib/changelog.ts`** — add entries to the top release block, or create a new version block
-2. **`src/lib/version.ts`** — bump the version if warranted (semver: patch for fixes, minor for features, major for breaking)
+1. **`src/lib/changelog.ts`** — by default, append to the **existing top release block**
+2. **`src/lib/version.ts`** — do not edit by hand; `.githooks/pre-commit` syncs it
+
+### Adding a new version block — the default is DON'T
+
+**Append to the top block unless the user has asked you to cut a release.** Creating a
+new version block *is* releasing a version, and that is the user's call, not yours.
+
+Only start a new block when one of these is true:
+
+- The user asked for it ("cut a release", "bump to 1.9.0", "this is a new version").
+- The user asked for a **`feat:`** commit — a genuinely new user-facing capability.
+
+Otherwise append your entries to the block already at the top and leave its `version`
+alone. The pre-commit hook then syncs nothing, because the version did not move.
+
+Three rules that follow from this:
+
+- **Never add two version blocks in one commit.** A commit is one release at most.
+- **Let the `type` values check you.** If every change you wrote is `"improvement"` or
+  `"fix"`, it is not a minor release. Renames, route moves, re-skins and refactors are
+  improvements however much work they took.
+- **Never renumber a block that is already pushed.** It moves the released version
+  backwards for anyone who pulled it. Raise it with the user instead of fixing it silently.
 
 ### Versioning guide
 
