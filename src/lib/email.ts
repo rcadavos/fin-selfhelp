@@ -2,7 +2,12 @@ import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
 import { generateUnsubscribeUrl } from "@/lib/email-unsubscribe";
 import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
-import { sanitizeInviterName } from "@/lib/constants/referral";
+import {
+  sanitizeInviterName,
+  REFERRAL_SIGNUPS_PER_REWARD,
+  REFERRAL_SIGNUP_REWARD_MONTHS,
+  REFERRAL_CONVERSION_REWARD_MONTHS,
+} from "@/lib/constants/referral";
 
 const UNSUB_PLACEHOLDER = "{{UNSUB_URL}}";
 
@@ -947,5 +952,186 @@ export async function sendReferralInviteEmail(params: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Referral invite email failed: ${message}` };
+  }
+}
+
+/**
+ * Product announcement: the redesign, the birth-month Pro perk, and referrals
+ * as the other way to earn Pro.
+ *
+ * Marketing rather than transactional, so it carries the unsubscribe footer and
+ * honours the same opt-out as reminder emails.
+ */
+export async function sendRedesignAnnouncementEmail(params: {
+  to: string;
+  name?: string;
+  /** Personal referral link, so the referral section is actionable from the email. */
+  referralLink: string;
+  /** True once the user has set their birth month — changes which perk copy they see. */
+  hasBirthMonth: boolean;
+  /** Needed for the one-click unsubscribe link; omit and the footer points at preferences. */
+  userId?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const siteUrl = getBaseUrl();
+  const unsubUrl = params.userId ? generateUnsubscribeUrl(params.userId) : null;
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const firstName = (params.name ?? "").trim().split(" ")[0];
+  const greeting = firstName ? `Hi ${firstName},` : "Hi,";
+  const subject = "OmniTrak has a new look — and two ways to get Pro free";
+  const profileUrl = `${siteUrl}/account/profile`;
+  const referralUrl = `${siteUrl}/dashboard/referrals`;
+
+  const birthMonthLine = params.hasBirthMonth
+    ? "Yours is already set, so it happens automatically — nothing for you to do."
+    : "Set your birth month on your profile to switch it on.";
+
+  const text = [
+    greeting,
+    "",
+    "OmniTrak has been redesigned around the questions you actually open it to answer.",
+    "",
+    "Bills now group by what needs you — overdue, due this week, later this month — each with its own running total, plus a month calendar showing every due date at a glance. Marking one paid is a single tap on the row.",
+    "",
+    "Expenses now tells you whether a month is heavy: what you have spent, what it projects to by month end, and how that compares with your own recent months.",
+    "",
+    "TWO WAYS TO GET PRO FREE",
+    "",
+    "1. Your birth month",
+    `Pro is free for your whole birth month, every year. ${birthMonthLine}`,
+    "Your birth month can only be set once and cannot be changed afterwards, so please choose carefully.",
+    profileUrl,
+    "",
+    "2. Invite friends",
+    `Every ${REFERRAL_SIGNUPS_PER_REWARD} friends who join through your link earns you ${REFERRAL_SIGNUP_REWARD_MONTHS} free month of Pro, and every friend who upgrades earns you ${REFERRAL_CONVERSION_REWARD_MONTHS} more. It stacks, with no cap.`,
+    params.referralLink,
+    "",
+    "— The OmniTrak Team",
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
+    <title>OmniTrak has a new look</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:${EMAIL_FONT_STACK};color:#0f172a;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+
+            ${logoLockupHtml(siteUrl, "32px 24px 16px 24px")}
+
+            <tr>
+              <td style="padding:0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#0f172a;">
+                  A new look, and two ways to get Pro free
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+                  ${esc(greeting)} OmniTrak has been redesigned around the questions you actually open it to answer.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0 0 10px 0;font-size:15px;line-height:1.7;color:#334155;">
+                  <strong>Bills</strong> now group by what needs you — overdue, due this week, later this month — each with its own running total, plus a month calendar showing every due date at a glance. Marking one paid is a single tap on the row.
+                </p>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+                  <strong>Expenses</strong> now tells you whether a month is heavy: what you have spent, what it projects to by month end, and how that compares with your own recent months.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 24px 0 24px;">
+                <p style="margin:0;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Two ways to get Pro free</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:12px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:${BRAND_GREEN};">1. Your birth month</p>
+                      <p style="margin:6px 0 0 0;font-size:14px;line-height:1.7;color:#334155;">
+                        Pro is free for your whole birth month, every year. ${esc(birthMonthLine)}
+                      </p>
+                      <p style="margin:8px 0 0 0;font-size:13px;line-height:1.6;color:#64748b;">
+                        Your birth month can only be set once and cannot be changed afterwards, so please choose carefully.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:12px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">
+                      <p style="margin:0;font-size:16px;font-weight:700;color:${BRAND_GREEN};">2. Invite friends</p>
+                      <p style="margin:6px 0 0 0;font-size:14px;line-height:1.7;color:#334155;">
+                        Every ${REFERRAL_SIGNUPS_PER_REWARD} friends who join through your link earns you ${REFERRAL_SIGNUP_REWARD_MONTHS} free month of Pro, and every friend who upgrades earns you ${REFERRAL_CONVERSION_REWARD_MONTHS} more. It stacks, with no cap.
+                      </p>
+                      <p style="margin:8px 0 0 0;font-size:13px;line-height:1.6;word-break:break-all;">
+                        <a href="${params.referralLink}" style="color:${BRAND_GREEN};text-decoration:underline;">${esc(params.referralLink)}</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:28px 24px 8px 24px;">
+                <a href="${params.hasBirthMonth ? referralUrl : profileUrl}" style="display:inline-block;background:#16A34A;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;line-height:20px;padding:14px 32px;border-radius:8px;">
+                  ${params.hasBirthMonth ? "Share your link &rarr;" : "Set your birth month &rarr;"}
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px 0 24px;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;text-align:center;">
+                  Bills &bull; Spending pace &bull; Savings goals &bull; To-buy and to-do lists
+                </p>
+              </td>
+            </tr>
+
+            ${unsubUrl ? unsubscribeFooterHtml(unsubUrl) : `<tr><td style="padding:0 24px 24px 24px;text-align:center;"><p style="margin:0;font-size:11px;color:#94a3b8;">To stop receiving emails like this, update your <a href="${siteUrl}/account/notifications" style="color:#94a3b8;text-decoration:underline;">notification preferences</a>.</p></td></tr>`}
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: params.to,
+      subject,
+      text: unsubUrl ? `${text}\n\nUnsubscribe: ${unsubUrl}` : text,
+      html,
+      ...(unsubUrl ? { headers: { "List-Unsubscribe": `<${unsubUrl}>` } } : {}),
+    });
+    if (error) return { ok: false, error: `Redesign announcement email failed: ${error.message}` };
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Redesign announcement email failed: ${message}` };
   }
 }
