@@ -149,12 +149,13 @@ export function ExpenseRow({
         type="button"
         className={cn(
           "tap-target flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
-          // Paid drops the ring and the fill entirely: a filled disc put a
-          // near-black glyph inside a green circle inside this border. Just the
-          // tick, in the accent, a size up. The empty ring stays as the
-          // affordance for anything still unpaid.
+          // Paid is a green disc with the tick in the opposite green, not the
+          // near-black `primary-foreground` this used to use: light green
+          // (#57C79A) on the deep fill in light mode, deep green (#10201A) on
+          // the bright fill in dark. The empty ring stays for anything unpaid,
+          // where it is the affordance.
           isPaid
-            ? "border-transparent text-primary"
+            ? "border-primary bg-primary text-panel-accent dark:text-panel"
             : "border-hairline-strong text-transparent hover:border-primary hover:text-primary/40",
         )}
         aria-label={isPaid ? `Mark ${bill.note ?? categoryLabel} unpaid` : `Mark ${bill.note ?? categoryLabel} paid`}
