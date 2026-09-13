@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, Car, CheckCircle2, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, Trash2, Zap } from "lucide-react";
+import { Bell, Car, Check, CheckCircle2, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -149,18 +149,25 @@ export function ExpenseRow({
         type="button"
         className={cn(
           "tap-target flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+          // Paid drops the ring and the fill entirely: a filled disc put a
+          // near-black glyph inside a green circle inside this border. Just the
+          // tick, in the accent, a size up. The empty ring stays as the
+          // affordance for anything still unpaid.
           isPaid
-            ? "border-primary bg-primary text-primary-foreground"
+            ? "border-transparent text-primary"
             : "border-hairline-strong text-transparent hover:border-primary hover:text-primary/40",
         )}
         aria-label={isPaid ? `Mark ${bill.note ?? categoryLabel} unpaid` : `Mark ${bill.note ?? categoryLabel} paid`}
+        // Native tooltip on hover. The aria-label names the bill for screen
+        // readers; the title stays short because the row already shows which.
+        title={isPaid ? "Mark as unpaid" : "Mark as paid"}
         disabled={isPending}
         onClick={(e) => {
           e.stopPropagation();
           onToggle();
         }}
       >
-        <CheckCircle2 className="size-4" strokeWidth={3} aria-hidden />
+        <Check className={cn("transition-all", isPaid ? "size-5" : "size-4")} strokeWidth={3} aria-hidden />
       </button>
 
       <div className="min-w-0 flex-1">

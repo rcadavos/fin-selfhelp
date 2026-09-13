@@ -18,6 +18,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "fix", description: "On the Bills calendar header, the amount left and the word 'left' sit on one line again instead of the word dropping underneath, and the decimals are no longer faded out." },
+      { type: "improvement", description: "Options in dropdown menus and pickers now show a hand cursor on hover, so they read as clickable." },
+      { type: "improvement", description: "Hovering the circle next to a bill now shows a 'Mark as paid' tooltip, so it is clear what it does before you click it." },
+      { type: "improvement", description: "A paid bill now shows a simple, slightly larger tick instead of a dark glyph sitting inside a filled green disc inside a ring." },
       { type: "improvement", description: "The streak pop-up is gone. It appeared over the dashboard a moment after every visit to say something that was never urgent, and had to be dismissed each time." },
       { type: "feature", description: "Your streak now has its own section on the dashboard, under Upcoming bills — how many days in a row you have opened OmniTrak, and how far off the next milestone is." },
       { type: "improvement", description: "Moved 'Recently paid' up to sit directly under 'This week' on the Bills page, so a bill you just settled stays next to the ones still waiting rather than sitting below the end of the month." },

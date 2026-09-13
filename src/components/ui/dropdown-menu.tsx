@@ -21,7 +21,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 data-[highlighted]:bg-slate-200/90 data-[state=open]:bg-slate-200/90 dark:hover:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 dark:data-[state=open]:bg-zinc-700/90 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      "flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 data-[highlighted]:bg-slate-200/90 data-[state=open]:bg-slate-200/90 dark:hover:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 dark:data-[state=open]:bg-zinc-700/90 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
       "max-sm:min-h-11 max-sm:px-3 max-sm:text-base",
       inset && "pl-8",
       className
@@ -77,7 +77,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
       "max-sm:min-h-11 max-sm:px-3 max-sm:text-base",
       inset && "pl-8",
       className
@@ -94,7 +94,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-pointer select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     checked={checked}
@@ -117,7 +117,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex cursor-pointer select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors duration-150 hover:bg-slate-200/90 hover:text-foreground focus:bg-slate-200/90 focus:text-foreground focus-visible:bg-slate-200/90 focus-visible:text-foreground data-[highlighted]:bg-slate-200/90 data-[highlighted]:text-foreground dark:hover:bg-zinc-700/90 dark:focus:bg-zinc-700/90 dark:focus-visible:bg-zinc-700/90 dark:data-[highlighted]:bg-zinc-700/90 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

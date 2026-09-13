@@ -103,9 +103,17 @@ export function MonthCalendar({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {monthLabel}
         </span>
-        <span className="fit-figure min-w-0 text-[12.5px]">
-          <Amount value={summary.remaining} currency={currency} />
-          <span className="ml-1 text-[11px] text-muted-foreground">left</span>
+        {/* Not `fit-figure` here: it sets display:block on the figure, which put
+            "left" on its own line. Flex keeps them on one row and still lets the
+            amount truncate. The decimals carry the same weight as the rest of the
+            number rather than the usual de-emphasis, so the figure reads as one. */}
+        <span className="flex min-w-0 items-baseline gap-1 text-[12.5px]">
+          <Amount
+            value={summary.remaining}
+            currency={currency}
+            className="min-w-0 truncate [&_.dec]:font-medium [&_.dec]:opacity-100"
+          />
+          <span className="shrink-0 text-[11px] text-muted-foreground">left</span>
         </span>
       </div>
 
