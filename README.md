@@ -2,6 +2,59 @@
 
 **Live:** https://omnitrak.cloud/
 
+## Database migrations
+
+SQL lives in `supabase/migrations/`, one file per change, named `NNN_short_name.sql`
+in sequence. Keep the numbering — create the next file by hand rather than with
+`supabase migration new`, which would name it with a timestamp.
+
+**Applying is automatic.** `.github/workflows/supabase-migrations.yml` runs
+`supabase db push` against the hosted project whenever a push to `master` touches
+`supabase/migrations/`. Pull requests that touch the same path get a
+`--dry-run` instead, so a migration that would fail is caught before it reaches the
+live schema. Runs are serialised and never cancelled mid-apply.
+
+### One-time setup
+
+1. Add two repository secrets (**Settings → Secrets and variables → Actions**):
+   - `SUPABASE_ACCESS_TOKEN` — a personal access token from
+     <https://supabase.com/dashboard/account/tokens>.
+   - `SUPABASE_DB_PASSWORD` — the database password from
+     **Project Settings → Database**.
+
+   The project ref is not a secret and is set directly in the workflow.
+
+2. **Baseline the existing history.** Every migration up to `094` was applied by
+   hand in the SQL editor, so the database has the schema but no record of which
+   files produced it. Left alone, the first push would try to replay all 94
+   against a live schema. Mark them as already applied first:
+
+   ```bash
+   npm run db:link
+   npm run db:list                          # Local | Remote, read-only
+   npm run db:baseline -- --through 094     # dry run, prints what it would mark
+   npm run db:baseline -- --through 094 --yes
+   npm run db:list                          # every row should now show on both sides
+   ```
+
+   `--through` is the last migration you have actually run by hand. Anything after
+   it stays pending and gets applied by the next push. Marking a migration applied
+   when its SQL never ran means it is skipped permanently — so check the live
+   schema before the `--yes`.
+
+Until step 2 is done, the workflow will try to apply the whole history. Do it
+before merging anything that adds a migration.
+
+### Running one by hand
+
+```bash
+npm run db:list   # what is applied where
+npm run db:push   # apply pending migrations to the hosted project
+```
+
+Both need `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` in your shell, and a
+one-off `npm run db:link` first.
+
 ## SEO, Web Vitals & sharing
 
 - **Metadata:** Root layout sets default title template (`%s | OmniTrak`), description, keywords, and per-route overrides for `/calculators`, `/login`, `/signup`, and calculator sub-routes.

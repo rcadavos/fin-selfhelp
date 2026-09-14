@@ -9,6 +9,10 @@
     "lint": "next lint",
     "build:celebration-png": "node scripts/svg-celebration-to-png.mjs",
     "prepare": "git config core.hooksPath .githooks",
+    "db:link": "npx --yes supabase@2.98.2 link --project-ref qsszsofppatihkporecq",
+    "db:list": "npx --yes supabase@2.98.2 migration list --linked",
+    "db:push": "npx --yes supabase@2.98.2 db push --linked",
+    "db:baseline": "node scripts/baseline-migrations.mjs",
     "version:patch": "node scripts/bump-version.mjs patch && git add package.json src/lib/version.ts src/lib/changelog.ts",
     "version:minor": "node scripts/bump-version.mjs minor && git add package.json src/lib/version.ts src/lib/changelog.ts",
     "version:major": "node scripts/bump-version.mjs major && git add package.json src/lib/version.ts src/lib/changelog.ts"

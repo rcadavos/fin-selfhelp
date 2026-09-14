@@ -203,10 +203,26 @@ export function buildPlannedExpenseRows({
  */
 const BUCKET_ORDER: UrgencyBucket[] = ["overdue", "week", "recent", "later", "settled"];
 
+/**
+ * Rows arrive in due-date order, which is what every bucket wants except `recent`.
+ * There the due date is already history and what you want is a receipt log: newest
+ * payment on top, each one sinking as you pay the next until it leaves for Settled.
+ */
+function orderRowsInBucket(
+  bucket: UrgencyBucket,
+  rows: PlannedExpenseRow[]
+): PlannedExpenseRow[] {
+  if (bucket !== "recent") return rows;
+  return [...rows].sort((a, b) => (b.paidAt?.getTime() ?? 0) - (a.paidAt?.getTime() ?? 0));
+}
+
 /** Groups rows into the urgency buckets, dropping any bucket with no rows. */
 export function groupPlannedExpenses(rows: PlannedExpenseRow[]): PlannedExpenseGroup[] {
   return BUCKET_ORDER.map((bucket) => {
-    const bucketRows = rows.filter((r) => r.bucket === bucket);
+    const bucketRows = orderRowsInBucket(
+      bucket,
+      rows.filter((r) => r.bucket === bucket)
+    );
     const subtotal = bucketRows.reduce(
       (sum, r) => sum + (isFullyPaidBucket(bucket) ? r.amountPaid : r.outstanding),
       0

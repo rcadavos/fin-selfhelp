@@ -45,7 +45,7 @@ const DialogContent = React.forwardRef<
         // win inside the media query.
         "max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:w-full max-sm:max-w-none",
         "max-sm:translate-x-0 max-sm:translate-y-0",
-        "max-sm:rounded-b-none max-sm:rounded-t-2xl",
+        "max-sm:rounded-b-none max-sm:rounded-t-3xl",
         // dvh, not vh: vh ignores the mobile browser's collapsing address bar and
         // would let a tall sheet run off under it.
         "max-sm:max-h-[90dvh] max-sm:overflow-y-auto",

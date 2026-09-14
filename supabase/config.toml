@@ -1,0 +1,9 @@
+# Marks this directory as a Supabase CLI project so `supabase link`,
+# `supabase migration list` and `supabase db push` work from the repo root.
+#
+# Only remote commands are used here — migrations are applied to the hosted
+# project by .github/workflows/supabase-migrations.yml. There is no local
+# `supabase start` stack, so the local-dev sections are deliberately absent
+# and the CLI's own defaults apply.
+
+project_id = "omni-trak"
