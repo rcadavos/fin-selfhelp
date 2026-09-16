@@ -16,11 +16,18 @@ live schema. Runs are serialised and never cancelled mid-apply.
 
 ### One-time setup
 
-1. Add two repository secrets (**Settings → Secrets and variables → Actions**):
+1. Add two repository secrets (**Settings → Secrets and variables → Actions →
+   Secrets**):
    - `SUPABASE_ACCESS_TOKEN` — a personal access token from
      <https://supabase.com/dashboard/account/tokens>.
    - `SUPABASE_DB_PASSWORD` — the database password from
      **Project Settings → Database**.
+
+   They must be **repository** secrets. An *Environment* secret will not reach
+   this job, which declares no environment — and a secret that does not exist
+   resolves to an empty string rather than failing, which surfaces as the CLI
+   saying `Access token not provided`. The workflow checks both up front and
+   names whichever is missing.
 
    The project ref is not a secret and is set directly in the workflow.
 
@@ -42,8 +49,14 @@ live schema. Runs are serialised and never cancelled mid-apply.
    when its SQL never ran means it is skipped permanently — so check the live
    schema before the `--yes`.
 
-Until step 2 is done, the workflow will try to apply the whole history. Do it
-before merging anything that adds a migration.
+3. Set the repository **variable** `SUPABASE_MIGRATIONS_BASELINED` to `true`
+   (**Settings → Secrets and variables → Actions → Variables**).
+
+   Until this is set, the workflow refuses to apply anything — it links, prints
+   the Local | Remote table and stops. That gate exists because step 2 is the one
+   mistake here that cannot be undone from a re-run: without it, the first
+   successful workflow run would replay all 94 migrations against the live
+   schema. It is a one-time flag and never fires again once set.
 
 ### Running one by hand
 

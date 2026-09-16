@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/seo";
 import { generateUnsubscribeUrl } from "@/lib/email-unsubscribe";
 import { TRIAL_DURATION_DAYS } from "@/lib/constants/trial";
+import { ADMIN_ALERT_TIME_ZONE } from "@/lib/constants/admin-alerts";
 import {
   sanitizeInviterName,
   REFERRAL_SIGNUPS_PER_REWARD,
@@ -1133,5 +1134,173 @@ export async function sendRedesignAnnouncementEmail(params: {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `Redesign announcement email failed: ${message}` };
+  }
+}
+
+/**
+ * Escapes text that came from a user before it is dropped into an email's HTML.
+ * `full_name` is user-writable, so an unescaped name is markup injection into a
+ * message sent from our own verified domain.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Renders a label/value row for the details table in the new-signup alert. */
+function alertDetailRowHtml(label: string, value: string): string {
+  return `<tr>
+                    <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:13px;line-height:1.5;color:#64748b;white-space:nowrap;vertical-align:top;">${label}</td>
+                    <td style="padding:10px 0 10px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;line-height:1.5;font-weight:600;color:#0f172a;text-align:right;word-break:break-word;">${value}</td>
+                  </tr>`;
+}
+
+/**
+ * Internal alert to the team when someone creates an account. Not user mail —
+ * no unsubscribe footer, and the recipients come from
+ * `getAdminAlertRecipients()` rather than from the users table.
+ */
+export async function sendNewUserSignupAlertEmail(params: {
+  to: string[];
+  userEmail: string;
+  name?: string | null;
+  /** Supabase auth provider, e.g. "email" or "google". */
+  provider?: string | null;
+  signedUpAt?: Date;
+  /** Total accounts including this one, when it could be counted. */
+  totalUsers?: number | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const siteUrl = getBaseUrl();
+  const recipients = params.to.filter((address) => address.includes("@"));
+  if (recipients.length === 0) return { ok: false, error: "No admin alert recipients configured." };
+
+  // sanitizeInviterName also strips the CR/LF that a user-set name could use to
+  // inject a mail header; it substitutes "A friend" when nothing is left, which
+  // would read as a real name here, so decide on emptiness before calling it.
+  const rawName = (params.name ?? "").trim();
+  const displayName = rawName ? sanitizeInviterName(rawName) : "—";
+  // Supabase reports "email" for both password and magic-link signups, so the
+  // label stays generic rather than claiming a password was set.
+  const provider = (params.provider ?? "email").trim().toLowerCase() || "email";
+  const providerLabel =
+    provider === "email" ? "Email" : provider.charAt(0).toUpperCase() + provider.slice(1);
+  const signedUpAt = params.signedUpAt ?? new Date();
+  const when = new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: ADMIN_ALERT_TIME_ZONE,
+  }).format(signedUpAt);
+  const totalLine =
+    typeof params.totalUsers === "number"
+      ? `That makes ${params.totalUsers.toLocaleString("en-US")} account${params.totalUsers === 1 ? "" : "s"} in total.`
+      : null;
+
+  const subject = `New OmniTrak signup • ${params.userEmail}`;
+
+  const text = [
+    "Someone just created an OmniTrak account.",
+    "",
+    `Name: ${displayName}`,
+    `Email: ${params.userEmail}`,
+    `Signed up with: ${providerLabel}`,
+    `When: ${when} (${ADMIN_ALERT_TIME_ZONE})`,
+    ...(totalLine ? ["", totalLine] : []),
+    "",
+    "See them in admin:",
+    `${siteUrl}/admin/users`,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
+    <title>New signup</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+
+            <!-- Logo -->
+            ${logoLockupHtml(siteUrl, "28px 24px 14px 24px")}
+
+            <!-- Heading -->
+            <tr>
+              <td style="padding:8px 24px 0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#0f172a;">🎉 New signup</h1>
+                <p style="margin:8px 0 0 0;font-size:15px;line-height:1.7;color:#334155;">Someone just created an OmniTrak account.</p>
+              </td>
+            </tr>
+
+            <!-- Details -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  ${alertDetailRowHtml("Name", escapeHtml(displayName))}
+                  ${alertDetailRowHtml("Email", escapeHtml(params.userEmail))}
+                  ${alertDetailRowHtml("Signed up with", escapeHtml(providerLabel))}
+                  ${alertDetailRowHtml("When", `${when} <span style="font-weight:400;color:#64748b;">(${ADMIN_ALERT_TIME_ZONE})</span>`)}
+                </table>
+              </td>
+            </tr>
+${
+  totalLine
+    ? `
+            <!-- Total accounts -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;text-align:center;">
+                      <p style="margin:0;font-size:14px;line-height:1.6;font-weight:600;color:#15803d;">${totalLine}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>`
+    : ""
+}
+            <!-- CTA -->
+            <tr>
+              <td align="center" style="padding:24px 24px 8px 24px;">
+                <a href="${siteUrl}/admin/users" style="display:inline-block;background:#16A34A;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;line-height:20px;padding:10px 16px;border-radius:6px;">Open admin users</a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:22px 24px 24px 24px;">
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">OmniTrak &bull; Internal admin alert &bull; sent once per new account</p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: recipients,
+      subject,
+      text,
+      html,
+    });
+    if (error) return { ok: false, error: `New signup alert email failed: ${error.message}` };
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `New signup alert email failed: ${message}` };
   }
 }

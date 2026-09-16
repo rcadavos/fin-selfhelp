@@ -36,6 +36,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Fails with something actionable instead of the CLI's bare "Access token
+      # not provided". A secret that does not exist resolves to an empty string
+      # in the `env` block above rather than erroring, so an unset secret and a
+      # wrong one look identical from inside the container.
+      - name: Check secrets are set
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Add under Settings -> Secrets and variables -> Actions -> Repository secrets:"
+            echo "  SUPABASE_ACCESS_TOKEN  - https://supabase.com/dashboard/account/tokens"
+            echo "  SUPABASE_DB_PASSWORD   - Project Settings -> Database"
+            echo "An *Environment* secret will not work: this job declares no environment."
+            exit 1
+          fi
+
       - uses: supabase/setup-cli@v1
         with:
           # Pinned on purpose: `latest` would let a CLI release change how a
@@ -53,6 +71,25 @@ jobs:
       - name: Dry run
         if: github.event_name == 'pull_request'
         run: supabase db push --linked --dry-run
+
+      # Every migration up to 094 was applied by hand, so the remote history
+      # table is empty and `db push` would replay the whole schema against a
+      # live database. The table printed by the step above is the evidence:
+      # once every row shows on the Remote side too, run
+      #   npm run db:baseline -- --through <last applied> --yes
+      # and then set the repository variable SUPABASE_MIGRATIONS_BASELINED to
+      # true (Settings -> Secrets and variables -> Actions -> Variables).
+      # This gate is one-time; after that it never fires again.
+      - name: Refuse to apply before the history is baselined
+        if: github.event_name != 'pull_request' && vars.SUPABASE_MIGRATIONS_BASELINED != 'true'
+        run: |
+          echo "::error::Migration history has not been baselined."
+          echo "Applying now would try to replay every migration in supabase/migrations/"
+          echo "against the live schema. Compare the Local | Remote table above, then:"
+          echo "  npm run db:link"
+          echo "  npm run db:baseline -- --through <last migration applied by hand> --yes"
+          echo "Then set repository VARIABLE SUPABASE_MIGRATIONS_BASELINED=true and re-run."
+          exit 1
 
       - name: Apply
         if: github.event_name != 'pull_request'

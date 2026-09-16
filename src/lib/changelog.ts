@@ -39,6 +39,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "On the Expenses page, the 'Planned paid' figure and the 'Planned' bars in the 6-month chart now read 'Bills', matching the rest of the app." },
       { type: "improvement", description: "Database updates now ship automatically with each release instead of being applied by hand, so a new feature can no longer arrive before the tables it needs." },
       { type: "fix", description: "On a phone, the landing page header no longer runs over the OmniTrak logo while it works out whether you are signed in. The placeholders standing in for Log in and Sign up were wider than the buttons themselves, so for a moment they pushed the logo underneath them." },
+      { type: "feature", description: "Every new signup now sends the OmniTrak team an email — who joined, how they signed up, and the running account total — whether they came in through email, a magic link, or Google. One email per account, never a repeat." },
     ],
   },
   {

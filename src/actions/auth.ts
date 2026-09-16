@@ -5,6 +5,7 @@ import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { redirect } from "next/navigation";
 import { sendWelcomeEmail, sendPhoneChangedEmail } from "@/lib/email";
 import { claimPendingReferral, readPendingReferralCode } from "@/actions/referrals";
+import { notifyAdminOfNewUser } from "@/lib/admin-new-user-alert";
 
 function normalizeSiteUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
@@ -92,6 +93,17 @@ export async function signUp(formData: FormData) {
   if (data.session) {
     sendWelcomeEmail({ to: email, name: fullName || undefined }).catch(() => {});
     await claimPendingReferral().catch(() => ({ claimed: false }));
+    // Only path that creates an account without passing through /auth/callback,
+    // so the admin alert has to be raised here too. It is deduped per account,
+    // so the two call sites cannot both send.
+    if (data.user) {
+      await notifyAdminOfNewUser({
+        userId: data.user.id,
+        email,
+        name: fullName || undefined,
+        provider: "email",
+      });
+    }
     return { next: "/setup", message: "Account created! Logging you in..." };
   }
 
