@@ -71,6 +71,9 @@ export function ScrollToTopButton() {
         // both themes. The token is legible on either ground by design.
         "fixed bottom-6 end-6 z-40 h-11 w-11 rounded-full border border-hairline-strong bg-background/95 shadow-lg backdrop-blur-sm transition-opacity duration-200 supports-[backdrop-filter]:bg-background/80",
         "hover:border-primary hover:bg-muted",
+        // The landing page's chat launcher owns the corner: stack above it, centred
+        // on it, and higher again while it has lifted over the cookie notice.
+        "[body:has(#prospect-chat-launcher)_&]:bottom-24 [body:has(#prospect-chat-launcher)_&]:end-[1.875rem] [body:has(#prospect-chat-launcher):has(#cookie-consent-banner)_&]:bottom-40",
         visible ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
       )}
     >

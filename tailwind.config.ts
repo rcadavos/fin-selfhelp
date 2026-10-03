@@ -2,6 +2,11 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: ["class"],
+  // Without this, every `hover:` compiles to a bare `:hover`, which a tap sets and
+  // leaves set on touch devices. Tapping a bill's checkbox moved it to Settled, the
+  // list reflowed, and the row sliding under the finger inherited that stuck hover —
+  // reading as the tick jumping to the next bill.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",

@@ -280,7 +280,7 @@ function ConversationsPanel({
                 variant="ghost"
                 onClick={() => setToDelete(conv)}
                 aria-label={`Delete ${conv.title}`}
-                className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+                className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive [@media(hover:none)]:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>

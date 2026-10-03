@@ -31,7 +31,11 @@ export function CookieConsentDialog() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 surface border bg-background px-4 py-3">
+    // The id lets the landing chat launcher lift itself clear of this notice.
+    <div
+      id="cookie-consent-banner"
+      className="fixed bottom-4 right-4 z-50 flex items-center gap-3 surface border bg-background px-4 py-3"
+    >
       <Link
         href={LEGAL_ROUTES.cookies}
         className="text-sm font-medium text-primary underline-offset-4 hover:underline"

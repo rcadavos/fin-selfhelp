@@ -40,6 +40,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Database updates now ship automatically with each release instead of being applied by hand, so a new feature can no longer arrive before the tables it needs." },
       { type: "fix", description: "On a phone, the landing page header no longer runs over the OmniTrak logo while it works out whether you are signed in. The placeholders standing in for Log in and Sign up were wider than the buttons themselves, so for a moment they pushed the logo underneath them." },
       { type: "feature", description: "Every new signup now sends the OmniTrak team an email — who joined, how they signed up, and the running account total — whether they came in through email, a magic link, or Google. One email per account, never a repeat." },
+      { type: "fix", description: "Ticking a bill off on a phone no longer leaves the tick outline sitting on the next bill. Settling a bill moves it down the list, and the row that slid up under your finger was picking up the highlight meant for the one you had just tapped." },
+      { type: "feature", description: "The landing page now has a chat box in the lower-right corner for anyone deciding whether to sign up. Three suggested questions — what the app does, what it costs, and whether you need to link a bank — answer instantly with one tap, and anything else you type gets a short AI answer based only on the app's real features and prices." },
+      { type: "feature", description: "'Contact support' sits next to Send in that chat. Leave your email and a message and it goes straight to the team, with the chat attached so you don't have to repeat yourself; replies come back by email." },
     ],
   },
   {

@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { Header } from "@/components/landing/header";
 import { PageViewTracker } from "@/components/landing/page-view-tracker";
 import { HeroSection } from "@/components/landing/hero-section";
+import { ProspectChatWidget } from "@/components/landing/prospect-chat/prospect-chat-widget";
 
 const FeaturesSection = dynamic(() => import("@/components/landing/features-section").then(m => m.FeaturesSection));
 const HowItWorksSection = dynamic(() => import("@/components/landing/how-it-works-section").then(m => m.HowItWorksSection));
@@ -50,6 +51,7 @@ export default async function HomePage() {
       <FaqSection />
       <CtaBandSection />
       <Footer />
+      <ProspectChatWidget plans={{ pro: proPlan, premium: premiumPlan }} />
     </main>
   );
 }

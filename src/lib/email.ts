@@ -1304,3 +1304,153 @@ ${
     return { ok: false, error: `New signup alert email failed: ${message}` };
   }
 }
+
+export type SupportTranscriptLine = { role: "user" | "assistant"; text: string };
+
+/**
+ * A visitor's "Contact support" message from the landing-page chat, sent to the
+ * team. Reply-To is the visitor's address, so answering the email answers them.
+ * Everything in it is visitor-supplied, so every field is escaped.
+ */
+export async function sendSupportRequestEmail(params: {
+  to: string[];
+  name?: string | null;
+  email: string;
+  message: string;
+  /** The chat that led up to the request, oldest first. */
+  transcript?: SupportTranscriptLine[];
+  sentAt?: Date;
+}): Promise<{ ok: boolean; error?: string }> {
+  const siteUrl = getBaseUrl();
+  const recipients = params.to.filter((address) => address.includes("@"));
+  if (recipients.length === 0) return { ok: false, error: "No support recipients configured." };
+
+  const displayName = params.name?.trim() || "—";
+  const transcript = params.transcript ?? [];
+  const when = new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: ADMIN_ALERT_TIME_ZONE,
+  }).format(params.sentAt ?? new Date());
+  const speaker = (role: SupportTranscriptLine["role"]) => (role === "user" ? "Visitor" : "Assistant");
+
+  const subject = `Support request • ${params.email}`;
+
+  const text = [
+    "A visitor sent a message from the website chat.",
+    "",
+    `Name: ${displayName}`,
+    `Email: ${params.email}`,
+    `When: ${when} (${ADMIN_ALERT_TIME_ZONE})`,
+    "",
+    "Message:",
+    params.message,
+    ...(transcript.length > 0
+      ? ["", "Chat before the request:", ...transcript.map((line) => `${speaker(line.role)}: ${line.text}`)]
+      : []),
+    "",
+    "Reply to this email to answer them directly.",
+  ].join("\n");
+
+  const transcriptHtml =
+    transcript.length > 0
+      ? `
+            <!-- Transcript -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <p style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#64748b;">Chat before the request</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e2e8f0;border-radius:10px;">
+                  ${transcript
+                    .map(
+                      (line) => `<tr>
+                    <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:13px;line-height:1.6;color:#334155;white-space:pre-wrap;word-break:break-word;"><strong style="color:${line.role === "user" ? "#0f172a" : BRAND_GREEN};">${speaker(line.role)}:</strong> ${escapeHtml(line.text)}</td>
+                  </tr>`,
+                    )
+                    .join("")}
+                </table>
+              </td>
+            </tr>`
+      : "";
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${FONT_LINK_HTML}
+    <title>Support request</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:'Schibsted Grotesk',Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">
+
+            <!-- Logo -->
+            ${logoLockupHtml(siteUrl, "28px 24px 14px 24px")}
+
+            <!-- Heading -->
+            <tr>
+              <td style="padding:8px 24px 0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#0f172a;">New support request</h1>
+                <p style="margin:8px 0 0 0;font-size:15px;line-height:1.7;color:#334155;">A visitor sent a message from the website chat.</p>
+              </td>
+            </tr>
+
+            <!-- Details -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  ${alertDetailRowHtml("Name", escapeHtml(displayName))}
+                  ${alertDetailRowHtml("Email", escapeHtml(params.email))}
+                  ${alertDetailRowHtml("When", `${when} <span style="font-weight:400;color:#64748b;">(${ADMIN_ALERT_TIME_ZONE})</span>`)}
+                </table>
+              </td>
+            </tr>
+
+            <!-- Message -->
+            <tr>
+              <td style="padding:20px 24px 0 24px;">
+                <p style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#64748b;">Message</p>
+                <div style="padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:15px;line-height:1.7;color:#0f172a;white-space:pre-wrap;word-break:break-word;">${escapeHtml(params.message)}</div>
+              </td>
+            </tr>
+${transcriptHtml}
+            <!-- CTA -->
+            <tr>
+              <td align="center" style="padding:24px 24px 8px 24px;">
+                <a href="mailto:${encodeURIComponent(params.email)}" style="display:inline-block;background:#16A34A;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;line-height:20px;padding:10px 16px;border-radius:6px;">Reply to ${escapeHtml(params.email)}</a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:22px 24px 24px 24px;">
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#94a3b8;text-align:center;">Internal support request &bull; sent from the landing page chat</p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: recipients,
+      replyTo: params.email,
+      subject,
+      text,
+      html,
+    });
+    if (error) return { ok: false, error: `Support request email failed: ${error.message}` };
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Support request email failed: ${message}` };
+  }
+}
