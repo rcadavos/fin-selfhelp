@@ -18,7 +18,7 @@ const loadPanel = () => import("./prospect-chat-panel").then((m) => m.ProspectCh
 const ProspectChatPanel = dynamic(loadPanel, { ssr: false });
 
 /**
- * Floating "Ask noorana" launcher in the landing page's lower-right corner. The
+ * Floating "Ask OmniTrak" launcher in the landing page's lower-right corner. The
  * panel mounts on first open and then stays mounted (hidden while closed), so a
  * visitor who closes the chat comes back to the same conversation.
  */

@@ -29,6 +29,7 @@ import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "@/lib/utils";
 import { BANK_GROUPS, getBankLogoSlug, getBankColor } from "@/lib/constants/account-institutions";
 import type { AccountRow, AccountType, InterestFrequency } from "@/actions/accounts";
+import { ACCOUNT_TYPE_OPTIONS } from "@/lib/shared/accounts";
 
 export type AccountFormState = {
   account_alias: string;
@@ -44,16 +45,6 @@ export type AccountFormState = {
   include_in_net_balance: boolean;
   currency: string;
 };
-
-export const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountType; label: string }> = [
-  { value: "debit", label: "Debit" },
-  { value: "credit", label: "Credit" },
-  { value: "savings", label: "Savings" },
-  { value: "stocks", label: "Stocks" },
-  { value: "crypto", label: "Crypto" },
-  { value: "collectibles", label: "Collectibles" },
-  { value: "asset", label: "Asset" },
-];
 
 export const CURRENCIES: Array<{ value: string; label: string }> = [
   { value: "PHP", label: "PHP — Philippine Peso" },

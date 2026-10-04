@@ -9,6 +9,8 @@ OmniTrak is a personal finance self-help app built with:
 - **Charts**: Recharts
 - **Auth context**: `src/contexts/user-context.tsx` — clears React Query cache on user switch
 
+**The product name is OmniTrak** (omnitrak.cloud) everywhere: UI copy, AI prompts, emails, the mobile app and docs. Never call it "noorana". An organization-level setting names that product, and it is a different one. Applying it here once put "Ask noorana" on the live landing page.
+
 ## Changelog Update Rule
 
 **Every time you make a change (feature, fix, improvement, hotfix), you MUST update the changelog.**
@@ -127,6 +129,26 @@ Valid `type` values: `"feature"` | `"improvement"` | `"fix"` | `"hotfix"`
 
 ### Constants
 - Add every new constants `src/lib/constants` so it can be reusable to other components.
+
+### Shared code (`src/lib/shared/`)
+- Logic both the web app and the mobile app need (row mappers, balance math, number formatting) lives in `src/lib/shared/`. The mobile app imports it as `@shared/*`.
+- Files there must have **no runtime package imports** (type-only is fine) and use **relative imports only**: Metro bundles them from outside `mobile/`, where `@/` means `mobile/src`.
+- `"use server"` files can only export async functions, so put a sync helper an action needs here, not in the action file.
+
+---
+
+## Mobile app (`mobile/`)
+
+Expo SDK 57 + Expo Router + NativeWind 4, in its own folder with its own `package.json`. The web's `tsconfig.json` and `eslint.config.mjs` exclude it. Full notes are in `mobile/README.md`.
+
+- **Data:** the app cannot call server actions. `mobile/src/lib/api/*` queries Supabase directly with the user's session, and RLS scopes the rows. Anything needing the service-role key or a server secret goes behind a web API route that takes a `Bearer` token. It must never go into the app. In those routes, resolve the caller with `getUserFromBearer()` from `src/lib/supabase/bearer.ts`. The cookie-based `createClient()` sees no session for app requests.
+- **Auth side effects:** the app finishes Google and magic-link sign-ins itself, so it never passes through `/auth/callback`. If you add a post-sign-in step there that phone signups also need, add it to `src/app/api/auth/mobile-sign-in/route.ts` too.
+- **Mirror the web conventions:** query options in `mobile/src/lib/query/`, `useSuspenseQuery`/`useSuspenseQueries` inside `<Suspense>`, `useUser()` from `mobile/src/contexts/user-context.tsx`, constants in `mobile/src/lib/constants/`, `•` as the inline separator, `ConfirmDialog` instead of `Alert.alert`.
+- **Errors:** every route that suspends re-exports `RouteErrorBoundary` as `ErrorBoundary`.
+- **Styling:** use the web's token class names (`bg-background`, `text-muted-foreground`, `bg-panel` …). Their values live in `mobile/src/constants/theme.ts`. If you change a color in `src/app/globals.css`, change it there too.
+- **Product name:** the app ships as **OmniTrak** (`app.json`, deep-link scheme `omnitrak://`). Read it through `APP_NAME`, never hard-code it.
+- **Verify:** `cd mobile && npm run typecheck && npm run lint`, then `npx expo export --platform android` to prove Metro can bundle it.
+- **Changelog:** mobile changes get entries in `src/lib/changelog.ts` like any other change. The app's own `version` in `app.json` is separate from the web release number.
 
 ---
 

@@ -10,6 +10,8 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // The Expo app lints itself (`cd mobile && npm run lint`).
+  { ignores: ["mobile/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

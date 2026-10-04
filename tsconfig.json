@@ -43,6 +43,7 @@
   "exclude": [
     "node_modules",
     ".next/dev/types/**/*.ts",
-    "supabase"
+    "supabase",
+    "mobile"
   ]
 }

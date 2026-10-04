@@ -1,51 +1,20 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  ACCOUNT_SELECT,
+  mapAccountRow,
+  sumAccountBalances,
+  type AccountRow as SharedAccountRow,
+  type AccountType as SharedAccountType,
+  type InterestFrequency as SharedInterestFrequency,
+} from "@/lib/shared/accounts";
 
-export type AccountType = "debit" | "credit" | "savings" | "stocks" | "crypto" | "collectibles" | "asset";
-export type InterestFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "annually";
-
-export type AccountRow = {
-  id: string;
-  account_alias: string;
-  bank_name: string;
-  tags: string[];
-  color: string;
-  account_type: AccountType;
-  starting_balance: number;
-  interest_frequency: InterestFrequency | null;
-  interest_rate: number | null;
-  maintaining_balance: number | null;
-  credit_limit: number | null;
-  include_in_net_balance: boolean;
-  currency: string;
-};
-
-const ACCOUNT_SELECT =
-  "id, account_alias, bank_name, tags, color, account_type, starting_balance, interest_frequency, interest_rate, maintaining_balance, credit_limit, include_in_net_balance, currency";
-
-function mapAccountRow(r: Record<string, unknown>): AccountRow {
-  const type = String(r.account_type ?? "debit") as AccountType;
-  const freqRaw = r.interest_frequency == null ? null : String(r.interest_frequency);
-  return {
-    id: String(r.id),
-    account_alias: String(r.account_alias ?? ""),
-    bank_name: String(r.bank_name ?? ""),
-    tags: Array.isArray(r.tags) ? (r.tags as unknown[]).map(String) : [],
-    color: String(r.color ?? "#6366f1"),
-    account_type: (["debit", "credit", "savings", "stocks", "crypto", "collectibles", "asset"].includes(type) ? type : "debit") as AccountType,
-    starting_balance: Number(r.starting_balance ?? 0),
-    interest_frequency:
-      freqRaw && ["daily", "weekly", "monthly", "quarterly", "annually"].includes(freqRaw)
-        ? (freqRaw as InterestFrequency)
-        : null,
-    interest_rate: r.interest_rate != null ? Number(r.interest_rate) : null,
-    maintaining_balance: r.maintaining_balance != null ? Number(r.maintaining_balance) : null,
-    credit_limit: r.credit_limit != null ? Number(r.credit_limit) : null,
-    include_in_net_balance: r.include_in_net_balance !== false,
-    currency: String(r.currency ?? "PHP"),
-  };
-}
+// Aliased rather than `export type { … }`: a "use server" file may only export async
+// functions, and type aliases are the form this file has always exported safely.
+export type AccountRow = SharedAccountRow;
+export type AccountType = SharedAccountType;
+export type InterestFrequency = SharedInterestFrequency;
 
 export async function loadAccount(accountId: string): Promise<{ account: AccountRow | null; error?: string }> {
   const supabase = await createClient();
@@ -128,16 +97,7 @@ export async function loadAccountBalances(): Promise<{
   if (accErr) return { balances: {}, error: accErr.message };
   if (txErr) return { balances: {}, error: txErr.message };
 
-  const balances: Record<string, number> = {};
-  for (const a of accountRows ?? []) {
-    balances[String(a.id)] = Number(a.starting_balance ?? 0);
-  }
-  for (const r of txRows ?? []) {
-    const id = r.account_id as string | null;
-    if (!id) continue;
-    balances[id] = (balances[id] ?? 0) + Number(r.amount);
-  }
-  return { balances };
+  return { balances: sumAccountBalances(accountRows ?? [], txRows ?? []) };
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Prospect chat — the "Ask noorana" box in the landing page's lower-right corner,
+ * Prospect chat — the "Ask OmniTrak" box in the landing page's lower-right corner,
  * for visitors who haven't signed up yet. The suggested questions answer
  * instantly from curated copy (`src/lib/prospect-chat.ts`), anything typed goes to
  * a small public AI endpoint grounded in the product facts, and "Contact support"
@@ -7,7 +7,7 @@
  */
 
 /** Product name used in the prospect chat's copy and in the AI's persona. */
-export const PRODUCT_NAME = "noorana";
+export const PRODUCT_NAME = "OmniTrak";
 
 /** Public, unauthenticated chat endpoint for typed questions. */
 export const PROSPECT_CHAT_API = "/api/ai/prospect-chat";

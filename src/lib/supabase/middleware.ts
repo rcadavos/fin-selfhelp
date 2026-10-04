@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isStaleRefreshTokenError } from "@/lib/supabase/stale-session-error";
+import { isStaleRefreshTokenError } from "@/lib/shared/stale-session-error";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

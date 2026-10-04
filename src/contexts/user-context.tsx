@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { isStaleRefreshTokenError } from "@/lib/supabase/stale-session-error";
+import { isStaleRefreshTokenError } from "@/lib/shared/stale-session-error";
 import { getQueryClient } from "@/lib/query/query-client";
 import type { User } from "@supabase/supabase-js";
 

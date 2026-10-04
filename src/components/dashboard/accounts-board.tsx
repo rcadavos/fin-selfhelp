@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ContentHeader } from "@/components/app/content-header";
 import { formatCurrency, cn } from "@/lib/utils";
+import { computeNetBalance, sortAccountsCashFirst } from "@/lib/shared/accounts";
 import {
   accountsQueryOptions,
   accountBalancesQueryOptions,
@@ -482,13 +483,7 @@ export function AccountsBoard() {
   const { data: balances } = useSuspenseQuery(accountBalancesQueryOptions());
   const { data: netHistory } = useSuspenseQuery(netBalanceHistoryQueryOptions(7));
 
-  const netBalance = useMemo(
-    () =>
-      accounts
-        .filter((a: AccountRow) => a.include_in_net_balance)
-        .reduce((s: number, acc: AccountRow) => s + (balances[acc.id] ?? 0), 0),
-    [accounts, balances],
-  );
+  const netBalance = useMemo(() => computeNetBalance(accounts, balances), [accounts, balances]);
 
   const includedCount = useMemo(
     () => accounts.filter((a: AccountRow) => a.include_in_net_balance).length,
@@ -497,17 +492,7 @@ export function AccountsBoard() {
 
   const hasAnyAccount = accounts.length > 0;
 
-  const sortedAccounts = useMemo(
-    () =>
-      [...accounts].sort((a: AccountRow, b: AccountRow) => {
-        const aIsCash = a.account_alias.toLowerCase() === "cash";
-        const bIsCash = b.account_alias.toLowerCase() === "cash";
-        if (aIsCash) return -1;
-        if (bIsCash) return 1;
-        return 0;
-      }),
-    [accounts],
-  );
+  const sortedAccounts = useMemo(() => sortAccountsCashFirst(accounts), [accounts]);
 
   const [amountsHidden, setAmountsHidden] = useState(false);
   useEffect(() => {

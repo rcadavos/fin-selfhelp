@@ -1,4 +1,10 @@
 import { type AppModeId, DEFAULT_APP_MODE, normalizeAppMode } from "@/lib/constants/app-mode";
+import {
+  DEFAULT_NUMBER_FORMAT_PREFS,
+  formatCurrencyWithPreferences,
+  formatNumberWithPreferences,
+  type NumberGroupingId,
+} from "@/lib/shared/number-format";
 
 /**
  * Preferences: primary store is `profiles.user_preferences` (JSON) when logged in;
@@ -19,7 +25,7 @@ export type DateFormatId =
   | "MMM_d_y"
   | "d_MMMM_y";
 export type TimeFormatId = "12h" | "24h";
-export type NumberGroupingId = "comma" | "dot";
+export type { NumberGroupingId };
 
 export type UserPreferences = {
   /** Which slice of the app is switched on (see `src/lib/constants/app-mode.ts`). */
@@ -38,9 +44,9 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   appMode: DEFAULT_APP_MODE,
   dateFormat: "mdy",
   timeFormat: "12h",
-  currency: "PHP",
-  language: "en",
-  numberGrouping: "comma",
+  currency: DEFAULT_NUMBER_FORMAT_PREFS.currency,
+  language: DEFAULT_NUMBER_FORMAT_PREFS.language,
+  numberGrouping: DEFAULT_NUMBER_FORMAT_PREFS.numberGrouping,
   notificationsEnabled: true,
   billRemindersEnabled: true,
   subscriptionAlertsEnabled: true,
@@ -189,41 +195,7 @@ export function formatTimeWithPreferences(
   return d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-function numberFormatLocale(grouping: NumberGroupingId): string {
-  return grouping === "dot" ? "de-DE" : "en-US";
-}
-
-export function formatNumberWithPreferences(
-  n: number,
-  prefs: Pick<UserPreferences, "numberGrouping" | "language">
-): string {
-  const locale =
-    prefs.language === "fil"
-      ? prefs.numberGrouping === "dot"
-        ? "de-DE"
-        : "fil-PH"
-      : numberFormatLocale(prefs.numberGrouping);
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n);
-}
-
-export function formatCurrencyWithPreferences(
-  amount: number,
-  prefs: Pick<UserPreferences, "currency" | "numberGrouping" | "language">
-): string {
-  const locale =
-    prefs.language === "fil"
-      ? prefs.numberGrouping === "dot"
-        ? "de-DE"
-        : "fil-PH"
-      : numberFormatLocale(prefs.numberGrouping);
-  const hasFractional = !Number.isInteger(Math.round(amount * 100) / 100);
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: prefs.currency,
-    minimumFractionDigits: hasFractional ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+export { formatCurrencyWithPreferences, formatNumberWithPreferences };
 
 export const DATE_FORMAT_OPTIONS: { value: DateFormatId; label: string }[] = [
   { value: "mdy", label: "MM/DD/YYYY (US-style)" },

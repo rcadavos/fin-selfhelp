@@ -43,6 +43,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "fix", description: "Ticking a bill off on a phone no longer leaves the tick outline sitting on the next bill. Settling a bill moves it down the list, and the row that slid up under your finger was picking up the highlight meant for the one you had just tapped." },
       { type: "feature", description: "The landing page now has a chat box in the lower-right corner for anyone deciding whether to sign up. Three suggested questions — what the app does, what it costs, and whether you need to link a bank — answer instantly with one tap, and anything else you type gets a short AI answer based only on the app's real features and prices." },
       { type: "feature", description: "'Contact support' sits next to Send in that chat. Leave your email and a message and it goes straight to the team, with the chat attached so you don't have to repeat yourself; replies come back by email." },
+      { type: "improvement", description: "Groundwork for the OmniTrak mobile app: account balances, Net Balance and money formatting now come from code the website and the phone app share, so both will always show the same figures." },
+      { type: "improvement", description: "The OmniTrak mobile app can sign you in with Google or a one-time emailed link as well as your password, so accounts created with Google work on the phone too." },
+      { type: "fix", description: "The chat box on the landing page now calls the app OmniTrak. It had been using the wrong product name in its button, its greeting, its suggested questions and the AI's answers." },
     ],
   },
   {
