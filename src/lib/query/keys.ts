@@ -70,4 +70,6 @@ export const queryKeys = {
   referralSummary: () => [...queryKeys.all, "referrals", "summary"] as const,
   /** Per-referrer counts for the admin portal (see `adminReferralStatsQueryOptions`). */
   adminReferralStats: () => [...queryKeys.all, "admin", "referrals"] as const,
+  /** Contact support messages for the admin portal (see `adminSupportRequestsQueryOptions`). */
+  adminSupportRequests: () => [...queryKeys.all, "admin", "support-requests"] as const,
 };

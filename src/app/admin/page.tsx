@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Loader2, Bell } from "lucide-react";
+import { Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Loader2, Bell, LifeBuoy } from "lucide-react";
 
 const sections = [
   {
@@ -21,6 +21,12 @@ const sections = [
     title: "Users",
     description: "Accounts, Pro / Premium subscriptions, and admin flags.",
     icon: Users,
+  },
+  {
+    href: "/admin/support",
+    title: "Support",
+    description: "Contact support messages from the landing-page chat.",
+    icon: LifeBuoy,
   },
   {
     href: "/admin/categories",

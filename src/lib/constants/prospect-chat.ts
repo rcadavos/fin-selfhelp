@@ -1,13 +1,23 @@
 /**
- * Prospect chat — the "Ask OmniTrak" box in the landing page's lower-right corner,
+ * Prospect chat — the "OmniTrak guide" box in the landing page's lower-right corner,
  * for visitors who haven't signed up yet. The suggested questions answer
  * instantly from curated copy (`src/lib/prospect-chat.ts`), anything typed goes to
  * a small public AI endpoint grounded in the product facts, and "Contact support"
- * emails the team.
+ * emails the team and saves the message to the admin inbox at /admin/support.
  */
 
 /** Product name used in the prospect chat's copy and in the AI's persona. */
 export const PRODUCT_NAME = "OmniTrak";
+
+/**
+ * The chat's own title. Not "Ask OmniTrak": that is the Pro and Premium in-app
+ * assistant, which the landing page describes as opening from a floating button,
+ * so a free chat with the same name and button reads as that paid feature.
+ */
+export const PROSPECT_CHAT_TITLE = `${PRODUCT_NAME} guide`;
+
+/** The Pro and Premium in-app assistant's name, for copy that has to tell the two apart. */
+export const IN_APP_ASSISTANT_NAME = `Ask ${PRODUCT_NAME}`;
 
 /** Public, unauthenticated chat endpoint for typed questions. */
 export const PROSPECT_CHAT_API = "/api/ai/prospect-chat";

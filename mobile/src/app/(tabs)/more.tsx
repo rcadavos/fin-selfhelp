@@ -80,7 +80,7 @@ export default function MoreScreen() {
       <ConfirmDialog
         open={confirmingSignOut}
         title="Sign out?"
-        description={`You'll need your email and password to sign back in to ${APP_NAME}.`}
+        description={`You can sign back in to ${APP_NAME} with Google, an emailed link or your password.`}
         confirmLabel="Sign out"
         destructive
         loading={signingOut}

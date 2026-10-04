@@ -16,6 +16,7 @@ import {
   PROSPECT_CHAT_API,
   PROSPECT_CHAT_MAX_INPUT_CHARS,
   PROSPECT_CHAT_SUGGESTIONS,
+  PROSPECT_CHAT_TITLE,
   SUPPORT_TRANSCRIPT_MAX_MESSAGES,
   type ProspectSuggestionId,
 } from "@/lib/constants/prospect-chat";
@@ -214,7 +215,7 @@ export function ProspectChatPanel({
         )}
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="truncate text-sm font-semibold text-foreground">
-            {inSupport ? "Contact support" : `Ask ${PRODUCT_NAME}`}
+            {inSupport ? "Contact support" : PROSPECT_CHAT_TITLE}
           </h2>
           <p className="truncate text-xs text-muted-foreground">
             {inSupport ? "We reply by email" : "Questions about the app • answered here"}

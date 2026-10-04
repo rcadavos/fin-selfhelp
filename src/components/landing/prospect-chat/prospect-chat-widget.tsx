@@ -18,7 +18,7 @@ const loadPanel = () => import("./prospect-chat-panel").then((m) => m.ProspectCh
 const ProspectChatPanel = dynamic(loadPanel, { ssr: false });
 
 /**
- * Floating "Ask OmniTrak" launcher in the landing page's lower-right corner. The
+ * Floating launcher for the prospect chat in the landing page's lower-right corner. The
  * panel mounts on first open and then stays mounted (hidden while closed), so a
  * visitor who closes the chat comes back to the same conversation.
  */
@@ -43,7 +43,7 @@ export function ProspectChatWidget({ plans }: { plans: ProspectPlans }) {
         onClick={toggle}
         onPointerEnter={loadPanel}
         onFocus={loadPanel}
-        aria-label={open ? "Close chat" : `Ask ${PRODUCT_NAME} a question`}
+        aria-label={open ? "Close chat" : `Ask a question about ${PRODUCT_NAME}`}
         aria-expanded={open}
         aria-controls={hasOpened ? PROSPECT_CHAT_PANEL_ID : undefined}
         className={cn(

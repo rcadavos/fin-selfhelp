@@ -46,6 +46,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Groundwork for the OmniTrak mobile app: account balances, Net Balance and money formatting now come from code the website and the phone app share, so both will always show the same figures." },
       { type: "improvement", description: "The OmniTrak mobile app can sign you in with Google or a one-time emailed link as well as your password, so accounts created with Google work on the phone too." },
       { type: "fix", description: "The chat box on the landing page now calls the app OmniTrak. It had been using the wrong product name in its button, its greeting, its suggested questions and the AI's answers." },
+      { type: "fix", description: "That landing page chat is now titled 'OmniTrak guide', so it can't be mistaken for Ask OmniTrak, the AI assistant inside the app for Pro and Premium. Asked about your own spending or bills, it now points you to Ask OmniTrak after you sign in, instead of answering as if it were the assistant." },
+      { type: "fix", description: "Signing out of the OmniTrak mobile app no longer says you need a password to get back in. You can sign back in with Google, an emailed link or your password." },
+      { type: "improvement", description: "Every 'Contact support' message is now saved, not just emailed. The admin portal has a new Support inbox listing each one with the chat that led up to it, where the team can reply by email and mark it resolved. A message still reaches the team if the email fails to send." },
     ],
   },
   {
