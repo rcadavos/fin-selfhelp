@@ -43,6 +43,7 @@ import {
 import { accountTransactionsQueryOptions, invalidateAccountTransactions } from "@/lib/query/account-transactions";
 import { queryKeys } from "@/lib/query/keys";
 import { VEHICLE_EXPENSE_CATEGORIES } from "@/lib/constants/vehicle-categories";
+import { DEFAULT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { cn, formatCurrency, roundToCents } from "@/lib/utils";
 
 export type EntryTab = "expense" | "income" | "adjustment" | "transfer";
@@ -185,7 +186,6 @@ export function AddEntryPanel({
     expense:
       Number.isFinite(expParsedAmt) && expParsedAmt > 0 &&
       !!sharedAccountId && !expInsufficient &&
-      !!expCategory &&
       !(expVehicleId && !expVehicleCategory),
     income:
       Number.isFinite(parseFloat(incAmount)) && parseFloat(incAmount) > 0 &&
@@ -206,7 +206,9 @@ export function AddEntryPanel({
     e.preventDefault();
     if (!tabValid[tab]) return;
 
-    const categoryLabel = categories.find(c => c.id === expCategory)?.label ?? expCategory;
+    // Category is optional — an expense added without one is saved as "Other".
+    const expCategoryId = expCategory || DEFAULT_EXPENSE_CATEGORY_ID;
+    const categoryLabel = categories.find(c => c.id === expCategoryId)?.label ?? expCategoryId;
     const expDisplayName = expName.trim() || categoryLabel;
 
     const balancesKey = accountBalancesQueryOptions().queryKey;
@@ -271,7 +273,7 @@ export function AddEntryPanel({
         // For untracked accounts with "Show in expense history" unchecked, skip the global expense entry
         const addToHistory = !isUntrackedAccount || expShowInHistory;
         if (addToHistory) {
-          const res = await addExpense(expCategory || "other", expParsedAmt, expDisplayName, expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
+          const res = await addExpense(expCategoryId, expParsedAmt, expDisplayName, expNote.trim() || null, expDate, sharedAccountId, expVehicleId || null, expVehicleCategory || null);
           if (res.error) { err = res.error; }
         }
         if (!err) {
@@ -282,7 +284,7 @@ export function AddEntryPanel({
           invalidateAccountQueries(queryClient);
           if (addToHistory) {
             queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
-            invalidateVehicleQueriesIfTransportAffected(queryClient, expCategory || "other");
+            invalidateVehicleQueriesIfTransportAffected(queryClient, expCategoryId);
           }
           invalidateAccountTransactions(queryClient, sharedAccountId);
         }
@@ -405,24 +407,25 @@ export function AddEntryPanel({
                 <Input id="ae-name" value={expName} onChange={(e) => setExpName(e.target.value)} placeholder="e.g. Groceries, Netflix (optional)" />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ae-category">Category</Label>
-                  <Select value={expCategory} onValueChange={setExpCategory}>
-                    <SelectTrigger id="ae-category"><SelectValue placeholder="Select category" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="ae-date">Date</Label>
-                  <DatePicker id="ae-date" value={expDate} onChange={setExpDate} formatDisplay={formatShortDate} />
-                </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="ae-category">
+                  Category <span className="font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <Select value={expCategory} onValueChange={setExpCategory}>
+                  <SelectTrigger id="ae-category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="ae-date">Date</Label>
+                <DatePicker id="ae-date" value={expDate} onChange={setExpDate} formatDisplay={formatShortDate} />
               </div>
 
               {expCategory === "transport" && vehicles.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <>
                   <div className="grid gap-1.5">
                     <Label htmlFor="ae-vehicle">Vehicle (optional)</Label>
                     <Select
@@ -453,7 +456,7 @@ export function AddEntryPanel({
                       </Select>
                     </div>
                   )}
-                </div>
+                </>
               )}
 
               <div className="grid gap-1.5">
@@ -577,33 +580,32 @@ export function AddEntryPanel({
                 />
               </div>
 
-              <div className="grid items-start gap-4 sm:grid-cols-2">
-                <div className="grid content-start gap-1.5">
-                  <Label htmlFor="tx-from">From account</Label>
-                  {accounts.length > 0 ? (
-                    <>
-                      <AccountSelect
-                        id="tx-from" accounts={accounts} value={sharedAccountId}
-                        onChange={(id) => { handleAccountChange(id); if (txTo === id) setTxTo(""); }}
-                      />
-                      {sharedAccountId && (
-                        <p className="text-xs text-muted-foreground">Balance: {formatCurrency(balances[sharedAccountId] ?? 0)}</p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No accounts found.</p>
-                  )}
-                </div>
-                <div className="grid content-start gap-1.5">
-                  <Label htmlFor="tx-to">To account</Label>
-                  {txToAccounts.length > 0 ? (
-                    <AccountSelect id="tx-to" accounts={txToAccounts} value={txTo} onChange={setTxTo} placeholder="Select destination" />
-                  ) : (
-                    <p className="surface border border-dashed px-3 py-2 text-xs text-muted-foreground">
-                      You need at least one other account.
-                    </p>
-                  )}
-                </div>
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="tx-from">From account</Label>
+                {accounts.length > 0 ? (
+                  <>
+                    <AccountSelect
+                      id="tx-from" accounts={accounts} value={sharedAccountId}
+                      onChange={(id) => { handleAccountChange(id); if (txTo === id) setTxTo(""); }}
+                    />
+                    {sharedAccountId && (
+                      <p className="text-xs text-muted-foreground">Balance: {formatCurrency(balances[sharedAccountId] ?? 0)}</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No accounts found.</p>
+                )}
+              </div>
+
+              <div className="grid content-start gap-1.5">
+                <Label htmlFor="tx-to">To account</Label>
+                {txToAccounts.length > 0 ? (
+                  <AccountSelect id="tx-to" accounts={txToAccounts} value={txTo} onChange={setTxTo} placeholder="Select destination" />
+                ) : (
+                  <p className="surface border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                    You need at least one other account.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-1.5">

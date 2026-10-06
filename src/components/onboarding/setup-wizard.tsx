@@ -32,6 +32,7 @@ import { BANK_GROUPS, getBankColor, getBankLogoSlug } from "@/lib/constants/acco
 import { CURRENCIES } from "@/components/dashboard/account-form-dialog";
 import { ACCOUNT_TYPE_OPTIONS } from "@/lib/shared/accounts";
 import { APP_MODE_OPTIONS, type AppModeId } from "@/lib/constants/app-mode";
+import { DEFAULT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { cn } from "@/lib/utils";
 
@@ -167,12 +168,13 @@ export function SetupWizard({ initialName }: Props) {
     setExpenseError("");
     const amount = parseFloat(expenseAmount);
     if (!expenseNote.trim()) { setExpenseError("Enter a name for this expense."); return; }
-    if (!expenseCategoryId) { setExpenseError("Please select a category."); return; }
     if (!amount || amount <= 0) { setExpenseError("Enter a valid amount."); return; }
     if (!expenseAccountId) { setExpenseError("Please select an account."); return; }
+    // Category is optional — an expense added without one is saved as "Other".
+    const categoryId = expenseCategoryId || DEFAULT_EXPENSE_CATEGORY_ID;
     startTransition(async () => {
       const res = await addExpense(
-        expenseCategoryId,
+        categoryId,
         amount,
         expenseNote || null,
         null,
@@ -186,7 +188,7 @@ export function SetupWizard({ initialName }: Props) {
         await createAccountExpense({ accountId: expenseAccountId, amount, description: expenseNote });
       }
       invalidateAccountQueries(queryClient);
-      invalidateVehicleQueriesIfTransportAffected(queryClient, expenseCategoryId);
+      invalidateVehicleQueriesIfTransportAffected(queryClient, categoryId);
       setStep("done");
     });
   }
@@ -703,7 +705,9 @@ function ExpenseStep({ categories, accounts, categoryId, setCategoryId, amount, 
         </div>
 
         <div className="space-y-2">
-          <Label>Category</Label>
+          <Label>
+            Category <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />

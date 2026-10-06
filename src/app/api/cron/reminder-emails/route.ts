@@ -6,8 +6,13 @@ import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-ti
 import { isReminderReleaseHour } from "@/lib/reminder-release-time";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { isFeatureEnabledInMode } from "@/lib/constants/app-mode";
-import { appModeFromPreferencesJson } from "@/lib/user-preferences";
+import {
+  appModeFromPreferencesJson,
+  normalizeUserPreferences,
+  type UserPreferences,
+} from "@/lib/user-preferences";
 import { INERT_AUTO_DEBIT_REMINDER_DAYS } from "@/lib/constants/bills";
+import { sendPushToUser } from "@/lib/push";
 
 type ProfileRow = {
   id: string;
@@ -55,6 +60,12 @@ function addDays(date: Date, days: number): Date {
   return out;
 }
 
+/** Push honours the switches in Settings → Notifications: the master one, and Bill reminders for bills. */
+function wantsPush(prefs: UserPreferences, kind: string): boolean {
+  if (!prefs.notificationsEnabled) return false;
+  return kind !== "expense_reminder" || prefs.billRemindersEnabled;
+}
+
 export async function GET(request: Request) {
   try {
     const bearer = request.headers.get("authorization");
@@ -83,12 +94,14 @@ export async function GET(request: Request) {
 
     let processedUsers = 0;
     let sentEmails = 0;
+    let sentPushes = 0;
     const errors: string[] = [];
 
 
 
     for (const profile of (profiles ?? []) as ProfileRow[]) {
-      if (profile.email_unsubscribed) continue;
+      // Unsubscribing stops the emails only. In-app and push reminders still go out.
+      const canEmail = !profile.email_unsubscribed;
 
       const tier = normalizeDbTier(profile.subscription_tier);
       const hasProAccess = hasProLevelProductAccess(
@@ -117,7 +130,9 @@ export async function GET(request: Request) {
           .not("reminder_days_before", "is", null);
       }
 
-      const authUserPromise = supabase.auth.admin.getUserById(profile.user_id);
+      const authUserPromise = canEmail
+        ? supabase.auth.admin.getUserById(profile.user_id)
+        : Promise.resolve(null);
 
       let toDoRows: ToDoTargetRow[] = [];
 
@@ -162,8 +177,9 @@ export async function GET(request: Request) {
         (paidRows ?? []).map((r) => `${String(r.bill_id)}:${String(r.paid_month)}`)
       );
 
-      const toEmail = authUserResult.data.user?.email?.trim();
-      if (!toEmail) continue;
+      // Null for unsubscribed accounts and for phone signups with no email: those get
+      // their reminders in-app and by push only.
+      const toEmail = authUserResult?.data.user?.email?.trim() || null;
 
       // Free-tier: only the bill that previously fired keeps its slot; if none
       // has fired yet the first one to match today gets to fire and lock itself.
@@ -212,7 +228,7 @@ export async function GET(request: Request) {
               ? "This bill is due today. Please review and settle it."
               : `Due in ${reminderDay} day${reminderDay === 1 ? "" : "s"}.`;
 
-            if (channel === "email" || channel === "both") {
+            if (toEmail && (channel === "email" || channel === "both")) {
               pending.push({ dedupeKey, title, body });
               if (!hasProAccess) freeTierBillFired = true;
             }
@@ -235,7 +251,7 @@ export async function GET(request: Request) {
         const title = `To-do target today: ${item.name}`;
         const body = "This task reaches its target date today.";
 
-        pending.push({ dedupeKey, title, body });
+        if (toEmail) pending.push({ dedupeKey, title, body });
         notificationsToInsert.push({
           user_id: profile.user_id,
           kind: "todo_target_date",
@@ -260,15 +276,37 @@ export async function GET(request: Request) {
           .select("dedupe_key"),
         supabase
           .from("user_notifications")
-          .upsert(notificationsToInsert, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }),
+          .upsert(notificationsToInsert, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
+          .select("dedupe_key"),
       ]);
+
+      if (notificationsResult.error) {
+        errors.push(`notification upsert failed for user ${profile.user_id}: ${notificationsResult.error.message}`);
+      } else {
+        // Push only rows this run created, so a re-run of the cron never buzzes twice.
+        const insertedNotificationKeys = new Set(
+          (notificationsResult.data ?? []).map((r) => String(r.dedupe_key))
+        );
+        const prefs = normalizeUserPreferences(profile.user_preferences);
+        const toPush = notificationsToInsert.filter(
+          (n) => insertedNotificationKeys.has(n.dedupe_key) && wantsPush(prefs, n.kind)
+        );
+        if (toPush.length > 0) {
+          const pushResult = await sendPushToUser(
+            supabase,
+            { userId: profile.user_id },
+            toPush.map((n) => ({ kind: n.kind, title: n.title, body: n.body, dedupeKey: n.dedupe_key }))
+          );
+          sentPushes += pushResult.sent;
+          for (const message of pushResult.errors) {
+            errors.push(`push failed for user ${profile.user_id}: ${message}`);
+          }
+        }
+      }
 
       if (logsResult.error) {
         errors.push(`log upsert failed for user ${profile.user_id}: ${logsResult.error.message}`);
         continue;
-      }
-      if (notificationsResult.error) {
-        errors.push(`notification upsert failed for user ${profile.user_id}: ${notificationsResult.error.message}`);
       }
 
       const insertedLogs = logsResult.data;
@@ -276,7 +314,7 @@ export async function GET(request: Request) {
       const insertedKeys = new Set((insertedLogs ?? []).map((r) => String(r.dedupe_key)));
       const newlyPending = pending.filter((item) => insertedKeys.has(item.dedupeKey));
       
-      if (newlyPending.length > 0) {
+      if (toEmail && newlyPending.length > 0) {
         const sendResult = await sendReminderEmail({
           to: toEmail,
           items: newlyPending,
@@ -304,6 +342,7 @@ export async function GET(request: Request) {
         date: todayYmd,
         processedUsers,
         sentEmails,
+        sentPushes,
         errors,
       },
       { status: 200 }

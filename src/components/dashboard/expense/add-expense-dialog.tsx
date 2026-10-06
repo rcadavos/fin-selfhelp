@@ -155,25 +155,24 @@ export function AddExpenseDialog({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ScrollFadeBody className="space-y-5 px-6 pb-4">
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-exp-amount">Amount</Label>
-                <AmountInput
-                  id="add-exp-amount"
-                  value={amount}
-                  onChange={setAmount}
-                  placeholder="₱0"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-exp-name">Name</Label>
-                <Input
-                  id="add-exp-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name"
-                />
-              </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-exp-amount">Amount</Label>
+              <AmountInput
+                id="add-exp-amount"
+                value={amount}
+                onChange={setAmount}
+                placeholder="₱0"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-exp-name">Name</Label>
+              <Input
+                id="add-exp-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name"
+              />
             </div>
 
             {accounts.length > 0 ? (
@@ -210,33 +209,34 @@ export function AddExpenseDialog({
               </p>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-exp-category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="add-exp-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="add-exp-date">Date</Label>
-                <DatePicker
-                  id="add-exp-date"
-                  value={date}
-                  onChange={setDate}
-                  formatDisplay={formatShortDate}
-                />
-              </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-exp-category">
+                Category <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="add-exp-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-exp-date">Date</Label>
+              <DatePicker
+                id="add-exp-date"
+                value={date}
+                onChange={setDate}
+                formatDisplay={formatShortDate}
+              />
             </div>
 
             {category === "transport" && vehicles.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <>
                 <div className="grid gap-1.5">
                   <Label htmlFor="add-exp-vehicle">Vehicle (optional)</Label>
                   <Select
@@ -273,7 +273,7 @@ export function AddExpenseDialog({
                     </Select>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             <div className="grid gap-1.5">

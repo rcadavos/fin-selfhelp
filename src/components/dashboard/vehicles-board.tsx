@@ -268,84 +268,84 @@ export function VehicleDialog({
             />
           </div>
 
-          {/* Type + Fuel */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>
-                Type <span className="text-destructive">*</span>
-              </Label>
-              <Select value={form.type} onValueChange={(v) => set("type", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {VEHICLE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Fuel Type</Label>
-              <Select value={form.fuel_type} onValueChange={(v) => set("fuel_type", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Fuel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FUEL_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Type */}
+          <div className="space-y-1.5">
+            <Label>
+              Type <span className="text-destructive">*</span>
+            </Label>
+            <Select value={form.type} onValueChange={(v) => set("type", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {VEHICLE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Make + Model */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Make (Brand)</Label>
-              <Input
-                placeholder="e.g. Honda"
-                value={form.make}
-                onChange={(e) => set("make", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Model</Label>
-              <Input
-                placeholder="e.g. Civic"
-                value={form.model}
-                onChange={(e) => set("model", e.target.value)}
-              />
-            </div>
+          {/* Fuel */}
+          <div className="space-y-1.5">
+            <Label>Fuel Type</Label>
+            <Select value={form.fuel_type} onValueChange={(v) => set("fuel_type", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Fuel" />
+              </SelectTrigger>
+              <SelectContent>
+                {FUEL_TYPES.map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Year + Color */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Year</Label>
-              <Input
-                type="number"
-                min="1900"
-                max={CURRENT_YEAR + 2}
-                placeholder={String(CURRENT_YEAR)}
-                value={form.year}
-                onChange={(e) => set("year", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Color</Label>
-              <Select value={form.color} onValueChange={(v) => set("color", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLORS.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Make */}
+          <div className="space-y-1.5">
+            <Label>Make (Brand)</Label>
+            <Input
+              placeholder="e.g. Honda"
+              value={form.make}
+              onChange={(e) => set("make", e.target.value)}
+            />
+          </div>
+
+          {/* Model */}
+          <div className="space-y-1.5">
+            <Label>Model</Label>
+            <Input
+              placeholder="e.g. Civic"
+              value={form.model}
+              onChange={(e) => set("model", e.target.value)}
+            />
+          </div>
+
+          {/* Year */}
+          <div className="space-y-1.5">
+            <Label>Year</Label>
+            <Input
+              type="number"
+              min="1900"
+              max={CURRENT_YEAR + 2}
+              placeholder={String(CURRENT_YEAR)}
+              value={form.year}
+              onChange={(e) => set("year", e.target.value)}
+            />
+          </div>
+
+          {/* Color */}
+          <div className="space-y-1.5">
+            <Label>Color</Label>
+            <Select value={form.color} onValueChange={(v) => set("color", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Color" />
+              </SelectTrigger>
+              <SelectContent>
+                {COLORS.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Plate */}

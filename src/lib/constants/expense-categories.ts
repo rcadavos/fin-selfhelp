@@ -3,3 +3,6 @@
  * Vehicle spending rolls up transport expenses linked to a vehicle; React Query should refresh when these entries change.
  */
 export const TRANSPORT_EXPENSE_CATEGORY_ID = "transport" as const;
+
+/** Category saved when an expense or bill is added without one — category is optional in every add form. */
+export const DEFAULT_EXPENSE_CATEGORY_ID = "other" as const;

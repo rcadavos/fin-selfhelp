@@ -923,71 +923,67 @@ export function MyGoalsPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <ScrollFadeBody className="space-y-5 px-6 pb-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="goal-name">
-                  Goal Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="goal-name"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="h-9"
-                  required
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="goal-type">
-                  Goal Type <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={form.goal_type}
-                  onValueChange={(v) => setForm((f) => ({ ...f, goal_type: v as GoalType }))}
-                >
-                  <SelectTrigger id="goal-type" className="h-9 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    {GOAL_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="goal-name">
+                Goal Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="goal-name"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="h-9"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="goal-type">
+                Goal Type <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={form.goal_type}
+                onValueChange={(v) => setForm((f) => ({ ...f, goal_type: v as GoalType }))}
+              >
+                <SelectTrigger id="goal-type" className="h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[100]">
+                  {GOAL_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="goal-target-amount">
-                  Target Amount{" "}
-                  <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-                </Label>
-                <AmountInput
-                  id="goal-target-amount"
-                  value={form.target_amount}
-                  onChange={(v) => setForm((f) => ({ ...f, target_amount: v }))}
-                  placeholder="e.g. 50,000"
-                  className="h-9"
-                />
-              </div>
-              {editingId && (
-                <div className="space-y-2">
-                  <Label>Deposit</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 w-full gap-1.5"
-                    onClick={() => openAddDeposit(editingId, form.name)}
-                  >
-                    <Plus className="h-3 w-3" aria-hidden />
-                    Add Deposit
-                  </Button>
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label htmlFor="goal-target-amount">
+                Target Amount{" "}
+                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <AmountInput
+                id="goal-target-amount"
+                value={form.target_amount}
+                onChange={(v) => setForm((f) => ({ ...f, target_amount: v }))}
+                placeholder="e.g. 50,000"
+                className="h-9"
+              />
             </div>
+            {editingId && (
+              <div className="space-y-2">
+                <Label>Deposit</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-full gap-1.5"
+                  onClick={() => openAddDeposit(editingId, form.name)}
+                >
+                  <Plus className="h-3 w-3" aria-hidden />
+                  Add Deposit
+                </Button>
+              </div>
+            )}
 
             <fieldset className="space-y-2 border-0 p-0">
               <legend className="mb-2 text-sm font-medium leading-none">

@@ -221,144 +221,140 @@ export function AccountFormDialog({
         </DialogHeader>
 
         <ScrollFadeBody className="space-y-5 px-6 py-2">
-          {/* Row 1: Account Alias | Account Type */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-alias">Account Alias</Label>
-              <Input
-                id="acc-alias"
-                placeholder="e.g. Savings, Payroll"
-                value={form.account_alias}
-                onChange={(e) => setForm((p) => ({ ...p, account_alias: e.target.value }))}
-                disabled={isCash}
-                autoFocus={!isCash}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-type">Account Type</Label>
-              <Select
-                value={form.account_type}
-                onValueChange={(v) => setForm((p) => ({ ...p, account_type: v as AccountType }))}
-                disabled={isCash}
-              >
-                <SelectTrigger id="acc-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACCOUNT_TYPE_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Account Alias, then Account Type */}
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-alias">Account Alias</Label>
+            <Input
+              id="acc-alias"
+              placeholder="e.g. Savings, Payroll"
+              value={form.account_alias}
+              onChange={(e) => setForm((p) => ({ ...p, account_alias: e.target.value }))}
+              disabled={isCash}
+              autoFocus={!isCash}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-type">Account Type</Label>
+            <Select
+              value={form.account_type}
+              onValueChange={(v) => setForm((p) => ({ ...p, account_type: v as AccountType }))}
+              disabled={isCash}
+            >
+              <SelectTrigger id="acc-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_TYPE_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Row 2: Bank / e-Wallet / Platform | Currency */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-bank">Bank / e-Wallet / Platform</Label>
-              <Select
-                value={form.bank_name}
-                onValueChange={(v) => {
-                  const bankColor = getBankColor(v);
-                  setForm((p) => ({ ...p, bank_name: v, ...(bankColor ? { color: bankColor } : {}) }));
-                  setBankSearch("");
-                }}
-                disabled={isCash}
-              >
-                <SelectTrigger id="acc-bank">
-                  <SelectValue placeholder="Select bank or e-wallet">
-                    {form.bank_name ? (
-                      <span className="flex items-center gap-2 min-w-0">
-                        {form.bank_name !== "Other" && getBankLogoSlug(form.bank_name) && (
-                          <Image
-                            src={`/images/bank-logo/${getBankLogoSlug(form.bank_name)}.webp`}
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="flex-shrink-0 rounded-sm object-contain"
-                          />
-                        )}
-                        <span className="truncate">{form.bank_name}</span>
-                      </span>
-                    ) : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
-                    <Input
-                      value={bankSearch}
-                      onChange={(e) => setBankSearch(e.target.value)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      placeholder="Search..."
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  {filteredGroups.length === 0 && !showOther ? (
-                    <p className="px-2 py-2 text-xs text-muted-foreground">No results found.</p>
-                  ) : (
-                    <>
-                      {filteredGroups.map((group, gi) => (
-                        <SelectGroup key={group.label}>
-                          {gi > 0 && <SelectSeparator />}
-                          <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            <span className="h-px flex-1 bg-border" />
-                            {group.label}
-                            <span className="h-px flex-1 bg-border" />
-                          </SelectLabel>
-                          {group.banks.map((b: string) => (
-                            <SelectItem key={b} value={b}>
-                              <span className="flex items-center gap-2">
-                                {getBankLogoSlug(b) && (
-                                  <Image
-                                    src={`/images/bank-logo/${getBankLogoSlug(b)}.webp`}
-                                    alt=""
-                                    width={16}
-                                    height={16}
-                                    className="flex-shrink-0 rounded-sm object-contain"
-                                  />
-                                )}
-                                {b}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                      {showOther && (
-                        <SelectGroup>
-                          <SelectSeparator />
-                          <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            <span className="h-px flex-1 bg-border" />
-                            Other
-                            <span className="h-px flex-1 bg-border" />
-                          </SelectLabel>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectGroup>
+          {/* Bank / e-Wallet / Platform, then Currency */}
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-bank">Bank / e-Wallet / Platform</Label>
+            <Select
+              value={form.bank_name}
+              onValueChange={(v) => {
+                const bankColor = getBankColor(v);
+                setForm((p) => ({ ...p, bank_name: v, ...(bankColor ? { color: bankColor } : {}) }));
+                setBankSearch("");
+              }}
+              disabled={isCash}
+            >
+              <SelectTrigger id="acc-bank">
+                <SelectValue placeholder="Select bank or e-wallet">
+                  {form.bank_name ? (
+                    <span className="flex items-center gap-2 min-w-0">
+                      {form.bank_name !== "Other" && getBankLogoSlug(form.bank_name) && (
+                        <Image
+                          src={`/images/bank-logo/${getBankLogoSlug(form.bank_name)}.webp`}
+                          alt=""
+                          width={16}
+                          height={16}
+                          className="flex-shrink-0 rounded-sm object-contain"
+                        />
                       )}
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-currency">Currency</Label>
-              <Select
-                value={form.currency}
-                onValueChange={(v) => setForm((p) => ({ ...p, currency: v }))}
-              >
-                <SelectTrigger id="acc-currency">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                      <span className="truncate">{form.bank_name}</span>
+                    </span>
+                  ) : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
+                  <Input
+                    value={bankSearch}
+                    onChange={(e) => setBankSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Search..."
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {filteredGroups.length === 0 && !showOther ? (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">No results found.</p>
+                ) : (
+                  <>
+                    {filteredGroups.map((group, gi) => (
+                      <SelectGroup key={group.label}>
+                        {gi > 0 && <SelectSeparator />}
+                        <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          <span className="h-px flex-1 bg-border" />
+                          {group.label}
+                          <span className="h-px flex-1 bg-border" />
+                        </SelectLabel>
+                        {group.banks.map((b: string) => (
+                          <SelectItem key={b} value={b}>
+                            <span className="flex items-center gap-2">
+                              {getBankLogoSlug(b) && (
+                                <Image
+                                  src={`/images/bank-logo/${getBankLogoSlug(b)}.webp`}
+                                  alt=""
+                                  width={16}
+                                  height={16}
+                                  className="flex-shrink-0 rounded-sm object-contain"
+                                />
+                              )}
+                              {b}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                    {showOther && (
+                      <SelectGroup>
+                        <SelectSeparator />
+                        <SelectLabel className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          <span className="h-px flex-1 bg-border" />
+                          Other
+                          <span className="h-px flex-1 bg-border" />
+                        </SelectLabel>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectGroup>
+                    )}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-currency">Currency</Label>
+            <Select
+              value={form.currency}
+              onValueChange={(v) => setForm((p) => ({ ...p, currency: v }))}
+            >
+              <SelectTrigger id="acc-currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Row 3: Starting Balance | Maintaining Balance (debit-style) — OR — Credit Limit (credit) */}
+          {/* Starting Balance + Maintaining Balance (debit-style) — OR — Credit Limit (credit) */}
           {isCredit ? (
             <div className="space-y-1.5">
               <Label htmlFor="acc-credit-limit">Credit Limit</Label>
@@ -373,7 +369,7 @@ export function AccountFormDialog({
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <>
               <div className="space-y-1.5">
                 <Label htmlFor="acc-starting-balance">Starting Balance</Label>
                 <AmountInput
@@ -394,52 +390,51 @@ export function AccountFormDialog({
                   onChange={(v) => setForm((p) => ({ ...p, maintaining_balance: v }))}
                 />
               </div>
-            </div>
+            </>
           )}
 
           {!isCredit && !isCash && (
-          <div className="grid gap-4 sm:grid-cols-2">
-
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-interest-freq">Interest Frequency</Label>
-              <Select
-                value={form.interest_frequency === "" ? "none" : form.interest_frequency}
-                onValueChange={(v) =>
-                  setForm((p) => ({
-                    ...p,
-                    interest_frequency: v === "none" ? "" : (v as InterestFrequency),
-                    interest_rate: v === "none" ? "" : p.interest_rate,
-                  }))
-                }
-              >
-                <SelectTrigger id="acc-interest-freq">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {INTEREST_FREQUENCY_OPTIONS.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-interest-rate">
-                Interest Rate <span className="text-muted-foreground">(%)</span>
-              </Label>
-              <Input
-                id="acc-interest-rate"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-                placeholder="e.g. 1.5"
-                value={form.interest_rate}
-                disabled={form.interest_frequency === ""}
-                onChange={(e) => setForm((p) => ({ ...p, interest_rate: e.target.value }))}
-              />
-            </div>
+          <>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-interest-freq">Interest Frequency</Label>
+            <Select
+              value={form.interest_frequency === "" ? "none" : form.interest_frequency}
+              onValueChange={(v) =>
+                setForm((p) => ({
+                  ...p,
+                  interest_frequency: v === "none" ? "" : (v as InterestFrequency),
+                  interest_rate: v === "none" ? "" : p.interest_rate,
+                }))
+              }
+            >
+              <SelectTrigger id="acc-interest-freq">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {INTEREST_FREQUENCY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-interest-rate">
+              Interest Rate <span className="text-muted-foreground">(%)</span>
+            </Label>
+            <Input
+              id="acc-interest-rate"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 1.5"
+              value={form.interest_rate}
+              disabled={form.interest_frequency === ""}
+              onChange={(e) => setForm((p) => ({ ...p, interest_rate: e.target.value }))}
+            />
+          </div>
+          </>
           )}
 
           {!isCredit && (

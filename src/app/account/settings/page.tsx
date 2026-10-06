@@ -21,6 +21,7 @@ import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
+import { PushNotificationsToggle } from "@/components/notifications";
 import { useUserPreferences } from "@/contexts/user-preferences-context";
 import { deleteSelfAccount } from "@/actions/auth";
 import {
@@ -360,6 +361,8 @@ export default function SettingsPage() {
                   aria-labelledby="label-sub"
                 />
               </div>
+
+              <PushNotificationsToggle />
             </CardContent>
           </Card>
         </TabsContent>

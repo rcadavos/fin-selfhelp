@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/actions/auth";
 import { createClient } from "@/lib/supabase/client";
+import { unsubscribeThisDevice } from "@/lib/push-client";
+import { PUSH_SIGN_OUT_TIMEOUT_MS } from "@/lib/constants/push-notifications";
 import { cn } from "@/lib/utils";
 import { CreditCard, LogOut, Shield, SlidersHorizontal, User as UserIcon, Lock, Settings2 } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -89,6 +91,12 @@ export function AccountDropdownMenu({
   const handleLogout = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
+    // Stop this device getting the account's reminders. Removing it server-side needs
+    // the session, so it runs first — capped so a slow network never holds sign-out up.
+    await Promise.race([
+      unsubscribeThisDevice(),
+      new Promise((resolve) => setTimeout(resolve, PUSH_SIGN_OUT_TIMEOUT_MS)),
+    ]);
     const supabase = createClient();
     // Clear client state first so UI transitions immediately.
     const { error: localError } = await supabase.auth.signOut({ scope: "local" });

@@ -179,7 +179,6 @@ export function PlannedExpenseFormDialog({
     vehicles.length > 0;
   const hasVehicleCategoryWhenNeeded = !needsVehicleCategory || Boolean(form.vehicleCategory);
   const isValid =
-    form.categoryId &&
     form.note.trim() &&
     !isNaN(amountNum) &&
     amountNum > 0 &&
@@ -227,47 +226,50 @@ export function PlannedExpenseFormDialog({
             </div>
           )}
 
-          {/* Row 2 — Category + Amount */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label>Category</Label>
-              <Select
-                value={form.categoryId}
-                onValueChange={(v) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    categoryId: v,
-                    ...(v !== TRANSPORT_EXPENSE_CATEGORY_ID
-                      ? { vehicleId: "", vehicleCategory: "" }
-                      : {}),
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Amount</Label>
-              <AmountInput
-                placeholder="0.00"
-                value={form.amount}
-                onChange={(v) => set("amount", v)}
-              />
-            </div>
+          {/* Category — optional; an empty one is saved as "Other" */}
+          <div className="grid gap-1.5">
+            <Label>
+              Category{" "}
+              <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Select
+              value={form.categoryId}
+              onValueChange={(v) => {
+                setForm((prev) => ({
+                  ...prev,
+                  categoryId: v,
+                  ...(v !== TRANSPORT_EXPENSE_CATEGORY_ID
+                    ? { vehicleId: "", vehicleCategory: "" }
+                    : {}),
+                }));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Amount */}
+          <div className="grid gap-1.5">
+            <Label>Amount</Label>
+            <AmountInput
+              placeholder="0.00"
+              value={form.amount}
+              onChange={(v) => set("amount", v)}
+            />
           </div>
 
           {/* Vehicle + vehicle category — Transport & Commute only */}
           {form.categoryId === TRANSPORT_EXPENSE_CATEGORY_ID && vehicles.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <>
               <div className="grid gap-1.5">
                 <Label>Vehicle (optional)</Label>
                 <Select
@@ -313,79 +315,79 @@ export function PlannedExpenseFormDialog({
                   </Select>
                 </div>
               ) : null}
-            </div>
+            </>
           )}
 
-          {/* Row 3 — Recurrence (+ Due Month if yearly) */}
-          <div className={cn("grid gap-3", form.billingPeriod === "yearly" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
+          {/* Recurrence */}
+          <div className="grid gap-1.5">
+            <Label>Recurrence</Label>
+            <Select
+              value={form.billingPeriod}
+              onValueChange={(v) => set("billingPeriod", v as BillFormState["billingPeriod"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Due Month — yearly only */}
+          {form.billingPeriod === "yearly" && (
             <div className="grid gap-1.5">
-              <Label>Recurrence</Label>
-              <Select
-                value={form.billingPeriod}
-                onValueChange={(v) => set("billingPeriod", v as BillFormState["billingPeriod"])}
-              >
+              <Label>Due Month</Label>
+              <Select value={form.dueMonth} onValueChange={(v) => set("dueMonth", v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
+                  {MONTH_NAMES.map((name, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>
+                      {name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            {form.billingPeriod === "yearly" && (
-              <div className="grid gap-1.5">
-                <Label>Due Month</Label>
-                <Select value={form.dueMonth} onValueChange={(v) => set("dueMonth", v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTH_NAMES.map((name, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+          )}
+
+          {/* Due Date */}
+          <div className="grid gap-1.5">
+            <Label>Due Date</Label>
+            <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select day of the month" />
+              </SelectTrigger>
+              <SelectContent className="max-h-52">
+                <SelectItem value="15">{ordinal(15)} of the month</SelectItem>
+                <SelectItem value="31">End of the month</SelectItem>
+                <SelectSeparator />
+                {Array.from({ length: 31 }, (_, i) => i + 1)
+                  .filter((d) => d !== 15 && d !== 31)
+                  .map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {ordinal(d)} of the month
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Row 4 — Due Date + End Date */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label>Due Date</Label>
-              <Select value={form.dueDate} onValueChange={(v) => set("dueDate", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select day of the month" />
-                </SelectTrigger>
-                <SelectContent className="max-h-52">
-                  <SelectItem value="15">{ordinal(15)} of the month</SelectItem>
-                  <SelectItem value="31">End of the month</SelectItem>
-                  <SelectSeparator />
-                  {Array.from({ length: 31 }, (_, i) => i + 1)
-                    .filter((d) => d !== 15 && d !== 31)
-                    .map((d) => (
-                      <SelectItem key={d} value={String(d)}>
-                        {ordinal(d)} of the month
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>
-                End Date{" "}
-                <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <DatePicker
-                value={form.endDate}
-                onChange={(ymd) => set("endDate", ymd)}
-                placeholder="No end date"
-              />
-            </div>
+          {/* End Date */}
+          <div className="grid gap-1.5">
+            <Label>
+              End Date{" "}
+              <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <DatePicker
+              value={form.endDate}
+              onChange={(ymd) => set("endDate", ymd)}
+              placeholder="No end date"
+            />
           </div>
 
           {/* Auto Debit — hidden in an app mode that switches it off. The stored flag is

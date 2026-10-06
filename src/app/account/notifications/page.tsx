@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { PushNotificationsToggle } from "@/components/notifications";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -174,6 +175,7 @@ export default function NotificationsPage() {
       />
 
       <div className="space-y-4">
+        <PushNotificationsToggle />
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
             {unreadCount > 0

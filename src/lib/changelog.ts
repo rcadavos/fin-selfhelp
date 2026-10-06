@@ -49,6 +49,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "fix", description: "That landing page chat is now titled 'OmniTrak guide', so it can't be mistaken for Ask OmniTrak, the AI assistant inside the app for Pro and Premium. Asked about your own spending or bills, it now points you to Ask OmniTrak after you sign in, instead of answering as if it were the assistant." },
       { type: "fix", description: "Signing out of the OmniTrak mobile app no longer says you need a password to get back in. You can sign back in with Google, an emailed link or your password." },
       { type: "improvement", description: "Every 'Contact support' message is now saved, not just emailed. The admin portal has a new Support inbox listing each one with the chat that led up to it, where the team can reply by email and mark it resolved. A message still reaches the team if the email fails to send." },
+      { type: "improvement", description: "Category is now optional when you add an expense or a bill — in Add Entry, Add Expense, Add Bill and the setup wizard. Leave it blank and the entry is saved under Other; you can still pick one, and Transport still offers the vehicle link." },
+      { type: "improvement", description: "Forms that slide in from the side now show one field per row instead of squeezing two side by side — Add Entry, expenses, bills, receivables, vehicles, accounts, transfers and goals — so every field gets the full width of the panel." },
+      { type: "feature", description: "Bill reminders can now arrive as push notifications on your phone or computer, even when OmniTrak is closed. Turn it on for each device under Settings • Notifications or on the Notifications page, and use 'Send a test' to check it works. It's on every plan. On iPhone and iPad, add OmniTrak to your Home Screen first." },
+      { type: "improvement", description: "Tapping a reminder notification opens the page it is about: Bills for a bill, To-do for a task. Four or more reminders on the same morning come as one summary notification instead of a stack." },
+      { type: "improvement", description: "Push notifications follow the Notifications and Bill reminders switches in Settings, and signing out turns push off on that device so the next person on it doesn't get your reminders." },
+      { type: "fix", description: "Unsubscribing from reminder emails, or signing up with a phone number instead of an email, no longer switches off your in-app bill reminders as well. Those accounts had been getting no reminders at all." },
     ],
   },
   {

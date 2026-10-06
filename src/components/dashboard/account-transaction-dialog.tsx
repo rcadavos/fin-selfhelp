@@ -326,25 +326,24 @@ export function AccountTransferDialog({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-transfer-amount">Amount</Label>
-              <AmountInput
-                id="acc-transfer-amount"
-                placeholder="0.00"
-                value={amountText}
-                onChange={setAmountText}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="acc-transfer-fee">Transfer Fee</Label>
-              <AmountInput
-                id="acc-transfer-fee"
-                placeholder="Optional"
-                value={feeText}
-                onChange={setFeeText}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-transfer-amount">Amount</Label>
+            <AmountInput
+              id="acc-transfer-amount"
+              placeholder="0.00"
+              value={amountText}
+              onChange={setAmountText}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="acc-transfer-fee">Transfer Fee</Label>
+            <AmountInput
+              id="acc-transfer-fee"
+              placeholder="Optional"
+              value={feeText}
+              onChange={setFeeText}
+            />
           </div>
 
           <div className="space-y-1.5">

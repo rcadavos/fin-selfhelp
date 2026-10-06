@@ -14,7 +14,7 @@ import {
 } from "@/lib/subscription-tier";
 import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
-import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
+import { TRANSPORT_EXPENSE_CATEGORY_ID, DEFAULT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { isVehicleExpenseCategoryValue } from "@/lib/constants/vehicle-categories";
 
 const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
@@ -754,7 +754,10 @@ export async function addBill(
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
 
-  const resolvedVehicle = resolveBillVehicleFields(categoryId, vehicleId, vehicleCategory);
+  // Category is optional in the bill form; an empty one is saved as "Other".
+  const resolvedCategoryId = categoryId.trim() || DEFAULT_EXPENSE_CATEGORY_ID;
+
+  const resolvedVehicle = resolveBillVehicleFields(resolvedCategoryId, vehicleId, vehicleCategory);
   if ("error" in resolvedVehicle) return { error: resolvedVehicle.error };
 
   let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
@@ -777,7 +780,7 @@ export async function addBill(
 
   const { error } = await supabase.from("bills").insert({
     profile_id: profile.id,
-    category_id: categoryId,
+    category_id: resolvedCategoryId,
     amount,
     note: note.trim() || null,
     notes: notes?.trim() || null,
@@ -845,7 +848,10 @@ export async function updateBill(
   const normalizedDueDate = normalizeDueDateForStorage(dueDate);
   if (!normalizedDueDate) return { error: "invalid_due_date" };
 
-  const resolvedVehicle = resolveBillVehicleFields(categoryId, vehicleId, vehicleCategory);
+  // Category is optional in the bill form; an empty one is saved as "Other".
+  const resolvedCategoryId = categoryId.trim() || DEFAULT_EXPENSE_CATEGORY_ID;
+
+  const resolvedVehicle = resolveBillVehicleFields(resolvedCategoryId, vehicleId, vehicleCategory);
   if ("error" in resolvedVehicle) return { error: resolvedVehicle.error };
 
   let reminders: ReturnType<typeof normalizeReminderDaysBefore>;
@@ -874,7 +880,7 @@ export async function updateBill(
   const { error } = await supabase
     .from("bills")
     .update({
-      category_id: categoryId,
+      category_id: resolvedCategoryId,
       amount,
       note: note.trim() || null,
       notes: notes?.trim() || null,

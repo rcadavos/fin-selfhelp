@@ -244,27 +244,27 @@ function ReceivableDialog({
               />
             </div>
 
-            {/* Category + Amount */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Category</Label>
-                <Select value={form.category} onValueChange={(v) => set("category", v as ReceivableCategory)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Total Amount</Label>
-                <AmountInput
-                  placeholder="0.00"
-                  value={form.amount}
-                  onChange={(v) => set("amount", v)}
-                />
-              </div>
+            {/* Category */}
+            <div className="grid gap-1.5">
+              <Label>Category</Label>
+              <Select value={form.category} onValueChange={(v) => set("category", v as ReceivableCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Amount */}
+            <div className="grid gap-1.5">
+              <Label>Total Amount</Label>
+              <AmountInput
+                placeholder="0.00"
+                value={form.amount}
+                onChange={(v) => set("amount", v)}
+              />
             </div>
 
             {/* Amount paid back (only when editing) */}
@@ -285,15 +285,13 @@ function ReceivableDialog({
             )}
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Date lent <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <DatePicker value={form.borrowedDate} onChange={(ymd) => set("borrowedDate", ymd)} placeholder="Not set" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Due date <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <DatePicker value={form.dueDate} onChange={(ymd) => set("dueDate", ymd)} placeholder="Not set" />
-              </div>
+            <div className="grid gap-1.5">
+              <Label>Date lent <span className="font-normal text-muted-foreground">(optional)</span></Label>
+              <DatePicker value={form.borrowedDate} onChange={(ymd) => set("borrowedDate", ymd)} placeholder="Not set" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Due date <span className="font-normal text-muted-foreground">(optional)</span></Label>
+              <DatePicker value={form.dueDate} onChange={(ymd) => set("dueDate", ymd)} placeholder="Not set" />
             </div>
 
             {/* Notes */}

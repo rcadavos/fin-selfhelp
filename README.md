@@ -133,3 +133,22 @@ Notes:
 - Reminders are currently sent for **Pro/Premium-capable** users.
 - Sending is deduplicated by `reminder_email_logs` so each reminder key is emailed once.
 
+## Push notifications (PWA)
+
+The same cron run pushes every **new** in-app reminder (`user_notifications` row) to the devices the user turned push on for, on every plan. Users switch it on per device in **Settings → Notifications** or on **/account/notifications**.
+
+- **Devices:** one row per browser in `push_subscriptions` (service role only). A row is deleted when its push service answers 404/410, and when the user signs out on that device.
+- **Preferences:** push honours the **Notifications** master switch and **Bill reminders** in Settings → Notifications.
+- **iPhone/iPad:** push works only from the app added to the Home Screen (iOS 16.4+), not a Safari tab.
+- **Service worker:** `public/sw.js` handles `push` and `notificationclick`. It is auto-registered in production only. Locally, turning push on registers it.
+
+Generate a key pair once with `npx web-push generate-vapid-keys` and set it in every environment. Changing the pair stops every existing device from receiving until its user turns push on again.
+
+```bash
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+VAPID_SUBJECT=mailto:info@omnitrak.cloud
+```
+
+If the keys are not set, push stays off: the toggle reads "not available yet" and the cron skips it.
+
