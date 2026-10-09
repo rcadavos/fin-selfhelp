@@ -55,6 +55,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Tapping a reminder notification opens the page it is about: Bills for a bill, To-do for a task. Four or more reminders on the same morning come as one summary notification instead of a stack." },
       { type: "improvement", description: "Push notifications follow the Notifications and Bill reminders switches in Settings, and signing out turns push off on that device so the next person on it doesn't get your reminders." },
       { type: "fix", description: "Unsubscribing from reminder emails, or signing up with a phone number instead of an email, no longer switches off your in-app bill reminders as well. Those accounts had been getting no reminders at all." },
+      { type: "fix", description: "Database changes pushed to the repo now reach the live database automatically. Every run so far had stopped before applying anything, because GitHub's servers cannot reach the database's IPv6-only address; the job now connects through Supabase's IPv4 connection pooler." },
     ],
   },
   {
