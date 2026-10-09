@@ -56,6 +56,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "Push notifications follow the Notifications and Bill reminders switches in Settings, and signing out turns push off on that device so the next person on it doesn't get your reminders." },
       { type: "fix", description: "Unsubscribing from reminder emails, or signing up with a phone number instead of an email, no longer switches off your in-app bill reminders as well. Those accounts had been getting no reminders at all." },
       { type: "fix", description: "Database changes pushed to the repo now reach the live database automatically. Every run so far had stopped before applying anything, because GitHub's servers cannot reach the database's IPv6-only address; the job now connects through Supabase's IPv4 connection pooler." },
+      { type: "fix", description: "On Settings • Preferences, the App mode cards now line their text up at the top. The shorter Bills & reminders card had its title and description floating in the middle beside the taller Full cashflow card." },
     ],
   },
   {

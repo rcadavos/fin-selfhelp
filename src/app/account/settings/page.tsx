@@ -143,7 +143,7 @@ export default function SettingsPage() {
                         type="button"
                         aria-pressed={selected}
                         onClick={() => handleModeSelect(option.value)}
-                        className={`relative surface border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        className={`relative flex flex-col justify-start surface border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           selected ? "border-primary ring-1 ring-primary" : "hover:border-primary/40 hover:bg-muted/40"
                         }`}
                       >
