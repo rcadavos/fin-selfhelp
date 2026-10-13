@@ -7,7 +7,10 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "OmniTrak",
     description:
       "Your all-in-one finance tracker with a built-in AI assistant — bills, cashflow, accounts, goals, lists, and calculators.",
-    start_url: "/",
+    // Launch the installed app straight into the dashboard; signed-out users are
+    // sent to /login?next=/dashboard by middleware. `id` stays "/" so existing
+    // installs are treated as the same app and pick up the new start URL.
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "browser"],

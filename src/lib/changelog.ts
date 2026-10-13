@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "Opening OmniTrak from your home screen now goes straight to your dashboard instead of the landing page. If you are signed out, you land on sign-in and return to the dashboard afterwards." },
       { type: "feature", description: "The birthday perk now actually runs: Pro is granted automatically for your whole birth month, every year. Previously the birth month was only stored — nothing ever gave you the free month." },
       { type: "improvement", description: "Your birth month can now only be set once. It unlocks a free month of Pro every year, so allowing changes would let it be claimed over and over; the field locks after you save it." },
       { type: "improvement", description: "Added a 'Redesign + Pro perks' template to the admin notification composer, covering the new look and the two ways to get Pro free — your birth month, and inviting friends." },
