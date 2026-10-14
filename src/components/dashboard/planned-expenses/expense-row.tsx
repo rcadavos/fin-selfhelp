@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Amount } from "@/components/passbook/amount";
+import { NotesPreview } from "@/components/app/notes-field";
 import { Stamp, type StampVariant } from "@/components/passbook/stamp";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { AccountRow } from "@/actions/accounts";
@@ -242,6 +243,8 @@ export function ExpenseRow({
             </span>
           )}
         </div>
+
+        <NotesPreview notes={bill.notes} />
 
         {shortfallNote && (
           <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-destructive">

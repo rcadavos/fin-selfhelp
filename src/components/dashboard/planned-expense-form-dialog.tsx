@@ -25,6 +25,7 @@ import { FormPanel } from "@/components/app/form-panel";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { AccountSelect } from "@/components/app/account-select";
+import { NotesField } from "@/components/app/notes-field";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
 import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
@@ -59,6 +60,7 @@ export type BillFormState = {
   vehicleId: string;
   vehicleCategory: string;
   autoDebit: boolean;
+  notes: string;
 };
 
 export const EMPTY_BILL_FORM: BillFormState = {
@@ -74,6 +76,7 @@ export const EMPTY_BILL_FORM: BillFormState = {
   vehicleId: "",
   vehicleCategory: "",
   autoDebit: false,
+  notes: "",
 };
 
 export function billToForm(bill: BillRow): BillFormState {
@@ -91,6 +94,7 @@ export function billToForm(bill: BillRow): BillFormState {
     vehicleId: bill.vehicle_id ?? "",
     vehicleCategory: bill.vehicle_category ?? "",
     autoDebit: bill.is_auto_debit,
+    notes: bill.notes ?? "",
   };
 }
 
@@ -490,6 +494,13 @@ export function PlannedExpenseFormDialog({
               </div>
             );
           })()}
+
+          <NotesField
+            id="bill-notes"
+            value={form.notes}
+            onChange={(v) => set("notes", v)}
+            placeholder="e.g. Account number, how to pay"
+          />
 
           </ScrollFadeBody>
           <DialogFooter className="flex-shrink-0 border-t bg-background px-6 pb-4 pt-3 [&_button]:h-11 [&_[data-size=icon]]:w-11">

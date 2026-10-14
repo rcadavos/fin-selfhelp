@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormPanel } from "@/components/app/form-panel";
+import { NotesField } from "@/components/app/notes-field";
 import {
   Select,
   SelectContent,
@@ -233,17 +234,7 @@ export function EditExpenseDialog({
               </>
             )}
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-exp-note">Note</Label>
-              <textarea
-                id="edit-exp-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional note…"
-                rows={2}
-                className="w-full resize-none rounded-xl border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+            <NotesField id="edit-exp-note" value={note} onChange={setNote} />
 
             {error && <p className="text-sm text-destructive">{error}</p>}
           </ScrollFadeBody>

@@ -18,6 +18,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "Bills now have an optional Notes field — handy for an account number or how to pay — and the notes show on each bill card, under the reminder days." },
+      { type: "improvement", description: "Expense notes are now labelled 'Notes (optional)' and show on each expense card under the category." },
+      { type: "fix", description: "Editing a bill no longer clears notes it already had." },
       { type: "improvement", description: "Opening OmniTrak from your home screen now goes straight to your dashboard instead of the landing page. If you are signed out, you land on sign-in and return to the dashboard afterwards." },
       { type: "feature", description: "The birthday perk now actually runs: Pro is granted automatically for your whole birth month, every year. Previously the birth month was only stored — nothing ever gave you the free month." },
       { type: "improvement", description: "Your birth month can now only be set once. It unlocks a free month of Pro every year, so allowing changes would let it be claimed over and over; the field locks after you save it." },

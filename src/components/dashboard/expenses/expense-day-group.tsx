@@ -3,6 +3,7 @@
 import { Car, Trash2 } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
+import { NotesPreview } from "@/components/app/notes-field";
 import { cn } from "@/lib/utils";
 import type { ExpenseEntryRow } from "@/actions/budget";
 import type { AccountRow } from "@/actions/accounts";
@@ -134,6 +135,8 @@ export function ExpenseDayGroupCard({
                       </span>
                     )}
                   </div>
+                  {/* Skipped when the notes already stand in as the name (no label set). */}
+                  {entry.notes?.trim() !== nameFor(entry) && <NotesPreview notes={entry.notes} />}
                 </div>
 
                 <Amount
