@@ -85,6 +85,13 @@
   .app-layout {
     @apply flex min-h-0 w-full min-w-0 flex-1 flex-col bg-background;
   }
+  /* The installed app is sent from "/" to the dashboard (InstalledAppRedirect);
+     keep the landing page from flashing up while that happens. */
+  @media (display-mode: standalone) {
+    .landing-page {
+      visibility: hidden;
+    }
+  }
   /* AppShell (md+): bounded height so main column gets flex min-h-0 + overflow-y (wheel scroll works) */
   .app-layout--shell {
     @apply flex min-h-0 min-w-0 flex-1 flex-col;

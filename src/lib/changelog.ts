@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "fix", description: "OmniTrak apps added to an iPhone or iPad Home Screen before the start-page change now open on the dashboard too, instead of the landing page. iOS keeps the start page an app had when it was added, so the landing page now sends the installed app on to the dashboard itself." },
       { type: "improvement", description: "Bills now have an optional Notes field — handy for an account number or how to pay — and the notes show on each bill card, under the reminder days." },
       { type: "improvement", description: "Expense notes are now labelled 'Notes (optional)' and show on each expense card under the category." },
       { type: "fix", description: "Editing a bill no longer clears notes it already had." },

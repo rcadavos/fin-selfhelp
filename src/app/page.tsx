@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import { Header } from "@/components/landing/header";
 import { PageViewTracker } from "@/components/landing/page-view-tracker";
+import { InstalledAppRedirect } from "@/components/landing/installed-app-redirect";
 import { HeroSection } from "@/components/landing/hero-section";
 import { ProspectChatWidget } from "@/components/landing/prospect-chat/prospect-chat-widget";
 
@@ -35,7 +36,8 @@ export default async function HomePage() {
   const reviews = reviewsResult.reviews ?? [];
 
   return (
-    <main className="app-layout">
+    <main className="app-layout landing-page">
+      <InstalledAppRedirect />
       <PageViewTracker />
       <Header />
       <HeroSection />

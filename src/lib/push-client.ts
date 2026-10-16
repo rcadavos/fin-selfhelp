@@ -10,6 +10,7 @@ import {
   SERVICE_WORKER_SCOPE,
   VAPID_PUBLIC_KEY,
 } from "@/lib/constants/push-notifications";
+import { isInstalledApp } from "@/lib/utils/installed-app";
 
 /**
  * Browser side of web push. Everything here touches `navigator`, so call it from
@@ -28,11 +29,6 @@ function isIosDevice(): boolean {
   const ua = navigator.userAgent;
   // iPadOS reports itself as a Mac; the touch points give it away.
   return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-}
-
-function isInstalledApp(): boolean {
-  const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  return iosStandalone || window.matchMedia("(display-mode: standalone)").matches;
 }
 
 export function getPushSupport(): PushSupport {

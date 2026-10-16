@@ -39,12 +39,12 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const origin = self.location.origin;
-  let target = new URL("/", origin);
+  let target = new URL("/dashboard", origin);
   try {
-    const candidate = new URL(event.notification.data?.url || "/", origin);
+    const candidate = new URL(event.notification.data?.url || "/dashboard", origin);
     if (candidate.origin === origin) target = candidate;
   } catch {
-    /* keep the home page */
+    /* keep the dashboard */
   }
 
   event.waitUntil(
