@@ -3,7 +3,6 @@
 import { AlertCircle, Check, PartyPopper, X } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
-import { formatCurrency } from "@/lib/utils";
 import type { PlannedExpenseRow } from "@/lib/planned-expenses/grouping";
 
 /**
@@ -12,20 +11,26 @@ import type { PlannedExpenseRow } from "@/lib/planned-expenses/grouping";
  * With auto-debit off in this mode, every unpaid bill needs a human — so the page
  * opens on the single most urgent one with its verb attached, instead of making
  * you find it in a list. Settling it promotes the next bill in the queue.
+ *
+ * Part-paid bills never appear here — you have already acted on them, and the
+ * list below still carries what is left on each.
  */
 export function BillsHero({
   next,
   queue,
+  partPaidCount,
   currency,
   onMarkPaid,
   onPartialPayment,
   onDismiss,
   isPending,
 }: {
-  /** The most urgent unsettled bill, or null when the month is clear. */
+  /** The most urgent bill with nothing paid yet, or null when none is left. */
   next: PlannedExpenseRow | null;
   /** What follows it — the next few, soonest first. */
   queue: PlannedExpenseRow[];
+  /** Bills started but not finished; only shapes the empty-state copy. */
+  partPaidCount: number;
   currency: string;
   onMarkPaid: () => void;
   onPartialPayment: () => void;
@@ -37,16 +42,23 @@ export function BillsHero({
     "after:pointer-events-none after:absolute after:inset-0 after:bg-[repeating-linear-gradient(hsl(var(--panel-accent)/0.055)_0_1px,transparent_1px_26px)]";
 
   if (!next) {
+    const allSettled = partPaidCount === 0;
     return (
       <div className={`relative overflow-hidden rounded-[calc(var(--radius)+2px)] bg-panel p-5 text-panel-foreground shadow-[var(--shadow)] ${ledgerRule}`}>
         <div className="relative z-10">
           <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.11em] text-panel-accent">
             <PartyPopper className="size-3" aria-hidden />
-            Nothing left this month
+            {allSettled ? "Nothing left this month" : "Nothing new this month"}
           </p>
-          <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">All settled</p>
+          <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">
+            {allSettled ? "All settled" : "All started"}
+          </p>
           <p className="mt-1.5 text-[12.5px] text-panel-muted">
-            Every bill this month is paid. Nothing needs you.
+            {allSettled
+              ? "Every bill this month is paid. Nothing needs you."
+              : `Every bill this month has a payment on it. ${partPaidCount} still ${
+                  partPaidCount === 1 ? "has a balance" : "have balances"
+                } — see the list below.`}
           </p>
         </div>
       </div>
@@ -101,12 +113,6 @@ export function BillsHero({
           {dueLabel && <span>{isLate ? "Was due" : "Due"} {dueLabel}</span>}
           {dueLabel && whenLabel && <span className="opacity-50">•</span>}
           {whenLabel && <span>{whenLabel}</span>}
-          {next.amountPaid > 0 && (
-            <>
-              <span className="opacity-50">•</span>
-              <span>{formatCurrency(next.amountPaid, currency)} already paid</span>
-            </>
-          )}
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -142,7 +148,6 @@ export function BillsHero({
                   <DotLeader className="border-panel-foreground/25" />
                   <span className="fit-figure shrink-0 pb-0.5 text-panel-foreground">
                     <Amount value={row.outstanding} currency={currency} />
-                    {row.amountPaid > 0 && <span className="ml-1 text-panel-muted">left</span>}
                   </span>
                 </div>
               ))}

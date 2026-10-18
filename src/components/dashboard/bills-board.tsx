@@ -363,10 +363,14 @@ export function BillsBoard() {
     };
   }, [paidMonth]);
 
-  // Bills mode opens on the single most urgent unsettled bill; the rest queue behind it.
+  // Bills mode opens on the single most urgent unpaid bill; the rest queue behind it.
+  // Part-paid bills stay out of it: you have already acted on them, and their balance
+  // still shows in the list below.
   const unsettled = useMemo(() => rows.filter((r) => !isFullyPaidBucket(r.bucket)), [rows]);
-  const heroRow = unsettled[0] ?? null;
-  const heroQueue = unsettled.slice(1, 4);
+  const unpaid = useMemo(() => unsettled.filter((r) => r.amountPaid <= 0), [unsettled]);
+  const heroRow = unpaid[0] ?? null;
+  const heroQueue = unpaid.slice(1, 4);
+  const partPaidCount = unsettled.length - unpaid.length;
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
@@ -613,6 +617,7 @@ export function BillsBoard() {
                 onDismiss={() => setHeroDismissed(true)}
                 next={heroRow}
                 queue={heroQueue}
+                partPaidCount={partPaidCount}
                 currency={currency}
                 isPending={heroRow ? pendingIds.has(heroRow.bill.id) : false}
                 onMarkPaid={() => heroRow && handleToggle(heroRow.bill.id)}
