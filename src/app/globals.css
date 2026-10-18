@@ -34,6 +34,8 @@
     --hairline-strong: 133.3 9.1% 80.6%; /* #C9D2CB */
     --warning: 38.8 72.5% 31.4%; /* #8A6116 amber ink */
     --warning-foreground: 90.0 12.5% 96.9%;
+    --info: 212.3 70.1% 40.6%; /* #1F62B0 part-paid blue */
+    --info-foreground: 90.0 12.5% 96.9%;
     --success: 161.2 81.8% 23.7%;
     --chart-compare: 215.4 16.3% 46.9%; /* #64748B neutral series */
     --panel: 156.8 58.5% 10.4%; /* #0B2A1E deep brand panel */
@@ -67,6 +69,8 @@
     --hairline-strong: 141.4 11.3% 24.3%; /* #37453C */
     --warning: 39.1 66.7% 55.3%; /* #D9A441 */
     --warning-foreground: 150.0 18.8% 6.3%;
+    --info: 213.5 81.1% 68.8%; /* #6FA8F0 */
+    --info-foreground: 150.0 18.8% 6.3%;
     --success: 154.2 53.7% 50.0%;
     --chart-compare: 214.1 19.0% 61.8%; /* #8B9BB0 */
     --panel: 157.5 33.3% 9.4%; /* #10201A */
@@ -182,7 +186,7 @@
     @apply text-primary;
   }
 
-  /* Status stamp: PAID / DUE / OVERDUE / SCHEDULED. */
+  /* Status stamp: PAID / PART PAID / DUE / OVERDUE / SCHEDULED. */
   .stamp {
     font-family: var(--font-geist-mono), ui-monospace, Consolas, monospace;
     font-size: 10px;
@@ -199,6 +203,10 @@
   }
   .stamp-paid {
     @apply text-primary border-primary;
+  }
+  .stamp-partial {
+    color: hsl(var(--info));
+    border-color: hsl(var(--info));
   }
   .stamp-due {
     color: hsl(var(--warning));

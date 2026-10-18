@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Check, PartyPopper, X } from "lucide-react";
+import { AlertCircle, Check, PartyPopper, Pencil, X } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
 import type { PlannedExpenseRow } from "@/lib/planned-expenses/grouping";
@@ -22,6 +22,7 @@ export function BillsHero({
   currency,
   onMarkPaid,
   onPartialPayment,
+  onEdit,
   onDismiss,
   isPending,
 }: {
@@ -34,6 +35,8 @@ export function BillsHero({
   currency: string;
   onMarkPaid: () => void;
   onPartialPayment: () => void;
+  /** Opens the featured bill in the edit form. */
+  onEdit: () => void;
   /** Hides the panel for this visit only — deliberately not persisted. */
   onDismiss: () => void;
   isPending: boolean;
@@ -90,14 +93,25 @@ export function BillsHero({
             <AlertCircle className="size-3" aria-hidden />
             {isLate ? "Needs you now" : "Coming up"}
           </p>
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Hide this panel until next visit"
-            className="tap-target -mr-1 -mt-1 flex size-6 shrink-0 items-center justify-center rounded-full text-panel-muted transition-colors hover:bg-panel-foreground/10 hover:text-panel-foreground"
-          >
-            <X className="size-3.5" />
-          </button>
+          <div className="-mr-1 -mt-1 flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={`Edit ${next.bill.note ?? "bill"}`}
+              title="Edit bill"
+              className="tap-target flex size-6 items-center justify-center rounded-full text-panel-muted transition-colors hover:bg-panel-foreground/10 hover:text-panel-foreground"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Hide this panel until next visit"
+              className="tap-target flex size-6 items-center justify-center rounded-full text-panel-muted transition-colors hover:bg-panel-foreground/10 hover:text-panel-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
         </div>
 
         <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">

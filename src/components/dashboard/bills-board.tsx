@@ -626,6 +626,7 @@ export function BillsBoard() {
                   setToggleError(null);
                   setPartialBill(heroRow.bill);
                 }}
+                onEdit={() => heroRow && setEditingBill(heroRow.bill)}
               />
               )}
               <MonthCalendar

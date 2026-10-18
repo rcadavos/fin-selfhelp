@@ -13,7 +13,7 @@ import type { PlannedExpenseRow, PlannedExpenseStatus, PlannedExpenseSummary } f
 const DOT_TONE: Record<PlannedExpenseStatus, string> = {
   overdue: "bg-destructive",
   failed: "bg-destructive",
-  partial: "bg-warning",
+  partial: "bg-info",
   due: "bg-warning",
   scheduled: "bg-hairline-strong",
   paid: "bg-primary/50",
@@ -51,7 +51,7 @@ const DAY_TONE: Record<DayStatus, string> = {
   // it should read as the same green as the button that got it there.
   paid: "border-primary bg-primary text-primary-foreground",
   overdue: "border-destructive/30 bg-destructive/15 text-destructive",
-  partial: "border-warning/30 bg-warning/15 text-warning",
+  partial: "border-info/30 bg-info/15 text-info",
   due: "border-warning/25 bg-warning/10 text-warning",
   scheduled: "border-border bg-muted text-foreground",
 };
@@ -59,7 +59,7 @@ const DAY_TONE: Record<DayStatus, string> = {
 const STATUS_STAMP: Record<PlannedExpenseStatus, StampVariant> = {
   overdue: "overdue",
   failed: "overdue",
-  partial: "due",
+  partial: "partial",
   due: "due",
   scheduled: "scheduled",
   paid: "paid",
@@ -120,7 +120,7 @@ export function MonthCalendar({
       <div className="flex items-center gap-2.5 border-b border-border px-3.5 pb-2.5">
         <div className="flex h-[5px] flex-1 overflow-hidden rounded-full bg-muted">
           <i className="h-full bg-primary transition-[width] duration-500" style={{ width: `${settledPct * 100}%` }} />
-          <i className="h-full bg-warning/75 transition-[width] duration-500" style={{ width: `${partialPct * 100}%` }} />
+          <i className="h-full bg-info/75 transition-[width] duration-500" style={{ width: `${partialPct * 100}%` }} />
         </div>
         <span className="whitespace-nowrap font-mono text-[10.5px] text-muted-foreground">
           {summary.settledCount} of {summary.totalCount} settled

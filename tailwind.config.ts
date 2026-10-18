@@ -46,6 +46,8 @@ const config: Config = {
         "hairline-strong": "hsl(var(--hairline-strong))",
         warning: "hsl(var(--warning))",
         "warning-foreground": "hsl(var(--warning-foreground))",
+        info: "hsl(var(--info))",
+        "info-foreground": "hsl(var(--info-foreground))",
         success: "hsl(var(--success))",
         "chart-compare": "hsl(var(--chart-compare))",
         panel: "hsl(var(--panel))",

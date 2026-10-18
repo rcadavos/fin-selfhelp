@@ -18,6 +18,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-09-13",
     summary: "Planned Expenses is now just Bills.",
     changes: [
+      { type: "improvement", description: "Part-paid bills are now blue on the Bills page instead of the same amber as bills coming due, so you can tell at a glance which ones you have started paying. That covers the '₱X of ₱Y' badge and the stripe on the bill card, the calendar day and its dots, the part-paid stretch of the progress bar, and the timeline markers." },
+      { type: "improvement", description: "The 'Needs you now' panel on the Bills page has a pencil button next to the X that opens the featured bill for editing, so you can fix its amount or due date without hunting for it in the list." },
       { type: "fix", description: "A bill you have part-paid no longer shows in the 'Needs you now' panel on the Bills page, or in its 'Then' list. You have already acted on it, so the panel moves on to the next bill with nothing paid; the part-paid bill and what is left on it still show in the list below." },
       { type: "fix", description: "OmniTrak apps added to an iPhone or iPad Home Screen before the start-page change now open on the dashboard too, instead of the landing page. iOS keeps the start page an app had when it was added, so the landing page now sends the installed app on to the dashboard itself." },
       { type: "improvement", description: "Bills now have an optional Notes field — handy for an account number or how to pay — and the notes show on each bill card, under the reminder days." },

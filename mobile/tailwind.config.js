@@ -30,6 +30,8 @@ module.exports = {
         "hairline-strong": token("hairline-strong"),
         warning: token("warning"),
         "warning-foreground": token("warning-foreground"),
+        info: token("info"),
+        "info-foreground": token("info-foreground"),
         success: token("success"),
         panel: token("panel"),
         "panel-foreground": token("panel-foreground"),

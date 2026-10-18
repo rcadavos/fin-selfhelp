@@ -26,12 +26,12 @@ import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categori
 const SEVERITY_RAIL: Partial<Record<PlannedExpenseStatus, string>> = {
   overdue: "before:bg-destructive",
   failed: "before:bg-destructive",
-  partial: "before:bg-warning",
+  partial: "before:bg-info",
 };
 
 const STAMP_VARIANT: Record<PlannedExpenseStatus, StampVariant> = {
   paid: "paid",
-  partial: "due",
+  partial: "partial",
   failed: "overdue",
   overdue: "overdue",
   due: "due",
@@ -178,7 +178,7 @@ export function ExpenseRow({
             {bill.note ?? categoryLabel}
           </span>
           {isPartial ? (
-            <Stamp variant="due">
+            <Stamp variant="partial">
               {formatCurrency(amountPaid, currency)} of {formatCurrency(bill.amount, currency)}
             </Stamp>
           ) : relative ? (
@@ -283,7 +283,7 @@ export function ExpenseRow({
           </DropdownMenuItem>
           {!isPaid && (
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
-              <PiggyBank className="size-4 text-warning" />
+              <PiggyBank className="size-4 text-info" />
               {isPartial ? "Add to Payment" : "Add Partial Payment"}
             </DropdownMenuItem>
           )}
