@@ -2,6 +2,7 @@
 
 import { AlertCircle, Check, PartyPopper, Pencil, X } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
+import { CountUpAmount } from "@/components/passbook/count-up-amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
 import type { PlannedExpenseRow } from "@/lib/planned-expenses/grouping";
 
@@ -117,7 +118,10 @@ export function BillsHero({
         <p className="mt-2 text-[22px] font-semibold leading-tight tracking-tight">
           {next.bill.note ?? "Bill"}
         </p>
-        <Amount
+        {/* Keyed by bill, so the next bill in the queue counts up from 0 rather
+            than rolling over from the amount of the one just settled. */}
+        <CountUpAmount
+          key={next.bill.id}
           value={next.outstanding}
           currency={currency}
           className="mt-1 block text-[34px] font-semibold tracking-tight"

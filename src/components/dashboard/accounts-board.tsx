@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ContentHeader } from "@/components/app/content-header";
 import { formatCurrency, cn } from "@/lib/utils";
+import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { computeNetBalance, sortAccountsCashFirst } from "@/lib/shared/accounts";
 import {
   accountsQueryOptions,
@@ -586,7 +587,7 @@ export function AccountsBoard() {
                 netBalance < 0 && !amountsHidden
                   ? "text-lg font-bold tabular-nums text-destructive"
                   : "text-lg font-bold tabular-nums"
-              }>{amountsHidden ? "••••••" : formatCurrency(netBalance)}</p>
+              }>{amountsHidden ? "••••••" : <AnimatedAmount value={netBalance} />}</p>
               <button
                 onClick={toggleAmountsHidden}
                 className="pt-0.5 text-muted-foreground hover:text-foreground transition-colors"

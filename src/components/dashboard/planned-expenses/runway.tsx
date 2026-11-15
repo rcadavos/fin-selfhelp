@@ -1,6 +1,6 @@
 "use client";
 
-import { Amount } from "@/components/passbook/amount";
+import { CountUpAmount } from "@/components/passbook/count-up-amount";
 import { cn, formatCurrency } from "@/lib/utils";
 import { RUNWAY_MARKER_BREAKPOINTS } from "@/lib/constants/planned-expenses";
 import type {
@@ -62,11 +62,11 @@ export function Runway({
     <div className="surface border border-border bg-card p-4 shadow-[var(--shadow)]">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="fit-figure min-w-0">
-          <Amount value={summary.remaining} currency={currency} className="text-2xl font-semibold tracking-tight" />
+          <CountUpAmount value={summary.remaining} currency={currency} className="text-2xl font-semibold tracking-tight" />
           <p className="text-[11.5px] text-muted-foreground">still to pay in {monthLabel}</p>
         </div>
         <div className="fit-figure min-w-0 text-right">
-          <Amount value={summary.settledAmount} currency={currency} className="text-[12.5px]" />
+          <CountUpAmount value={summary.settledAmount} currency={currency} className="text-[12.5px]" />
           <p className="text-[11.5px] text-muted-foreground">
             settled of {formatCurrency(summary.total, currency)}
           </p>

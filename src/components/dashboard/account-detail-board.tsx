@@ -45,7 +45,7 @@ import {
   invalidateAccountQueries,
 } from "@/lib/query/accounts";
 import { formatCurrency, cn } from "@/lib/utils";
-import { useAnimatedNumber } from "@/hooks/use-animated-number";
+import { useCountUp } from "@/hooks/use-count-up";
 
 function formatGroupDate(dateStr: string): string {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -91,7 +91,7 @@ export function AccountDetailBoard({ account: initialAccount }: { account: Accou
 
   const { data: txData } = useSuspenseQuery(accountTransactionsQueryOptions(account.id));
 
-  const animatedBalance = useAnimatedNumber(txData.balance);
+  const animatedBalance = useCountUp(txData.balance);
 
   const [amountsHidden, setAmountsHidden] = useState(false);
   useEffect(() => {

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { ContentHeader } from "@/components/app/content-header";
 import { formatCurrency, cn } from "@/lib/utils";
+import { AnimatedAmount } from "@/components/ui/animated-amount";
 import {
   updateVehicle,
   deleteVehicle,
@@ -253,7 +254,7 @@ export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
           Spend this month
         </p>
         <p className={cn("mt-0.5 text-2xl font-bold tabular-nums", expensesTotal === 0 && "text-muted-foreground")}>
-          {expensesTotal > 0 ? formatCurrency(expensesTotal) : "—"}
+          {expensesTotal > 0 ? <AnimatedAmount value={expensesTotal} /> : "—"}
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {(["fuel", "fees", "maintenance", "insurance"] as const).map((k) => {

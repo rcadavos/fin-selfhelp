@@ -42,6 +42,7 @@ import {
 import { ContentHeader } from "@/components/app/content-header";
 import { ScrollFadeBody } from "@/components/app/scroll-fade-body";
 import { formatCurrency, cn } from "@/lib/utils";
+import { AnimatedAmount } from "@/components/ui/animated-amount";
 import {
   vehiclesQueryOptions,
   vehicleSpendingQueryOptions,
@@ -645,7 +646,7 @@ export function VehiclesBoard() {
                 Total Spend
               </p>
               <p className={cn("mt-0.5 text-2xl font-bold tabular-nums", hasSpend ? "" : "text-muted-foreground")}>
-                {hasSpend ? formatCurrency(totalSpend) : "—"}
+                {hasSpend ? <AnimatedAmount value={totalSpend} /> : "—"}
               </p>
               <p className="text-[11px] text-muted-foreground">
                 {totalLinked} linked {totalLinked === 1 ? "entry" : "entries"}

@@ -32,6 +32,7 @@ import { useUserPreferencesOptional } from "@/contexts/user-preferences-context"
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Amount } from "@/components/passbook/amount";
+import { CountUpAmount } from "@/components/passbook/count-up-amount";
 import { Stamp } from "@/components/passbook/stamp";
 import { DotLeader } from "@/components/passbook/dot-leader";
 
@@ -310,13 +311,13 @@ export function ExpenseCashflowPage({
 
         <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           <span className="fit-figure text-3xl font-bold tracking-tight sm:text-4xl">
-            {amountsHidden ? MASK : <Amount value={isBillsMode ? billsTotal : totalTrackedBalance} />}
+            {amountsHidden ? MASK : <CountUpAmount value={isBillsMode ? billsTotal : totalTrackedBalance} />}
           </span>
           {isBillsMode ? (
             overdueCount > 0 && (
               <span className="inline-flex items-center gap-1 surface border border-warning px-2 py-1 text-xs font-medium text-warning">
                 <TriangleAlert className="h-3 w-3" aria-hidden />
-                {amountsHidden ? MASK : <Amount value={overdueAmount} />}
+                {amountsHidden ? MASK : <CountUpAmount value={overdueAmount} />}
                 <span className="text-warning/80">{overdueCount} overdue</span>
               </span>
             )
@@ -324,7 +325,7 @@ export function ExpenseCashflowPage({
             savedThisMonth > 0 && (
               <span className="inline-flex items-center gap-1 surface border border-primary px-2 py-1 text-xs font-medium text-primary">
                 <ArrowUp className="h-3 w-3" aria-hidden />
-                {amountsHidden ? MASK : <Amount value={savedThisMonth} />}
+                {amountsHidden ? MASK : <CountUpAmount value={savedThisMonth} />}
                 <span className="text-primary/80">saved this month</span>
               </span>
             )
@@ -366,7 +367,7 @@ export function ExpenseCashflowPage({
               dot={billsUnpaid > 0}
               borderClass={CELL_BORDERS[0]}
             >
-              {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
+              {amountsHidden ? MASK : <CountUpAmount value={billsUnpaid} />}
             </StatCell>
             <StatCell
               href="/dashboard/bills"
@@ -374,7 +375,7 @@ export function ExpenseCashflowPage({
               sub={`${billsPaidCount}/${monthBills.length} paid this month`}
               borderClass={CELL_BORDERS[1]}
             >
-              {amountsHidden ? MASK : <Amount value={billsPaid} />}
+              {amountsHidden ? MASK : <CountUpAmount value={billsPaid} />}
             </StatCell>
             <StatCell
               href="/dashboard/bills"
@@ -383,7 +384,7 @@ export function ExpenseCashflowPage({
               dot={overdueCount > 0}
               borderClass={CELL_BORDERS[2]}
             >
-              {amountsHidden ? MASK : <Amount value={overdueAmount} />}
+              {amountsHidden ? MASK : <CountUpAmount value={overdueAmount} />}
             </StatCell>
             <StatCell
               href="/dashboard/bills"
@@ -391,7 +392,7 @@ export function ExpenseCashflowPage({
               sub={dueSoonCount > 0 ? `${dueSoonCount} coming up` : "Nothing this week"}
               borderClass={CELL_BORDERS[3]}
             >
-              {amountsHidden ? MASK : <Amount value={dueSoonAmount} />}
+              {amountsHidden ? MASK : <CountUpAmount value={dueSoonAmount} />}
             </StatCell>
           </>
         ) : (
@@ -402,7 +403,7 @@ export function ExpenseCashflowPage({
               sub="So far this month"
               borderClass={CELL_BORDERS[0]}
             >
-              {amountsHidden ? MASK : <Amount value={dailyAmt} />}
+              {amountsHidden ? MASK : <CountUpAmount value={dailyAmt} />}
             </StatCell>
             <StatCell
               href="/dashboard/bills"
@@ -411,7 +412,7 @@ export function ExpenseCashflowPage({
               dot={billsUnpaid > 0}
               borderClass={CELL_BORDERS[1]}
             >
-              {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
+              {amountsHidden ? MASK : <CountUpAmount value={billsUnpaid} />}
             </StatCell>
             <StatCell
               href="/dashboard/bills"
@@ -419,7 +420,7 @@ export function ExpenseCashflowPage({
               sub={`${billsPaidCount}/${monthBills.length} paid this month`}
               borderClass={CELL_BORDERS[2]}
             >
-              {amountsHidden ? MASK : <Amount value={billsPaid} />}
+              {amountsHidden ? MASK : <CountUpAmount value={billsPaid} />}
             </StatCell>
             <StatCell
               href="/dashboard/accounts"
@@ -427,7 +428,7 @@ export function ExpenseCashflowPage({
               sub="Total tracked net balance"
               borderClass={CELL_BORDERS[3]}
             >
-              {amountsHidden ? MASK : <Amount value={totalTrackedBalance} />}
+              {amountsHidden ? MASK : <CountUpAmount value={totalTrackedBalance} />}
             </StatCell>
           </>
         )}
@@ -569,7 +570,7 @@ export function ExpenseCashflowPage({
                 <span className="text-sm font-bold">Still to pay</span>
                 <DotLeader />
                 <span className="text-sm font-bold">
-                  {amountsHidden ? MASK : <Amount value={billsUnpaid} />}
+                  {amountsHidden ? MASK : <CountUpAmount value={billsUnpaid} />}
                 </span>
               </div>
 

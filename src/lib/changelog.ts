@@ -65,6 +65,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "fix", description: "Unsubscribing from reminder emails, or signing up with a phone number instead of an email, no longer switches off your in-app bill reminders as well. Those accounts had been getting no reminders at all." },
       { type: "fix", description: "Database changes pushed to the repo now reach the live database automatically. Every run so far had stopped before applying anything, because GitHub's servers cannot reach the database's IPv6-only address; the job now connects through Supabase's IPv4 connection pooler." },
       { type: "fix", description: "On Settings • Preferences, the App mode cards now line their text up at the top. The shorter Bills & reminders card had its title and description floating in the middle beside the taller Full cashflow card." },
+      { type: "improvement", description: "Headline totals now count up from ₱0 to their real figure once your data loads, and roll to the new figure when it changes — on the dashboard (the balance at the top, its saved or overdue chip, the four stat cells and Still to pay), the Bills page (the 'Needs you now' amount and the amount still to pay and settled), Expenses (spent so far and projected), Net Balance on Accounts and the balance on each account, and Total Spend on Vehicles and each vehicle. Amounts in the lists stay still, and if your device is set to reduce motion the figures appear straight away." },
+      { type: "fix", description: "Receivables totals with centavos no longer round to the nearest peso once they finish counting up." },
     ],
   },
   {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Amount } from "@/components/passbook/amount";
+import { CountUpAmount } from "@/components/passbook/count-up-amount";
 import { Stamp } from "@/components/passbook/stamp";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { SpendingPace } from "@/lib/expenses/pace";
@@ -35,7 +35,7 @@ export function SpendingPacePanel({
             <p className="font-mono text-[10px] uppercase tracking-[0.11em] text-panel-muted">
               {isCurrentMonth ? "Spent so far" : "Spent"}
             </p>
-            <Amount
+            <CountUpAmount
               value={spent}
               currency={currency}
               className="mt-0.5 block text-[32px] font-semibold tracking-tight"
@@ -45,7 +45,7 @@ export function SpendingPacePanel({
           {/* A projection only means something while the month is still running. */}
           {isCurrentMonth && usualMonth !== null && (
             <div className="fit-figure min-w-0 text-right">
-              <Amount value={projected} currency={currency} className="text-sm" />
+              <CountUpAmount value={projected} currency={currency} className="text-sm" />
               <p className="mt-1 text-[11.5px] text-panel-muted">
                 projected
                 {deltaPct !== null && (
