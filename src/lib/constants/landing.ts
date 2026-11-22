@@ -52,3 +52,51 @@ export const SIGNUP_RECEIPT_LINES: readonly SignupReceiptLine[] = [
 ];
 
 export const SIGNUP_RECEIPT_TOTAL = "₱0.00";
+
+/** A run of an Ask Otto sample answer: plain text, or an amount printed as a money figure. */
+export type AskOttoDemoSegment = string | { amount: string };
+
+export type AskOttoDemoExchange = {
+  question: string;
+  answer: readonly AskOttoDemoSegment[];
+};
+
+/** The features section's Ask Otto demo. Visitors pick a question and Otto answers. */
+export const ASK_OTTO_DEMO: readonly AskOttoDemoExchange[] = [
+  {
+    question: "How much did we spend on utilities last month?",
+    answer: [{ amount: "₱5,842" }, " across Meralco, Maynilad, and Globe. That is 8% lower than May."],
+  },
+  {
+    question: "What's still unpaid this month?",
+    answer: [
+      "Meralco, ",
+      { amount: "₱3,214.57" },
+      " due Jul 15, and Globe Fiber, ",
+      { amount: "₱1,699.00" },
+      " due Jul 18. That is ",
+      { amount: "₱4,913.57" },
+      " in all.",
+    ],
+  },
+  {
+    question: "When is rent due?",
+    answer: ["Aug 1. You have marked 3 of 3 rent payments paid on time this quarter."],
+  },
+  {
+    question: "Where did most of our money go?",
+    answer: [
+      "Groceries, at ",
+      { amount: "₱12,480" },
+      ", about a third of your spending. Food delivery comes next at ",
+      { amount: "₱4,120" },
+      ".",
+    ],
+  },
+];
+
+/** The two exchanges the Ask Otto demo opens with (indexes into ASK_OTTO_DEMO). */
+export const ASK_OTTO_DEMO_INITIAL = [0, 2] as const;
+
+/** How long Otto "types" before a demo answer appears. */
+export const ASK_OTTO_DEMO_TYPING_MS = 900;

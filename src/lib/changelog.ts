@@ -117,6 +117,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "The home page opens with a clearer promise: 'Never miss a bill. Know where every peso goes.' The sample bills card beside it now works: tap or click a due bill to mark it paid, watch the PAID stamp land on it and 'Still to pay' count down, and tap it again to put it back." },
       { type: "improvement", description: "The sign-up buttons on the home page stand out more. They glow softly and lift when you point at them, with an arrow that nudges forward, and the main one has a ticket stub on its end showing that starting costs ₱0 today. The Pro plan and the referral invite get the same button." },
       { type: "improvement", description: "The closing section of the home page is now a receipt of what it costs to start: the free plan and the 14-day Pro trial at ₱0.00, no card and no bank linking, totalling ₱0.00, with the sign-up button underneath and a Log in link for people who already have an account." },
+      { type: "improvement", description: "The home page's Ask Otto card is now a demo: pick a question such as 'What's still unpaid this month?' and Otto types out his answer." },
+      { type: "improvement", description: "Each feature on the home page now shows a small sample of how it looks in the app (an expense, a PAID stamp, a category bar, a reminder time, a goal's progress, and a link to the calculators), and the section ends with a button to start the free 14-day trial." },
+      { type: "improvement", description: "The home page's top bar has the Aa text size button, next to the light and dark switch, and its menu now sits in the middle of the bar. Go to Dashboard and Sign up use the same green button as the rest of the page." },
     ],
   },
   {

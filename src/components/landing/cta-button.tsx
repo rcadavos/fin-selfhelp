@@ -79,6 +79,14 @@ export function CtaButton({
   );
 }
 
+/**
+ * Whether a click on a link navigates this tab. A ctrl/cmd/shift/middle click opens
+ * a new tab or window and leaves this page in place, so it must not start a spinner.
+ */
+export function opensInThisTab(e: MouseEvent<HTMLAnchorElement>): boolean {
+  return e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+}
+
 /** Ticket stub that says signing up costs nothing today. */
 export function CtaCostStub() {
   return (
@@ -120,8 +128,7 @@ export function AuthCtaButton({
       stub={signedIn || !showCost ? undefined : <CtaCostStub />}
       pending={loading || navigating}
       onClick={(e) => {
-        // A click that opens a new tab leaves this page in place, so no spinner.
-        if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) setNavigating(true);
+        if (opensInThisTab(e)) setNavigating(true);
       }}
       className={className}
     >
