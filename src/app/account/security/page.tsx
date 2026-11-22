@@ -12,6 +12,8 @@ import { useUser } from "@/hooks/use-user";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ContentHeader } from "@/components/app/content-header";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
+import { TwoFactorSettingsCard } from "@/components/account/two-factor-settings-card";
+import { isEmailTwoFactorEnabled } from "@/lib/shared/two-factor";
 import { Check, Loader2, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +39,7 @@ const STRENGTH_COLOR = [
 
 export default function ProfileSecurityPage() {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, refreshUser } = useUser();
   const { showError, showSuccess } = useSnackbar();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -124,10 +126,10 @@ export default function ProfileSecurityPage() {
   }
 
   return (
-    <main className="w-full min-w-0 py-2">
+    <main className="w-full min-w-0 space-y-4 py-2">
       <ContentHeader
         title="Security"
-        subtitle="Change your password."
+        subtitle="Change your password and turn on two-step verification."
         icon={Shield}
         className="mb-6"
       />
@@ -299,6 +301,11 @@ export default function ProfileSecurityPage() {
           </form>
         </CardContent>
       </Card>
+      <TwoFactorSettingsCard
+        enabled={isEmailTwoFactorEnabled(user)}
+        hasEmailPassword={hasEmailPassword}
+        onChanged={refreshUser}
+      />
     </main>
   );
 }

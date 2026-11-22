@@ -1,5 +1,7 @@
+import { useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useThemeColors } from "@/hooks/use-theme";
@@ -10,12 +12,15 @@ type ScreenProps = {
   children: ReactNode;
   /** Enables pull-to-refresh; the spinner stays until the promise settles. */
   onRefresh?: () => Promise<unknown>;
+  /** Shows a Back button above the title, for screens pushed on top of the tabs. */
+  back?: boolean;
 };
 
 /** Page shell for tab screens: safe-area top, title block, centered column on tablets. */
-export function Screen({ title, subtitle, children, onRefresh }: ScreenProps) {
+export function Screen({ title, subtitle, children, onRefresh, back = false }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -43,6 +48,18 @@ export function Screen({ title, subtitle, children, onRefresh }: ScreenProps) {
       }
     >
       <View className="w-full max-w-2xl gap-6 self-center px-4 sm:px-6">
+        {back ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={8}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+            className="-mb-3 -ml-1 flex-row items-center self-start active:opacity-70"
+          >
+            <ChevronLeft color={colors.primary} size={22} />
+            <Text className="text-base font-medium text-primary">Back</Text>
+          </Pressable>
+        ) : null}
         <View className="gap-1">
           <Text className="text-3xl font-bold tracking-tight text-foreground">{title}</Text>
           {subtitle ? <Text className="text-sm text-muted-foreground">{subtitle}</Text> : null}

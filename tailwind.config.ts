@@ -12,6 +12,9 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/types/**/*.{js,ts,jsx,tsx}",
+    // Shared class strings (e.g. the Bills ledger grid) live in constants per CLAUDE.md;
+    // without this glob Tailwind never sees them and the classes are not generated.
+    "./src/lib/constants/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     container: {
@@ -89,7 +92,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  // container-queries: lets a panel restyle by its own width (`@container` + `@2xl:`)
+  // rather than the viewport's — the Bills ledger shares its row with a side rail,
+  // so the viewport alone can't say whether there is room for its table columns.
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/container-queries")],
 };
 
 export default config;

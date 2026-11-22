@@ -1,6 +1,7 @@
 "use client";
 
 import { CountUpAmount } from "@/components/passbook/count-up-amount";
+import { SettledProgress } from "@/components/dashboard/planned-expenses/settled-progress";
 import { cn, formatCurrency } from "@/lib/utils";
 import { RUNWAY_MARKER_BREAKPOINTS } from "@/lib/constants/planned-expenses";
 import type {
@@ -54,9 +55,6 @@ export function Runway({
   const span = Math.max(1, daysInMonth - 1);
   const positioned = rows.filter((r) => r.due !== null);
   const ticks = [1, 8, 15, 22, daysInMonth];
-
-  const settledPct = summary.total > 0 ? (summary.settledAmount - summary.partialAmount) / summary.total : 0;
-  const partialPct = summary.total > 0 ? summary.partialAmount / summary.total : 0;
 
   return (
     <div className="surface border border-border bg-card p-4 shadow-[var(--shadow)]">
@@ -114,15 +112,7 @@ export function Runway({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-2.5">
-        <div className="flex h-[5px] flex-1 overflow-hidden rounded-full bg-muted">
-          <i className="h-full bg-primary transition-[width] duration-500" style={{ width: `${settledPct * 100}%` }} />
-          <i className="h-full bg-info/75 transition-[width] duration-500" style={{ width: `${partialPct * 100}%` }} />
-        </div>
-        <span className="whitespace-nowrap font-mono text-[10.5px] text-muted-foreground">
-          {summary.settledCount} of {summary.totalCount} settled
-        </span>
-      </div>
+      <SettledProgress summary={summary} className="mt-2" />
     </div>
   );
 }

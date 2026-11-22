@@ -55,23 +55,27 @@ export function ExpenseGroup({
     </>
   );
 
+  // Inside a wide ledger (`@2xl`, see BillsLedger) the groups share one card: each
+  // heading becomes a row of that card and the per-group card loses its own frame.
+  const headingLayout = "flex items-baseline pb-2 @2xl:px-4 @2xl:pt-4";
+
   return (
-    <section className="flex flex-col">
+    <section className="flex flex-col @2xl:border-t @2xl:border-border @2xl:first:border-t-0">
       {collapsible ? (
         <button
           type="button"
-          className="flex items-baseline pb-2 text-left transition-opacity hover:opacity-75"
+          className={cn(headingLayout, "text-left transition-opacity hover:opacity-75")}
           onClick={onToggleCollapsed}
           aria-expanded={!collapsed}
         >
           {heading}
         </button>
       ) : (
-        <div className="flex items-baseline pb-2">{heading}</div>
+        <div className={headingLayout}>{heading}</div>
       )}
 
       {!collapsed && (
-        <div className="surface overflow-hidden border border-border bg-card">
+        <div className="surface overflow-hidden border border-border bg-card @2xl:rounded-none @2xl:border-x-0 @2xl:border-b-0 @2xl:bg-transparent">
           <div className="divide-y divide-border">{children}</div>
         </div>
       )}

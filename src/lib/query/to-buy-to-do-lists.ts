@@ -10,7 +10,7 @@ import {
 } from "@/lib/to-buy-storage";
 import { queryKeys } from "./keys";
 
-function orderItemsLikeNotes(list: ToBuyItem[]): ToBuyItem[] {
+export function orderItemsLikeNotes(list: ToBuyItem[]): ToBuyItem[] {
   const open = list.filter((i) => !i.checked);
   const done = list.filter((i) => i.checked);
   return [...open, ...done];

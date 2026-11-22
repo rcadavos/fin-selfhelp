@@ -42,7 +42,7 @@ export const SEARCH_INDEX: SearchItem[] = [
 
   // ── Account ───────────────────────────────────────────────────────────────
   { title: "Profile", href: "/account/profile", group: "Account", keywords: ["name", "avatar", "photo", "personal info", "full name", "picture"] },
-  { title: "Security", href: "/account/security", group: "Account", keywords: ["password", "two factor", "2fa", "login security", "change password", "auth"] },
+  { title: "Security", href: "/account/security", group: "Account", keywords: ["password", "two factor", "2fa", "two-step verification", "verification code", "login security", "change password", "auth"] },
   { title: "Privacy", href: "/account/privacy", group: "Account", keywords: ["visibility", "profile visibility", "phone visibility", "data", "delete account", "export data", "members"] },
   { title: "Subscription & Billing", href: "/account/subscription", group: "Account", keywords: ["plan", "pro", "premium", "billing", "payment", "upgrade", "subscribe", "free", "tier"] },
   { title: "Settings", href: "/account/settings", group: "Account", keywords: ["preferences", "currency", "format", "locale", "date format", "language", "config", "app mode", "bills mode", "simple mode", "cashflow", "bills only", "full cashflow", "hide pages"] },

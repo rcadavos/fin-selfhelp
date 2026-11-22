@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
 import { confirmUserEmail, setUserSubscription, setUserAdmin, deleteUser, type AdminUserRow } from "@/actions/admin";
+import { isProtectedAdminEmail } from "@/lib/constants/admin-users";
 import {
   Loader2,
   CreditCard,
@@ -302,6 +303,14 @@ function AdminUsersContent() {
               <TableBody>
                 {filteredUsers.map((u) => {
                   const status = subscriptionStatus(u);
+                  const protectedAccount = isProtectedAdminEmail(u.email);
+                  const adminLocked = u.is_admin && protectedAccount;
+                  const deleteLabel = protectedAccount ? "This account can't be deleted" : "Delete user";
+                  const adminLabel = adminLocked
+                    ? "This admin can't be removed"
+                    : u.is_admin
+                      ? "Remove admin"
+                      : "Make admin";
                   return (
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">{u.email ?? "—"}</TableCell>
@@ -329,10 +338,10 @@ function AdminUsersContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            title={u.is_admin ? "Remove admin" : "Make admin"}
-                            aria-label={u.is_admin ? "Remove admin" : "Make admin"}
+                            title={adminLabel}
+                            aria-label={adminLabel}
                             onClick={() => setAdminMutation.mutate({ userId: u.id, isAdmin: !u.is_admin })}
-                            disabled={setAdminMutation.isPending}
+                            disabled={adminLocked || setAdminMutation.isPending}
                           >
                             {setAdminMutation.isPending && setAdminMutation.variables?.userId === u.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -382,10 +391,10 @@ function AdminUsersContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            title="Delete user"
-                            aria-label="Delete user"
+                            title={deleteLabel}
+                            aria-label={deleteLabel}
                             onClick={() => setDeleteTarget(u)}
-                            disabled={deleteUserMutation.isPending}
+                            disabled={protectedAccount || deleteUserMutation.isPending}
                             className="text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />

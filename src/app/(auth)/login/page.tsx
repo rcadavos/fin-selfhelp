@@ -7,13 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { signInWithOtp } from "@/actions/auth";
+import { beginTwoFactorSignIn } from "@/actions/two-factor";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { TwoFactorSignInStep } from "@/components/auth/two-factor-sign-in-step";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
+import { isEmailTwoFactorEnabled, type TwoFactorCodeSent } from "@/lib/shared/two-factor";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, createPasswordCheckClient } from "@/lib/supabase/client";
 import { AuthShell, PanelStatement, PanelRow, AuthLoader } from "@/components/auth/passbook-panel";
 import { PassbookCheckbox } from "@/components/auth/passbook-checkbox";
 import { Amount } from "@/components/passbook/amount";
@@ -54,6 +57,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [formMessage, setFormMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [twoFactor, setTwoFactor] = useState<TwoFactorCodeSent | null>(null);
   const [today, setToday] = useState("");
   const nextPath = safeNextPath(searchParams.get("next"));
   const supabase = createClient();
@@ -115,7 +119,9 @@ function LoginContent() {
       setFormMessage({ type: "error", text: "Email and password are required." });
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({
+    // Check the password on an in-memory client: the session must not reach the
+    // browser's auth cookies until we know whether this account needs its emailed code.
+    const { data, error } = await createPasswordCheckClient().auth.signInWithPassword({
       email: emailValue,
       password: passwordValue,
     });
@@ -129,6 +135,30 @@ function LoginContent() {
       setPassword("");
       return;
     }
+    if (isEmailTwoFactorEnabled(data.user)) {
+      const started = await beginTwoFactorSignIn(data.session.access_token);
+      setPassword("");
+      if ("error" in started) {
+        setFormMessage({ type: "error", text: started.error });
+        return;
+      }
+      setFormMessage(null);
+      setTwoFactor(started);
+      return;
+    }
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+    if (sessionError) {
+      setFormMessage({ type: "error", text: friendlyAuthError(sessionError.message) });
+      setPassword("");
+      return;
+    }
+    finishSignIn();
+  }
+
+  function finishSignIn() {
     if (!rememberMe) {
       // Remove persisted session so it clears when the browser tab closes
       Object.keys(localStorage).forEach((k) => {
@@ -190,6 +220,22 @@ function LoginContent() {
   const stripAccessory = today ? (
     <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-panel-muted">{today}</span>
   ) : null;
+
+  if (twoFactor) {
+    return (
+      <AuthShell panel={panel} stripAccessory={stripAccessory}>
+        <TwoFactorSignInStep
+          maskedEmail={twoFactor.maskedEmail}
+          initialResendInSeconds={twoFactor.resendInSeconds}
+          onSignedIn={finishSignIn}
+          onRestart={(error) => {
+            setTwoFactor(null);
+            setFormMessage(error ? { type: "error", text: error } : null);
+          }}
+        />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell panel={panel} stripAccessory={stripAccessory}>

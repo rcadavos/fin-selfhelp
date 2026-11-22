@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
-import { ChevronRight, ExternalLink } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { ChevronRight, ExternalLink, ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -17,6 +18,7 @@ import { getAvatarUrl, getDisplayName } from "@/lib/utils/user";
 export default function MoreScreen() {
   const { user } = useUser();
   const colors = useThemeColors();
+  const router = useRouter();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -50,6 +52,23 @@ export default function MoreScreen() {
           </Text>
         </View>
       </Card>
+
+      <ScreenSection title="Account">
+        <Card>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/security")}
+            className="flex-row items-center gap-3 p-4 active:opacity-70"
+          >
+            <ShieldCheck color={colors.primary} size={20} />
+            <View className="flex-1 gap-0.5">
+              <Text className="text-base font-medium text-foreground">Security</Text>
+              <Text className="text-xs text-muted-foreground">Two-step verification for password sign-ins.</Text>
+            </View>
+            <ChevronRight color={colors["muted-foreground"]} size={18} />
+          </Pressable>
+        </Card>
+      </ScreenSection>
 
       <ScreenSection title={`${APP_NAME} on the web`}>
         <Card>

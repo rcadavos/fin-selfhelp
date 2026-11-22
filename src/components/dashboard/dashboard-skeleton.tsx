@@ -12,14 +12,6 @@ type DashboardSkeletonProps = {
   className?: string;
 };
 
-// Internal hairline rules for the responsive 4/2-up stat grid — mirrors the live layout.
-const CELL_BORDERS = [
-  "",
-  "border-l border-border",
-  "border-t border-border sm:border-t-0 sm:border-l",
-  "border-l border-t border-border sm:border-t-0",
-];
-
 export function DashboardSkeleton({ variant = "page", className }: DashboardSkeletonProps) {
   // Structural skeleton that resembles the dashboard so there is no layout
   // shift when the real content lands.
@@ -31,43 +23,57 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
         aria-label="Loading"
         className={cn("mx-auto max-w-6xl px-4 py-6 sm:py-8", className)}
       >
-        {/* Statement header */}
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="mt-4 h-3 w-28" />
-        <Skeleton className="mt-2 h-9 w-56" />
-        <Skeleton className="mt-3 h-3 w-44" />
+        {/* Greeting + hide amounts */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <Skeleton className="h-5 w-56" />
+            <Skeleton className="mt-2 h-9 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-12 w-44 rounded-lg" />
+        </div>
 
-        {/* Stat cells */}
-        <div className="mt-6 grid grid-cols-2 overflow-hidden surface border border-border sm:grid-cols-4">
-          {CELL_BORDERS.map((border, i) => (
-            <div key={i} className={cn("p-4 sm:p-5", border)}>
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="mt-3 h-5 w-24" />
-              <Skeleton className="mt-2 h-3 w-16" />
+        {/* Your money at a glance */}
+        <div className="surface mt-6 grid overflow-hidden border border-border sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className={cn("p-5 sm:p-7", i === 1 && "border-t border-border sm:border-l sm:border-t-0")}
+            >
+              <Skeleton className="h-6 w-56 max-w-full" />
+              <Skeleton className="mt-3 h-11 w-60 max-w-full" />
+              <Skeleton className="mt-4 h-5 w-44" />
             </div>
           ))}
         </div>
 
-        {/* Chart + bills */}
-        <div className="mt-5 grid gap-5 lg:grid-cols-3">
+        {/* Quick actions */}
+        <Skeleton className="mt-8 h-7 w-72 max-w-full" />
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-xl" />
+          ))}
+        </div>
+
+        {/* Bills to pay + spending */}
+        <div className="mt-8 grid gap-5 lg:grid-cols-3 lg:items-start">
           <div className="surface border border-border lg:col-span-2">
-            <div className="border-b border-border p-4 sm:p-5">
-              <Skeleton className="h-4 w-44" />
-              <Skeleton className="mt-2 h-3 w-56" />
+            <div className="border-b border-border px-4 py-4 sm:px-6 sm:py-5">
+              <Skeleton className="h-7 w-40" />
             </div>
-            <div className="p-4">
-              <Skeleton className="h-[220px] w-full" />
-            </div>
-          </div>
-          <div className="surface border border-border">
-            <div className="border-b border-border p-4 sm:p-5">
-              <Skeleton className="h-4 w-28" />
-            </div>
-            <div className="space-y-4 p-4 sm:p-5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full" />
+            <div className="space-y-6 px-4 py-5 sm:px-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-9 w-56" />
+                </div>
               ))}
             </div>
+          </div>
+          <div className="surface space-y-4 border border-border p-5 sm:p-6">
+            <Skeleton className="h-7 w-52" />
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
           </div>
         </div>
       </div>

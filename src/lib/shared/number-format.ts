@@ -56,6 +56,11 @@ export function formatCurrencyWithPreferences(
   }).format(amount);
 }
 
+/** A short label for a chart, like "4.9K" or "22K" — no currency symbol, at most one decimal. */
+export function formatCompactNumber(n: number): string {
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+}
+
 /** Whole-number currency using default app prefs unless `currencyOverride` (ISO 4217) is passed. */
 export function formatCurrency(amount: number, currencyOverride?: string): string {
   return formatCurrencyWithPreferences(amount, {

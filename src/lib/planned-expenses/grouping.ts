@@ -30,6 +30,65 @@ export function isFullyPaidBucket(bucket: UrgencyBucket): boolean {
   return bucket === "recent" || bucket === "settled";
 }
 
+/** The ledger's filter tabs: everything, what still needs paying, what is done. */
+export type LedgerFilter = "all" | "unpaid" | "paid";
+
+export function matchesLedgerFilter(row: PlannedExpenseRow, filter: LedgerFilter): boolean {
+  if (filter === "all") return true;
+  return filter === "paid" ? isFullyPaidBucket(row.bucket) : !isFullyPaidBucket(row.bucket);
+}
+
+/**
+ * A day's own state, from the bills falling on it — the most urgent one wins, so
+ * a day holding one overdue bill and two settled ones still reads as overdue.
+ * "All paid" is the exception worth showing positively rather than as an absence.
+ */
+export type DayStatus = "paid" | "overdue" | "partial" | "due" | "scheduled";
+
+export function dayStatusFor(rows: PlannedExpenseRow[]): DayStatus {
+  if (rows.every((r) => r.status === "paid")) return "paid";
+  if (rows.some((r) => r.status === "overdue" || r.status === "failed")) return "overdue";
+  if (rows.some((r) => r.status === "partial")) return "partial";
+  if (rows.some((r) => r.status === "due")) return "due";
+  return "scheduled";
+}
+
+/** Bills keyed by the day of the month they fall due; bills with no due date are left out. */
+export function rowsByDueDay(rows: PlannedExpenseRow[]): Map<number, PlannedExpenseRow[]> {
+  const byDay = new Map<number, PlannedExpenseRow[]>();
+  for (const row of rows) {
+    if (!row.due) continue;
+    const day = row.due.getDate();
+    byDay.set(day, [...(byDay.get(day) ?? []), row]);
+  }
+  return byDay;
+}
+
+export type CategorySpend = {
+  categoryId: string;
+  /** Every bill in the category this month, at full amount. */
+  total: number;
+  /** Paid so far this month, partial payments included. */
+  paid: number;
+  count: number;
+};
+
+/** This month's bills per category, largest total first. */
+export function summariseByCategory(
+  bills: BillRow[],
+  paymentAmountByBillId: Record<string, number>
+): CategorySpend[] {
+  const map = new Map<string, CategorySpend>();
+  for (const bill of bills) {
+    const entry = map.get(bill.category_id) ?? { categoryId: bill.category_id, total: 0, paid: 0, count: 0 };
+    entry.total += bill.amount;
+    entry.paid += paymentAmountByBillId[bill.id] ?? 0;
+    entry.count += 1;
+    map.set(bill.category_id, entry);
+  }
+  return Array.from(map.values()).sort((a, b) => b.total - a.total);
+}
+
 export type PlannedExpenseRow = {
   bill: BillRow;
   /** Effective due date inside the viewed month, or null when the bill has none. */

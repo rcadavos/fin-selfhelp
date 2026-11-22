@@ -20,6 +20,9 @@ const GREEN = "#0B6E4F"; // --primary money green
 const BORDER = "#E2E7E2"; // --border hairline
 const HAIR_STRONG = "#C9D2CB"; // --hairline-strong
 const AMBER = "#8A6116"; // --warning amber ink (Due)
+const RED = "#B3372F"; // --destructive (Overdue)
+const BLUE = "#1F62B0"; // --info (Auto-debit)
+const TINT = "#F3F7F4"; // --primary at 4% on the card: the dashboard's second figure
 const LEADER = "rgba(90,102,96,0.45)"; // dot-leader ink
 
 /** Every glyph rendered in the image — sent to Google Fonts so it returns a
@@ -75,50 +78,41 @@ async function loadGoogleFont(
 const MONO = "Geist Mono";
 const SANS = "Schibsted Grotesk";
 
-/** A single passbook ledger row: label · dot-leader · amount [· stamp]. */
-function LedgerRow({
+/** Large-print status pill, as on the dashboard: plain words on a soft tint. */
+const PILL = {
+  overdue: { color: RED, background: "#FBEDEB" },
+  due: { color: AMBER, background: "#FBF3E2" },
+  scheduled: { color: BLUE, background: "#E8F0FA" },
+} as const;
+
+/** One of the dashboard's two big figures ("Your money at a glance"). */
+function GlanceFigure({
   label,
   amount,
-  stamp,
-  paid = false,
-  total = false,
-  last = false,
+  tinted = false,
 }: {
   label: string;
   amount: string;
-  stamp?: { text: string; variant: "paid" | "due" | "scheduled" };
-  paid?: boolean;
-  total?: boolean;
-  last?: boolean;
+  tinted?: boolean;
 }) {
-  const stampStyle =
-    stamp?.variant === "paid"
-      ? { color: GREEN, border: `1px solid ${GREEN}` }
-      : stamp?.variant === "due"
-        ? { color: AMBER, border: `1px solid ${AMBER}` }
-        : { color: MUTED, border: `1px solid ${HAIR_STRONG}` };
-
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "flex-end",
-        padding: total ? "12px 0 0" : last ? "10px 0 0" : "10px 0",
-        borderBottom: total || last ? "none" : `1px solid ${BORDER}`,
-        borderTop: total ? `1px solid ${HAIR_STRONG}` : "none",
-        marginTop: total ? 4 : 0,
+        flexDirection: "column",
+        flex: 1,
+        padding: "20px 22px",
+        background: tinted ? TINT : CARD,
+        borderLeft: tinted ? `1px solid ${BORDER}` : "none",
       }}
     >
       <span
         style={{
           display: "flex",
           fontFamily: SANS,
-          fontSize: total ? 17 : 15,
-          fontWeight: total ? 700 : 500,
-          lineHeight: 1,
-          color: paid ? MUTED : INK,
-          textDecoration: paid ? "line-through" : "none",
-          whiteSpace: "nowrap",
+          fontSize: 15,
+          fontWeight: 500,
+          color: MUTED,
         }}
       >
         {label}
@@ -126,46 +120,124 @@ function LedgerRow({
       <span
         style={{
           display: "flex",
-          flex: 1,
-          minWidth: 16,
-          borderBottom: `2px dashed ${LEADER}`,
-          margin: "0 8px 5px",
-        }}
-      />
-      <span
-        style={{
-          display: "flex",
+          marginTop: 6,
           fontFamily: MONO,
-          fontSize: total ? 18 : 15,
-          fontWeight: total ? 500 : 400,
+          fontSize: 27,
+          fontWeight: 500,
           lineHeight: 1,
-          color: paid ? MUTED : INK,
-          textDecoration: paid ? "line-through" : "none",
+          color: INK,
           whiteSpace: "nowrap",
         }}
       >
         {amount}
       </span>
-      {stamp && (
+    </div>
+  );
+}
+
+/** A "Bills to pay" row: name · dot-leader · amount, then its pill and action. */
+function BillRow({
+  name,
+  amount,
+  pill,
+  pillText,
+  action,
+}: {
+  name: string;
+  amount: string;
+  pill: keyof typeof PILL;
+  pillText: string;
+  /** Omitted for auto-debit bills, which pay themselves. */
+  action?: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        padding: "11px 0",
+        borderBottom: `1px solid ${BORDER}`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-end" }}>
         <span
           style={{
             display: "flex",
-            alignItems: "center",
-            marginLeft: 10,
-            padding: "2px 7px",
-            borderRadius: 4,
-            fontFamily: MONO,
-            fontSize: 10.5,
-            fontWeight: 500,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
+            fontFamily: SANS,
+            fontSize: 17,
+            fontWeight: 700,
+            lineHeight: 1,
+            color: INK,
             whiteSpace: "nowrap",
-            ...stampStyle,
           }}
         >
-          {stamp.text}
+          {name}
         </span>
-      )}
+        <span
+          style={{
+            display: "flex",
+            flex: 1,
+            minWidth: 16,
+            borderBottom: `2px dashed ${LEADER}`,
+            margin: "0 8px 4px",
+          }}
+        />
+        <span
+          style={{
+            display: "flex",
+            fontFamily: MONO,
+            fontSize: 17,
+            fontWeight: 500,
+            lineHeight: 1,
+            color: INK,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {amount}
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 8,
+        }}
+      >
+        <span
+          style={{
+            display: "flex",
+            padding: "4px 11px",
+            borderRadius: 999,
+            fontFamily: SANS,
+            fontSize: 14,
+            fontWeight: 700,
+            ...PILL[pill],
+          }}
+        >
+          {pillText}
+        </span>
+        {action ? (
+          <span
+            style={{
+              display: "flex",
+              padding: "5px 12px",
+              borderRadius: 7,
+              border: `2px solid ${GREEN}`,
+              fontFamily: SANS,
+              fontSize: 14,
+              fontWeight: 700,
+              color: GREEN,
+            }}
+          >
+            {action}
+          </span>
+        ) : (
+          <span style={{ display: "flex", fontFamily: SANS, fontSize: 14, color: MUTED }}>
+            Pays itself
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -372,7 +444,7 @@ export default async function OpenGraphImage() {
             </div>
           </div>
 
-          {/* Right: the upcoming-bills ledger (mirrors the landing hero) */}
+          {/* Right: the dashboard — money at a glance and Bills to pay (mirrors /dashboard) */}
           <div
             style={{
               display: "flex",
@@ -382,106 +454,114 @@ export default async function OpenGraphImage() {
               background: CARD,
               border: `1px solid ${BORDER}`,
               borderRadius: 12,
-              padding: "24px 26px",
+              overflow: "hidden",
               boxShadow: "0 18px 40px rgba(23,29,25,0.10)",
             }}
           >
-            {/* Header */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingBottom: 12,
-                borderBottom: `1px solid ${BORDER}`,
-              }}
-            >
+            {/* Your money at a glance */}
+            <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}` }}>
+              <GlanceFigure label="In your accounts" amount="₱48,250.00" />
+              <GlanceFigure label="Bills left to pay" amount="₱4,829.00" tinted />
+            </div>
+
+            {/* Paid progress */}
+            <div style={{ display: "flex", flexDirection: "column", padding: "14px 22px 4px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  height: 9,
+                  borderRadius: 999,
+                  background: HAIR_STRONG,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    width: "62.5%",
+                    height: "100%",
+                    borderRadius: 999,
+                    background: GREEN,
+                  }}
+                />
+              </div>
               <span
                 style={{
                   display: "flex",
-                  fontFamily: MONO,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
+                  marginTop: 7,
+                  fontFamily: SANS,
+                  fontSize: 14,
                   color: MUTED,
                 }}
               >
-                Upcoming bills
-              </span>
-              <span
-                style={{
-                  display: "flex",
-                  fontFamily: MONO,
-                  fontSize: 12,
-                  color: MUTED,
-                }}
-              >
-                JUL 2026
+                5 of 8 bills paid • 3 still to pay
               </span>
             </div>
 
-            <LedgerRow
-              label="Meralco"
-              amount="₱3,214.57"
-              stamp={{ text: "Due Jul 15", variant: "due" }}
-            />
-            <LedgerRow
-              label="Maynilad"
-              amount="₱486.20"
-              stamp={{ text: "Paid", variant: "paid" }}
-              paid
-            />
-            <LedgerRow
-              label="Globe Fiber"
-              amount="₱1,699.00"
-              stamp={{ text: "Due Jul 18", variant: "due" }}
-            />
-            <LedgerRow
-              label="Netflix"
-              amount="₱549.00"
-              stamp={{ text: "Paid", variant: "paid" }}
-              paid
-            />
-            <LedgerRow
-              label="Pag-IBIG MP2"
-              amount="₱1,000.00"
-              stamp={{ text: "Scheduled", variant: "scheduled" }}
-              last
-            />
-            <LedgerRow label="Still to pay" amount="₱4,913.57" total />
-
-            {/* Footer: 6-month spend sparkline */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 16,
-                paddingTop: 14,
-                borderTop: `1px solid ${BORDER}`,
-              }}
-            >
+            {/* Bills to pay */}
+            <div style={{ display: "flex", flexDirection: "column", padding: "6px 22px 18px" }}>
               <span
                 style={{
                   display: "flex",
+                  padding: "8px 0 4px",
                   fontFamily: SANS,
-                  fontSize: 13,
-                  color: MUTED,
+                  fontSize: 19,
+                  fontWeight: 700,
+                  color: INK,
                 }}
               >
-                6-month spend
+                Bills to pay
               </span>
-              <svg width="84" height="24" viewBox="0 0 84 24" fill="none">
-                <polyline
-                  points="2,18 15,14 28,16 41,9 54,12 67,5 82,8"
-                  stroke={GREEN}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <BillRow
+                name="Maynilad"
+                amount="₱680.00"
+                pill="overdue"
+                pillText="Overdue"
+                action="Mark as paid"
+              />
+              <BillRow
+                name="Meralco"
+                amount="₱2,450.00"
+                pill="due"
+                pillText="Due tomorrow"
+                action="Mark as paid"
+              />
+              <BillRow name="PLDT Fibr" amount="₱1,699.00" pill="scheduled" pillText="Auto-debit" />
+              <div style={{ display: "flex", alignItems: "flex-end", marginTop: 12 }}>
+                <span
+                  style={{
+                    display: "flex",
+                    fontFamily: SANS,
+                    fontSize: 17,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    color: INK,
+                  }}
+                >
+                  Still to pay
+                </span>
+                <span
+                  style={{
+                    display: "flex",
+                    flex: 1,
+                    minWidth: 16,
+                    borderBottom: `2px dashed ${LEADER}`,
+                    margin: "0 8px 4px",
+                  }}
                 />
-                <circle cx="82" cy="8" r="2.8" fill={GREEN} />
-              </svg>
+                <span
+                  style={{
+                    display: "flex",
+                    fontFamily: MONO,
+                    fontSize: 18,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    color: INK,
+                  }}
+                >
+                  ₱4,829.00
+                </span>
+              </div>
             </div>
           </div>
         </div>

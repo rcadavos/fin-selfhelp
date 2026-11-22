@@ -5,6 +5,7 @@ import { ChevronDown, TriangleAlert, Check } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
 import { cn, formatCurrency } from "@/lib/utils";
+import { COVERAGE_TIGHT_SHARE } from "@/lib/constants/planned-expenses";
 import type { AccountCoverage } from "@/lib/planned-expenses/grouping";
 
 /**
@@ -35,63 +36,88 @@ export function CoveragePanel({
     ? `${short[0].alias} needs ${formatCurrency(short[0].shortfall, currency)} more`
     : `${coverage.length} account${coverage.length === 1 ? "" : "s"} with bills this month`;
 
+  const summaryLine = (
+    <>
+      <span
+        className={cn(
+          "flex size-[22px] shrink-0 items-center justify-center rounded-full",
+          isShort ? "bg-warning/15 text-warning" : "bg-primary/15 text-primary",
+        )}
+        aria-hidden
+      >
+        {isShort ? <TriangleAlert className="size-3" /> : <Check className="size-3" strokeWidth={3} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <b className="block text-[13.5px] font-semibold">{headline}</b>
+        <small className="mt-px block text-xs text-muted-foreground">{detail}</small>
+      </span>
+    </>
+  );
+
   return (
     <div className="surface overflow-hidden border border-border bg-card shadow-[var(--shadow)]">
+      {/* Collapsible on smaller screens, where it sits above the list and would push
+          it down. In the wide-screen rail (xl) there is room, so it stays open. */}
       <button
         type="button"
-        className="flex w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-accent/55"
+        className="flex w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-accent/55 xl:hidden"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span
-          className={cn(
-            "flex size-[22px] shrink-0 items-center justify-center rounded-full",
-            isShort ? "bg-warning/15 text-warning" : "bg-primary/15 text-primary",
-          )}
-          aria-hidden
-        >
-          {isShort ? <TriangleAlert className="size-3" /> : <Check className="size-3" strokeWidth={3} />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <b className="block text-[13.5px] font-semibold">{headline}</b>
-          <small className="mt-px block text-xs text-muted-foreground">{detail}</small>
-        </span>
+        {summaryLine}
         <ChevronDown
           className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
           aria-hidden
         />
       </button>
+      <div className="hidden items-center gap-2.5 p-3 xl:flex">{summaryLine}</div>
 
-      {open && (
-        <div className="border-t border-border px-3.5 pb-2.5 pt-1">
-          {coverage.map((c) => (
-            <div
-              key={c.accountId ?? "unlinked"}
-              className="flex items-baseline border-b border-border py-2 text-[13px] last:border-b-0"
-            >
-              <span className="flex min-w-0 items-center gap-2 pb-0.5">
-                <span
-                  className="size-2 shrink-0 rounded-sm"
-                  style={{ backgroundColor: c.color ?? "hsl(var(--hairline-strong))" }}
-                  aria-hidden
-                />
-                <span className="truncate">{c.alias}</span>
-              </span>
-              <DotLeader />
-              <span className="fit-figure shrink-0 pb-0.5 text-right text-[12.5px]">
-                {c.accountId && (
-                  <>
-                    <Amount value={c.balance} currency={currency} />{" "}
-                  </>
-                )}
-                <span className={cn("font-mono", c.shortfall > 0 ? "text-destructive" : "text-muted-foreground")}>
-                  − {formatCurrency(c.due, currency)} due
+      <div className={cn("border-t border-border px-3.5 pb-2.5 pt-1", open ? "block" : "hidden xl:block")}>
+        {coverage.map((c) => {
+          // How much of the balance this month's bills claim. Unlinked bills have no balance to measure.
+          const share = c.balance > 0 ? c.due / c.balance : 1;
+          return (
+            <div key={c.accountId ?? "unlinked"} className="border-b border-border py-2 last:border-b-0">
+              <div className="flex items-baseline text-[13px]">
+                <span className="flex min-w-0 items-center gap-2 pb-0.5">
+                  <span
+                    className="size-2 shrink-0 rounded-sm"
+                    style={{ backgroundColor: c.color ?? "hsl(var(--hairline-strong))" }}
+                    aria-hidden
+                  />
+                  <span className="truncate">{c.alias}</span>
                 </span>
-              </span>
+                <DotLeader />
+                <span className="fit-figure shrink-0 pb-0.5 text-right text-[12.5px]">
+                  {c.accountId && (
+                    <>
+                      <Amount value={c.balance} currency={currency} />{" "}
+                    </>
+                  )}
+                  <span className={cn("font-mono", c.shortfall > 0 ? "text-destructive" : "text-muted-foreground")}>
+                    − {formatCurrency(c.due, currency)} due
+                  </span>
+                </span>
+              </div>
+              {c.accountId && (
+                <div
+                  className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={`Bills take ${Math.round(share * 100)}% of ${c.alias}`}
+                >
+                  <i
+                    className={cn(
+                      "block h-full rounded-full transition-[width] duration-500",
+                      c.shortfall > 0 ? "bg-destructive" : share > COVERAGE_TIGHT_SHARE ? "bg-warning" : "bg-primary",
+                    )}
+                    style={{ width: `${Math.min(100, share * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

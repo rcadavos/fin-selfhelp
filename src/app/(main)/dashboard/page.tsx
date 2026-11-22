@@ -6,6 +6,10 @@ import { buildPageMetadata } from "@/lib/seo";
 export const metadata = buildPageMetadata({
   path: "/dashboard",
   title: "Dashboard",
+  description:
+    "Your money at a glance, in large, easy-to-read type: what is in your accounts, the bills left to pay this month with a Mark as paid button on each, and how this month's spending compares with last month.",
+  imageAlt:
+    "OmniTrak dashboard: money in your accounts, bills left to pay this month and a Bills to pay list",
   noIndex: false,
 });
 

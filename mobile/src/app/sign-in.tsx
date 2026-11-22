@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
+import type { TwoFactorSignInChallenge } from "@shared/two-factor";
+
 import { BrandLockup } from "@/components/app/brand-lockup";
 import { GoogleMark } from "@/components/auth/google-mark";
+import { TwoFactorCodeStep } from "@/components/auth/two-factor-code-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMagicLink, signInWithGoogle, signInWithPassword } from "@/lib/api/auth";
@@ -19,6 +22,7 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
+  const [twoFactor, setTwoFactor] = useState<TwoFactorSignInChallenge | null>(null);
   const passwordRef = useRef<TextInput>(null);
 
   // On success `UserProvider` picks up the session and the root stack swaps to the
@@ -38,6 +42,10 @@ export default function SignInScreen() {
     const result = await signInWithPassword(email, password);
     if (result.error) {
       setError(result.error);
+      setBusy(null);
+    } else if (result.twoFactor) {
+      setPassword("");
+      setTwoFactor(result.twoFactor);
       setBusy(null);
     }
   };
@@ -66,6 +74,25 @@ export default function SignInScreen() {
     setError(null);
     setNotice(null);
   };
+
+  if (twoFactor) {
+    return (
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
+        <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
+          <View className="w-full max-w-sm gap-8 self-center">
+            <BrandLockup />
+            <TwoFactorCodeStep
+              challenge={twoFactor}
+              onRestart={(restartError) => {
+                setTwoFactor(null);
+                setError(restartError ?? null);
+              }}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">

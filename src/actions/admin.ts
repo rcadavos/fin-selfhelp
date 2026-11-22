@@ -2,6 +2,7 @@
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { sendAdminBroadcastEmailBatch } from "@/lib/email";
+import { isProtectedAdminEmail } from "@/lib/constants/admin-users";
 
 export async function getIsAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -104,6 +105,13 @@ export async function setUserAdmin(
       .eq("user_id", user.id)
       .maybeSingle();
     if (!profile?.is_admin) return { error: "Forbidden." };
+    if (!isAdmin) {
+      const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+      if (targetError) return { error: targetError.message };
+      if (isProtectedAdminEmail(target.user?.email)) {
+        return { error: "This admin can't be removed." };
+      }
+    }
     const { error } = await supabase.rpc("set_user_admin", {
       target_user_id: userId,
       p_is_admin: isAdmin,
@@ -331,6 +339,12 @@ export async function deleteUser(userId: string): Promise<{ error?: string }> {
       .eq("user_id", user.id)
       .maybeSingle();
     if (!profile?.is_admin) return { error: "Forbidden." };
+
+    const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+    if (targetError) return { error: targetError.message };
+    if (isProtectedAdminEmail(target.user?.email)) {
+      return { error: "This account can't be deleted." };
+    }
 
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) return { error: error.message };

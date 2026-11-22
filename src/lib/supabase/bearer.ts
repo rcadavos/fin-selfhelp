@@ -1,12 +1,17 @@
 import { createClient as createSupabaseClient, type User } from "@supabase/supabase-js";
 
+/** The raw access token from an `Authorization: Bearer <token>` header, or null. */
+export function getBearerToken(request: Request): string | null {
+  return request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1] ?? null;
+}
+
 /**
  * The user behind an `Authorization: Bearer <access token>` header, or null when the
  * header is missing or the token is not valid. This is how the mobile app (`mobile/`)
  * authenticates to API routes — it holds a Supabase session but no web cookies.
  */
 export async function getUserFromBearer(request: Request): Promise<User | null> {
-  const token = request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
+  const token = getBearerToken(request);
   if (!token) return null;
 
   const supabase = createSupabaseClient(

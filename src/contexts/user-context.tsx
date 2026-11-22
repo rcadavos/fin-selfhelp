@@ -21,7 +21,7 @@ type UserContextValue = {
   refreshUser: () => Promise<void>;
 };
 
-const UserContext = createContext<UserContextValue | undefined>(undefined);
+export const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 /**
  * Single auth subscription for the app. Without this, every `useUser()` call would

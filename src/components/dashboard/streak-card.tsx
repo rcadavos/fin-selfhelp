@@ -36,36 +36,24 @@ export function StreakCard({
       className={cn("surface min-w-0 overflow-hidden border border-border bg-card", className)}
       aria-label="Login streak"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border p-4 sm:p-5">
-        <h2 className="text-base font-bold tracking-tight">Your streak</h2>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Daily
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3.5 p-4 sm:p-5">
+      <div className="flex items-center gap-4 p-5 sm:p-6">
         <span
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-full border",
+            "flex size-12 shrink-0 items-center justify-center rounded-full border",
             hasStreak
               ? "border-primary/40 bg-primary/10 text-primary"
               : "border-border bg-muted text-muted-foreground",
           )}
           aria-hidden
         >
-          <Flame className="size-5" />
+          <Flame className="size-6" />
         </span>
 
         <div className="min-w-0">
-          <p className="font-mono text-2xl font-semibold leading-none tabular-nums">
-            {streak}
-            <span className="ml-1.5 align-middle text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {streak === 1 ? "day" : "days"} in a row
-            </span>
-          </p>
-          <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">
-            {streakNote(streak, firstName)}
-          </p>
+          <h2 className="text-xl font-bold leading-snug tracking-tight">
+            <span className="tabular-nums">{streak}</span> {streak === 1 ? "day" : "days"} in a row
+          </h2>
+          <p className="mt-0.5 text-base text-muted-foreground">{streakNote(streak, firstName)}</p>
         </div>
       </div>
     </section>

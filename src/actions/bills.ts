@@ -114,6 +114,11 @@ export type BillsData = {
   failedBillIds: string[];
   /** Failure reason text by bill id for the current month. */
   failureReasonByBillId: Record<string, string>;
+  /**
+   * Bill IDs skipped in the "Needs you now" panel for this month. They are still
+   * unpaid and still in the list. Only that panel leaves them out.
+   */
+  skippedBillIds: string[];
   netTakeHome: number;
   isSubscriber: boolean;
   subscriptionTier: SubscriptionTierId;
@@ -146,7 +151,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
 
   const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
 
-  const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }] = await Promise.all([
+  const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }, { data: skipRows }] = await Promise.all([
     supabase
       .from("bills")
       .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, is_auto_debit, created_at, updated_at")
@@ -169,6 +174,11 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
           .eq("user_id", user.id)
           .like("dedupe_key", "bill:%")
           .limit(1),
+    supabase
+      .from("bill_skips")
+      .select("bill_id")
+      .eq("profile_id", profile.id)
+      .eq("skip_month", month),
   ]);
 
   let bills = billsRaw ?? [];
@@ -253,6 +263,7 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
         .filter((r) => r.status === "failed")
         .map((r) => [String(r.bill_id), String(r.failure_reason ?? "Auto-debit did not go through.")]),
     ),
+    skippedBillIds: (skipRows ?? []).map((r) => String(r.bill_id)),
     netTakeHome,
     isSubscriber: hasProAccess,
     subscriptionTier: tier,
@@ -711,6 +722,48 @@ export async function toggleBillPayment(
     return unmarkBillPaid(billId, paidMonth);
   }
   return markBillPaid(billId, paidMonth);
+}
+
+/**
+ * Skip a bill in the "Needs you now" panel for one month, or bring it back.
+ * Nothing else changes: no payment is recorded, and the bill stays in the list
+ * and in the month's totals. Skipping twice is a no-op.
+ */
+export async function setBillSkipped(
+  billId: string,
+  month: string,
+  skipped: boolean,
+): Promise<{ error?: string }> {
+  if (!/^\d{4}-\d{2}$/.test(month)) return { error: "invalid_month" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const { error } = skipped
+    ? await supabase
+        .from("bill_skips")
+        .upsert(
+          { bill_id: billId, profile_id: profile.id, skip_month: month },
+          { onConflict: "bill_id,skip_month", ignoreDuplicates: true },
+        )
+    : await supabase
+        .from("bill_skips")
+        .delete()
+        .eq("bill_id", billId)
+        .eq("profile_id", profile.id)
+        .eq("skip_month", month);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/bills");
+  return {};
 }
 
 export async function addBill(

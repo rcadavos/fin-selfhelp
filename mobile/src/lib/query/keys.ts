@@ -3,4 +3,5 @@ export const queryKeys = {
   all: ["omni-trak"] as const,
   accounts: () => [...queryKeys.all, "accounts"] as const,
   accountBalances: () => [...queryKeys.accounts(), "balances"] as const,
+  twoFactorStatus: () => [...queryKeys.all, "two-factor-status"] as const,
 };

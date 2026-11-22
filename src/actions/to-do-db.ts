@@ -1,24 +1,26 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { ToBuyCategory, ToBuyItem } from "@/lib/to-buy-storage";
+import { REMINDER_CATEGORIES, type ToBuyCategory, type ToBuyItem } from "@/lib/to-buy-storage";
 import {
   FREE_TIER_MAX_LIST_ITEMS,
   hasProLevelProductAccess,
   normalizeDbTier,
 } from "@/lib/subscription-tier";
 
-const VALID_CATEGORIES: ToBuyCategory[] = [
-  "grocery",
-  "household",
-  "electronics",
-  "clothing",
-  "health",
-  "other",
-];
+const VALID_CATEGORIES = new Set<string>(REMINDER_CATEGORIES.map((c) => c.value));
+
+/** To-Buy categories from before migration 087, mapped the same way that migration did. */
+const LEGACY_CATEGORIES: Record<string, ToBuyCategory> = {
+  grocery: "pantry",
+  household: "errand",
+  electronics: "other",
+  clothing: "other",
+};
 
 function normalizeCategory(c: string): ToBuyCategory {
-  return (VALID_CATEGORIES.includes(c as ToBuyCategory) ? c : "other") as ToBuyCategory;
+  if (VALID_CATEGORIES.has(c)) return c as ToBuyCategory;
+  return LEGACY_CATEGORIES[c] ?? "other";
 }
 
 type ToDoDbRow = {

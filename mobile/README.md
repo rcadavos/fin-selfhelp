@@ -31,7 +31,8 @@ machine. On a real phone, use the deployed site or your computer's LAN IP.
 src/
   app/                  Expo Router routes (screens and layouts only)
     _layout.tsx         Providers + auth gate (Stack.Protected)
-    sign-in.tsx         Password • Google • emailed sign-in link
+    sign-in.tsx         Password (+ emailed two-step code) • Google • emailed sign-in link
+    security.tsx        Turn two-step verification on or off
     auth/callback.tsx   Where Google and sign-in links return (deep link)
     (tabs)/             Dashboard • Accounts • More
   components/
@@ -66,6 +67,18 @@ Password, Google and emailed sign-in links all work in the app. Google and the e
 link use PKCE: Supabase sends the user back to `omnitrak://auth/callback?code=…`, and only
 this install can redeem that code. That means an emailed link has to be opened on the
 same phone.
+
+**Two-step verification.** Password sign-in first checks the password on an in-memory
+client (`createPasswordCheckClient()`), so nothing is stored and the app stays on the
+sign-in screen. If the account has two-step verification on, the app sends that
+session's token to `POST /api/auth/two-factor/sign-in`. The web revokes the session,
+emails a 6-digit code and returns a `challengeId`. The app keeps the id in memory and
+posts it with the code to `…/sign-in/verify`, which returns a one-time token hash, and
+`supabase.auth.verifyOtp({ type: "magiclink", token_hash })` turns that into the real
+session. The Security screen (More → Security) turns the feature on or off through
+`…/two-factor/settings` and `…/settings/confirm`. Both need a code, and the logic lives
+in the web's `src/lib/auth/two-factor-server.ts`. Without `EXPO_PUBLIC_WEB_URL`, a
+two-step account cannot sign in with a password; the check fails closed.
 
 After every sign-in the app calls `POST /api/auth/mobile-sign-in` on the web app. That
 runs the step the web's `/auth/callback` would have run: the one-time "new signup"

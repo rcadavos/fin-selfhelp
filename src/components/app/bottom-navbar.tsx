@@ -41,11 +41,11 @@ const MODE_ITEMS: Record<AppModeId, { left: BottomNavItem[]; right: BottomNavIte
   },
   bills: {
     left: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/dashboard/bills", label: "Bills", icon: Receipt, exact: false },
-      { href: "/dashboard/to-do", label: "Reminders", icon: Bell, exact: false },
     ],
     right: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/dashboard/to-do", label: "Reminders", icon: Bell, exact: false },
     ],
   },
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, Car, Check, CheckCircle2, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, Trash2, Zap } from "lucide-react";
+import { Bell, Car, Check, CheckCircle2, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, Trash2, TriangleAlert, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,11 +12,17 @@ import {
 import { Amount } from "@/components/passbook/amount";
 import { NotesPreview } from "@/components/app/notes-field";
 import { Stamp, type StampVariant } from "@/components/passbook/stamp";
+import type { LedgerDetailColumn } from "@/components/dashboard/planned-expenses/bills-ledger";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { AccountRow } from "@/actions/accounts";
 import type { VehicleRow } from "@/actions/vehicles";
 import type { PlannedExpenseRow, PlannedExpenseStatus } from "@/lib/planned-expenses/grouping";
 import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
+import {
+  LEDGER_GRID_COLS,
+  PLANNED_EXPENSE_STAMP_VARIANT,
+  PLANNED_EXPENSE_STATUS_LABEL,
+} from "@/lib/constants/planned-expenses";
 
 /**
  * Colour only where action is needed. Six tinted row backgrounds made the list read
@@ -27,15 +33,6 @@ const SEVERITY_RAIL: Partial<Record<PlannedExpenseStatus, string>> = {
   overdue: "before:bg-destructive",
   failed: "before:bg-destructive",
   partial: "before:bg-info",
-};
-
-const STAMP_VARIANT: Record<PlannedExpenseStatus, StampVariant> = {
-  paid: "paid",
-  partial: "partial",
-  failed: "overdue",
-  overdue: "overdue",
-  due: "due",
-  scheduled: "scheduled",
 };
 
 const PERIOD_TAG: Record<string, string> = {
@@ -87,6 +84,7 @@ export function ExpenseRow({
   accountsEnabled,
   autoDebitEnabled,
   remindersProminent,
+  detailColumn,
   account,
   vehicle,
   vehicleColor,
@@ -106,6 +104,11 @@ export function ExpenseRow({
   autoDebitEnabled: boolean;
   /** Bills mode: reminders are one of only two features, so they read on every row. */
   remindersProminent: boolean;
+  /**
+   * What the fourth column holds when the ledger is wide enough for its table
+   * layout. That detail then leaves the meta line, so it is never shown twice.
+   */
+  detailColumn: LedgerDetailColumn;
   account: AccountRow | null;
   vehicle: VehicleRow | null;
   vehicleColor: string | null;
@@ -127,6 +130,28 @@ export function ExpenseRow({
   const dueDate = row.due
     ? row.due.toLocaleDateString("en-PH", { month: "short", day: "numeric" })
     : null;
+  const accountInColumn = detailColumn === "account";
+  const reminderInColumn = detailColumn === "reminder";
+
+  // The wide layout's Status column carries one stamp, then the due date. Where the
+  // stamp names the status instead of the timing (part paid, failed), the timing
+  // moves onto that second line so it is not lost.
+  const statusStamp: { variant: StampVariant; label: string } | null =
+    status === "failed"
+      ? { variant: "overdue", label: "Auto-debit failed" }
+      : isPartial
+        ? { variant: "partial", label: PLANNED_EXPENSE_STATUS_LABEL.partial }
+        : relative
+          ? { variant: PLANNED_EXPENSE_STAMP_VARIANT[status], label: relative }
+          : isPaid
+            ? { variant: "paid", label: paidLabel(row) }
+            : null;
+  const statusDetail = [
+    dueDate ? `Due ${dueDate}` : null,
+    status === "failed" || isPartial ? relative : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
 
   return (
     <div
@@ -141,6 +166,9 @@ export function ExpenseRow({
       }}
       className={cn(
         "relative flex cursor-pointer items-center gap-3 px-3 py-3 pl-4 transition-colors",
+        // A table row once the ledger (the size container) is wide enough.
+        "@2xl:grid",
+        detailColumn ? LEDGER_GRID_COLS.withDetail : LEDGER_GRID_COLS.plain,
         "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
         "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-['']",
         SEVERITY_RAIL[status] ?? "before:bg-transparent",
@@ -177,16 +205,18 @@ export function ExpenseRow({
           <span className={cn("text-sm font-medium", isPaid && "text-muted-foreground line-through")}>
             {bill.note ?? categoryLabel}
           </span>
+          {/* Status stamps sit beside the name in the stacked layout and move to
+              their own column in the wide one. */}
           {isPartial ? (
-            <Stamp variant="partial">
+            <Stamp variant="partial" className="@2xl:hidden">
               {formatCurrency(amountPaid, currency)} of {formatCurrency(bill.amount, currency)}
             </Stamp>
           ) : relative ? (
-            <Stamp variant={STAMP_VARIANT[status]}>{relative}</Stamp>
+            <Stamp variant={PLANNED_EXPENSE_STAMP_VARIANT[status]} className="@2xl:hidden">{relative}</Stamp>
           ) : isPaid ? (
-            <Stamp variant="paid">{paidLabel(row)}</Stamp>
+            <Stamp variant="paid" className="@2xl:hidden">{paidLabel(row)}</Stamp>
           ) : null}
-          {status === "failed" && <Stamp variant="overdue">Auto-debit failed</Stamp>}
+          {status === "failed" && <Stamp variant="overdue" className="@2xl:hidden">Auto-debit failed</Stamp>}
           {bill.is_auto_debit && autoDebitEnabled && status !== "failed" && (
             <Stamp variant="muted">
               <Zap className="size-2.5 text-primary" aria-hidden />
@@ -204,10 +234,10 @@ export function ExpenseRow({
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-muted-foreground">
           <span style={{ color: categoryColor }}>{categoryLabel}</span>
           {dueDate && (
-            <>
+            <span className="inline-flex items-center gap-1.5 @2xl:hidden">
               <span className="opacity-45">•</span>
               <span>Due {dueDate}</span>
-            </>
+            </span>
           )}
           <span className="rounded-full border border-hairline-strong px-1.5 py-px font-mono text-[9.5px] tracking-wider">
             {PERIOD_TAG[bill.billing_period] ?? bill.billing_period}
@@ -217,6 +247,7 @@ export function ExpenseRow({
               className={cn(
                 "inline-flex items-center gap-1",
                 reminderLabel ? "text-primary" : "text-muted-foreground",
+                reminderInColumn && "@2xl:hidden",
               )}
             >
               <Bell className="size-3" aria-hidden />
@@ -236,7 +267,7 @@ export function ExpenseRow({
           )}
           {accountsEnabled && account && (
             <span
-              className="rounded-full px-1.5 py-px font-mono text-[9.5px]"
+              className={cn("rounded-full px-1.5 py-px font-mono text-[9.5px]", accountInColumn && "@2xl:hidden")}
               style={{ backgroundColor: `${account.color}22`, color: account.color }}
             >
               {account.account_alias}
@@ -247,12 +278,59 @@ export function ExpenseRow({
         <NotesPreview notes={bill.notes} />
 
         {shortfallNote && (
-          <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-destructive">
+          <p
+            className={cn(
+              "mt-1 flex items-center gap-1.5 text-[11.5px] text-destructive",
+              accountInColumn && "@2xl:hidden",
+            )}
+          >
             <Bell className="size-3 shrink-0" aria-hidden />
             {shortfallNote}
           </p>
         )}
       </div>
+
+      {/* Wide layout only: Status column. */}
+      <div className="hidden min-w-0 @2xl:block">
+        {statusStamp && <Stamp variant={statusStamp.variant}>{statusStamp.label}</Stamp>}
+        {statusDetail && <p className="mt-1 truncate text-[11.5px] text-muted-foreground">{statusDetail}</p>}
+      </div>
+
+      {/* Wide layout only: the account (or, in bills mode, the reminder) column. */}
+      {detailColumn && (
+        <div className="hidden min-w-0 @2xl:block">
+          {accountInColumn &&
+            (account ? (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span
+                  className="truncate rounded-full px-2 py-0.5 font-mono text-[10.5px]"
+                  style={{ backgroundColor: `${account.color}22`, color: account.color }}
+                >
+                  {account.account_alias}
+                </span>
+                {shortfallNote && (
+                  <span title={shortfallNote} className="shrink-0 text-destructive">
+                    <TriangleAlert className="size-3.5" aria-hidden />
+                    <span className="sr-only">{shortfallNote}</span>
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">No account</span>
+            ))}
+          {reminderInColumn && (
+            <span
+              className={cn(
+                "inline-flex min-w-0 items-center gap-1 text-xs",
+                reminderLabel ? "text-primary" : "text-muted-foreground",
+              )}
+            >
+              <Bell className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">{reminderLabel ?? "No reminder"}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="shrink-0 text-right">
         <Amount
@@ -260,7 +338,12 @@ export function ExpenseRow({
           currency={currency}
           className={cn("text-sm", isPaid && "text-muted-foreground line-through")}
         />
-        {isPartial && <p className="font-mono text-[10px] text-muted-foreground">left</p>}
+        {isPartial && (
+          <p className="font-mono text-[10px] text-muted-foreground">
+            <span className="@2xl:hidden">left</span>
+            <span className="hidden @2xl:inline">left of {formatCurrency(bill.amount, currency)}</span>
+          </p>
+        )}
       </div>
 
       <DropdownMenu>

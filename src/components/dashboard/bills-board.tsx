@@ -39,6 +39,7 @@ import {
   addBill,
   updateBill,
   deleteBill,
+  setBillSkipped,
   type BillRow as BillRowModel,
   type BillsData,
 } from "@/actions/bills";
@@ -70,16 +71,23 @@ import {
   buildPlannedExpenseRows,
   groupPlannedExpenses,
   summarisePlannedExpenses,
+  summariseByCategory,
   buildAccountCoverage,
   isFullyPaidBucket,
+  matchesLedgerFilter,
+  type LedgerFilter,
 } from "@/lib/planned-expenses/grouping";
-import { URGENCY_LABELS } from "@/lib/constants/planned-expenses";
+import { CATEGORY_BREAKDOWN_LIMIT, URGENCY_LABELS } from "@/lib/constants/planned-expenses";
 import { ExpenseRow } from "@/components/dashboard/planned-expenses/expense-row";
 import { ExpenseGroup } from "@/components/dashboard/planned-expenses/expense-group";
 import { Runway } from "@/components/dashboard/planned-expenses/runway";
 import { CoveragePanel } from "@/components/dashboard/planned-expenses/coverage-panel";
 import { BillsHero } from "@/components/dashboard/planned-expenses/bills-hero";
 import { MonthCalendar } from "@/components/dashboard/planned-expenses/month-calendar";
+import { BillsSummaryCards } from "@/components/dashboard/planned-expenses/bills-summary-cards";
+import { DayRunway } from "@/components/dashboard/planned-expenses/day-runway";
+import { CategoryBreakdown } from "@/components/dashboard/planned-expenses/category-breakdown";
+import { BillsLedger, type LedgerDetailColumn } from "@/components/dashboard/planned-expenses/bills-ledger";
 
 type CatList = Array<{ id: string; label: string; bgClass: string }>;
 
@@ -158,19 +166,15 @@ function CategoriesDialog({
   currency: string;
   categories: CatList;
 }) {
-  const grouped = useMemo(() => {
-    const map = new Map<string, { total: number; paid: number; count: number }>();
-    for (const b of bills) {
-      const entry = map.get(b.category_id) ?? { total: 0, paid: 0, count: 0 };
-      entry.total += b.amount;
-      entry.count += 1;
-      entry.paid += paymentAmountByBillId[b.id] ?? 0;
-      map.set(b.category_id, entry);
-    }
-    return Array.from(map.entries())
-      .map(([id, v]) => ({ id, label: getCategoryLabel(id, categories), ...v }))
-      .sort((a, b) => b.total - a.total);
-  }, [bills, paymentAmountByBillId, categories]);
+  const grouped = useMemo(
+    () =>
+      summariseByCategory(bills, paymentAmountByBillId).map(({ categoryId, ...v }) => ({
+        id: categoryId,
+        label: getCategoryLabel(categoryId, categories),
+        ...v,
+      })),
+    [bills, paymentAmountByBillId, categories]
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -243,6 +247,9 @@ export function BillsBoard() {
   const [addOpen, setAddOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [settledCollapsed, setSettledCollapsed] = useState(true);
+  // The wide ledger's filter tabs and search. Not persisted: the page opens on everything.
+  const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>("all");
+  const [ledgerQuery, setLedgerQuery] = useState("");
   // Deliberately not persisted — the panel returns on the next load.
   const [heroDismissed, setHeroDismissed] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRowModel | null>(null);
@@ -311,6 +318,10 @@ export function BillsBoard() {
     () => billsDataQuery.data?.paidAtByBillId ?? {},
     [billsDataQuery.data?.paidAtByBillId]
   );
+  const skippedIds = useMemo(
+    () => new Set(billsDataQuery.data?.skippedBillIds ?? []),
+    [billsDataQuery.data?.skippedBillIds]
+  );
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
@@ -365,15 +376,101 @@ export function BillsBoard() {
 
   // Bills mode opens on the single most urgent unpaid bill; the rest queue behind it.
   // Part-paid bills stay out of it: you have already acted on them, and their balance
-  // still shows in the list below.
+  // still shows in the list below. Bills skipped for this month stay out of it too.
+  // So do bills auto-debit will pay (full app, wide screens): they only need you once
+  // a debit has failed.
   const unsettled = useMemo(() => rows.filter((r) => !isFullyPaidBucket(r.bucket)), [rows]);
   const unpaid = useMemo(() => unsettled.filter((r) => r.amountPaid <= 0), [unsettled]);
-  const heroRow = unpaid[0] ?? null;
-  const heroQueue = unpaid.slice(1, 4);
+  const needsYou = useMemo(
+    () =>
+      unpaid.filter((r) => !(autoDebitEnabled && r.bill.is_auto_debit && r.status !== "failed")),
+    [unpaid, autoDebitEnabled]
+  );
+  const heroCandidates = useMemo(
+    () => needsYou.filter((r) => !skippedIds.has(r.bill.id)),
+    [needsYou, skippedIds]
+  );
+  const heroSkipped = useMemo(
+    () => needsYou.filter((r) => skippedIds.has(r.bill.id)),
+    [needsYou, skippedIds]
+  );
+  const heroRow = heroCandidates[0] ?? null;
+  const heroQueue = heroCandidates.slice(1, 4);
   const partPaidCount = unsettled.length - unpaid.length;
+  const autoDebitPendingCount = unpaid.length - needsYou.length;
+
+  // ── The ledger, as filtered by the wide layout's tabs and search ───────────
+  // Regrouping the filtered rows (rather than filtering inside each group) keeps
+  // every heading's count and subtotal true to what it is showing.
+  const ledgerSearch = ledgerQuery.trim().toLowerCase();
+  const ledgerGroups = useMemo(() => {
+    if (ledgerFilter === "all" && !ledgerSearch) return groups;
+    return groupPlannedExpenses(
+      rows.filter(
+        (r) =>
+          matchesLedgerFilter(r, ledgerFilter) &&
+          (!ledgerSearch ||
+            (r.bill.note ?? "").toLowerCase().includes(ledgerSearch) ||
+            getCategoryLabel(r.bill.category_id, categories).toLowerCase().includes(ledgerSearch))
+      )
+    );
+  }, [groups, rows, ledgerFilter, ledgerSearch, categories]);
+  const ledgerCounts = useMemo(
+    (): Record<LedgerFilter, number> => ({
+      all: rows.length,
+      unpaid: unsettled.length,
+      paid: rows.length - unsettled.length,
+    }),
+    [rows.length, unsettled.length]
+  );
+  const ledgerEmptyMessage =
+    ledgerGroups.length > 0
+      ? null
+      : ledgerSearch
+        ? `No bills match “${ledgerQuery.trim()}”.`
+        : ledgerFilter === "paid"
+          ? "Nothing paid yet this month."
+          : "Nothing left to pay this month.";
+  // Settled only folds away when you are browsing everything; filtering to Paid or
+  // searching is asking to see those rows.
+  const settledCanCollapse = ledgerFilter === "all" && !ledgerSearch;
+  const detailColumn: LedgerDetailColumn = isBillsMode ? "reminder" : accountsEnabled ? "account" : null;
+
+  const categoryItems = useMemo(
+    () =>
+      summariseByCategory(bills, paymentAmountByBillId).map((s) => ({
+        id: s.categoryId,
+        label: getCategoryLabel(s.categoryId, categories),
+        color: getCategoryDotColor(categories.find((c) => c.id === s.categoryId)?.bgClass ?? ""),
+        total: s.total,
+        paid: s.paid,
+        count: s.count,
+      })),
+    [bills, paymentAmountByBillId, categories]
+  );
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+  }
+
+  /** Optimistic: the panel moves on (or back) at once and rolls back if the save fails. */
+  async function handleSetSkipped(billId: string, skipped: boolean) {
+    const queryKey = queryKeys.billData(paidMonth);
+    const snapshot = queryClient.getQueryData(queryKey);
+    queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
+      if (!old) return old;
+      const rest = (old.skippedBillIds ?? []).filter((id) => id !== billId);
+      return { ...old, skippedBillIds: skipped ? [...rest, billId] : rest };
+    });
+    setToggleError(null);
+    const res = await setBillSkipped(billId, paidMonth, skipped);
+    if (res.error) {
+      queryClient.setQueryData(queryKey, snapshot);
+      setToggleError({
+        kind: "generic",
+        message: skipped ? "Couldn't skip that bill. Try again." : "Couldn't bring that bill back. Try again.",
+      });
+    }
   }
 
   async function handleToggle(billId: string) {
@@ -527,8 +624,35 @@ export function BillsBoard() {
 
   const labelVariant = isBillsMode ? "bills" : "full";
 
+  /** The month picker sits above the list on smaller screens and in the header on wide ones. */
+  function renderMonthSelect(placement: "toolbar" | "header") {
+    return (
+      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+        {/* ring-offset-0 matters: the primitive sets ring-offset-2, and with ring-0
+            that offset still paints a stray 2px shadow on focus. */}
+        <SelectTrigger
+          className={cn(
+            "w-auto gap-1.5 text-sm font-medium focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60",
+            placement === "toolbar"
+              ? "h-10 border-0 bg-transparent px-2 shadow-none hover:bg-muted"
+              : "h-9 px-3",
+          )}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align={placement === "toolbar" ? "start" : "end"}>
+          {monthOptions.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+    <div className="container max-w-3xl space-y-4 px-4 py-6 xl:max-w-[88rem] xl:px-8">
       <ContentHeader
         title="Bills"
         subtitle={
@@ -539,6 +663,7 @@ export function BillsBoard() {
         icon={Receipt}
         actions={
           <div className="flex items-center gap-2">
+            <div className="hidden xl:block">{renderMonthSelect("header")}</div>
             {isFeatureEnabled("expenses") ? (
               <Button variant="outline" size="sm" aria-label="Categories" asChild>
                 <Link href="/dashboard/expenses/categories">
@@ -574,26 +699,17 @@ export function BillsBoard() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button onClick={() => setAddOpen(true)} size="sm" className="hidden gap-1.5 xl:inline-flex">
+              <Plus className="size-4" />
+              Add bill
+            </Button>
           </div>
         }
       />
 
-      {/* Month + add */}
-      <div className="flex items-center justify-between gap-2">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          {/* ring-offset-0 matters: the primitive sets ring-offset-2, and with ring-0
-              that offset still paints a stray 2px shadow on focus. */}
-          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {monthOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Month + add — on wide screens both live in the header instead. */}
+      <div className="flex items-center justify-between gap-2 xl:hidden">
+        {renderMonthSelect("toolbar")}
         <Button onClick={() => setAddOpen(true)} size="lg" className="shrink-0 gap-1.5">
           <Plus className="size-4" />
           Add
@@ -609,165 +725,218 @@ export function BillsBoard() {
         </div>
       ) : (
         <>
-          {/* ── The month, at a glance ── */}
-          {isBillsMode ? (
-            <>
-              {!heroDismissed && (
-              <BillsHero
-                onDismiss={() => setHeroDismissed(true)}
-                next={heroRow}
-                queue={heroQueue}
-                partPaidCount={partPaidCount}
-                currency={currency}
-                isPending={heroRow ? pendingIds.has(heroRow.bill.id) : false}
-                onMarkPaid={() => heroRow && handleToggle(heroRow.bill.id)}
-                onPartialPayment={() => {
-                  if (!heroRow) return;
-                  setToggleError(null);
-                  setPartialBill(heroRow.bill);
-                }}
-                onEdit={() => heroRow && setEditingBill(heroRow.bill)}
-              />
-              )}
-              <MonthCalendar
-                rows={rows}
-                summary={summary}
-                currency={currency}
-                monthLabel={monthMeta.monthLabel}
-                year={monthMeta.year}
-                month0={monthMeta.month0}
-                todayDay={monthMeta.todayDay}
-              />
-            </>
-          ) : (
-            <>
-              <Runway
-                rows={rows}
-                summary={summary}
-                currency={currency}
-                monthLabel={monthMeta.monthLabel}
-                daysInMonth={monthMeta.daysInMonth}
-                todayDay={monthMeta.todayDay}
-              />
-              {coverage.length > 0 && <CoveragePanel coverage={coverage} currency={currency} />}
-            </>
-          )}
+          {/* ── Wide screens: the month in four numbers, then day by day ── */}
+          <div className="hidden space-y-3.5 xl:block">
+            <BillsSummaryCards
+              summary={summary}
+              groups={groups}
+              currency={currency}
+              monthLabel={monthMeta.monthLabel}
+            />
+            <DayRunway
+              rows={rows}
+              currency={currency}
+              monthLabel={monthMeta.monthLabel}
+              year={monthMeta.year}
+              month0={monthMeta.month0}
+              todayDay={monthMeta.todayDay}
+            />
+          </div>
 
-          {/* Reminders are one of only two features in bills mode, so the free
-              ceiling is worth naming rather than hiding behind a locked pill. */}
-          {isBillsMode && lockedFreeReminderBillId && (
-            <div className="surface flex items-center gap-2.5 border border-dashed border-warning/50 bg-warning/[0.07] p-3">
-              <Bell className="size-4 shrink-0 text-warning" aria-hidden />
-              <span className="min-w-0 flex-1 text-[12.5px]">
-                You&rsquo;re using your one free reminder
-                <small className="mt-px block text-[11.5px] text-muted-foreground">
-                  Pro sets a reminder on every bill.
-                </small>
-              </span>
-              <Button asChild size="sm" variant="outline" className="shrink-0 border-warning/50 text-warning hover:bg-warning/10 hover:text-warning">
-                <Link href="/dashboard/premium">See Pro</Link>
-              </Button>
-            </div>
-          )}
-
-          {toggleError && (
-            <div
-              role="alert"
-              className="surface flex flex-col gap-2 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
+          {/* Below xl this is one column: the panels stack above the list in the order
+              they always have. From xl the panels become a rail to the right of the list. */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <aside
+              aria-label={`${monthMeta.monthLabel} at a glance`}
+              className="flex min-w-0 flex-col gap-4 xl:col-start-2 xl:row-start-1"
             >
-              {toggleError.kind === "insufficient_balance" ? (
-                <div className="flex-1">
-                  <p className="font-semibold">Insufficient account balance</p>
-                  <p className="mt-0.5 text-xs text-destructive/90">
-                    {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
-                    {formatCurrency(toggleError.available, currency)} available, but{" "}
-                    {toggleError.billNote ? `“${toggleError.billNote}”` : "this bill"} needs{" "}
-                    {formatCurrency(toggleError.required, currency)}.
-                  </p>
-                  {!accountsEnabled && (
-                    <p className="mt-0.5 text-xs text-destructive/90">
-                      Balance checks haven&rsquo;t caught up with your app mode yet. Reload the page and try again.
-                    </p>
-                  )}
+              {/* Bills mode leads with this panel on every screen. The full app shows
+                  it only in the wide rail, where it has room of its own. */}
+              {!heroDismissed && (
+                <div className={cn(!isBillsMode && "hidden xl:block")}>
+                  <BillsHero
+                    onDismiss={() => setHeroDismissed(true)}
+                    next={heroRow}
+                    queue={heroQueue}
+                    skipped={heroSkipped}
+                    partPaidCount={partPaidCount}
+                    autoDebitPendingCount={autoDebitPendingCount}
+                    currency={currency}
+                    isPending={heroRow ? pendingIds.has(heroRow.bill.id) : false}
+                    onMarkPaid={() => heroRow && handleToggle(heroRow.bill.id)}
+                    onPartialPayment={() => {
+                      if (!heroRow) return;
+                      setToggleError(null);
+                      setPartialBill(heroRow.bill);
+                    }}
+                    onEdit={() => heroRow && setEditingBill(heroRow.bill)}
+                    onSkip={() => heroRow && handleSetSkipped(heroRow.bill.id, true)}
+                    onUnskip={(billId) => handleSetSkipped(billId, false)}
+                  />
+                </div>
+              )}
+              {/* The day-by-day runway above replaces these on wide screens. */}
+              {isBillsMode ? (
+                <div className="xl:hidden">
+                  <MonthCalendar
+                    rows={rows}
+                    summary={summary}
+                    currency={currency}
+                    monthLabel={monthMeta.monthLabel}
+                    year={monthMeta.year}
+                    month0={monthMeta.month0}
+                    todayDay={monthMeta.todayDay}
+                  />
                 </div>
               ) : (
-                <p className="flex-1">{toggleError.message}</p>
+                <div className="xl:hidden">
+                  <Runway
+                    rows={rows}
+                    summary={summary}
+                    currency={currency}
+                    monthLabel={monthMeta.monthLabel}
+                    daysInMonth={monthMeta.daysInMonth}
+                    todayDay={monthMeta.todayDay}
+                  />
+                </div>
               )}
-              <div className="flex shrink-0 gap-2">
-                {accountsEnabled && (
-                  <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                    <Link href="/dashboard/accounts">Go to Accounts</Link>
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setToggleError(null)}
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </div>
-          )}
+              {!isBillsMode && coverage.length > 0 && <CoveragePanel coverage={coverage} currency={currency} />}
+              <CategoryBreakdown
+                className="hidden xl:block"
+                items={categoryItems.slice(0, CATEGORY_BREAKDOWN_LIMIT)}
+                moreCount={Math.max(0, categoryItems.length - CATEGORY_BREAKDOWN_LIMIT)}
+                onShowAll={() => setCategoriesOpen(true)}
+                currency={currency}
+              />
+            </aside>
 
-          {/* ── The ledger, grouped by what needs you ── */}
-          <div className="flex flex-col gap-5">
-            {groups.map((group) => {
-              const isSettled = group.bucket === "settled";
-              const label =
-                group.bucket === "later"
-                  ? `Later in ${monthMeta.monthLabel}`
-                  : URGENCY_LABELS[group.bucket][labelVariant];
-              return (
-                <ExpenseGroup
-                  key={group.bucket}
-                  bucket={group.bucket}
-                  label={label}
-                  count={group.rows.length}
-                  subtotal={group.subtotal}
-                  currency={currency}
-                  collapsible={isSettled}
-                  collapsed={isSettled && settledCollapsed}
-                  onToggleCollapsed={() => setSettledCollapsed((v) => !v)}
+            <div className="min-w-0 space-y-4 xl:col-start-1 xl:row-start-1">
+              {/* Reminders are one of only two features in bills mode, so the free
+                  ceiling is worth naming rather than hiding behind a locked pill. */}
+              {isBillsMode && lockedFreeReminderBillId && (
+                <div className="surface flex items-center gap-2.5 border border-dashed border-warning/50 bg-warning/[0.07] p-3">
+                  <Bell className="size-4 shrink-0 text-warning" aria-hidden />
+                  <span className="min-w-0 flex-1 text-[12.5px]">
+                    You&rsquo;re using your one free reminder
+                    <small className="mt-px block text-[11.5px] text-muted-foreground">
+                      Pro sets a reminder on every bill.
+                    </small>
+                  </span>
+                  <Button asChild size="sm" variant="outline" className="shrink-0 border-warning/50 text-warning hover:bg-warning/10 hover:text-warning">
+                    <Link href="/dashboard/premium">See Pro</Link>
+                  </Button>
+                </div>
+              )}
+
+              {toggleError && (
+                <div
+                  role="alert"
+                  className="surface flex flex-col gap-2 border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {group.rows.map((row) => {
-                    const cat = categories.find((c) => c.id === row.bill.category_id);
-                    const account = row.bill.account_id ? accountMap[row.bill.account_id] ?? null : null;
-                    const shortfall = row.bill.account_id
-                      ? shortfallByAccountId.get(row.bill.account_id)
-                      : undefined;
-                    return (
-                      <ExpenseRow
-                        key={row.bill.id}
-                        row={row}
-                        currency={currency}
-                        categoryLabel={cat?.label ?? row.bill.category_id}
-                        categoryColor={getCategoryDotColor(cat?.bgClass ?? "")}
-                        accountsEnabled={accountsEnabled}
-                        autoDebitEnabled={autoDebitEnabled}
-                        remindersProminent={isBillsMode}
-                        account={account}
-                        vehicle={row.bill.vehicle_id ? vehicleMap[row.bill.vehicle_id] ?? null : null}
-                        vehicleColor={row.bill.vehicle_id ? vehicleColorMap[row.bill.vehicle_id] ?? null : null}
-                        shortfallNote={
-                          shortfall && row.outstanding > 0 && account
-                            ? `${account.account_alias} is ${formatCurrency(shortfall, currency)} short`
-                            : null
-                        }
-                        isLockedFreeReminder={row.bill.id === lockedFreeReminderBillId}
-                        isPending={pendingIds.has(row.bill.id)}
-                        onToggle={() => handleToggle(row.bill.id)}
-                        onPartialClick={() => { setToggleError(null); setPartialBill(row.bill); }}
-                        onEdit={() => setEditingBill(row.bill)}
-                        onDelete={() => setDeletingId(row.bill.id)}
-                      />
-                    );
-                  })}
-                </ExpenseGroup>
-              );
-            })}
+                  {toggleError.kind === "insufficient_balance" ? (
+                    <div className="flex-1">
+                      <p className="font-semibold">Insufficient account balance</p>
+                      <p className="mt-0.5 text-xs text-destructive/90">
+                        {accountMap[toggleError.accountId]?.account_alias ?? "This account"} has{" "}
+                        {formatCurrency(toggleError.available, currency)} available, but{" "}
+                        {toggleError.billNote ? `“${toggleError.billNote}”` : "this bill"} needs{" "}
+                        {formatCurrency(toggleError.required, currency)}.
+                      </p>
+                      {!accountsEnabled && (
+                        <p className="mt-0.5 text-xs text-destructive/90">
+                          Balance checks haven&rsquo;t caught up with your app mode yet. Reload the page and try again.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="flex-1">{toggleError.message}</p>
+                  )}
+                  <div className="flex shrink-0 gap-2">
+                    {accountsEnabled && (
+                      <Button asChild size="sm" variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                        <Link href="/dashboard/accounts">Go to Accounts</Link>
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setToggleError(null)}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── The ledger, grouped by what needs you ── */}
+              <BillsLedger
+                filter={ledgerFilter}
+                onFilterChange={setLedgerFilter}
+                counts={ledgerCounts}
+                query={ledgerQuery}
+                onQueryChange={setLedgerQuery}
+                detailColumn={detailColumn}
+                emptyMessage={ledgerEmptyMessage}
+              >
+                {ledgerGroups.map((group) => {
+                  const isSettled = group.bucket === "settled";
+                  const label =
+                    group.bucket === "later"
+                      ? `Later in ${monthMeta.monthLabel}`
+                      : URGENCY_LABELS[group.bucket][labelVariant];
+                  return (
+                    <ExpenseGroup
+                      key={group.bucket}
+                      bucket={group.bucket}
+                      label={label}
+                      count={group.rows.length}
+                      subtotal={group.subtotal}
+                      currency={currency}
+                      collapsible={isSettled && settledCanCollapse}
+                      collapsed={isSettled && settledCanCollapse && settledCollapsed}
+                      onToggleCollapsed={() => setSettledCollapsed((v) => !v)}
+                    >
+                      {group.rows.map((row) => {
+                        const cat = categories.find((c) => c.id === row.bill.category_id);
+                        const account = row.bill.account_id ? accountMap[row.bill.account_id] ?? null : null;
+                        const shortfall = row.bill.account_id
+                          ? shortfallByAccountId.get(row.bill.account_id)
+                          : undefined;
+                        return (
+                          <ExpenseRow
+                            key={row.bill.id}
+                            row={row}
+                            currency={currency}
+                            categoryLabel={cat?.label ?? row.bill.category_id}
+                            categoryColor={getCategoryDotColor(cat?.bgClass ?? "")}
+                            accountsEnabled={accountsEnabled}
+                            autoDebitEnabled={autoDebitEnabled}
+                            remindersProminent={isBillsMode}
+                            detailColumn={detailColumn}
+                            account={account}
+                            vehicle={row.bill.vehicle_id ? vehicleMap[row.bill.vehicle_id] ?? null : null}
+                            vehicleColor={row.bill.vehicle_id ? vehicleColorMap[row.bill.vehicle_id] ?? null : null}
+                            shortfallNote={
+                              shortfall && row.outstanding > 0 && account
+                                ? `${account.account_alias} is ${formatCurrency(shortfall, currency)} short`
+                                : null
+                            }
+                            isLockedFreeReminder={row.bill.id === lockedFreeReminderBillId}
+                            isPending={pendingIds.has(row.bill.id)}
+                            onToggle={() => handleToggle(row.bill.id)}
+                            onPartialClick={() => { setToggleError(null); setPartialBill(row.bill); }}
+                            onEdit={() => setEditingBill(row.bill)}
+                            onDelete={() => setDeletingId(row.bill.id)}
+                          />
+                        );
+                      })}
+                    </ExpenseGroup>
+                  );
+                })}
+              </BillsLedger>
+            </div>
           </div>
         </>
       )}
