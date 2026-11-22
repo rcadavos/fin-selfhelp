@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTextSize } from "@/hooks/use-text-size";
 import { DEFAULT_TEXT_SIZE, TEXT_SIZE_OPTIONS } from "@/lib/constants/text-size";
+import { TOP_BAR_ICON_BUTTON, type TopBarIconButtonSize } from "@/lib/constants/top-bar";
 import { cn } from "@/lib/utils";
 
 /**
  * The Aa button: picks the text size for the whole app on this device. It stays
  * open after a pick, so you can step through the sizes and watch the page change.
  */
-export function TextSizeMenu() {
+export function TextSizeMenu({ size = "default" }: { size?: TopBarIconButtonSize }) {
   const [textSize, setTextSize] = useTextSize();
+  const sizing = TOP_BAR_ICON_BUTTON[size];
   const headingId = useId();
   const current =
     TEXT_SIZE_OPTIONS.find((o) => o.id === textSize) ??
@@ -25,11 +27,11 @@ export function TextSizeMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className={sizing.button}
           aria-label={`Text size: ${current.label}`}
           title="Text size"
         >
-          <ALargeSmall className="h-4 w-4" aria-hidden />
+          <ALargeSmall className={sizing.icon} aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-3">

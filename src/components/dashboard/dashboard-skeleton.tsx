@@ -26,54 +26,54 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
         {/* Greeting + hide amounts */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="mt-2 h-9 w-72 max-w-full" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="mt-1.5 h-8 w-64 max-w-full" />
           </div>
-          <Skeleton className="h-12 w-44 rounded-lg" />
+          <Skeleton className="h-9 w-36 rounded-xl lg:h-10" />
         </div>
 
         {/* Your money at a glance */}
-        <div className="surface mt-6 grid overflow-hidden border border-border sm:grid-cols-2">
+        <div className="surface mt-5 grid overflow-hidden border border-border sm:grid-cols-2">
           {[0, 1].map((i) => (
             <div
               key={i}
-              className={cn("p-5 sm:p-7", i === 1 && "border-t border-border sm:border-l sm:border-t-0")}
+              className={cn("p-4 sm:p-5", i === 1 && "border-t border-border sm:border-l sm:border-t-0")}
             >
-              <Skeleton className="h-6 w-56 max-w-full" />
-              <Skeleton className="mt-3 h-11 w-60 max-w-full" />
-              <Skeleton className="mt-4 h-5 w-44" />
+              <Skeleton className="h-5 w-48 max-w-full" />
+              <Skeleton className="mt-2 h-9 w-52 max-w-full" />
+              <Skeleton className="mt-3 h-4 w-40" />
             </div>
           ))}
         </div>
 
         {/* Quick actions */}
-        <Skeleton className="mt-8 h-7 w-72 max-w-full" />
+        <Skeleton className="mt-6 h-5 w-56 max-w-full" />
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-xl" />
+            <Skeleton key={i} className="h-11 w-full rounded-xl" />
           ))}
         </div>
 
         {/* Bills to pay + spending */}
-        <div className="mt-8 grid gap-5 lg:grid-cols-3 lg:items-start">
+        <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:items-start">
           <div className="surface border border-border lg:col-span-2">
-            <div className="border-b border-border px-4 py-4 sm:px-6 sm:py-5">
-              <Skeleton className="h-7 w-40" />
+            <div className="border-b border-border px-4 py-3 sm:px-5">
+              <Skeleton className="h-5 w-32" />
             </div>
-            <div className="space-y-6 px-4 py-5 sm:px-6">
+            <div className="space-y-5 px-4 py-4 sm:px-5">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="h-6 w-full" />
-                  <Skeleton className="h-9 w-56" />
+                <div key={i} className="space-y-2.5">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-8 w-40" />
                 </div>
               ))}
             </div>
           </div>
-          <div className="surface space-y-4 border border-border p-5 sm:p-6">
-            <Skeleton className="h-7 w-52" />
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
+          <div className="surface space-y-3 border border-border p-4 sm:p-5">
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-full" />
           </div>
         </div>
       </div>

@@ -1,8 +1,9 @@
 /**
  * Dashboard (home page) settings.
  *
- * The dashboard is written for people who are not comfortable with apps: large
- * type, plain words, one obvious button per job. Keep new copy in that voice.
+ * The dashboard is written for people who are not comfortable with apps: plain
+ * words, one obvious button per job. Keep new copy in that voice. Its type uses the
+ * same scale as the other pages; bigger text comes from the Aa text-size setting.
  */
 
 /** localStorage key for the hide-amounts toggle. The Accounts pages read the same key. */

@@ -17,8 +17,11 @@ import {
   DEFAULT_USER_PREFERENCES,
 } from "@/lib/user-preferences";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
+import { TOP_BAR_ICON_BUTTON, type TopBarIconButtonSize } from "@/lib/constants/top-bar";
+import { cn } from "@/lib/utils";
 
-export function NotificationsMenu() {
+export function NotificationsMenu({ size = "default" }: { size?: TopBarIconButtonSize }) {
+  const sizing = TOP_BAR_ICON_BUTTON[size];
   const {
     items,
     unreadCount,
@@ -46,12 +49,17 @@ export function NotificationsMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-8 w-8 shrink-0"
+          className={cn("relative shrink-0", sizing.button)}
           aria-label="Notifications"
         >
-          <Bell className="h-4 w-4" aria-hidden />
+          <Bell className={sizing.icon} aria-hidden />
           {unreadCount > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+            <span
+              className={cn(
+                "absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-semibold leading-none text-primary-foreground",
+                sizing.badge
+              )}
+            >
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           ) : null}

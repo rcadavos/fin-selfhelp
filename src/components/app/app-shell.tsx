@@ -43,10 +43,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <BillsModeToggle />
             </div>
             <DesktopSearch />
-            <div className="flex items-center justify-end gap-1">
-              <TextSizeMenu />
-              <ThemeToggle />
-              <NotificationsMenu />
+            <div className="flex items-center justify-end gap-2">
+              <TextSizeMenu size="lg" />
+              <ThemeToggle size="lg" />
+              <NotificationsMenu size="lg" />
             </div>
           </header>
         ) : null}

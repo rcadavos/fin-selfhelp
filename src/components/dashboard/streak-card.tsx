@@ -36,24 +36,24 @@ export function StreakCard({
       className={cn("surface min-w-0 overflow-hidden border border-border bg-card", className)}
       aria-label="Login streak"
     >
-      <div className="flex items-center gap-4 p-5 sm:p-6">
+      <div className="flex items-center gap-3 p-4 sm:p-5">
         <span
           className={cn(
-            "flex size-12 shrink-0 items-center justify-center rounded-full border",
+            "flex size-10 shrink-0 items-center justify-center rounded-full border",
             hasStreak
               ? "border-primary/40 bg-primary/10 text-primary"
               : "border-border bg-muted text-muted-foreground",
           )}
           aria-hidden
         >
-          <Flame className="size-6" />
+          <Flame className="size-5" />
         </span>
 
         <div className="min-w-0">
-          <h2 className="text-xl font-bold leading-snug tracking-tight">
+          <h2 className="text-base font-semibold leading-snug">
             <span className="tabular-nums">{streak}</span> {streak === 1 ? "day" : "days"} in a row
           </h2>
-          <p className="mt-0.5 text-base text-muted-foreground">{streakNote(streak, firstName)}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{streakNote(streak, firstName)}</p>
         </div>
       </div>
     </section>

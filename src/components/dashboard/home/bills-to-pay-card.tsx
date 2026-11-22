@@ -111,8 +111,7 @@ function rowStatus(
   };
 }
 
-const ACTION_BUTTON =
-  "h-auto min-h-12 w-full gap-2 rounded-lg px-4 text-base font-bold sm:w-auto [&_svg:not([class*='size-'])]:size-5";
+const ACTION_BUTTON = "h-9 w-full gap-1.5 rounded-lg px-3 text-sm font-semibold sm:w-auto";
 
 /**
  * "Bills to pay": this month's unsettled bills, each with its own Mark as paid
@@ -274,38 +273,38 @@ export function BillsToPayCard({
       aria-labelledby="bills-to-pay-heading"
       className="surface min-w-0 scroll-mt-24 overflow-hidden border border-border bg-card"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-4 sm:px-6 sm:py-5">
-        <h2 id="bills-to-pay-heading" className="text-xl font-bold tracking-tight sm:text-2xl">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-3 sm:px-5">
+        <h2 id="bills-to-pay-heading" className="text-base font-semibold">
           Bills to pay
         </h2>
-        <span className="text-base text-muted-foreground sm:text-lg">{monthLabel}</span>
+        <span className="text-sm text-muted-foreground">{monthLabel}</span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-5 px-4 py-5 sm:px-6" role="status" aria-label="Loading bills">
+        <div className="space-y-5 px-4 py-4 sm:px-5" role="status" aria-label="Loading bills">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="space-y-3">
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-9 w-56" />
+            <div key={i} className="space-y-2.5">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-8 w-40" />
             </div>
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="px-4 py-10 text-center sm:px-6">
-          <p className="text-lg text-muted-foreground">No bills this month.</p>
+        <div className="px-4 py-8 text-center sm:px-5">
+          <p className="text-sm text-muted-foreground">No bills this month.</p>
           <Link
             href={`/dashboard/bills?${ADD_PLANNED_EXPENSE_PARAM}=1`}
-            className="mt-3 inline-flex min-h-12 items-center gap-2 text-lg font-bold text-primary hover:underline"
+            className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
           >
             Add a bill
-            <ArrowRight className="size-5" aria-hidden />
+            <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>
       ) : (
         <>
           {visible.length === 0 ? (
-            <p className="flex items-center gap-3 border-b border-border px-4 py-6 text-lg font-semibold text-primary sm:px-6">
-              <CircleCheck className="size-6 shrink-0" aria-hidden />
+            <p className="flex items-center gap-2 border-b border-border px-4 py-5 text-sm font-semibold text-primary sm:px-5">
+              <CircleCheck className="size-5 shrink-0" aria-hidden />
               Every bill for {monthLabel} is paid. Nice work!
             </p>
           ) : (
@@ -318,14 +317,14 @@ export function BillsToPayCard({
                   <li
                     key={item.id}
                     className={cn(
-                      "flex flex-col gap-3 border-b border-border px-4 py-4 sm:px-6",
+                      "flex flex-col gap-2.5 border-b border-border px-4 py-3 sm:px-5",
                       !paidNow && status.variant === "overdue" && "bg-destructive/[0.04]",
                     )}
                   >
                     <div className="flex items-baseline gap-2">
                       <span
                         className={cn(
-                          "min-w-0 truncate text-lg font-semibold",
+                          "min-w-0 truncate text-sm font-medium",
                           paidNow && "text-muted-foreground line-through",
                         )}
                       >
@@ -333,13 +332,13 @@ export function BillsToPayCard({
                       </span>
                       <DotLeader />
                       <span
-                        className={cn("shrink-0 text-lg", paidNow && "text-muted-foreground line-through")}
+                        className={cn("shrink-0 text-sm", paidNow && "text-muted-foreground line-through")}
                       >
                         {amountsHidden ? AMOUNT_MASK : <Amount value={item.amount} />}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       {paidNow ? (
                         <StatusPill variant="paid" icon={Check}>
                           Paid
@@ -357,12 +356,12 @@ export function BillsToPayCard({
                           onClick={() => handleUndo(item)}
                           disabled={pending}
                           aria-label={`Undo the payment for ${item.name}`}
-                          className={cn(ACTION_BUTTON, "border-2 border-hairline-strong")}
+                          className={cn(ACTION_BUTTON, "border-hairline-strong")}
                         >
                           {pending ? "Saving…" : "Undo"}
                         </Button>
                       ) : status.paysItself ? (
-                        <span className="text-base text-muted-foreground">Pays itself. Nothing to do.</span>
+                        <span className="text-sm text-muted-foreground">Pays itself. Nothing to do.</span>
                       ) : (
                         <Button
                           type="button"
@@ -376,7 +375,7 @@ export function BillsToPayCard({
                           }
                           className={cn(
                             ACTION_BUTTON,
-                            "border-2 border-primary bg-card text-primary hover:bg-primary hover:text-primary-foreground",
+                            "border-primary bg-card text-primary hover:bg-primary hover:text-primary-foreground",
                           )}
                         >
                           <Check aria-hidden />
@@ -390,23 +389,23 @@ export function BillsToPayCard({
             </ul>
           )}
 
-          <div className="fit-figure flex items-baseline gap-2 bg-primary/5 px-4 py-4 sm:px-6">
-            <span className="shrink-0 text-lg font-bold">Still to pay</span>
+          <div className="fit-figure flex items-baseline gap-2 bg-primary/5 px-4 py-3 sm:px-5">
+            <span className="shrink-0 text-sm font-semibold">Still to pay</span>
             <DotLeader />
-            <span className="fit-figure text-lg font-bold">
+            <span className="fit-figure text-sm font-semibold">
               {amountsHidden ? AMOUNT_MASK : <CountUpAmount value={stillToPay} />}
             </span>
           </div>
 
           <Link
             href="/dashboard/bills"
-            className="flex min-h-12 items-center gap-2 border-t border-border px-4 py-3 text-base font-bold text-primary hover:underline sm:px-6"
+            className="flex min-h-11 items-center gap-1.5 border-t border-border px-4 py-2.5 text-sm font-semibold text-primary hover:underline sm:px-5"
           >
             See all {items.length} {items.length === 1 ? "bill" : "bills"}
             {settledCount > 0
               ? `, including the ${settledCount} you paid`
               : ""}
-            <ArrowRight className="size-5 shrink-0" aria-hidden />
+            <ArrowRight className="size-4 shrink-0" aria-hidden />
           </Link>
         </>
       )}

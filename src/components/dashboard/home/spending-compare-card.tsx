@@ -67,11 +67,11 @@ function CompareBar({
 }) {
   return (
     <div>
-      <div className="fit-figure flex items-baseline justify-between gap-3 text-base">
-        <span className="min-w-0 font-semibold">{label}</span>
+      <div className="fit-figure flex items-baseline justify-between gap-3 text-sm">
+        <span className="min-w-0 font-medium">{label}</span>
         <span className="fit-figure shrink-0">{hidden ? AMOUNT_MASK : <Amount value={value} />}</span>
       </div>
-      <div aria-hidden className="mt-1.5 h-3.5 overflow-hidden rounded-full bg-border">
+      <div aria-hidden className="mt-1.5 h-2 overflow-hidden rounded-full bg-border">
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-500",
@@ -114,31 +114,31 @@ export function SpendingCompareCard({
   return (
     <section
       aria-labelledby="spending-heading"
-      className="surface min-w-0 border border-border bg-card p-5 sm:p-6"
+      className="surface min-w-0 border border-border bg-card p-4 sm:p-5"
     >
-      <h2 id="spending-heading" className="text-xl font-bold tracking-tight sm:text-2xl">
+      <h2 id="spending-heading" className="text-base font-semibold">
         Spending this month
       </h2>
-      <p className="mt-1 text-base text-muted-foreground">
+      <p className="mt-0.5 text-sm text-muted-foreground">
         Everyday spending and bills you paid. Savings are not counted.
       </p>
 
       {isPending ? (
-        <div className="mt-5 space-y-4" role="status" aria-label="Loading spending">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-52 max-w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
+        <div className="mt-4 space-y-3" role="status" aria-label="Loading spending">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-8 w-44 max-w-full" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-full" />
         </div>
       ) : (
         <>
-          <p className="mt-5 text-base text-muted-foreground sm:text-lg">So far in {thisName}</p>
-          <p className="fit-figure text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          <p className="mt-4 text-sm text-muted-foreground">So far in {thisName}</p>
+          <p className="fit-figure text-2xl font-semibold leading-tight tracking-tight">
             {amountsHidden ? AMOUNT_MASK : <CountUpAmount value={thisMonth} />}
           </p>
 
           {(thisMonth > 0 || lastMonth > 0) && (
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 space-y-3">
               <CompareBar
                 label={`${thisName}, so far`}
                 value={thisMonth}
@@ -158,11 +158,11 @@ export function SpendingCompareCard({
 
           <p
             className={cn(
-              "mt-5 flex items-start gap-2 rounded-lg px-4 py-3 text-base font-semibold sm:text-lg",
+              "mt-4 flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
               VERDICT_TONE[summary.tone],
             )}
           >
-            <SummaryIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
+            <SummaryIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
             {summary.text}
           </p>
         </>
@@ -170,10 +170,10 @@ export function SpendingCompareCard({
 
       <Link
         href="/dashboard/expenses"
-        className="mt-3 inline-flex min-h-12 items-center gap-2 text-base font-bold text-primary hover:underline"
+        className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
       >
         See my spending
-        <ArrowRight className="size-5" aria-hidden />
+        <ArrowRight className="size-4" aria-hidden />
       </Link>
     </section>
   );

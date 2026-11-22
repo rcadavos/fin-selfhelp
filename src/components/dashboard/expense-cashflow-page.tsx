@@ -114,22 +114,22 @@ function GlanceCell({
   return (
     <div
       className={cn(
-        "fit-figure p-5 sm:p-7",
+        "fit-figure p-4 sm:p-5",
         second && "border-t border-border bg-primary/[0.04] sm:border-l sm:border-t-0",
       )}
     >
-      <p className="flex items-center gap-2 text-base font-semibold text-muted-foreground sm:text-lg">
-        <Icon className="size-5 shrink-0" aria-hidden />
+      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Icon className="size-4 shrink-0" aria-hidden />
         {label}
       </p>
       {isLoading ? (
         <>
-          <Skeleton className="mt-3 h-11 w-60 max-w-full" />
-          <Skeleton className="mt-4 h-5 w-44" />
+          <Skeleton className="mt-2 h-9 w-52 max-w-full" />
+          <Skeleton className="mt-3 h-4 w-40" />
         </>
       ) : (
         <>
-          <p className="fit-figure mt-2 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          <p className="fit-figure mt-1.5 text-3xl font-semibold leading-tight tracking-tight">
             {hidden ? AMOUNT_MASK : <CountUpAmount value={value} />}
           </p>
           {children}
@@ -145,15 +145,16 @@ type QuickAction = { label: string; icon: LucideIcon; primary?: boolean } & (
 );
 
 const QUICK_ACTION_CLASS =
-  "h-auto min-h-14 w-full gap-2.5 whitespace-normal rounded-xl px-5 py-3 text-lg font-bold [&_svg:not([class*='size-'])]:size-6";
+  "h-auto min-h-11 w-full gap-2 whitespace-normal rounded-xl px-4 py-2 text-sm font-semibold";
 const QUICK_ACTION_PRIMARY = "bg-primary text-primary-foreground hover:bg-primary/90";
 const QUICK_ACTION_SECONDARY =
-  "border-2 border-primary bg-card text-primary hover:bg-primary/5 hover:text-primary";
+  "border-primary bg-card text-primary hover:bg-primary/5 hover:text-primary";
 
 /**
- * The dashboard, written for readers who are not comfortable with apps: large type,
- * plain words, two big figures, one obvious button per job, and the month's bills
- * with a Mark as paid button on each.
+ * The dashboard, written for readers who are not comfortable with apps: plain words,
+ * two headline figures, one obvious button per job, and the month's bills with a
+ * Mark as paid button on each. Its type is on the same scale as every other page;
+ * anyone who wants it bigger uses the Aa text-size setting, which grows all of them.
  */
 export function ExpenseCashflowPage({
   pageVariant,
@@ -362,17 +363,17 @@ export function ExpenseCashflowPage({
       second={!isBillsMode}
     >
       {billItems.length === 0 ? (
-        <p className="mt-3 text-base text-muted-foreground sm:text-lg">No bills this month</p>
+        <p className="mt-2 text-sm text-muted-foreground">No bills this month</p>
       ) : (
         <>
-          <div aria-hidden className="mt-4 h-3 overflow-hidden rounded-full bg-border">
+          <div aria-hidden className="mt-3 h-2 overflow-hidden rounded-full bg-border">
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${paidShare}%` }}
             />
           </div>
-          <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-            <strong className="font-semibold text-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
+            <strong className="font-medium text-foreground">
               {fullyPaidCount} of {billItems.length} {billItems.length === 1 ? "bill" : "bills"} paid
             </strong>
             {" • "}
@@ -388,8 +389,8 @@ export function ExpenseCashflowPage({
       {/* ════════════════════ GREETING ════════════════════ */}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="min-h-7 text-base text-muted-foreground sm:text-lg">{localDay?.date ?? ""}</p>
-          <h1 className="mt-1 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+          <p className="min-h-5 text-sm text-muted-foreground">{localDay?.date ?? ""}</p>
+          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight">
             {localDay?.greeting ?? DASHBOARD_GREETING_FALLBACK}
             {firstName ? `, ${firstName}` : ""}
           </h1>
@@ -398,7 +399,7 @@ export function ExpenseCashflowPage({
           type="button"
           variant="outline"
           onClick={toggleAmountsHidden}
-          className="h-auto min-h-12 gap-2 rounded-lg border-2 border-hairline-strong bg-card px-4 text-base font-semibold [&_svg:not([class*='size-'])]:size-5"
+          className="gap-2 bg-card"
         >
           {amountsHidden ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
           {amountsHidden ? "Show amounts" : "Hide amounts"}
@@ -408,7 +409,7 @@ export function ExpenseCashflowPage({
       {/* ════════════════════ YOUR MONEY AT A GLANCE ════════════════════ */}
       <section
         aria-label="Your money at a glance"
-        className="surface mt-6 grid overflow-hidden border border-border bg-card sm:grid-cols-2"
+        className="surface mt-5 grid overflow-hidden border border-border bg-card sm:grid-cols-2"
       >
         {isBillsMode ? (
           <>
@@ -421,7 +422,7 @@ export function ExpenseCashflowPage({
               hidden={amountsHidden}
               second
             >
-              <p className="mt-3 text-base text-muted-foreground sm:text-lg">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {overdueCount > 0
                   ? `${overdueCount} ${overdueCount === 1 ? "bill is" : "bills are"} past the due date`
                   : "Nothing overdue"}
@@ -437,11 +438,11 @@ export function ExpenseCashflowPage({
               isLoading={accountsLoading}
               hidden={amountsHidden}
             >
-              <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-muted-foreground sm:text-lg">
+              <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                 {includedAccountCount === 0 ? (
                   <Link
                     href="/dashboard/accounts"
-                    className="inline-flex min-h-11 items-center font-bold text-primary hover:underline"
+                    className="font-medium text-primary hover:underline"
                   >
                     Add your first account
                   </Link>
@@ -453,8 +454,8 @@ export function ExpenseCashflowPage({
                 {savedThisMonth > 0 && (
                   <>
                     <span aria-hidden>•</span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-primary">
-                      <ArrowUp className="size-4" aria-hidden />
+                    <span className="inline-flex items-center gap-1 font-medium text-primary">
+                      <ArrowUp className="size-3.5" aria-hidden />
                       {amountsHidden ? AMOUNT_MASK : <CountUpAmount value={savedThisMonth} />}
                       <span>saved this month</span>
                     </span>
@@ -468,8 +469,8 @@ export function ExpenseCashflowPage({
       </section>
 
       {/* ════════════════════ QUICK ACTIONS ════════════════════ */}
-      <section aria-labelledby="quick-actions-heading" className="mt-8">
-        <h2 id="quick-actions-heading" className="text-xl font-bold tracking-tight sm:text-2xl">
+      <section aria-labelledby="quick-actions-heading" className="mt-6">
+        <h2 id="quick-actions-heading" className="text-base font-semibold">
           What would you like to do?
         </h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -508,7 +509,7 @@ export function ExpenseCashflowPage({
       </section>
 
       {/* ════════════════════ BILLS TO PAY + SPENDING ════════════════════ */}
-      <div className="mt-8 grid gap-5 lg:grid-cols-3 lg:items-start">
+      <div className="mt-6 grid gap-4 lg:grid-cols-3 lg:items-start">
         <div className="min-w-0 lg:col-span-2">
           <BillsToPayCard
             items={billItems}
@@ -523,7 +524,7 @@ export function ExpenseCashflowPage({
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-4">
           {!isBillsMode && (
             <SpendingCompareCard
               rows={monthlyBreakdownQuery.data ?? []}
