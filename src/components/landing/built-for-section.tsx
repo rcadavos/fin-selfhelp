@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { ottoSrc } from "@/lib/constants/mascot";
 
 const audiences = [
   {
@@ -22,14 +24,26 @@ export function BuiltForSection({ className }: { className?: string }) {
       className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}
     >
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-12 lg:gap-14">
-        <div className="lg:col-span-5">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+        <div className="surface relative min-h-[360px] overflow-hidden bg-panel p-7 sm:p-8 lg:col-span-5">
+          <h2 className="text-2xl font-bold tracking-tight text-panel-foreground sm:text-3xl lg:text-[2.15rem]">
             Built for real routines
           </h2>
-          <p className="mt-3 max-w-[38ch] text-muted-foreground">
+          <p className="mt-3 max-w-[32ch] text-panel-muted">
             For anyone who wants to track bills, lists, and routines in daily life —
             without turning finance into a second job.
           </p>
+          {/* Otto's top half rises from the panel's foot, cut at the waist. */}
+          <div aria-hidden className="absolute bottom-0 right-1 h-[158px] w-[220px] overflow-hidden">
+            <Image
+              src={ottoSrc("otto-idle.svg")}
+              alt=""
+              width={220}
+              height={220}
+              unoptimized
+              draggable={false}
+              className="block h-[220px] w-[220px] max-w-none select-none"
+            />
+          </div>
         </div>
         <ul className="border-t border-border lg:col-span-7">
           {audiences.map(({ title, copy }) => (

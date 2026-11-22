@@ -2,6 +2,9 @@ import { cn } from "@/lib/utils";
 import { Amount } from "@/components/passbook/amount";
 import { Stamp } from "@/components/passbook/stamp";
 import { LedgerRow } from "@/components/passbook/dot-leader";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { OttoSays } from "@/components/mascot/otto-says";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 const steps = [
   {
@@ -76,14 +79,27 @@ export function HowItWorksSection({ className }: { className?: string }) {
       className={cn("border-t border-border px-4 py-16 sm:px-6 lg:px-8 lg:py-24", className)}
     >
       <div className="mx-auto max-w-6xl">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
-          How it works
-        </h2>
-        <p className="mt-3 max-w-[52ch] text-muted-foreground">
-          Four steps to a clearer view of your finances.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
+              How it works
+            </h2>
+            <p className="mt-3 max-w-[52ch] text-muted-foreground">
+              Four steps to a clearer view of your finances.
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <OttoSays className="hidden sm:flex">I read every line, so nothing slips past.</OttoSays>
+            <OttoAnimated
+              pose="check"
+              size={170}
+              label={`${MASCOT_NAME} checking a receipt with his magnifying glass`}
+              className="max-sm:!h-[130px] max-sm:!w-[130px]"
+            />
+          </div>
+        </div>
 
-        <div className="mt-10 grid grid-cols-1 border-t border-hairline-strong sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 border-t border-hairline-strong sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, i) => (
             <div
               key={step.num}

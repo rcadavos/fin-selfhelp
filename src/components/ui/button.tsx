@@ -20,7 +20,7 @@ const buttonVariants = cva(
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      // default, lg, icon and icon-lg grow on desktop (lg: and up). Height and
+      // Every size grows on desktop (lg: and up). Height and
       // padding go through --btn-h / --btn-px rather than plain `lg:h-10`, so a
       // caller's own h-*, size-*, px-* or p-* still wins on every screen size:
       // tailwind-merge drops the variable-driven class, and nothing at lg:
@@ -28,14 +28,14 @@ const buttonVariants = cva(
       size: {
         default:
           "h-[var(--btn-h)] gap-1.5 px-[var(--btn-px)] [--btn-h:2.25rem] [--btn-px:0.625rem] lg:[--btn-h:2.5rem] lg:[--btn-px:1rem] in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-lg px-2 text-xs in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1 rounded-xl px-2.5 in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5",
+        xs: "h-[var(--btn-h)] gap-1 rounded-lg px-[var(--btn-px)] [--btn-h:1.5rem] [--btn-px:0.5rem] lg:[--btn-h:1.75rem] lg:[--btn-px:0.625rem] text-xs in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-[var(--btn-h)] gap-1 rounded-xl px-[var(--btn-px)] [--btn-h:2rem] [--btn-px:0.625rem] lg:[--btn-h:2.25rem] lg:[--btn-px:0.75rem] in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5",
         lg: "h-[var(--btn-h)] gap-1.5 px-[var(--btn-px)] [--btn-h:2.5rem] [--btn-px:0.625rem] lg:[--btn-h:2.75rem] lg:[--btn-px:1.25rem] has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         icon: "size-[var(--btn-h)] [--btn-h:2.25rem] lg:[--btn-h:2.5rem]",
         "icon-xs":
-          "size-6 rounded-lg in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
+          "size-[var(--btn-h)] [--btn-h:1.5rem] lg:[--btn-h:1.75rem] rounded-lg in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-8 rounded-xl in-data-[slot=button-group]:rounded-md",
+          "size-[var(--btn-h)] [--btn-h:2rem] lg:[--btn-h:2.25rem] rounded-xl in-data-[slot=button-group]:rounded-md",
         "icon-lg": "size-[var(--btn-h)] [--btn-h:2.5rem] lg:[--btn-h:2.75rem]",
       },
     },

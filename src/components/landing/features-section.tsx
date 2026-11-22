@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Amount } from "@/components/passbook/amount";
+import { Otto } from "@/components/mascot/otto";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { ASSISTANT_NAME, MASCOT_NAME } from "@/lib/constants/mascot";
 
 const features: { name: string; description: string; tag: string }[] = [
   {
@@ -46,10 +49,18 @@ export function FeaturesSection({ className }: { className?: string }) {
           Filipino household use.
         </p>
 
-        {/* Ask OmniTrak band */}
-        <div className="mt-9 grid overflow-hidden surface border border-border bg-card lg:grid-cols-11">
+        {/* Ask Otto band: he lands on it, then tilts his head with a "?" every few seconds. */}
+        <div className="relative mt-[190px] max-sm:mt-[150px]">
+          <OttoLanding
+            pose="curious"
+            size={180}
+            from="left"
+            label={`${MASCOT_NAME} lands on the ${ASSISTANT_NAME} card and tilts his head, curious`}
+            className="left-5 max-sm:![--otto:140px]"
+          />
+        <div className="relative z-[1] grid overflow-hidden surface border border-border bg-card lg:grid-cols-11">
           <div className="flex flex-col justify-center gap-3 p-6 sm:p-8 lg:col-span-5">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">Ask OmniTrak</h3>
+            <h3 className="text-xl font-bold tracking-tight text-foreground">{ASSISTANT_NAME}</h3>
             <p className="max-w-[40ch] text-muted-foreground">
               A private AI assistant that reads your ledger, not your bank. Ask about spending, due
               dates, or your own uploaded documents.
@@ -65,17 +76,24 @@ export function FeaturesSection({ className }: { className?: string }) {
             <p className="max-w-[85%] self-end surface bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
               How much did we spend on utilities last month?
             </p>
-            <p className="max-w-[85%] self-start surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
-              <Amount formatted="₱5,842" className="text-sm" /> across Meralco, Maynilad, and Globe.
-              That is 8% lower than May.
-            </p>
+            <div className="flex max-w-[90%] items-end gap-2.5 self-start">
+              <Otto pose="face" size={34} alt={MASCOT_NAME} />
+              <p className="surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+                <Amount formatted="₱5,842" className="text-sm" /> across Meralco, Maynilad, and Globe.
+                That is 8% lower than May.
+              </p>
+            </div>
             <p className="max-w-[85%] self-end surface bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
               When is rent due?
             </p>
-            <p className="max-w-[85%] self-start surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
-              Aug 1. You have marked 3 of 3 rent payments paid on time this quarter.
-            </p>
+            <div className="flex max-w-[90%] items-end gap-2.5 self-start">
+              <Otto pose="face" size={34} alt={MASCOT_NAME} />
+              <p className="surface border border-border bg-card px-3.5 py-2.5 text-sm text-foreground">
+                Aug 1. You have marked 3 of 3 rent payments paid on time this quarter.
+              </p>
+            </div>
           </div>
+        </div>
         </div>
 
         {/* Feature statement rows */}

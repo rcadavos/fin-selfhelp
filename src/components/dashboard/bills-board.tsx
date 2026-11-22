@@ -93,6 +93,8 @@ import { ExpenseGroup } from "@/components/dashboard/planned-expenses/expense-gr
 import { Runway } from "@/components/dashboard/planned-expenses/runway";
 import { CoveragePanel } from "@/components/dashboard/planned-expenses/coverage-panel";
 import { BillsHero } from "@/components/dashboard/planned-expenses/bills-hero";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 import { MonthCalendar } from "@/components/dashboard/planned-expenses/month-calendar";
 import { BillsSummaryCards } from "@/components/dashboard/planned-expenses/bills-summary-cards";
 import { DayRunway } from "@/components/dashboard/planned-expenses/day-runway";
@@ -816,9 +818,12 @@ export function BillsBoard() {
       {billsDataQuery.isPending ? (
         <DashboardSkeleton variant="form" />
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-          <Receipt className="size-8 opacity-30" />
-          <p className="text-sm">No bills this month.</p>
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
+          <OttoAnimated pose="think" size={150} />
+          <p className="text-base font-semibold text-foreground">No bills this month</p>
+          <p className="max-w-[36ch] text-sm">
+            Add the bills you pay each month. {MASCOT_NAME} will remind you before each one is due.
+          </p>
         </div>
       ) : (
         <>

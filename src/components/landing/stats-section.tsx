@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 interface PlatformStats {
   users: number;
@@ -79,7 +81,16 @@ export function StatsSection({ className }: { className?: string }) {
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 overflow-hidden surface border border-border sm:grid-cols-4">
+        {/* Otto lands on the strip, then now and then turns his head right round like an owl. */}
+        <div className="relative mt-[150px] max-sm:mt-[120px]">
+          <OttoLanding
+            pose="turn"
+            size={160}
+            from="right"
+            label={`${MASCOT_NAME} lands on the community stats, then turns his head right round like an owl`}
+            className="right-10 max-sm:right-4 max-sm:![--otto:130px]"
+          />
+        <div className="relative z-[1] grid grid-cols-2 overflow-hidden surface border border-border bg-card sm:grid-cols-4">
           {STAT_CARDS.map(({ key, label, staticDisplay }, i) => {
             const est = staticDisplay ? null : roundedEstimate(stats[key as keyof PlatformStats] ?? 0);
             const value = staticDisplay ?? `${est!.value.toLocaleString()}${est!.showPlus ? "+" : ""}`;
@@ -101,6 +112,7 @@ export function StatsSection({ className }: { className?: string }) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     </section>

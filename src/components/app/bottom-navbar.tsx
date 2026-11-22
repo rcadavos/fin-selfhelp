@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { BillsModeToggle } from "@/components/app/bills-mode-toggle";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { ADD_PLANNED_EXPENSE_ROUTE, type AppModeId } from "@/lib/constants/app-mode";
 
@@ -134,6 +135,7 @@ export function BottomNavbar() {
             <AppSidebar
               className="flex h-full !static w-full border-r-0"
               onNavigate={() => setMoreOpen(false)}
+              footerSlot={<BillsModeToggle className="justify-between" />}
             />
           </SheetContent>
         </Sheet>

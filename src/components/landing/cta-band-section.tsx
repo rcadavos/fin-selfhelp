@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { OttoAnimated } from "@/components/mascot/otto";
 
 export function CtaBandSection({ className }: { className?: string }) {
   const { user, loading } = useUser();
@@ -29,7 +30,9 @@ export function CtaBandSection({ className }: { className?: string }) {
             linking required.
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="flex shrink-0 flex-col items-start gap-6 sm:flex-row sm:items-center">
+          <OttoAnimated pose="idle" size={150} className="-my-6 max-sm:!h-[120px] max-sm:!w-[120px]" />
+          <div>
           {loading ? (
             <Button size="lg" className="h-11 min-w-[13rem]" disabled aria-busy>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -50,6 +53,7 @@ export function CtaBandSection({ className }: { className?: string }) {
               )}
             </Button>
           )}
+          </div>
         </div>
       </div>
     </section>

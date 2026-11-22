@@ -10,6 +10,9 @@ import { Amount } from "@/components/passbook/amount";
 import { Stamp } from "@/components/passbook/stamp";
 import { LedgerRow } from "@/components/passbook/dot-leader";
 import { Loader2 } from "lucide-react";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { OttoSays } from "@/components/mascot/otto-says";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 type HeroSectionProps = {
   className?: string;
@@ -125,8 +128,8 @@ export function HeroSection({ className }: HeroSectionProps) {
               Your all-in-one finance tracker, now with AI
             </h1>
             <p className="mt-5 max-w-[44ch] text-lg text-muted-foreground">
-              Track expenses, bills, accounts, and goals in one simple app. Then ask the
-              built-in assistant anything.
+              Track expenses, bills, accounts, and goals in one simple app. Then ask {MASCOT_NAME},
+              the built-in assistant, anything.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
               <Button
@@ -161,10 +164,25 @@ export function HeroSection({ className }: HeroSectionProps) {
                 See how it works
               </a>
             </div>
+            <OttoSays face className="mt-9">
+              Hi, I&rsquo;m <strong>{MASCOT_NAME}</strong>. I keep watch over your bills, day and night.
+            </OttoSays>
           </div>
 
           <div className="lg:col-span-5">
-            <HeroLedger />
+            {/* Otto flies in and stands on the ledger's top edge, never over its numbers. */}
+            <div className="relative mt-[180px] max-sm:mt-[130px]">
+              <OttoLanding
+                pose="idle"
+                size={200}
+                from="right"
+                label={`${MASCOT_NAME} flies in and lands on the bills card`}
+                className="right-[6%] max-sm:![--otto:140px]"
+              />
+              <div className="relative z-[1]">
+                <HeroLedger />
+              </div>
+            </div>
           </div>
         </div>
       </div>

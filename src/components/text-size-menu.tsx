@@ -61,9 +61,11 @@ export function TextSizeMenu({ size = "default" }: { size?: TopBarIconButtonSize
                 className={cn(
                   "flex h-10 items-center justify-center rounded-md font-semibold leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   option.glyphClass,
+                  // A filled primary chip, not bg-background: on the light theme the
+                  // track and bg-background are both near-white, so the pick vanished.
                   selected
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
                 A

@@ -6,18 +6,20 @@
  * emails the team and saves the message to the admin inbox at /admin/support.
  */
 
+import { ASSISTANT_NAME } from "./mascot";
+
 /** Product name used in the prospect chat's copy and in the AI's persona. */
 export const PRODUCT_NAME = "OmniTrak";
 
 /**
- * The chat's own title. Not "Ask OmniTrak": that is the Pro and Premium in-app
+ * The chat's own title. Not "Ask Otto": that is the Pro and Premium in-app
  * assistant, which the landing page describes as opening from a floating button,
  * so a free chat with the same name and button reads as that paid feature.
  */
 export const PROSPECT_CHAT_TITLE = `${PRODUCT_NAME} guide`;
 
 /** The Pro and Premium in-app assistant's name, for copy that has to tell the two apart. */
-export const IN_APP_ASSISTANT_NAME = `Ask ${PRODUCT_NAME}`;
+export const IN_APP_ASSISTANT_NAME = ASSISTANT_NAME;
 
 /** Public, unauthenticated chat endpoint for typed questions. */
 export const PROSPECT_CHAT_API = "/api/ai/prospect-chat";

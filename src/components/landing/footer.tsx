@@ -3,6 +3,8 @@ import { LEGAL_ROUTES } from "@/lib/legal-routes";
 import { cn } from "@/lib/utils";
 import { FooterFeedback } from "./footer-feedback";
 import { ExternalLink } from "lucide-react";
+import { SiteLogo } from "@/components/app/site-logo";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || null;
 const PORTFOLIO_URL = "https://rgcadavos.dev";
@@ -39,9 +41,10 @@ export function Footer({ className }: { className?: string }) {
         <div className="grid gap-10 md:grid-cols-12 md:gap-12">
           <div className="space-y-4 md:col-span-5">
             <div>
-              <p className="text-lg font-semibold tracking-tight text-foreground">OmniTrak</p>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Your all-in-one personal tracker for bills, cashflow, lists, and more.
+              <SiteLogo className="text-xl" iconClassName="h-9" />
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Your all-in-one personal tracker for bills, cashflow, lists, and more. {MASCOT_NAME} keeps
+                watch over them.
               </p>
             </div>
             <a

@@ -1,0 +1,456 @@
+/*
+ * Otto's moving parts. Every body drawing is a 340-unit square; on the "rig" drawings his eyes are left white and the
+ * eyes below are laid over them, at the positions scripts/generate-mascot.mjs computes. Frame strips step through
+ * their frames with `step-end` keyframes. Everything stops under prefers-reduced-motion.
+ */
+
+.ot {
+  position: relative;
+  flex: none;
+}
+.ot > img,
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- eyes ---- */
+.eye {
+  position: absolute;
+  top: 37.206%;
+  width: 13.824%;
+  height: 13.824%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+}
+.eyeL {
+  left: 33.382%;
+}
+.eyeR {
+  left: 52.794%;
+}
+.eyeLens {
+  left: 53.382%;
+  top: 33.971%;
+  width: 16.765%;
+  height: 16.765%;
+}
+.eye::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse 130% 55% at 50% 0, rgba(19, 32, 25, 0.13), rgba(19, 32, 25, 0) 70%);
+}
+.iris {
+  position: absolute;
+  left: 14.9%;
+  top: 14.9%;
+  width: 70.2%;
+  height: 70.2%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #86e3b8 0, #2fb37e 50%, #0b6e4f 100%);
+}
+.pupil {
+  position: absolute;
+  left: 22.7%;
+  top: 22.7%;
+  width: 54.6%;
+  height: 54.6%;
+  border-radius: 50%;
+  background: #132019;
+}
+.glint {
+  position: absolute;
+  left: 19.7%;
+  top: 16.6%;
+  width: 30.3%;
+  height: 30.3%;
+  border-radius: 50%;
+  background: #fff;
+}
+.glintSmall {
+  left: 60%;
+  top: 58.5%;
+  width: 13.3%;
+  height: 13.3%;
+}
+.lid {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #c98c52;
+  box-shadow: inset 0 -2px 0 #3d2614;
+  transform-origin: 50% 0;
+  transform: scaleY(0);
+  animation: blink 5.2s infinite;
+}
+.lidFast {
+  animation-duration: 4.4s;
+}
+.lidSlow {
+  animation-duration: 6s;
+}
+.lidCheck {
+  animation: checkBlink 6.5s infinite;
+}
+.lidSearch {
+  animation: searchBlink 5.6s infinite;
+}
+
+/* Reading a receipt line by line, then locking on the total. */
+.checkL {
+  animation: checkL 6.5s infinite;
+}
+.checkR {
+  animation: checkR 6.5s infinite;
+}
+.checkLock {
+  animation: checkLock 6.5s infinite;
+}
+.reticle {
+  position: absolute;
+  left: 42.588%;
+  top: 70.294%;
+  width: 12.941%;
+  height: 5.882%;
+  opacity: 0;
+  animation: reticle 6.5s infinite;
+}
+.reticle > span {
+  position: absolute;
+  width: 26%;
+  height: 50%;
+  border: 0 solid #0b6e4f;
+}
+.reticle > span:nth-child(1) {
+  left: 0;
+  top: 0;
+  border-top-width: 2.5px;
+  border-left-width: 2.5px;
+}
+.reticle > span:nth-child(2) {
+  right: 0;
+  top: 0;
+  border-top-width: 2.5px;
+  border-right-width: 2.5px;
+}
+.reticle > span:nth-child(3) {
+  left: 0;
+  bottom: 0;
+  border-bottom-width: 2.5px;
+  border-left-width: 2.5px;
+}
+.reticle > span:nth-child(4) {
+  right: 0;
+  bottom: 0;
+  border-bottom-width: 2.5px;
+  border-right-width: 2.5px;
+}
+
+/* Searching: quick darts, a pause on each spot, then a lock with a ping round the lens. */
+.search {
+  animation: search 5.6s infinite;
+}
+.searchLock {
+  animation: searchLock 5.6s infinite;
+}
+.ping {
+  position: absolute;
+  left: 53.382%;
+  top: 33.971%;
+  width: 16.765%;
+  height: 16.765%;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2.5px solid #57c79a;
+  opacity: 0;
+  animation: ping 5.6s infinite;
+}
+
+/* Thinking: slow eye drift, a wing tapping his chin. */
+.ponder {
+  animation: ponder 7s ease-in-out infinite;
+}
+.tap {
+  transform-origin: 32.941% 58.235%;
+  animation: tap 3.2s ease-in-out infinite;
+}
+
+/* The head turn: 13 frames side by side, his head swivelling round to the back. */
+.spin {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.spin > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1300%;
+  max-width: none;
+  animation: spin 8s step-end infinite;
+}
+
+/* ---- the one-owl landing ---- */
+.land {
+  --otto: var(--otto-size);
+  position: absolute;
+  z-index: 2;
+  width: var(--otto);
+  height: var(--otto);
+  bottom: calc(100% - var(--otto) * 0.18);
+  transform-origin: 50% 87%;
+}
+.armed:not(.landed) {
+  opacity: 0;
+}
+.landed.fromLeft {
+  animation: landLeft 1.9s cubic-bezier(0.25, 0.7, 0.35, 1) both;
+}
+.landed.fromRight {
+  animation: landRight 1.9s cubic-bezier(0.25, 0.7, 0.35, 1) both;
+}
+.strip {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  left: -8.8235%;
+  width: 117.647%;
+  overflow: hidden;
+}
+.strip > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1200%;
+  max-width: none;
+  transform: translateX(-91.6667%);
+}
+.landed .strip > img {
+  animation: landFrames 2.9s step-end both;
+}
+.after {
+  position: absolute;
+  inset: 0;
+}
+.landed .after {
+  animation: on 2.9s step-end both;
+}
+.landed.swap .strip {
+  animation: off 2.9s step-end both;
+}
+.land .spin > img {
+  animation: none;
+}
+.landed .spin > img {
+  animation: spin 8s step-end 2.95s infinite;
+}
+.tilt {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.tilt > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 500%;
+  max-width: none;
+}
+.qmark {
+  transform-origin: 77% 16.5%;
+}
+.landed .tilt > img {
+  animation: tilt 5s step-end 2.9s infinite;
+}
+.landed .qmark {
+  animation: qmark 5s ease-out 2.9s infinite both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ot *,
+  .land,
+  .land * {
+    animation: none !important;
+  }
+  .armed {
+    opacity: 1 !important;
+  }
+}
+
+@keyframes blink {
+  0%, 93%, 100% { transform: scaleY(0); }
+  96.5% { transform: scaleY(1); }
+}
+@keyframes checkBlink {
+  0%, 80%, 87%, 100% { transform: scaleY(0); }
+  83.5% { transform: scaleY(1); }
+}
+@keyframes searchBlink {
+  0%, 83%, 90%, 100% { transform: scaleY(0); }
+  86.5% { transform: scaleY(1); }
+}
+@keyframes checkL {
+  0%, 6% { transform: translate(0, 3%); }
+  9%, 13% { transform: translate(-3%, 13.6%); }
+  19% { transform: translate(12.1%, 13.6%); }
+  22%, 24% { transform: translate(-3%, 16.7%); }
+  30% { transform: translate(10.6%, 16.7%); }
+  33%, 35% { transform: translate(-3%, 19.7%); }
+  41% { transform: translate(12.1%, 19.7%); }
+  45%, 72% { transform: translate(6.1%, 22.7%); }
+  78%, 100% { transform: translate(0, 3%); }
+}
+@keyframes checkR {
+  0%, 6% { transform: translate(0, 3%); }
+  9%, 13% { transform: translate(-15.2%, 13.6%); }
+  19% { transform: translate(-4.5%, 13.6%); }
+  22%, 24% { transform: translate(-15.2%, 16.7%); }
+  30% { transform: translate(-6.1%, 16.7%); }
+  33%, 35% { transform: translate(-15.2%, 19.7%); }
+  41% { transform: translate(-4.5%, 19.7%); }
+  45%, 72% { transform: translate(-7.6%, 22.7%); }
+  78%, 100% { transform: translate(0, 3%); }
+}
+@keyframes checkLock {
+  0%, 45%, 77%, 100% { transform: scale(1); }
+  49%, 72% { transform: scale(0.62); }
+}
+@keyframes reticle {
+  0%, 45%, 76%, 100% { opacity: 0; transform: rotate(-6deg) scale(1.8); }
+  50%, 71% { opacity: 1; transform: rotate(-6deg) scale(1); }
+}
+@keyframes search {
+  0%, 8% { transform: translate(0, 0); }
+  11%, 22% { transform: translate(-18%, -6%); }
+  25%, 36% { transform: translate(16%, -10%); }
+  39%, 48% { transform: translate(-8%, 13%); }
+  51%, 74% { transform: translate(17%, 4%); }
+  80%, 100% { transform: translate(0, 0); }
+}
+@keyframes searchLock {
+  0%, 51%, 80%, 100% { transform: scale(1); }
+  54%, 74% { transform: scale(0.6); }
+}
+@keyframes ping {
+  0%, 51% { opacity: 0; transform: scale(1); }
+  54% { opacity: 0.95; transform: scale(1.04); }
+  68%, 100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes ponder {
+  0%, 14% { transform: translate(15%, -18%); }
+  26%, 44% { transform: translate(-12%, -19%); }
+  56%, 72% { transform: translate(4%, -21%); }
+  84%, 100% { transform: translate(15%, -18%); }
+}
+@keyframes tap {
+  0%, 36%, 100% { transform: rotate(0); }
+  46% { transform: rotate(3.5deg); }
+  56% { transform: rotate(0); }
+  66% { transform: rotate(3.5deg); }
+  76% { transform: rotate(0); }
+}
+@keyframes spin {
+  0% { transform: translateX(0); }
+  55% { transform: translateX(-7.6923%); }
+  55.6% { transform: translateX(-15.3846%); }
+  56.2% { transform: translateX(-23.0769%); }
+  56.8% { transform: translateX(-30.7692%); }
+  57.4% { transform: translateX(-38.4615%); }
+  58% { transform: translateX(-46.1538%); }
+  58.6% { transform: translateX(-53.8462%); }
+  59.2% { transform: translateX(-61.5385%); }
+  59.8% { transform: translateX(-69.2308%); }
+  60.4% { transform: translateX(-76.9231%); }
+  61% { transform: translateX(-84.6154%); }
+  61.6% { transform: translateX(-92.3077%); }
+  78% { transform: translateX(-84.6154%); }
+  78.6% { transform: translateX(-76.9231%); }
+  79.2% { transform: translateX(-69.2308%); }
+  79.8% { transform: translateX(-61.5385%); }
+  80.4% { transform: translateX(-53.8462%); }
+  81% { transform: translateX(-46.1538%); }
+  81.6% { transform: translateX(-38.4615%); }
+  82.2% { transform: translateX(-30.7692%); }
+  82.8% { transform: translateX(-23.0769%); }
+  83.4% { transform: translateX(-15.3846%); }
+  84% { transform: translateX(-7.6923%); }
+  84.6%, 100% { transform: translateX(0); }
+}
+@keyframes landLeft {
+  0% { transform: translate(-220px, -300px) rotate(-14deg) scale(0.8); }
+  70% { transform: translate(-30px, -50px) rotate(-3deg) scale(0.96); }
+  100% { transform: none; }
+}
+@keyframes landRight {
+  0% { transform: translate(220px, -300px) rotate(14deg) scale(0.8); }
+  70% { transform: translate(30px, -50px) rotate(3deg) scale(0.96); }
+  100% { transform: none; }
+}
+/* Flap (frames 0-2) every 0.1 s for 1.9 s, touch down, then fold the wings (frames 3-11) over 0.9 s. */
+@keyframes landFrames {
+  0% { transform: translateX(0%); }
+  3.448% { transform: translateX(-8.3333%); }
+  6.897% { transform: translateX(0%); }
+  10.345% { transform: translateX(-16.6667%); }
+  13.793% { transform: translateX(0%); }
+  17.241% { transform: translateX(-8.3333%); }
+  20.69% { transform: translateX(0%); }
+  24.138% { transform: translateX(-16.6667%); }
+  27.586% { transform: translateX(0%); }
+  31.034% { transform: translateX(-8.3333%); }
+  34.483% { transform: translateX(0%); }
+  37.931% { transform: translateX(-16.6667%); }
+  41.379% { transform: translateX(0%); }
+  44.828% { transform: translateX(-8.3333%); }
+  48.276% { transform: translateX(0%); }
+  51.724% { transform: translateX(-16.6667%); }
+  55.172% { transform: translateX(0%); }
+  58.621% { transform: translateX(-8.3333%); }
+  62.069% { transform: translateX(0%); }
+  65.517% { transform: translateX(0%); }
+  68.966% { transform: translateX(-25%); }
+  72.414% { transform: translateX(-33.3333%); }
+  75.862% { transform: translateX(-41.6667%); }
+  79.31% { transform: translateX(-50%); }
+  82.759% { transform: translateX(-58.3333%); }
+  86.207% { transform: translateX(-66.6667%); }
+  89.655% { transform: translateX(-75%); }
+  93.103% { transform: translateX(-83.3333%); }
+  96.552%, 100% { transform: translateX(-91.6667%); }
+}
+@keyframes on {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes off {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Every 5 s: tip his head in four quick steps, hold, straighten. */
+@keyframes tilt {
+  0% { transform: translateX(0); }
+  56% { transform: translateX(-20%); }
+  57.6% { transform: translateX(-40%); }
+  59.2% { transform: translateX(-60%); }
+  60.8% { transform: translateX(-80%); }
+  88% { transform: translateX(-60%); }
+  89.6% { transform: translateX(-40%); }
+  91.2% { transform: translateX(-20%); }
+  92.8%, 100% { transform: translateX(0); }
+}
+@keyframes qmark {
+  0%, 58% { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+  62% { opacity: 1; transform: scale(1.12) rotate(4deg); }
+  65%, 86% { opacity: 1; transform: scale(1) rotate(0); }
+  91%, 100% { opacity: 0; transform: scale(0.8) rotate(0); }
+}

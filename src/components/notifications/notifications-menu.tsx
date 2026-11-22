@@ -56,7 +56,9 @@ export function NotificationsMenu({ size = "default" }: { size?: TopBarIconButto
           {unreadCount > 0 ? (
             <span
               className={cn(
-                "absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-semibold leading-none text-primary-foreground",
+                // px-1 gives "9+" room on both sides; the ring cuts the badge out of
+                // the bell so the two don't run together.
+                "absolute flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none tabular-nums text-primary-foreground ring-2 ring-background",
                 sizing.badge
               )}
             >

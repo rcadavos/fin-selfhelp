@@ -3,6 +3,8 @@
 import { Star } from "lucide-react";
 import type { ApprovedReviewRow } from "@/actions/feedback";
 import { cn } from "@/lib/utils";
+import { Otto } from "@/components/mascot/otto";
+import { OttoSays } from "@/components/mascot/otto-says";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "long" });
@@ -63,6 +65,11 @@ export function ReviewsSection({
             <h2 className="mt-3 max-w-[18ch] text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[2.15rem]">
               What our users say
             </h2>
+          </div>
+
+          <div className="flex items-center gap-1 self-start sm:self-auto">
+            <OttoSays>Salamat for the kind words!</OttoSays>
+            <Otto pose="idle" size={120} />
           </div>
 
           {avgRating !== null && (

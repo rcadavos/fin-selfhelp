@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Square, Sparkles, FileText, Wrench } from "lucide-react";
+import { ArrowUp, Square, FileText, Wrench } from "lucide-react";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { ASSISTANT_NAME } from "@/lib/constants/mascot";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -147,7 +149,7 @@ export function AssistantChat({
           )}
         </div>
         <p className="mt-1.5 px-1 text-[10px] text-muted-foreground">
-          OmniTrak Assistant can make mistakes • verify important figures
+          {ASSISTANT_NAME} can make mistakes • verify important figures
         </p>
       </div>
     </div>
@@ -157,11 +159,9 @@ export function AssistantChat({
 function EmptyState({ compact, onPick }: { compact: boolean; onPick: (q: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
-        <Sparkles className="h-6 w-6" />
-      </span>
+      <OttoAnimated pose="think" size={compact ? 110 : 140} />
       <div>
-        <p className="text-sm font-semibold">Ask OmniTrak</p>
+        <p className="text-sm font-semibold">{ASSISTANT_NAME}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Your private assistant for your finances and uploaded documents.
         </p>

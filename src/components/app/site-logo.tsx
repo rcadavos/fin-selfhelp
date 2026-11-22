@@ -1,10 +1,11 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { OTTO_FACE_TILT_DEG, ottoSrc } from "@/lib/constants/mascot";
 
 type SiteLogoProps = {
   /** Wrapper classes — control gap, color, and text size (defaults to text-lg). */
   className?: string;
-  /** Icon box classes (defaults to h-7 w-7). */
+  /** Icon box classes (defaults to h-10). */
   iconClassName?: string;
   /** Render the mark only, no wordmark. */
   iconOnly?: boolean;
@@ -13,9 +14,8 @@ type SiteLogoProps = {
 };
 
 /**
- * OmniTrak lockup: the chameleon mark (`public/favicon.png`) + the "OmniTrak"
- * wordmark set in the app font (Schibsted Grotesk). Replaces the old baked
- * `omnitrak-logo.png` image so the wordmark always matches the product type.
+ * OmniTrak lockup: Otto's head, tilted a little like a curious owl (`public/mascot/otto-face.svg`, drawn by
+ * `npm run mascot:draw`), beside the "OmniTrak" wordmark set in the app font (Schibsted Grotesk).
  */
 export function SiteLogo({
   className,
@@ -26,27 +26,24 @@ export function SiteLogo({
   return (
     <span
       className={cn(
-        "inline-flex items-center text-2xl font-bold leading-none tracking-tight text-primary",
+        "inline-flex items-center gap-2 text-2xl font-bold leading-none tracking-tight text-primary",
         className,
       )}
     >
       <Image
-        src="/favicon.png"
+        src={ottoSrc("otto-face.svg")}
         alt={iconOnly ? "OmniTrak" : ""}
         aria-hidden={iconOnly ? undefined : true}
         width={80}
         height={80}
         className={cn("h-10 w-auto shrink-0 object-contain", iconClassName)}
+        style={{ transform: `rotate(${OTTO_FACE_TILT_DEG}deg)` }}
         priority={fetchPriority === "high"}
         fetchPriority={fetchPriority}
         decoding="async"
         unoptimized
       />
-      {/* The lockup sets no gap — the space came from the transparent padding
-          baked into favicon.png, so it takes a negative margin to close rather
-          than a smaller gap. One value here covers the landing header, the app
-          header and the sidebar. */}
-      {!iconOnly && <span className="-ml-1.5">OmniTrak</span>}
+      {!iconOnly && <span>OmniTrak</span>}
     </span>
   );
 }

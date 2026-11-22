@@ -6,6 +6,9 @@ import {
   REFERRAL_SIGNUP_REWARD_MONTHS,
 } from "@/lib/constants/referral";
 import { ChevronDown } from "lucide-react";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { OttoSays } from "@/components/mascot/otto-says";
+import { ASSISTANT_NAME, MASCOT_NAME } from "@/lib/constants/mascot";
 
 const faqs: { q: string; a: string }[] = [
   {
@@ -17,6 +20,10 @@ const faqs: { q: string; a: string }[] = [
     a: `Yes. Every new account automatically starts with a ${TRIAL_DURATION_DAYS}-day Pro free trial — no card required. During the trial you get full Pro access, including email reminders, unlimited reminders, partner sharing, and custom expense categories. When the ${TRIAL_DURATION_DAYS} days are up, you move to the free plan automatically; upgrade anytime to keep Pro features.`,
   },
   {
+    q: `Who is ${MASCOT_NAME}?`,
+    a: `${MASCOT_NAME} is OmniTrak's owl. He keeps watch over your bills, rings early before anything is due, and answers your questions in ${ASSISTANT_NAME}. He reads your ledger, never your bank.`,
+  },
+  {
     q: "How does the referral program work?",
     a: `Every account gets a personal invite link. For every ${REFERRAL_SIGNUPS_PER_REWARD} friends who sign up through it you earn ${REFERRAL_SIGNUP_REWARD_MONTHS} free month of Pro, and that stacks — 10 friends is 2 months, 15 is 3. On top of that, every referred friend who upgrades to a paid plan earns you ${REFERRAL_CONVERSION_REWARD_MONTHS} more free month, once per friend. Rewards are added automatically and extend from whenever your Pro access currently ends, so nothing is wasted and there is nothing to claim.`,
   },
@@ -26,7 +33,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Is there an AI assistant?",
-    a: `Yes — "Ask OmniTrak" is a built-in AI assistant available on Pro and Premium (your ${TRIAL_DURATION_DAYS}-day Pro trial includes it). Open it from a floating button on any screen and ask about your budget, accounts, goals, or spending — it answers from your own data. You can also upload documents (PDF, text, Markdown) or add a website link and it will search them to answer, citing the sources. Nothing is shared with other users.`,
+    a: `Yes — "${ASSISTANT_NAME}" is a built-in AI assistant available on Pro and Premium (your ${TRIAL_DURATION_DAYS}-day Pro trial includes it). Open it from a floating button on any screen and ask about your budget, accounts, goals, or spending — it answers from your own data. You can also upload documents (PDF, text, Markdown) or add a website link and it will search them to answer, citing the sources. Nothing is shared with other users.`,
   },
   {
     q: "How does Goals work?",
@@ -65,6 +72,10 @@ export function FaqSection({ className }: { className?: string }) {
             <p className="mt-3 max-w-[30ch] text-muted-foreground">
               Straight answers before you sign up.
             </p>
+            <div className="mt-6 hidden flex-col items-start gap-2 lg:flex">
+              <OttoSays className="ml-10">Hmm, good question…</OttoSays>
+              <OttoAnimated pose="think" size={220} label={`${MASCOT_NAME} thinking, a wing on his chin`} />
+            </div>
           </div>
         </div>
 

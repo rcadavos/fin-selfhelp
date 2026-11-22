@@ -8,6 +8,7 @@
     "start": "next start --port 3003",
     "lint": "next lint",
     "build:celebration-png": "node scripts/svg-celebration-to-png.mjs",
+    "mascot:draw": "node scripts/generate-mascot.mjs",
     "prepare": "git config core.hooksPath .githooks",
     "db:link": "npx --yes supabase@2.98.2 link --project-ref qsszsofppatihkporecq",
     "db:list": "npx --yes supabase@2.98.2 migration list --linked",

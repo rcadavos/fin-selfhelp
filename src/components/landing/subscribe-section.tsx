@@ -6,6 +6,8 @@ import { TRIAL_DESCRIPTION } from "@/lib/constants/trial";
 import { Check } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { Stamp } from "@/components/passbook/stamp";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { ASSISTANT_NAME, MASCOT_NAME } from "@/lib/constants/mascot";
 
 export const freeBenefits = [
   "Unlimited expense & bill rows",
@@ -15,7 +17,7 @@ export const freeBenefits = [
 ];
 
 export const proBenefits = [
-  "Ask OmniTrak — AI assistant for your finances & documents",
+  `${ASSISTANT_NAME} — AI assistant for your finances & documents`,
   "Email reminders for bills and reminder lists",
   "Unlimited reminders",
   "Partner sharing (invite by email)",
@@ -137,14 +139,25 @@ export function SubscribeSection({
 
         <div
           className={cn(
-            "mt-10 grid grid-cols-1 gap-4",
+            "mt-10 grid grid-cols-1 gap-4 md:mt-[160px]",
             plans.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"
           )}
         >
           {plans.map((plan) => (
+            // Otto lands on the most popular plan and rings the reminder bell (its email reminders).
+            <div key={plan.key} className={cn("relative flex", plan.highlight && "max-md:mt-[130px]")}>
+              {plan.highlight && (
+                <OttoLanding
+                  pose="remind"
+                  size={150}
+                  from="right"
+                  label={`${MASCOT_NAME} lands on the ${plan.name} plan and rings a reminder bell`}
+                  className="right-4 max-sm:![--otto:120px]"
+                />
+              )}
             <div
-              key={plan.key}
               className={cn(
+                "relative z-[1] flex-1",
                 // overflow-hidden matters: the highlighted plan's header bleeds to
                 // the card edge with negative margins, and needs clipping to the
                 // card's own rounded corners now that each plan is its own card.
@@ -201,6 +214,7 @@ export function SubscribeSection({
               <Button variant={plan.variant} asChild className="mt-6 h-11 w-full">
                 <Link href={plan.cta.href}>{plan.cta.label}</Link>
               </Button>
+            </div>
             </div>
           ))}
         </div>

@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   const caps = await getSubscriptionCapabilities();
   if (!caps?.hasProLevelAccess) {
     return NextResponse.json(
-      { error: "Ask OmniTrak is available on the Pro and Premium plans." },
+      { error: "Ask Otto is available on the Pro and Premium plans." },
       { status: 403 },
     );
   }

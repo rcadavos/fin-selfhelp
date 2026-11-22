@@ -4,9 +4,9 @@
  * the public pages' headers are tight rows, so they keep the compact size.
  */
 export const TOP_BAR_ICON_BUTTON = {
-  default: { button: "size-8", icon: "size-4", badge: "-right-0.5 -top-0.5" },
-  /** `badge` comes in from the corner so the unread count still sits on the bell. */
-  lg: { button: "size-10", icon: "size-5", badge: "right-0.5 top-0.5" },
+  default: { button: "size-8", icon: "size-4", badge: "-right-1 -top-1" },
+  /** `badge` sits in the corner so the unread count still overlaps the bell. */
+  lg: { button: "size-10", icon: "size-5", badge: "right-0 top-0" },
 } as const;
 
 export type TopBarIconButtonSize = keyof typeof TOP_BAR_ICON_BUTTON;

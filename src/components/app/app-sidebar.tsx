@@ -64,7 +64,16 @@ const navItems: readonly SidebarNavItem[] = [
   { href: "/dashboard/feedback", label: "Review & Feedback", icon: MessageSquarePlus, premium: false },
 ];
 
-export function AppSidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
+export function AppSidebar({
+  className,
+  onNavigate,
+  footerSlot,
+}: {
+  className?: string;
+  onNavigate?: () => void;
+  /** Rendered above the account card, e.g. the bills-mode switch in the phone More sheet. */
+  footerSlot?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const { user } = useUser();
   const { isFeatureEnabled } = useAppMode();
@@ -138,6 +147,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
           );
         })}
       </nav>
+      {footerSlot ? <div className="w-full shrink-0 border-t px-6 py-3">{footerSlot}</div> : null}
       <div className="w-full shrink-0 border-t bg-card p-3">
         <AccountDropdownMenu
           user={user}

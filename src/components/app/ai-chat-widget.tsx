@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Sparkles, Maximize2 } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -15,9 +15,11 @@ import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { AssistantChat } from "@/components/app/ai/assistant-chat";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
+import { Otto } from "@/components/mascot/otto";
+import { ASSISTANT_NAME } from "@/lib/constants/mascot";
 
 /**
- * Floating "Ask OmniTrak" launcher mounted app-wide for Pro/Premium members
+ * Floating "Ask Otto" launcher (Otto's face) mounted app-wide for Pro/Premium members
  * (AI usage incurs cost, so it's gated to paid plans; the 14-day Pro trial
  * counts). Sits above the Add Entry button. Hidden on the full assistant page,
  * which already provides the chat, and in bills mode, which switches the
@@ -47,10 +49,10 @@ export function AiChatWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open OmniTrak Assistant"
-        className="fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform active:scale-95 md:right-6 md:bottom-24"
+        aria-label={`Open ${ASSISTANT_NAME}`}
+        className="fixed right-4 bottom-20 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-card shadow-md transition-transform active:scale-95 md:right-6 md:bottom-24"
       >
-        <Sparkles className="h-6 w-6" />
+        <Otto pose="face" size={44} />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -60,8 +62,8 @@ export function AiChatWidget() {
         >
           <SheetHeader className="flex-row items-center gap-2 border-b px-4 py-3 pr-12 text-left">
             <SheetTitle className="flex flex-1 items-center gap-2 text-base">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Ask OmniTrak
+              <Otto pose="face" size={26} />
+              {ASSISTANT_NAME}
             </SheetTitle>
             <Link
               href="/dashboard/assistant"

@@ -9,11 +9,12 @@ import {
   MessageSquare,
   BookOpen,
   MessagesSquare,
-  Sparkles,
   Loader2,
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Otto } from "@/components/mascot/otto";
+import { ASSISTANT_NAME } from "@/lib/constants/mascot";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
@@ -93,8 +94,8 @@ export function AssistantWorkspace() {
       <header className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            <Sparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden />
-            Ask OmniTrak
+            <Otto pose="face" size={32} />
+            {ASSISTANT_NAME}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Your private AI assistant for your finances and documents.

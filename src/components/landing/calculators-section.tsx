@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 const calculators = [
   {
@@ -40,12 +42,22 @@ export function CalculatorsSection({ className }: { className?: string }) {
           Plan your taxes, savings, and debt payoff — no sign-up required.
         </p>
 
-        <div className="mt-9 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {calculators.map(({ href, title, description, cta }) => (
+        <div className="mt-[160px] grid gap-5 sm:grid-cols-2 lg:grid-cols-3 max-sm:mt-[130px]">
+          {calculators.map(({ href, title, description, cta }, i) => (
+            // Otto lands on the first calculator and searches through his lens.
+            <div key={href} className="relative flex">
+              {i === 0 && (
+                <OttoLanding
+                  pose="search"
+                  size={150}
+                  from="left"
+                  label={`${MASCOT_NAME} lands on the ${title} and searches through his magnifying glass`}
+                  className="right-4 max-sm:![--otto:120px]"
+                />
+              )}
             <Link
-              key={href}
               href={href}
-              className="group flex flex-col surface border border-border bg-card p-6 transition-colors hover:border-primary"
+              className="group relative z-[1] flex flex-1 flex-col surface border border-border bg-card p-6 transition-colors hover:border-primary"
             >
               <h3 className="text-base font-bold text-foreground">{title}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -59,6 +71,7 @@ export function CalculatorsSection({ className }: { className?: string }) {
                 />
               </span>
             </Link>
+            </div>
           ))}
         </div>
       </div>

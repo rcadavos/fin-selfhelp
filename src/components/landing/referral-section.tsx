@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LedgerRow } from "@/components/passbook/dot-leader";
 import { Stamp } from "@/components/passbook/stamp";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 import {
   REFERRAL_CONVERSION_REWARD_MONTHS,
   REFERRAL_SIGNUPS_PER_REWARD,
@@ -81,8 +83,16 @@ export function ReferralSection({ className }: { className?: string }) {
           </div>
 
           {/* Worked example, in the app's own statement style. */}
-          <div className="lg:col-span-5">
-            <div className="surface border border-border bg-card p-5">
+          {/* Otto lands on it and checks it with his receipt and magnifying glass. */}
+          <div className="relative mt-[170px] lg:col-span-5 max-sm:mt-[140px]">
+            <OttoLanding
+              pose="check"
+              size={180}
+              from="left"
+              label={`${MASCOT_NAME} lands on the example and checks it`}
+              className="left-[4%] max-sm:![--otto:140px]"
+            />
+            <div className="relative z-[1] surface border border-border bg-card p-5">
               <p className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                 Example
               </p>

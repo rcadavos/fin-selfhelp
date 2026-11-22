@@ -16,7 +16,7 @@ import type {
 } from "@/types/ai.types";
 
 const NOT_LOGGED_IN = "Not logged in.";
-const PRO_REQUIRED = "Ask OmniTrak is available on the Pro and Premium plans.";
+const PRO_REQUIRED = "Ask Otto is available on the Pro and Premium plans.";
 
 /** Light env check (URL ingestion needs Firecrawl). Avoids importing extract.ts. */
 function urlIngestionConfigured(): boolean {
