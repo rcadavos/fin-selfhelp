@@ -45,7 +45,7 @@ const FONT_LINK_HTML = `<link rel="preconnect" href="https://fonts.googleapis.co
     <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />`;
 
 /**
- * Email logo lockup: the chameleon mark (`public/favicon.png`) + the "OmniTrak"
+ * Email logo lockup: Otto's head (`public/icons/otto-192.png`) + the "OmniTrak"
  * wordmark set in the app font (Schibsted Grotesk). Mirrors the in-app
  * `<SiteLogo>` so emails match the product, and replaces the old baked
  * `omnitrak-logo.png` image.
@@ -59,7 +59,7 @@ function logoLockupHtml(
                 <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
                   <tr>
                     <td style="vertical-align:middle;padding-right:10px;">
-                      <img src="${siteUrl}/favicon.png" alt="" width="42" height="40" style="display:block;width:42px;height:40px;border:0;outline:none;text-decoration:none;" />
+                      <img src="${siteUrl}/icons/otto-192.png" alt="" width="44" height="44" style="display:block;width:44px;height:44px;border:0;outline:none;text-decoration:none;" />
                     </td>
                     <td style="vertical-align:middle;">
                       <span style="font-family:${EMAIL_FONT_STACK};font-size:28px;font-weight:700;line-height:1;letter-spacing:-0.02em;color:${BRAND_GREEN};">OmniTrak</span>

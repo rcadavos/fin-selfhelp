@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchItems, type SearchItem } from "@/lib/search-index";
+import { APP_SEARCH_PLACEHOLDER } from "@/lib/constants/top-bar";
 import { useAppMode } from "@/hooks/use-app-mode";
 
 // ── Shared results list ───────────────────────────────────────────────────
@@ -110,7 +111,7 @@ export function MobileSearch({ onClose }: { onClose: () => void }) {
         <input
           ref={inputRef}
           type="search"
-          placeholder="Search anything…"
+          placeholder={APP_SEARCH_PLACEHOLDER.mobile}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           style={{ fontSize: "16px" }}
           value={query}
@@ -204,7 +205,7 @@ export function DesktopSearch({ className }: { className?: string }) {
           ref={inputRef}
           id="desktop-search"
           type="search"
-          placeholder="Search…"
+          placeholder={APP_SEARCH_PLACEHOLDER.desktop}
           autoComplete="off"
           spellCheck={false}
           className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none ring-offset-background transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"

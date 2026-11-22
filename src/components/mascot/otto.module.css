@@ -276,7 +276,16 @@
   animation: qmark 5s ease-out 2.9s infinite both;
 }
 
+/* Loading: his head tipping from side to side, wondering. */
+.loader {
+  display: inline-flex;
+  animation: loaderTilt 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .loader {
+    animation: none;
+  }
   .ot *,
   .land,
   .land * {
@@ -287,6 +296,10 @@
   }
 }
 
+@keyframes loaderTilt {
+  0%, 100% { transform: rotate(-10deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-6%); }
+}
 @keyframes blink {
   0%, 93%, 100% { transform: scaleY(0); }
   96.5% { transform: scaleY(1); }

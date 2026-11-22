@@ -229,6 +229,130 @@
     margin: 0 8px 5px;
     align-self: flex-end;
   }
+
+  /* A stamp being pressed on: drops in large and tilted, then settles. */
+  .stamp-press {
+    animation: stamp-press 380ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  /* ---- Home-page call to action (<CtaButton>) ----
+     Money green with a glow under it that lifts on hover. The glow is a
+     drop-shadow filter on the outer element, so it follows the ticket stub's
+     punched-out notches instead of drawing a plain rectangle under them. */
+  .cta {
+    --cta-bg: hsl(var(--primary));
+    --cta-fg: hsl(var(--primary-foreground));
+    --cta-glow: hsl(var(--primary) / 0.36);
+    --cta-px: 1.25rem;
+    --cta-stub-w: 4.25rem;
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+    filter: drop-shadow(0 8px 12px var(--cta-glow));
+    transition:
+      transform 180ms ease-out,
+      filter 180ms ease-out;
+  }
+  .cta:hover {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 12px 18px var(--cta-glow));
+  }
+  .cta:active {
+    transform: translateY(0);
+    filter: drop-shadow(0 4px 8px var(--cta-glow));
+  }
+  .cta:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+  .cta[aria-disabled="true"] {
+    pointer-events: none;
+  }
+  .cta-panel {
+    --cta-bg: hsl(var(--panel-accent));
+    --cta-fg: hsl(var(--panel));
+    --cta-glow: hsl(var(--panel-accent) / 0.28);
+  }
+  .cta-panel:focus-visible {
+    outline-color: hsl(var(--panel-accent));
+  }
+  .cta-body {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: stretch;
+    border-radius: inherit;
+    background: var(--cta-bg);
+    color: var(--cta-fg);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.18);
+  }
+  .cta-label {
+    position: relative;
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    padding-inline: var(--cta-px);
+  }
+  .cta-arrow {
+    transition: transform 180ms ease-out;
+  }
+  .cta:hover .cta-arrow {
+    transform: translateX(3px);
+  }
+  /* Ticket punches: a half-circle bitten out of the top and bottom edge where
+     the perforation runs, so the page shows through. */
+  .cta-has-stub .cta-body {
+    -webkit-mask:
+      radial-gradient(circle at calc(100% - var(--cta-stub-w)) 0, #0000 5.5px, #000 6px) top / 100% 51% no-repeat,
+      radial-gradient(circle at calc(100% - var(--cta-stub-w)) 100%, #0000 5.5px, #000 6px) bottom / 100% 51% no-repeat;
+    mask:
+      radial-gradient(circle at calc(100% - var(--cta-stub-w)) 0, #0000 5.5px, #000 6px) top / 100% 51% no-repeat,
+      radial-gradient(circle at calc(100% - var(--cta-stub-w)) 100%, #0000 5.5px, #000 6px) bottom / 100% 51% no-repeat;
+  }
+  .cta-stub {
+    display: flex;
+    width: var(--cta-stub-w);
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-left: 1.5px dashed color-mix(in srgb, var(--cta-fg) 45%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stamp-press {
+      animation: none;
+    }
+    .cta,
+    .cta-arrow {
+      transition: none;
+    }
+    .cta:hover,
+    .cta:active,
+    .cta:hover .cta-arrow {
+      transform: none;
+    }
+  }
+}
+
+@keyframes stamp-press {
+  0% {
+    opacity: 0;
+    transform: scale(1.9) rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 @layer base {

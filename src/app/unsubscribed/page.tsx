@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OttoAnimated } from "@/components/mascot/otto";
 
 type Props = { searchParams: Promise<{ error?: string }> };
 
@@ -12,9 +13,10 @@ export default async function UnsubscribedPage({ searchParams }: Props) {
       <div className="mx-auto w-full max-w-md surface border bg-card p-8 text-center">
         {error ? (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-              <AlertCircle className="h-7 w-7 text-destructive" />
+            <div className="mb-2 flex justify-center">
+              <OttoAnimated pose="think" size={120} />
             </div>
+            <AlertCircle className="mx-auto mb-2 h-6 w-6 text-destructive" aria-hidden />
             <h1 className="text-xl font-semibold text-foreground">
               {error === "invalid" ? "Invalid unsubscribe link" : "Something went wrong"}
             </h1>
@@ -26,8 +28,11 @@ export default async function UnsubscribedPage({ searchParams }: Props) {
           </>
         ) : (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle2 className="h-7 w-7 text-primary" />
+            <div className="mb-2 flex justify-center">
+              <OttoAnimated pose="idle" size={120} />
+            </div>
+            <div className="mx-auto mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
             </div>
             <h1 className="text-xl font-semibold text-foreground">You&apos;ve been unsubscribed</h1>
             <p className="mt-2 text-sm text-muted-foreground">

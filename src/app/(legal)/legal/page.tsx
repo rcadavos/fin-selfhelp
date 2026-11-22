@@ -4,6 +4,8 @@ import { buildPageMetadata } from "@/lib/seo";
 import { LEGAL_ROUTES } from "@/lib/legal-routes";
 import { Header } from "@/components/landing/header";
 import { ChevronLeft } from "lucide-react";
+import { OttoBeside } from "@/components/mascot/otto-beside";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 export const metadata = buildPageMetadata({
   title: "Legal",
@@ -47,7 +49,15 @@ export default function LegalHubPage() {
             <ChevronLeft className="h-4 w-4" />
             Back to home
           </Link>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Legal</h1>
+          <div className="mt-2 flex items-end justify-between gap-4">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Legal</h1>
+            <OttoBeside
+              pose="check"
+              size={110}
+              says="Our promises, in plain words."
+              label={`${MASCOT_NAME} reading the fine print with his magnifying glass`}
+            />
+          </div>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
             Policies and notices for OmniTrak. Choose a document below.
           </p>

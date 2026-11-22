@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { OttoLoader } from "@/components/mascot/otto";
 import { formatCurrency } from "@/lib/utils";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 
@@ -120,7 +120,7 @@ export function ExpensesForm(props: ExpensesFormProps) {
           </CardHeader>
           <CardContent>
             <div className="flex h-64 items-center justify-center">
-              <Image src="/favicon.png" alt="" aria-hidden className="h-40 w-40 animate-breathing" width={48} height={48} />
+              <OttoLoader size={140} />
             </div>
           </CardContent>
         </Card>

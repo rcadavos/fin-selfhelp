@@ -11,6 +11,10 @@
 
 set -e
 
+# Two migrations with the same number break the auto-migration workflow: only
+# the first is applied, and every later file is stuck behind the second.
+node scripts/check-migrations.mjs
+
 # Refuses an accidental release: two version blocks in one commit, or a
 # minor/major bump whose block holds nothing marked as a feature.
 # Override a deliberate exception with OMNITRAK_ALLOW_VERSION_JUMP=1.

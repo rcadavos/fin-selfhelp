@@ -12,7 +12,7 @@ export const SERVICE_WORKER_PATH = "/sw.js";
 export const SERVICE_WORKER_SCOPE = "/";
 
 /** Icon on every push. The service worker falls back to the same file. */
-export const PUSH_NOTIFICATION_ICON = "/favicon.png";
+export const PUSH_NOTIFICATION_ICON = "/icons/otto-192.png";
 
 /**
  * How long a push service holds a push for a device that is offline. A morning

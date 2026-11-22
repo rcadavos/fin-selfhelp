@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
+import { OttoBeside } from "@/components/mascot/otto-beside";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 import { getAccountDisplayName } from "@/components/app/account-dropdown-menu";
 import {
   submitReview,
@@ -290,14 +292,17 @@ export function FeedbackBoard({ initialReview }: { initialReview: MyReviewRow | 
   return (
     <div className="mx-auto max-w-xl px-4 py-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <MessageSquarePlus className="h-6 w-6 shrink-0 text-primary" aria-hidden />
-          Review &amp; Feedback
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Share your experience or suggest new features — we read every submission.
-        </p>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <MessageSquarePlus className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+            Review &amp; Feedback
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Share your experience or suggest new features — we read every submission.
+          </p>
+        </div>
+        <OttoBeside pose="idle" size={100} label={`${MASCOT_NAME}, listening`} />
       </div>
 
       {/* Tabs */}

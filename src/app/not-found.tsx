@@ -2,6 +2,8 @@ import Link from "next/link";
 import { buildPageMetadata } from "@/lib/seo";
 import { NotFoundActions } from "@/components/pages/not-found-actions";
 import { cn } from "@/lib/utils";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 export const metadata = buildPageMetadata({
   title: "Page not found",
@@ -30,6 +32,12 @@ export default function NotFound() {
       />
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+        <OttoAnimated
+          pose="search"
+          size={170}
+          label={`${MASCOT_NAME} searching for the page through his magnifying glass`}
+          className="mb-2"
+        />
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">Error</p>
         <h1
           className={cn(

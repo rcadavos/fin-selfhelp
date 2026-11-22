@@ -35,6 +35,9 @@ import { APP_MODE_OPTIONS, type AppModeId } from "@/lib/constants/app-mode";
 import { DEFAULT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { cn } from "@/lib/utils";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { OttoSays } from "@/components/mascot/otto-says";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 type Step = "mode" | "profile" | "account" | "expense" | "done";
 
@@ -400,6 +403,9 @@ function ProfileStep({ name, setName, fixes, goals, showGoals, onToggleFix, onTo
         <p className="mt-1 text-sm text-muted-foreground">
           Let&apos;s personalize your experience. This only takes a minute.
         </p>
+        <OttoSays face className="mt-4">
+          Hi, I&rsquo;m {MASCOT_NAME}. I&rsquo;ll keep watch over your bills from here on.
+        </OttoSays>
       </div>
 
       <div className="space-y-2">
@@ -780,8 +786,11 @@ function DoneStep({ name, isBillsMode, onFinish }: { name: string; isBillsMode: 
 
   return (
     <div className="flex flex-col items-center gap-8 text-center py-4">
-      <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 ring-4 ring-primary/20">
-        <HeroIcon className="h-12 w-12 text-primary" />
+      <div className="relative">
+        <OttoAnimated pose={isBillsMode ? "remind" : "idle"} size={150} label={MASCOT_NAME} />
+        <span className="absolute -right-1 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 ring-4 ring-primary/20">
+          <HeroIcon className="h-5 w-5 text-primary" aria-hidden />
+        </span>
       </div>
 
       <div className="space-y-3">

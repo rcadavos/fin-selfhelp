@@ -39,6 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Before touching the database: a second file with the same version would
+      # be applied up to the history insert, fail, and block everything after it.
+      - name: Check migration numbers are unique
+        run: node scripts/check-migrations.mjs
+
       # Fails with something actionable instead of a bare authentication error
       # from the database. A secret that does not exist resolves to an empty
       # string in the `env` block above rather than erroring, so an unset secret

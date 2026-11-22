@@ -133,8 +133,11 @@ export function buildDefaultMetadata(): Metadata {
       template: `%s | ${SITE_NAME}`,
     },
     icons: {
-      icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
-      apple: [{ url: "/favicon.png", sizes: "180x180", type: "image/png" }],
+      icon: [
+        { url: "/icons/otto-192.png", type: "image/png", sizes: "192x192" },
+        { url: "/icons/otto-512.png", type: "image/png", sizes: "512x512" },
+      ],
+      apple: [{ url: "/icons/otto-apple-180.png", sizes: "180x180", type: "image/png" }],
     },
   };
 }

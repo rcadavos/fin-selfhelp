@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { SiteLogo } from "@/components/app/site-logo";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CtaButton } from "@/components/landing/cta-button";
+import { TRIAL_CTA_LABEL } from "@/lib/constants/landing";
 
 type HeaderProps = {
   className?: string;
@@ -76,9 +78,9 @@ export function Header({ className }: HeaderProps) {
                 <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-2.5 text-sm font-medium whitespace-nowrap text-transparent sm:px-3">
                   Log in
                 </Skeleton>
-                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-medium whitespace-nowrap text-transparent">
+                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-transparent">
                   <span className="sm:hidden">Sign up</span>
-                  <span className="hidden sm:inline">Start free 14-day trial</span>
+                  <span className="hidden sm:inline">{TRIAL_CTA_LABEL}</span>
                 </Skeleton>
               </div>
             ) : user ? (
@@ -96,12 +98,10 @@ export function Header({ className }: HeaderProps) {
                 <Button size="sm" variant="ghost" asChild className="inline-flex h-9 px-2.5 sm:px-3">
                   <Link href="/login">Log in</Link>
                 </Button>
-                <Button size="sm" asChild className="h-9 shrink-0 px-3.5">
-                  <Link href="/signup">
-                    <span className="sm:hidden">Sign up</span>
-                    <span className="hidden sm:inline">Start free 14-day trial</span>
-                  </Link>
-                </Button>
+                <CtaButton href="/signup" size="sm" arrow={false}>
+                  <span className="sm:hidden">Sign up</span>
+                  <span className="hidden sm:inline">{TRIAL_CTA_LABEL}</span>
+                </CtaButton>
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { Otto } from "@/components/mascot/otto";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, generateId, type UIMessage } from "ai";
@@ -203,14 +203,7 @@ export function ProspectChatPanel({
           </Button>
         ) : (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            <Image
-              src="/favicon.png"
-              alt=""
-              width={80}
-              height={80}
-              className="h-7 w-auto object-contain"
-              unoptimized
-            />
+            <Otto pose="face" size={28} />
           </span>
         )}
         <div className="min-w-0 flex-1">

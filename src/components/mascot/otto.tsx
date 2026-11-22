@@ -34,6 +34,24 @@ export function Otto({
   );
 }
 
+/** The loading screen: Otto's head tipping from side to side while the page loads. Decorative; the caller says "Loading". */
+export function OttoLoader({ size = 80, className }: { size?: number; className?: string }) {
+  return (
+    <span aria-hidden className={cn(s.loader, className)}>
+      <Image
+        src={ottoSrc("otto-face.svg")}
+        alt=""
+        width={size}
+        height={size}
+        unoptimized
+        priority
+        draggable={false}
+        className="select-none"
+      />
+    </span>
+  );
+}
+
 type EyeKind = "left" | "right" | "lens";
 
 /** One of his animated eyes, laid over a rig drawing (whose eyes are left white). */

@@ -8,6 +8,7 @@ import { Amount } from "@/components/passbook/amount";
 import { Stamp } from "@/components/passbook/stamp";
 import { OttoLanding } from "@/components/mascot/otto-landing";
 import { ASSISTANT_NAME, MASCOT_NAME } from "@/lib/constants/mascot";
+import { CtaButton } from "@/components/landing/cta-button";
 
 export const freeBenefits = [
   "Unlimited expense & bill rows",
@@ -211,9 +212,16 @@ export function SubscribeSection({
                 ))}
               </ul>
 
-              <Button variant={plan.variant} asChild className="mt-6 h-11 w-full">
-                <Link href={plan.cta.href}>{plan.cta.label}</Link>
-              </Button>
+              {/* The most popular plan gets the page's call-to-action button; the others stay quiet. */}
+              {plan.highlight ? (
+                <CtaButton href={plan.cta.href} size="md" className="mt-6 w-full">
+                  {plan.cta.label}
+                </CtaButton>
+              ) : (
+                <Button variant={plan.variant} asChild className="mt-6 h-11 w-full">
+                  <Link href={plan.cta.href}>{plan.cta.label}</Link>
+                </Button>
+              )}
             </div>
             </div>
           ))}

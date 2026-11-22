@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { OttoLoader } from "@/components/mascot/otto";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export type DashboardSkeletonVariant =
@@ -91,14 +91,7 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
         className
       )}
     >
-      <Image
-        src="/favicon.png"
-        alt=""
-        aria-hidden
-        className="animate-breathing"
-        width={100}
-        height={100}
-      />
+      <OttoLoader size={100} />
     </div>
   );
 }

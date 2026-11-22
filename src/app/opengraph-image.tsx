@@ -252,7 +252,7 @@ export default async function OpenGraphImage() {
   })();
 
   const [mascotBuffer, fontResults] = await Promise.all([
-    readFile(join(process.cwd(), "public", "favicon.png")),
+    readFile(join(process.cwd(), "public", "icons", "otto-512.png")),
     Promise.all(FONT_SPECS.map(loadGoogleFont)),
   ]);
   const mascotSrc = `data:image/png;base64,${mascotBuffer.toString("base64")}`;

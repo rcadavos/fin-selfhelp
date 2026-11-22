@@ -3,6 +3,9 @@ import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { OttoAnimated, OttoLoader } from "@/components/mascot/otto";
+import { OttoLanding } from "@/components/mascot/otto-landing";
+import { MASCOT_NAME, OTTO_FACE_TILT_DEG, ottoSrc } from "@/lib/constants/mascot";
 
 /**
  * Shared "Passbook" auth chrome for /login, /signup, /forgot-password and
@@ -14,22 +17,23 @@ import { cn } from "@/lib/utils";
  * (logo + one mono accessory) so brand presence never vanishes on mobile.
  */
 
-/** OmniTrak lockup for the deep-green panel: chameleon mark + wordmark in light ink. */
+/** OmniTrak lockup for the deep-green panel: Otto's head (tilted, like the logo) + wordmark in light ink. */
 function BrandLogo({ className, iconClassName }: { className?: string; iconClassName?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0 font-bold leading-none tracking-tight text-panel-accent",
+        "inline-flex items-center gap-2 font-bold leading-none tracking-tight text-panel-accent",
         className,
       )}
     >
       <Image
-        src="/favicon.png"
+        src={ottoSrc("otto-face.svg")}
         alt=""
         aria-hidden
         width={80}
         height={80}
-        className={cn("-mr-1 h-8 w-auto shrink-0 object-contain", iconClassName)}
+        className={cn("h-8 w-auto shrink-0 object-contain", iconClassName)}
+        style={{ transform: `rotate(${OTTO_FACE_TILT_DEG}deg)` }}
         priority
         unoptimized
       />
@@ -105,7 +109,12 @@ export function AuthShell({
           <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4">
             <ThemeToggle />
           </div>
-          <div className="m-auto w-full max-w-sm">{children}</div>
+          <div className="m-auto w-full max-w-sm">
+            <div className="mb-4 flex justify-center md:hidden">
+              <OttoAnimated pose="idle" size={110} label={MASCOT_NAME} />
+            </div>
+            {children}
+          </div>
         </main>
       </div>
     </div>
@@ -128,12 +137,21 @@ export function PanelStatement({
   children: React.ReactNode;
 }) {
   return (
-    <div className="surface border border-panel-foreground/15 bg-black/15 p-4" aria-label={label}>
+    <div className="relative mt-[150px]">
+      <OttoLanding
+        pose="idle"
+        size={160}
+        from="right"
+        label={`${MASCOT_NAME} flies in and lands on the statement`}
+        className="right-6"
+      />
+    <div className="relative z-[1] surface border border-panel-foreground/15 bg-black/15 p-4" aria-label={label}>
       <div className="flex items-center justify-between gap-3 border-b border-panel-foreground/15 pb-2.5">
         <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-panel-muted">{title}</span>
         <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-panel-muted">{meta}</span>
       </div>
       {children}
+    </div>
     </div>
   );
 }
@@ -178,18 +196,11 @@ export function PanelValue({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Breathing-favicon loader shared by the auth loading / redirect guards. */
+/** Otto's loader, shared by the auth loading / redirect guards. */
 export function AuthLoader() {
   return (
-    <div className="flex min-h-[60vh] flex-1 items-center justify-center">
-      <Image
-        src="/favicon.png"
-        alt=""
-        aria-hidden
-        width={80}
-        height={80}
-        className="h-20 w-20 animate-breathing"
-      />
+    <div role="status" aria-label="Loading" className="flex min-h-[60vh] flex-1 items-center justify-center">
+      <OttoLoader size={80} />
     </div>
   );
 }

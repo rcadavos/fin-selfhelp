@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { CtaButton } from "@/components/landing/cta-button";
 import { LedgerRow } from "@/components/passbook/dot-leader";
 import { Stamp } from "@/components/passbook/stamp";
 import { OttoLanding } from "@/components/mascot/otto-landing";
@@ -77,9 +76,9 @@ export function ReferralSection({ className }: { className?: string }) {
               to claim.
             </p>
 
-            <Button asChild className="mt-6 h-11 w-full sm:w-auto sm:min-w-[13rem]">
-              <Link href="/signup">Get your invite link</Link>
-            </Button>
+            <CtaButton href="/signup" size="md" className="mt-6 w-full sm:w-auto sm:min-w-[13rem]">
+              Get your invite link
+            </CtaButton>
           </div>
 
           {/* Worked example, in the app's own statement style. */}

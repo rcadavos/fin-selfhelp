@@ -5,6 +5,8 @@ import { APP_VERSION } from "@/lib/version";
 import { cn } from "@/lib/utils";
 import { ScrollText, Zap, Wrench, Flame, TrendingUp } from "lucide-react";
 import { buildPageMetadata } from "@/lib/seo";
+import { OttoBeside } from "@/components/mascot/otto-beside";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 export const metadata = buildPageMetadata({
   title: "Changelog",
@@ -52,17 +54,20 @@ export default function ChangelogPage() {
           </Link>
 
           {/* Header */}
-          <div className="mb-10 mt-6 flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <ScrollText className="h-5 w-5 text-primary" />
+          <div className="mb-10 mt-6 flex items-end justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <ScrollText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Changelog</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Release notes, bug fixes, and new features — current version{" "}
+                  <span className="font-semibold text-foreground">v{APP_VERSION}</span>
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Changelog</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Release notes, bug fixes, and new features — current version{" "}
-                <span className="font-semibold text-foreground">v{APP_VERSION}</span>
-              </p>
-            </div>
+            <OttoBeside pose="remind" size={110} label={`${MASCOT_NAME} ringing a bell for what's new`} />
           </div>
 
           {/* Legend */}

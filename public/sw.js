@@ -25,7 +25,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "OmniTrak", {
       body: data.body || "",
-      icon: data.icon || "/favicon.png",
+      icon: data.icon || "/icons/otto-192.png",
       tag,
       // A push that replaces one with the same tag still buzzes the device.
       renotify: Boolean(tag),

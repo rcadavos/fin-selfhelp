@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { ContentHeader } from "@/components/app/content-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, CreditCard, Calculator, Receipt } from "lucide-react";
+import { OttoBeside } from "@/components/mascot/otto-beside";
+import { MASCOT_NAME } from "@/lib/constants/mascot";
 
 export default function CalculatorsPage() {
   const router = useRouter();
@@ -14,6 +16,14 @@ export default function CalculatorsPage() {
         title="Calculators"
         subtitle="Plan savings, debt payoff, and more. Pick a calculator below."
         icon={Calculator}
+        actions={
+          <OttoBeside
+            pose="check"
+            size={90}
+            says="I'll crunch the numbers."
+            label={`${MASCOT_NAME} checking the numbers with his magnifying glass`}
+          />
+        }
       />
 
       <div className="grid gap-6 sm:grid-cols-2">

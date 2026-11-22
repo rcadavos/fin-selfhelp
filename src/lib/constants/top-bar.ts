@@ -10,3 +10,13 @@ export const TOP_BAR_ICON_BUTTON = {
 } as const;
 
 export type TopBarIconButtonSize = keyof typeof TOP_BAR_ICON_BUTTON;
+
+/**
+ * Placeholders for the header search. Search only jumps to pages (see `SEARCH_INDEX`),
+ * so they name pages, calculators and settings, never bills or expenses themselves.
+ * The phone header has less room, so it gets the shorter one.
+ */
+export const APP_SEARCH_PLACEHOLDER = {
+  desktop: "Search pages, calculators, settings…",
+  mobile: "Search pages & settings…",
+} as const;
