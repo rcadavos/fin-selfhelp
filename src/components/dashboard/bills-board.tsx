@@ -29,7 +29,7 @@ import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
 import { queryKeys } from "@/lib/query/keys";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { getCurrentPaidMonth, paidMonthName, shiftPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ContentHeader } from "@/components/app/content-header";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
@@ -40,9 +40,13 @@ import {
   updateBill,
   deleteBill,
   setBillSkipped,
+  carryOverBill,
+  undoBillCarryOver,
   type BillRow as BillRowModel,
   type BillsData,
 } from "@/actions/bills";
+import { billAmountDue, canCarryOverBill } from "@/lib/planned-expenses/carry-over";
+import { CarryOverDialog } from "@/components/dashboard/planned-expenses/carry-over";
 import { PartialPaymentDialog } from "@/components/dashboard/partial-payment-dialog";
 import { type AccountRow } from "@/actions/accounts";
 import {
@@ -73,11 +77,17 @@ import {
   summarisePlannedExpenses,
   summariseByCategory,
   buildAccountCoverage,
+  isClosedBucket,
   isFullyPaidBucket,
   matchesLedgerFilter,
   type LedgerFilter,
+  type PlannedExpenseRow,
 } from "@/lib/planned-expenses/grouping";
-import { CATEGORY_BREAKDOWN_LIMIT, URGENCY_LABELS } from "@/lib/constants/planned-expenses";
+import {
+  BILL_CARRY_OVER_ERRORS,
+  CATEGORY_BREAKDOWN_LIMIT,
+  URGENCY_LABELS,
+} from "@/lib/constants/planned-expenses";
 import { ExpenseRow } from "@/components/dashboard/planned-expenses/expense-row";
 import { ExpenseGroup } from "@/components/dashboard/planned-expenses/expense-group";
 import { Runway } from "@/components/dashboard/planned-expenses/runway";
@@ -103,15 +113,21 @@ function getCategoryLabel(id: string, categories: CatList): string {
 
 // ─── Export helpers ──────────────────────────────────────────────────────────
 
-function exportBillsToCSV(bills: BillRowModel[], paidIds: Set<string>, categories: CatList): void {
+/** The month's status for an export row. A carried-over bill is skipped, not paid. */
+function exportStatus(row: PlannedExpenseRow): string {
+  if (row.carryOut) return "Skipped (carried over)";
+  return row.amountPaid > 0 ? "Paid" : "Unpaid";
+}
+
+function exportBillsToCSV(billRows: PlannedExpenseRow[], categories: CatList): void {
   const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const rows = bills.map((b) => [
-    esc(b.note ?? getCategoryLabel(b.category_id, categories)),
-    esc(getCategoryLabel(b.category_id, categories)),
-    b.amount,
-    b.billing_period,
-    paidIds.has(b.id) ? "Paid" : "Unpaid",
+  const rows = billRows.map((row) => [
+    esc(row.bill.note ?? getCategoryLabel(row.bill.category_id, categories)),
+    esc(getCategoryLabel(row.bill.category_id, categories)),
+    row.amountDue,
+    row.bill.billing_period,
+    exportStatus(row),
   ].join(","));
   const csv = [headers.join(","), ...rows].join("\n");
   const link = Object.assign(document.createElement("a"), {
@@ -124,17 +140,18 @@ function exportBillsToCSV(bills: BillRowModel[], paidIds: Set<string>, categorie
   document.body.removeChild(link);
 }
 
-function exportBillsToExcel(bills: BillRowModel[], paidIds: Set<string>, categories: CatList): void {
+function exportBillsToExcel(billRows: PlannedExpenseRow[], categories: CatList): void {
   const headers = ["Name", "Category", "Amount", "Billing Period", "Status"];
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const headerRow = headers.map((h) => `<th>${esc(h)}</th>`).join("");
-  const dataRows = bills.map((b) => {
+  const dataRows = billRows.map((row) => {
+    const b = row.bill;
     const cells = [
       b.note ?? getCategoryLabel(b.category_id, categories),
       getCategoryLabel(b.category_id, categories),
-      String(b.amount),
+      String(row.amountDue),
       b.billing_period,
-      paidIds.has(b.id) ? "Paid" : "Unpaid",
+      exportStatus(row),
     ].map((v) => `<td>${esc(v)}</td>`).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
@@ -154,26 +171,24 @@ function exportBillsToExcel(bills: BillRowModel[], paidIds: Set<string>, categor
 function CategoriesDialog({
   open,
   onClose,
-  bills,
-  paymentAmountByBillId,
+  rows,
   currency,
   categories,
 }: {
   open: boolean;
   onClose: () => void;
-  bills: BillRowModel[];
-  paymentAmountByBillId: Record<string, number>;
+  rows: PlannedExpenseRow[];
   currency: string;
   categories: CatList;
 }) {
   const grouped = useMemo(
     () =>
-      summariseByCategory(bills, paymentAmountByBillId).map(({ categoryId, ...v }) => ({
+      summariseByCategory(rows).map(({ categoryId, ...v }) => ({
         id: categoryId,
         label: getCategoryLabel(categoryId, categories),
         ...v,
       })),
-    [bills, paymentAmountByBillId, categories]
+    [rows, categories]
   );
 
   return (
@@ -254,6 +269,9 @@ export function BillsBoard() {
   const [heroDismissed, setHeroDismissed] = useState(false);
   const [editingBill, setEditingBill] = useState<BillRowModel | null>(null);
   const [partialBill, setPartialBill] = useState<BillRowModel | null>(null);
+  const [carryRow, setCarryRow] = useState<PlannedExpenseRow | null>(null);
+  const [carryError, setCarryError] = useState<string | null>(null);
+  const [carryPending, setCarryPending] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [toggleError, setToggleError] = useState<
@@ -302,10 +320,6 @@ export function BillsBoard() {
   const currency = prefsQuery.data?.currency ?? DEFAULT_USER_PREFERENCES.currency;
 
   const bills = useMemo(() => billsDataQuery.data?.bills ?? [], [billsDataQuery.data?.bills]);
-  const paidIds = useMemo(
-    () => new Set(billsDataQuery.data?.paidBillIds ?? []),
-    [billsDataQuery.data?.paidBillIds]
-  );
   const failedIds = useMemo(
     () => new Set(billsDataQuery.data?.failedBillIds ?? []),
     [billsDataQuery.data?.failedBillIds]
@@ -322,6 +336,27 @@ export function BillsBoard() {
     () => new Set(billsDataQuery.data?.skippedBillIds ?? []),
     [billsDataQuery.data?.skippedBillIds]
   );
+  const carriedInByBillId = useMemo(
+    () => billsDataQuery.data?.carriedInByBillId ?? {},
+    [billsDataQuery.data?.carriedInByBillId]
+  );
+  const carriedOutByBillId = useMemo(
+    () => billsDataQuery.data?.carriedOutByBillId ?? {},
+    [billsDataQuery.data?.carriedOutByBillId]
+  );
+  /** The month a bill viewed here would carry over into, e.g. "2026-12" • "December". */
+  const nextMonth = useMemo(() => shiftPaidMonth(paidMonth, 1), [paidMonth]);
+  const nextMonthLabel = nextMonth ? paidMonthName(nextMonth) : null;
+  const carryTargetFor = (row: PlannedExpenseRow): string | null =>
+    canCarryOverBill({
+      billingPeriod: row.bill.billing_period,
+      endDate: row.bill.end_date,
+      outstanding: row.outstanding,
+      isCarriedOut: row.carryOut !== null,
+      toMonth: nextMonth,
+    })
+      ? nextMonthLabel
+      : null;
   const lockedFreeReminderBillId = billsDataQuery.data?.lockedFreeReminderBillId;
   const freeReminderUsed = useMemo(
     () => bills.filter((b) => b.reminder_days_before && b.reminder_days_before.length > 0).length,
@@ -338,9 +373,11 @@ export function BillsBoard() {
         paymentAmountByBillId,
         paidAtByBillId,
         failedBillIds: failedIds,
+        carriedInByBillId,
+        carriedOutByBillId,
         paidMonth,
       }),
-    [bills, paymentAmountByBillId, paidAtByBillId, failedIds, paidMonth]
+    [bills, paymentAmountByBillId, paidAtByBillId, failedIds, carriedInByBillId, carriedOutByBillId, paidMonth]
   );
   const groups = useMemo(() => groupPlannedExpenses(rows), [rows]);
   const summary = useMemo(() => summarisePlannedExpenses(rows), [rows]);
@@ -378,8 +415,8 @@ export function BillsBoard() {
   // Part-paid bills stay out of it: you have already acted on them, and their balance
   // still shows in the list below. Bills skipped for this month stay out of it too.
   // So do bills auto-debit will pay (full app, wide screens): they only need you once
-  // a debit has failed.
-  const unsettled = useMemo(() => rows.filter((r) => !isFullyPaidBucket(r.bucket)), [rows]);
+  // a debit has failed. Bills carried over to next month are done with for this one.
+  const unsettled = useMemo(() => rows.filter((r) => !isClosedBucket(r.bucket)), [rows]);
   const unpaid = useMemo(() => unsettled.filter((r) => r.amountPaid <= 0), [unsettled]);
   const needsYou = useMemo(
     () =>
@@ -419,9 +456,10 @@ export function BillsBoard() {
     (): Record<LedgerFilter, number> => ({
       all: rows.length,
       unpaid: unsettled.length,
-      paid: rows.length - unsettled.length,
+      // Not rows minus unsettled: carried-over bills are in neither tab.
+      paid: rows.filter((r) => isFullyPaidBucket(r.bucket)).length,
     }),
-    [rows.length, unsettled.length]
+    [rows, unsettled.length]
   );
   const ledgerEmptyMessage =
     ledgerGroups.length > 0
@@ -438,7 +476,7 @@ export function BillsBoard() {
 
   const categoryItems = useMemo(
     () =>
-      summariseByCategory(bills, paymentAmountByBillId).map((s) => ({
+      summariseByCategory(rows).map((s) => ({
         id: s.categoryId,
         label: getCategoryLabel(s.categoryId, categories),
         color: getCategoryDotColor(categories.find((c) => c.id === s.categoryId)?.bgClass ?? ""),
@@ -446,11 +484,68 @@ export function BillsBoard() {
         paid: s.paid,
         count: s.count,
       })),
-    [bills, paymentAmountByBillId, categories]
+    [rows, categories]
   );
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+  }
+
+  /** A carry-over changes this month and the next, so both cached months go stale. */
+  function invalidateCarryMonths() {
+    invalidate();
+    if (nextMonth) queryClient.invalidateQueries({ queryKey: queryKeys.billData(nextMonth) });
+  }
+
+  function openCarryOver(row: PlannedExpenseRow) {
+    setToggleError(null);
+    setCarryError(null);
+    setCarryRow(row);
+  }
+
+  async function handleCarryOver(note: string) {
+    if (!carryRow) return;
+    const billId = carryRow.bill.id;
+    setCarryPending(true);
+    setCarryError(null);
+    const res = await carryOverBill(billId, paidMonth, note);
+    setCarryPending(false);
+    if (res.error || !res.carryOver) {
+      setCarryError(BILL_CARRY_OVER_ERRORS[res.error ?? ""] ?? res.error ?? "Couldn't carry that bill over. Try again.");
+      return;
+    }
+    const carryOut = res.carryOver;
+    // Move the row into Carried at once; the refetch below confirms it.
+    queryClient.setQueryData<BillsData | null>(queryKeys.billData(paidMonth), (old) =>
+      old ? { ...old, carriedOutByBillId: { ...old.carriedOutByBillId, [billId]: carryOut } } : old
+    );
+    setCarryRow(null);
+    invalidateCarryMonths();
+  }
+
+  /** Optimistic: the bill is due here again at once, and rolls back if the undo is refused. */
+  async function handleUndoCarryOver(billId: string) {
+    const queryKey = queryKeys.billData(paidMonth);
+    const snapshot = queryClient.getQueryData(queryKey);
+    queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
+      if (!old) return old;
+      const next = { ...old.carriedOutByBillId };
+      delete next[billId];
+      return { ...old, carriedOutByBillId: next };
+    });
+    setToggleError(null);
+    setPendingIds((prev) => new Set(prev).add(billId));
+    const res = await undoBillCarryOver(billId, paidMonth);
+    setPendingIds((prev) => { const s = new Set(prev); s.delete(billId); return s; });
+    if (res.error) {
+      queryClient.setQueryData(queryKey, snapshot);
+      setToggleError({
+        kind: "generic",
+        message: BILL_CARRY_OVER_ERRORS[res.error] ?? "Couldn't undo that carry-over. Try again.",
+      });
+      return;
+    }
+    invalidateCarryMonths();
   }
 
   /** Optimistic: the panel moves on (or back) at once and rolls back if the save fails. */
@@ -480,7 +575,9 @@ export function BillsBoard() {
     queryClient.setQueryData<BillsData | null>(queryKey, (old) => {
       if (!old) return old;
       const wasPaid = old.paidBillIds.includes(billId);
-      const billAmount = old.bills.find((b) => b.id === billId)?.amount ?? 0;
+      const bill = old.bills.find((b) => b.id === billId);
+      // The server pays the month's full amount, carried-in balance included.
+      const billAmount = bill ? billAmountDue(bill, old.carriedInByBillId) : 0;
       if (wasPaid) {
         const nextAmounts = { ...old.paymentAmountByBillId };
         delete nextAmounts[billId];
@@ -522,7 +619,7 @@ export function BillsBoard() {
           billNote: bill?.note?.trim() || getCategoryLabel(bill?.category_id ?? "", categories),
         });
       } else {
-        setToggleError({ kind: "generic", message: res.error });
+        setToggleError({ kind: "generic", message: BILL_CARRY_OVER_ERRORS[res.error] ?? res.error });
       }
     } else {
       invalidate();
@@ -546,7 +643,7 @@ export function BillsBoard() {
       return;
     }
     if (res.error) {
-      setToggleError({ kind: "generic", message: res.error });
+      setToggleError({ kind: "generic", message: BILL_CARRY_OVER_ERRORS[res.error] ?? res.error });
       return;
     }
     setPartialBill(null);
@@ -691,10 +788,10 @@ export function BillsBoard() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportBillsToCSV(bills, paidIds, categories)}>
+                <DropdownMenuItem onClick={() => exportBillsToCSV(rows, categories)}>
                   Export as CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportBillsToExcel(bills, paidIds, categories)}>
+                <DropdownMenuItem onClick={() => exportBillsToExcel(rows, categories)}>
                   Export as Excel
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -772,6 +869,8 @@ export function BillsBoard() {
                     onEdit={() => heroRow && setEditingBill(heroRow.bill)}
                     onSkip={() => heroRow && handleSetSkipped(heroRow.bill.id, true)}
                     onUnskip={(billId) => handleSetSkipped(billId, false)}
+                    carryTargetLabel={heroRow ? carryTargetFor(heroRow) : null}
+                    onCarryOver={() => heroRow && openCarryOver(heroRow)}
                   />
                 </div>
               )}
@@ -885,7 +984,9 @@ export function BillsBoard() {
                   const label =
                     group.bucket === "later"
                       ? `Later in ${monthMeta.monthLabel}`
-                      : URGENCY_LABELS[group.bucket][labelVariant];
+                      : group.bucket === "carried" && nextMonthLabel
+                        ? `Carried to ${nextMonthLabel}`
+                        : URGENCY_LABELS[group.bucket][labelVariant];
                   return (
                     <ExpenseGroup
                       key={group.bucket}
@@ -925,8 +1026,11 @@ export function BillsBoard() {
                             }
                             isLockedFreeReminder={row.bill.id === lockedFreeReminderBillId}
                             isPending={pendingIds.has(row.bill.id)}
+                            carryTargetLabel={carryTargetFor(row)}
                             onToggle={() => handleToggle(row.bill.id)}
                             onPartialClick={() => { setToggleError(null); setPartialBill(row.bill); }}
+                            onCarryOver={() => openCarryOver(row)}
+                            onUndoCarryOver={() => handleUndoCarryOver(row.bill.id)}
                             onEdit={() => setEditingBill(row.bill)}
                             onDelete={() => setDeletingId(row.bill.id)}
                           />
@@ -944,8 +1048,7 @@ export function BillsBoard() {
       <CategoriesDialog
         open={categoriesOpen}
         onClose={() => setCategoriesOpen(false)}
-        bills={bills}
-        paymentAmountByBillId={paymentAmountByBillId}
+        rows={rows}
         currency={currency}
         categories={categories}
       />
@@ -985,10 +1088,26 @@ export function BillsBoard() {
           open={!!partialBill}
           onClose={() => setPartialBill(null)}
           billLabel={partialBill.note ?? getCategoryLabel(partialBill.category_id, categories)}
-          billAmount={partialBill.amount}
+          billAmount={billAmountDue(partialBill, carriedInByBillId)}
           alreadyPaid={paymentAmountByBillId[partialBill.id] ?? 0}
           onSubmit={handlePartialSubmit}
           isPending={isPending}
+        />
+      )}
+
+      {carryRow && nextMonth && (
+        <CarryOverDialog
+          open={!!carryRow}
+          onClose={() => setCarryRow(null)}
+          billLabel={carryRow.bill.note ?? getCategoryLabel(carryRow.bill.category_id, categories)}
+          billAmount={carryRow.bill.amount}
+          outstanding={carryRow.outstanding}
+          fromMonth={paidMonth}
+          toMonth={nextMonth}
+          currency={currency}
+          onSubmit={handleCarryOver}
+          isPending={carryPending}
+          error={carryError}
         />
       )}
 

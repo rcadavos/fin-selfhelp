@@ -40,7 +40,7 @@ export function DayRunway({
   const [openDay, setOpenDay] = useState<number | null>(null);
   const daysInMonth = new Date(year, month0 + 1, 0).getDate();
   const byDay = rowsByDueDay(rows);
-  const dayTotal = (day: number) => (byDay.get(day) ?? []).reduce((sum, r) => sum + r.bill.amount, 0);
+  const dayTotal = (day: number) => (byDay.get(day) ?? []).reduce((sum, r) => sum + r.amountDue, 0);
   let heaviest = 0;
   for (let day = 1; day <= daysInMonth; day++) heaviest = Math.max(heaviest, dayTotal(day));
 

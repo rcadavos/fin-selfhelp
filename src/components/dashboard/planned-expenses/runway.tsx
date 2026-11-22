@@ -25,6 +25,8 @@ const MARKER_TONE: Record<PlannedExpenseStatus, string> = {
   due: "bg-warning",
   scheduled: "border-[1.5px] border-hairline-strong bg-card",
   paid: "border-[1.5px] border-primary/55 bg-primary/25",
+  // Never drawn (carried bills leave the runway); here so every status has a tone.
+  carried: "border-[1.5px] border-dashed border-hairline-strong bg-card",
 };
 
 function markerSize(amount: number, largest: number): string {
@@ -51,9 +53,10 @@ export function Runway({
   /** Day-of-month for the "today" marker, or null when viewing another month. */
   todayDay: number | null;
 }) {
-  const largest = rows.reduce((max, r) => Math.max(max, r.bill.amount), 0);
+  // A bill carried over to next month no longer lands in this one.
+  const positioned = rows.filter((r) => r.due !== null && !r.carryOut);
+  const largest = positioned.reduce((max, r) => Math.max(max, r.amountDue), 0);
   const span = Math.max(1, daysInMonth - 1);
-  const positioned = rows.filter((r) => r.due !== null);
   const ticks = [1, 8, 15, 22, daysInMonth];
 
   return (
@@ -103,7 +106,7 @@ export function Runway({
               title={`${row.bill.note ?? ""} · ${row.due?.getDate()} ${monthLabel}`}
               className={cn(
                 "absolute top-[38px] -translate-x-1/2 -translate-y-1/2 rounded-full",
-                markerSize(row.bill.amount, largest),
+                markerSize(row.amountDue, largest),
                 MARKER_TONE[row.status],
               )}
               style={{ left: `${(((row.due?.getDate() ?? 1) - 1) / span) * 100}%` }}

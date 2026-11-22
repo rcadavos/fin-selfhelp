@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { AlarmClock, Bell, CalendarOff, ChevronDown, Lock, Trash2 } from "lucide-react";
+import { AlarmClock, Bell, CalendarOff, ChevronDown, Lock, Repeat, Trash2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
 import { Button } from "@/components/ui/button";
 import type { ReminderDraft } from "@/hooks/use-reminders";
@@ -13,16 +13,22 @@ import {
 import {
   dayHeading,
   dayOfMonth,
-  dueLabel,
   longDateLabel,
   reminderCategoryLabel,
   weekdayShortLabel,
   type ReminderGroups,
   type ReminderWeekDay,
 } from "@/lib/reminders/schedule";
+import { formatTimeLabel } from "@/lib/reminders/time";
 import type { ToBuyItem } from "@/lib/to-buy-storage";
 import { cn } from "@/lib/utils";
-import { ReminderCheckButton, ReminderLockedRow } from "./reminder-parts";
+import {
+  ReminderCheckButton,
+  ReminderLockedRow,
+  ReminderMeta,
+  isLateToday,
+  repeatShortLabel,
+} from "./reminder-parts";
 import { ReminderQuickAdd } from "./reminder-quick-add";
 
 type RowHandlers = {
@@ -33,7 +39,18 @@ type RowHandlers = {
   onDelete: (id: string) => void;
 };
 
-function TimelineRow({ item, selectedId, lockedIds, onToggle, onSelect, onDelete }: { item: ToBuyItem } & RowHandlers) {
+type RowContext = RowHandlers & { todayYmd: string; nowMinutes: number };
+
+function TimelineRow({
+  item,
+  selectedId,
+  lockedIds,
+  todayYmd,
+  nowMinutes,
+  onToggle,
+  onSelect,
+  onDelete,
+}: { item: ToBuyItem } & RowContext) {
   if (lockedIds.has(item.id)) {
     return (
       <li className="border-t border-border">
@@ -42,6 +59,7 @@ function TimelineRow({ item, selectedId, lockedIds, onToggle, onSelect, onDelete
     );
   }
   const selected = item.id === selectedId;
+  const repeat = repeatShortLabel(item);
   return (
     <li
       className={cn(
@@ -64,8 +82,22 @@ function TimelineRow({ item, selectedId, lockedIds, onToggle, onSelect, onDelete
         >
           {item.name}
         </span>
+        {repeat ? (
+          <span title={`Repeats ${repeat.toLowerCase()}`} className="shrink-0 text-muted-foreground">
+            <Repeat className="size-3.5" aria-hidden />
+            <span className="sr-only">Repeats {repeat.toLowerCase()}</span>
+          </span>
+        ) : null}
         <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[11.5px] font-medium text-muted-foreground">
           {reminderCategoryLabel(item.category)}
+        </span>
+        <span
+          className={cn(
+            "w-[4.75rem] shrink-0 text-right font-mono text-[12.5px]",
+            isLateToday(item, todayYmd, nowMinutes) ? "text-warning" : "text-muted-foreground"
+          )}
+        >
+          {formatTimeLabel(item.targetTime)}
         </span>
       </button>
       {item.checked ? (
@@ -88,7 +120,7 @@ function TimelineGroup({
   meta,
   items,
   ...handlers
-}: { marker: ReactNode; heading: string; meta: string; items: ToBuyItem[] } & RowHandlers) {
+}: { marker: ReactNode; heading: string; meta: string; items: ToBuyItem[] } & RowContext) {
   return (
     <div className="flex gap-4 pt-4 first:pt-3">
       <div className="flex w-12 shrink-0 flex-col items-center pt-0.5">{marker}</div>
@@ -136,6 +168,7 @@ function leftLabel(items: ToBuyItem[]): string {
  */
 export function ReminderTimelineView({
   todayYmd,
+  nowMinutes,
   locale,
   groups,
   week,
@@ -145,9 +178,10 @@ export function ReminderTimelineView({
   onSnooze,
   onClearDone,
   detail,
-  ...handlers
+  ...rowHandlers
 }: {
   todayYmd: string;
+  nowMinutes: number;
   locale: string;
   groups: ReminderGroups;
   week: ReminderWeekDay[];
@@ -161,6 +195,7 @@ export function ReminderTimelineView({
 } & RowHandlers) {
   const [showDone, setShowDone] = useState(false);
   const [showAllDone, setShowAllDone] = useState(false);
+  const handlers: RowContext = { ...rowHandlers, todayYmd, nowMinutes };
 
   const openCount =
     groups.overdue.length +
@@ -178,7 +213,14 @@ export function ReminderTimelineView({
   return (
     <div>
       <ContentHeader title="Reminders" subtitle={subtitle} icon={Bell} />
-      <ReminderQuickAdd todayYmd={todayYmd} locale={locale} hasPro={hasPro} usedCount={usedCount} onAdd={onAdd} />
+      <ReminderQuickAdd
+        todayYmd={todayYmd}
+        nowMinutes={nowMinutes}
+        locale={locale}
+        hasPro={hasPro}
+        usedCount={usedCount}
+        onAdd={onAdd}
+      />
 
       <div className="mt-5 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-4">
@@ -201,9 +243,15 @@ export function ReminderTimelineView({
                     <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5">
                       <button type="button" onClick={() => handlers.onSelect(item.id)} className="min-w-[12rem] flex-1 text-left">
                         <span className="block font-semibold">{item.name}</span>
-                        <span className="block text-[13px] text-warning">
-                          {reminderCategoryLabel(item.category)} • {dueLabel(item.targetDate, todayYmd, locale)}
-                        </span>
+                        <ReminderMeta
+                          item={item}
+                          todayYmd={todayYmd}
+                          nowMinutes={nowMinutes}
+                          locale={locale}
+                          showDue
+                          warning
+                          className="block text-[13px]"
+                        />
                       </button>
                       <Button
                         variant="outline"

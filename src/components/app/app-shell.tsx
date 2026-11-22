@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { DesktopSearch } from "@/components/app/app-search";
 import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TextSizeMenu } from "@/components/text-size-menu";
 import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { BottomNavbar } from "@/components/app/bottom-navbar";
 import { AppModeGuard } from "@/components/app/app-mode-guard";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { AiChatWidget } from "@/components/app/ai-chat-widget";
+import { BillsModeToggle } from "@/components/app/bills-mode-toggle";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -33,21 +35,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {showAuthenticatedShell ? (
           <header
-            className="relative z-10 hidden h-14 shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:block"
+            className="relative z-10 hidden h-14 shrink-0 grid-cols-[1fr_minmax(0,28rem)_1fr] items-center gap-3 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-4 md:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]"
             aria-label="App toolbar"
           >
-            {/* Centered search — pointer-events layer so it doesn't block the right-side buttons */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 sm:px-20 md:px-28">
-              <div className="pointer-events-auto w-72 md:w-[28rem] lg:w-[36rem]">
-                <DesktopSearch />
-              </div>
+            {/* Equal side columns keep the search centered; it shrinks before it overlaps them. */}
+            <div className="flex items-center justify-start">
+              <BillsModeToggle />
             </div>
-            {/* Right actions */}
-            <div className="pointer-events-none relative z-10 flex h-full items-center justify-end px-3 sm:px-4">
-              <div className="pointer-events-auto flex items-center gap-1">
-                <ThemeToggle />
-                <NotificationsMenu />
-              </div>
+            <DesktopSearch />
+            <div className="flex items-center justify-end gap-1">
+              <TextSizeMenu />
+              <ThemeToggle />
+              <NotificationsMenu />
             </div>
           </header>
         ) : null}

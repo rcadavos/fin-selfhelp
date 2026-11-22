@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { fetchProfileIdsWithFeatureOff } from "@/lib/app-mode-server";
 import { getDueDayOfMonthFromYmd, getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { roundMoney } from "@/lib/planned-expenses/carry-over";
 
 function todayLocalYmd(now: Date): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -72,11 +73,32 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `App mode lookup failed — ${modeErr}` }, { status: 500 });
   }
 
+  // Carry-overs touching this month: a bill carried out of it is skipped (its balance
+  // moved to next month), and one carried into it owes that balance on top. Fail
+  // CLOSED: without this, a bill the user skipped would be debited anyway.
+  const { data: carryRows, error: carryErr } = await supabase
+    .from("bill_carryovers")
+    .select("bill_id, from_month, to_month, amount")
+    .or(`from_month.eq.${paidMonth},to_month.eq.${paidMonth}`);
+  if (carryErr) {
+    return NextResponse.json({ error: `Carry-over lookup failed — ${carryErr.message}` }, { status: 500 });
+  }
+  const carriedOutBillIds = new Set<string>();
+  const carriedInByBillId = new Map<string, number>();
+  for (const row of carryRows ?? []) {
+    const billId = String(row.bill_id);
+    if (row.from_month === paidMonth) carriedOutBillIds.add(billId);
+    if (row.to_month === paidMonth) {
+      carriedInByBillId.set(billId, (carriedInByBillId.get(billId) ?? 0) + Number(row.amount ?? 0));
+    }
+  }
+
   let marked = 0;
   let markedFailed = 0;
   let skippedAlreadyPaid = 0;
   let skippedNotDueToday = 0;
   let skippedModeDisabled = 0;
+  let skippedCarriedOver = 0;
   const errors: string[] = [];
 
   /**
@@ -133,6 +155,13 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // Carried over to next month: skipped this month, so nothing is debited. Never a
+    // recordFailure() — no attempt was made, and none is owed.
+    if (carriedOutBillIds.has(String(bill.id))) {
+      skippedCarriedOver++;
+      continue;
+    }
+
     // Skip if already paid for this month. A 'failed' row from an earlier
     // attempt does NOT block the retry — it will be overwritten on success
     // or replaced with a fresh failure reason via the same upsert key.
@@ -149,7 +178,8 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const billAmount = Number(bill.amount);
+    // This month's full amount: the bill's own plus anything carried in from last month.
+    const billAmount = roundMoney(Number(bill.amount) + (carriedInByBillId.get(String(bill.id)) ?? 0));
     const accountId = (bill.account_id as string | null) ?? null;
 
     // Balance check when account is linked
@@ -246,6 +276,7 @@ export async function GET(request: Request) {
     skippedAlreadyPaid,
     skippedNotDueToday,
     skippedModeDisabled,
+    skippedCarriedOver,
     errors: errors.length ? errors : undefined,
   });
 }

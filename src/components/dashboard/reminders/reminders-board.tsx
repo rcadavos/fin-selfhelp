@@ -9,16 +9,23 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useReminders } from "@/hooks/use-reminders";
-import { useTodayYmd } from "@/hooks/use-today-ymd";
+import { useLocalClock } from "@/hooks/use-local-clock";
+import { useSnackbar } from "@/components/ui/snackbar-provider";
 import {
   REMINDER_PRO_DIALOG,
   REMINDER_WEEK_LENGTH,
   type ReminderSnoozeOption,
 } from "@/lib/constants/reminders";
 import { subscriptionCapabilitiesQueryOptions } from "@/lib/query/subscription-user";
-import { buildReminderWeek, groupReminders, reminderLocale, snoozeTargetYmd } from "@/lib/reminders/schedule";
+import {
+  buildReminderWeek,
+  groupReminders,
+  reminderLocale,
+  shortDateLabel,
+  snoozeTargetYmd,
+} from "@/lib/reminders/schedule";
 import { FREE_TIER_MAX_LIST_ITEMS } from "@/lib/subscription-tier";
-import type { ToBuyCategory, ToBuyItem } from "@/lib/to-buy-storage";
+import type { ReminderRepeat, ToBuyCategory, ToBuyItem } from "@/lib/to-buy-storage";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import { ReminderDetails } from "./reminder-details";
 import { ReminderFocusView } from "./reminder-focus-view";
@@ -29,14 +36,15 @@ import { ReminderTimelineView } from "./reminder-timeline-view";
  * Timeline with a details column. Both read the same list and share every action.
  */
 export function RemindersBoard() {
-  const todayYmd = useTodayYmd();
-  // "Today" depends on the viewer's timezone, which the server doesn't know.
-  if (!todayYmd) return <DashboardSkeleton variant="page" />;
-  return <RemindersBoardContent todayYmd={todayYmd} />;
+  const clock = useLocalClock();
+  // "Today" and "now" depend on the viewer's timezone, which the server doesn't know.
+  if (!clock) return <DashboardSkeleton variant="page" />;
+  return <RemindersBoardContent todayYmd={clock.todayYmd} nowMinutes={clock.nowMinutes} />;
 }
 
-function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
-  const { items, add, update, toggle, remove } = useReminders();
+function RemindersBoardContent({ todayYmd, nowMinutes }: { todayYmd: string; nowMinutes: number }) {
+  const { items, add, update, toggle: toggleItem, remove } = useReminders();
+  const { showSuccess } = useSnackbar();
   const { data: capabilities } = useSuspenseQuery(subscriptionCapabilitiesQueryOptions());
   const hasPro = Boolean(capabilities?.hasProLevelAccess);
   const prefs = useUserPreferencesOptional()?.preferences ?? DEFAULT_USER_PREFERENCES;
@@ -75,6 +83,16 @@ function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
 
   const requirePro = useCallback(() => setProOpen(true), []);
 
+  /** Ticking off a repeating reminder moves it on rather than finishing it, so say where it went. */
+  const toggle = useCallback(
+    (id: string) => {
+      const next = toggleItem(id, todayYmd);
+      if (next) showSuccess(`Done. The next one is ${shortDateLabel(next, locale)}.`);
+    },
+    [toggleItem, todayYmd, showSuccess, locale]
+  );
+
+  // Snoozing moves this occurrence only; the repeat keeps counting from its anchor.
   const snooze = useCallback(
     (id: string, option: ReminderSnoozeOption) => {
       if (!hasPro) return requirePro();
@@ -83,12 +101,36 @@ function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
     [hasPro, requirePro, update, todayYmd]
   );
 
+  // Picking a date by hand re-bases a repeat on it; clearing the date drops its time and repeat.
   const setDate = useCallback(
     (id: string, ymd: string | null) => {
       if (!hasPro) return requirePro();
-      update(id, { targetDate: ymd });
+      const item = items.find((it) => it.id === id);
+      if (!ymd) update(id, { targetDate: null, targetTime: null, repeat: null, repeatAnchor: null });
+      else update(id, { targetDate: ymd, repeatAnchor: item?.repeat ? ymd : null });
     },
-    [hasPro, requirePro, update]
+    [hasPro, requirePro, update, items]
+  );
+
+  // A time or a repeat needs a day; an undated reminder gets today.
+  const setTime = useCallback(
+    (id: string, hhmm: string | null) => {
+      if (!hasPro) return requirePro();
+      const item = items.find((it) => it.id === id);
+      update(id, { targetTime: hhmm, ...(hhmm && !item?.targetDate ? { targetDate: todayYmd } : {}) });
+    },
+    [hasPro, requirePro, update, items, todayYmd]
+  );
+
+  const setRepeat = useCallback(
+    (id: string, repeat: ReminderRepeat | null) => {
+      if (!hasPro) return requirePro();
+      const item = items.find((it) => it.id === id);
+      if (!repeat) return update(id, { repeat: null, repeatAnchor: null });
+      const date = item?.targetDate || todayYmd;
+      update(id, { repeat, targetDate: date, repeatAnchor: date });
+    },
+    [hasPro, requirePro, update, items, todayYmd]
   );
 
   const select = useCallback(
@@ -125,6 +167,8 @@ function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
         onRename={(name) => update(item.id, { name })}
         onCategory={(category) => update(item.id, { category })}
         onSetDate={(ymd) => setDate(item.id, ymd)}
+        onSetTime={(hhmm) => setTime(item.id, hhmm)}
+        onSetRepeat={(repeat) => setRepeat(item.id, repeat)}
         onSnooze={(option) => {
           snooze(item.id, option);
           if (hasPro) closeSheet();
@@ -149,6 +193,7 @@ function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
       <div className="md:hidden">
         <ReminderFocusView
           todayYmd={todayYmd}
+          nowMinutes={nowMinutes}
           locale={locale}
           groups={groups}
           week={week}
@@ -170,6 +215,7 @@ function RemindersBoardContent({ todayYmd }: { todayYmd: string }) {
       <div className="hidden md:block">
         <ReminderTimelineView
           todayYmd={todayYmd}
+          nowMinutes={nowMinutes}
           locale={locale}
           groups={groups}
           week={week}

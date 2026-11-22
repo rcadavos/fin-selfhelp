@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Schibsted_Grotesk } from "next/font/google";
+import Script from "next/script";
 import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { buildDefaultMetadata, getBaseUrl } from "@/lib/seo";
+import { TEXT_SIZE_INIT_SCRIPT } from "@/lib/text-size";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ScrollToTopButton } from "@/components/app/scroll-to-top-button";
@@ -77,6 +79,12 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        {/* The saved text size (the Aa menu), set on <html> before the app hydrates. */}
+        <Script
+          id="text-size"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: TEXT_SIZE_INIT_SCRIPT }}
         />
         <Providers>
           <HydrationBoundary>

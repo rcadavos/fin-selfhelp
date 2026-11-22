@@ -6,17 +6,27 @@ import { replaceMyToDoOnServer } from "@/actions/to-do-db";
 import { useUser } from "@/hooks/use-user";
 import { queryKeys } from "@/lib/query/keys";
 import { orderItemsLikeNotes, toDoItemsQueryOptions } from "@/lib/query/to-buy-to-do-lists";
+import { nextDateAfterCompleting } from "@/lib/reminders/repeat";
 import {
   clearToDoLocalStorage,
   generateToBuyItemId,
   saveToDoItems,
+  type ReminderRepeat,
   type ToBuyCategory,
   type ToBuyItem,
 } from "@/lib/to-buy-storage";
 
-export type ReminderDraft = { name: string; category: ToBuyCategory; targetDate: string | null };
+export type ReminderDraft = {
+  name: string;
+  category: ToBuyCategory;
+  targetDate: string | null;
+  targetTime: string | null;
+  repeat: ReminderRepeat | null;
+};
 
-export type ReminderPatch = Partial<Pick<ToBuyItem, "name" | "category" | "checked" | "targetDate">>;
+export type ReminderPatch = Partial<
+  Pick<ToBuyItem, "name" | "category" | "checked" | "targetDate" | "targetTime" | "repeat" | "repeatAnchor">
+>;
 
 /**
  * The reminders list with optimistic edits. Each change updates the cache at once and then
@@ -71,6 +81,9 @@ export function useReminders() {
           category: draft.category,
           checked: false,
           targetDate: draft.targetDate,
+          targetTime: draft.targetDate ? draft.targetTime : null,
+          repeat: draft.targetDate ? draft.repeat : null,
+          repeatAnchor: draft.targetDate && draft.repeat ? draft.targetDate : null,
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -85,9 +98,23 @@ export function useReminders() {
     [persist, current]
   );
 
+  /**
+   * Marks a reminder done or not done. Checking off a repeating one moves it to its next
+   * date and leaves it open instead; that date is returned so the caller can say so.
+   */
   const toggle = useCallback(
-    (id: string) => {
-      persist(current().map((it) => (it.id === id ? { ...it, checked: !it.checked } : it)));
+    (id: string, todayYmd: string): string | null => {
+      const list = current();
+      const item = list.find((it) => it.id === id);
+      if (!item) return null;
+      const next = item.checked ? null : nextDateAfterCompleting(item, todayYmd);
+      persist(
+        list.map((it) => {
+          if (it.id !== id) return it;
+          return next ? { ...it, targetDate: next } : { ...it, checked: !it.checked };
+        })
+      );
+      return next;
     },
     [persist, current]
   );

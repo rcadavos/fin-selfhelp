@@ -4,7 +4,7 @@ import { useAppMode } from "@/hooks/use-app-mode";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Bell,
@@ -12,9 +12,11 @@ import {
   CalendarClock,
   CheckCircle2,
   Circle,
+  Forward,
   Pencil,
   PiggyBank,
   Trash2,
+  Undo2,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -29,14 +31,21 @@ import {
   type BillFormState,
 } from "@/components/dashboard/planned-expense-form-dialog";
 import {
+  carryOverBill,
   deleteBill,
   markBillPaid,
   toggleBillPayment,
+  undoBillCarryOver,
   unmarkBillPaid,
   updateBill,
+  type BillCarryOverHistoryRow,
+  type BillPaymentHistoryRow,
   type BillRow,
 } from "@/actions/bills";
 import { PartialPaymentDialog } from "@/components/dashboard/partial-payment-dialog";
+import { CarryOverDialog, CarryOverNote } from "@/components/dashboard/planned-expenses/carry-over";
+import { billAmountDue, canCarryOverBill, roundMoney } from "@/lib/planned-expenses/carry-over";
+import { BILL_CARRY_OVER_ERRORS } from "@/lib/constants/planned-expenses";
 import {
   billsDataQueryOptions,
   billPaymentsHistoryQueryOptions,
@@ -46,7 +55,7 @@ import { accountsQueryOptions } from "@/lib/query/accounts";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { getCurrentPaidMonth, paidMonthName, shiftPaidMonth } from "@/lib/paid-month";
 import {
   effectiveDueDateInPaidMonth,
   getDueDayOfMonthFromYmd,
@@ -112,6 +121,40 @@ function formatPaidAt(iso: string): string {
   return d.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" });
 }
 
+/** One month in the bill's history: what was paid, and what was carried in or out. */
+type HistoryMonth = {
+  month: string;
+  payment: BillPaymentHistoryRow | null;
+  carryOut: BillCarryOverHistoryRow | null;
+  carryIn: BillCarryOverHistoryRow | null;
+};
+
+/**
+ * Payments and carry-overs merged into one list, newest month first. A month shows
+ * up once something happened in it: a payment, or a balance carried out of it.
+ */
+function buildHistoryMonths(
+  payments: BillPaymentHistoryRow[],
+  carryOvers: BillCarryOverHistoryRow[],
+): HistoryMonth[] {
+  const byMonth = new Map<string, HistoryMonth>();
+  const entry = (month: string) => {
+    const existing = byMonth.get(month);
+    if (existing) return existing;
+    const created: HistoryMonth = { month, payment: null, carryOut: null, carryIn: null };
+    byMonth.set(month, created);
+    return created;
+  };
+  for (const p of payments) entry(p.paid_month).payment = p;
+  for (const c of carryOvers) entry(c.from_month).carryOut = c;
+  // Carry-ins only annotate a month already listed; they don't add one of their own.
+  for (const c of carryOvers) {
+    const month = byMonth.get(c.to_month);
+    if (month) month.carryIn = c;
+  }
+  return Array.from(byMonth.values()).sort((a, b) => b.month.localeCompare(a.month));
+}
+
 export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -125,15 +168,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
+  const [carryOpen, setCarryOpen] = useState(false);
+  const [carryError, setCarryError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const paidMonth = getCurrentPaidMonth();
+  // Memoized so React Compiler treats it as frozen. As a plain call result that is
+  // handed on to canCarryOverBill, it counts as possibly mutated, and since it is
+  // derived from paidMonth that would spoil the dueThisMonth memo below.
+  const nextMonth = useMemo(() => shiftPaidMonth(paidMonth, 1), [paidMonth]);
+  const nextMonthName = nextMonth ? paidMonthName(nextMonth) : null;
 
   const { data: billsData } = useSuspenseQuery(billsDataQueryOptions(paidMonth));
-  const { data: history = [], refetch: refetchHistory } = useQuery({
-    ...billPaymentsHistoryQueryOptions(bill.id),
-    select: (d) => d.history,
-  });
+  // Prefetched by the page, so this resolves from the hydrated cache.
+  const { data: historyData, refetch: refetchHistory } = useSuspenseQuery(
+    billPaymentsHistoryQueryOptions(bill.id),
+  );
+  const historyMonths = useMemo(
+    () => buildHistoryMonths(historyData.history, historyData.carryOvers),
+    [historyData],
+  );
   const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
   const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
   const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
@@ -149,13 +203,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     () => billsData?.paymentAmountByBillId?.[bill.id] ?? 0,
     [billsData?.paymentAmountByBillId, bill.id],
   );
+  const carriedIn = billsData?.carriedInByBillId?.[bill.id] ?? null;
+  const carryOut = billsData?.carriedOutByBillId?.[bill.id] ?? null;
+  /** This month's ask: the bill's amount plus anything carried in from last month. */
+  const amountDueThisMonth = billAmountDue(bill, billsData?.carriedInByBillId);
   const hasAnyPaymentThisMonth = amountPaidThisMonth > 0;
-  const isFullyPaidThisMonth = amountPaidThisMonth >= bill.amount;
-  const isPartiallyPaidThisMonth = hasAnyPaymentThisMonth && !isFullyPaidThisMonth;
-  const remainingThisMonth = Math.max(0, bill.amount - amountPaidThisMonth);
+  const isFullyPaidThisMonth = !carryOut && amountPaidThisMonth >= amountDueThisMonth;
+  const isPartiallyPaidThisMonth = !carryOut && hasAnyPaymentThisMonth && !isFullyPaidThisMonth;
+  const remainingThisMonth = carryOut
+    ? 0
+    : Math.max(0, roundMoney(amountDueThisMonth - amountPaidThisMonth));
+  const canCarryOver = canCarryOverBill({
+    billingPeriod: bill.billing_period,
+    endDate: bill.end_date,
+    outstanding: remainingThisMonth,
+    isCarriedOut: carryOut !== null,
+    toMonth: nextMonth,
+  });
   const isFailedThisMonth = useMemo(
-    () => !hasAnyPaymentThisMonth && (billsData?.failedBillIds ?? []).includes(bill.id),
-    [billsData?.failedBillIds, bill.id, hasAnyPaymentThisMonth],
+    () => !carryOut && !hasAnyPaymentThisMonth && (billsData?.failedBillIds ?? []).includes(bill.id),
+    [carryOut, billsData?.failedBillIds, bill.id, hasAnyPaymentThisMonth],
   );
   const failureReasonThisMonth = isFailedThisMonth
     ? billsData?.failureReasonByBillId?.[bill.id] ?? null
@@ -170,8 +237,8 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     () => effectiveBillDueDate(bill, today, paidMonth),
     [bill, today, paidMonth],
   );
-  const isOverdue = !hasAnyPaymentThisMonth && !isFailedThisMonth && !!dueThisMonth && dueThisMonth < today;
-  const isUpcoming = !hasAnyPaymentThisMonth && !isFailedThisMonth && !!dueThisMonth && dueThisMonth > today;
+  const isOverdue = !carryOut && !hasAnyPaymentThisMonth && !isFailedThisMonth && !!dueThisMonth && dueThisMonth < today;
+  const isUpcoming = !carryOut && !hasAnyPaymentThisMonth && !isFailedThisMonth && !!dueThisMonth && dueThisMonth > today;
 
   const dueDayOfMonth = getDueDayOfMonthFromYmd(bill.due_date);
   const dueLabel = useMemo(() => {
@@ -196,6 +263,41 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     void refetchHistory();
   }
 
+  /** A carry-over also changes the month it lands in, so that cached month goes stale too. */
+  function refreshAfterCarry(fromMonth: string) {
+    refreshAfterToggle();
+    const toMonth = shiftPaidMonth(fromMonth, 1);
+    if (fromMonth !== paidMonth) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.billData(fromMonth) });
+    }
+    if (toMonth) void queryClient.invalidateQueries({ queryKey: queryKeys.billData(toMonth) });
+  }
+
+  function handleCarryOver(note: string) {
+    setCarryError(null);
+    startTransition(async () => {
+      const res = await carryOverBill(bill.id, paidMonth, note);
+      if (res.error) {
+        setCarryError(BILL_CARRY_OVER_ERRORS[res.error] ?? res.error);
+        return;
+      }
+      setCarryOpen(false);
+      refreshAfterCarry(paidMonth);
+    });
+  }
+
+  function handleUndoCarryOver(fromMonth: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await undoBillCarryOver(bill.id, fromMonth);
+      if (res.error) {
+        setError(BILL_CARRY_OVER_ERRORS[res.error] ?? res.error);
+        return;
+      }
+      refreshAfterCarry(fromMonth);
+    });
+  }
+
   function handleToggleThisMonth() {
     setError(null);
     startTransition(async () => {
@@ -208,7 +310,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         return;
       }
       if (res.error) {
-        setError(res.error);
+        setError(BILL_CARRY_OVER_ERRORS[res.error] ?? res.error);
         return;
       }
       refreshAfterToggle();
@@ -227,7 +329,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         return;
       }
       if (res.error) {
-        setError(res.error);
+        setError(BILL_CARRY_OVER_ERRORS[res.error] ?? res.error);
         return;
       }
       setPartialOpen(false);
@@ -242,7 +344,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       // also removed instead of being flipped to paid by the toggle.
       const res = await unmarkBillPaid(bill.id, historyMonth);
       if (res.error) {
-        setError(res.error);
+        setError(BILL_CARRY_OVER_ERRORS[res.error] ?? res.error);
         return;
       }
       refreshAfterToggle();
@@ -320,13 +422,17 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     });
   }
 
-  const statusBadge = isFullyPaidThisMonth ? (
+  const statusBadge = carryOut ? (
+    <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-muted-foreground/40 bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+      Skipped • carried to {paidMonthName(carryOut.toMonth, "short")}
+    </span>
+  ) : isFullyPaidThisMonth ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
       <CheckCircle2 className="h-3 w-3" /> Paid this month
     </span>
   ) : isPartiallyPaidThisMonth ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
-      Partial • {formatCurrency(amountPaidThisMonth)} / {formatCurrency(bill.amount)}
+      Partial • {formatCurrency(amountPaidThisMonth)} / {formatCurrency(amountDueThisMonth)}
     </span>
   ) : isFailedThisMonth ? (
     <span
@@ -402,37 +508,85 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
             ? `Due ${dueThisMonth.toLocaleDateString("en-PH", { month: "short", day: "numeric" })}`
             : "No due date this month"}
         </p>
+        {carriedIn && (
+          <div className="mt-2">
+            <p className="text-sm">
+              This month:{" "}
+              <span className="font-semibold tabular-nums">{formatCurrency(amountDueThisMonth)}</span>
+            </p>
+            <CarryOverNote
+              direction="in"
+              amount={carriedIn.amount}
+              month={carriedIn.fromMonth}
+              note={carriedIn.note}
+              className="text-xs"
+            />
+          </div>
+        )}
+        {carryOut && (
+          <CarryOverNote
+            direction="out"
+            amount={carryOut.amount}
+            month={carryOut.toMonth}
+            note={carryOut.note}
+            className="mt-2 text-xs"
+          />
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {hasAnyPaymentThisMonth ? (
+          {carryOut ? (
+            // The month is locked while carried over: undoing is the only way back in.
             <Button
               variant="outline"
               className="gap-1.5"
-              onClick={handleToggleThisMonth}
+              onClick={() => handleUndoCarryOver(paidMonth)}
               disabled={isPending}
             >
-              <Circle className="h-4 w-4" /> Mark unpaid for this month
+              <Undo2 className="h-4 w-4" /> Undo carry-over
             </Button>
           ) : (
-            <Button
-              variant="default"
-              className="gap-1.5"
-              onClick={handleToggleThisMonth}
-              disabled={isPending}
-            >
-              <CheckCircle2 className="h-4 w-4" /> Mark fully paid
-            </Button>
-          )}
-          {remainingThisMonth > 0 && (
-            <Button
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => { setError(null); setPartialOpen(true); }}
-              disabled={isPending}
-            >
-              <PiggyBank className="h-4 w-4" />
-              {isPartiallyPaidThisMonth ? "Add to payment" : "Add partial payment…"}
-            </Button>
+            <>
+              {hasAnyPaymentThisMonth ? (
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={handleToggleThisMonth}
+                  disabled={isPending}
+                >
+                  <Circle className="h-4 w-4" /> Mark unpaid for this month
+                </Button>
+              ) : (
+                <Button
+                  variant="default"
+                  className="gap-1.5"
+                  onClick={handleToggleThisMonth}
+                  disabled={isPending}
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Mark fully paid
+                </Button>
+              )}
+              {remainingThisMonth > 0 && (
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => { setError(null); setPartialOpen(true); }}
+                  disabled={isPending}
+                >
+                  <PiggyBank className="h-4 w-4" />
+                  {isPartiallyPaidThisMonth ? "Add to payment" : "Add partial payment…"}
+                </Button>
+              )}
+              {canCarryOver && nextMonthName && (
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => { setError(null); setCarryError(null); setCarryOpen(true); }}
+                  disabled={isPending}
+                >
+                  <Forward className="h-4 w-4" /> Carry over to {nextMonthName}
+                </Button>
+              )}
+            </>
           )}
         </div>
 
@@ -546,70 +700,122 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
       {/* Payment history */}
       <div className="space-y-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment history</h2>
-        {history.length === 0 ? (
+        {historyMonths.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 surface border border-dashed py-10 text-center text-muted-foreground">
             <p className="text-sm">No payments recorded yet.</p>
             <p className="max-w-md text-xs">Mark this bill paid to record a payment for the current month.</p>
           </div>
         ) : (
           <ul className="space-y-2">
-            {history.map((entry) => {
-              const paidAmount = entry.amount ?? bill.amount;
-              const isPartialMonth = paidAmount > 0 && paidAmount < bill.amount;
+            {historyMonths.map(({ month, payment, carryOut: monthCarryOut, carryIn: monthCarryIn }) => {
+              const monthLabel = formatPaidMonthLabel(month);
+              // Measured against today's amount, as before, plus that month's carry-in.
+              const monthDue = roundMoney(bill.amount + (monthCarryIn?.amount ?? 0));
+              const paidAmount = payment?.amount ?? 0;
+              const isPartialMonth = !!payment && paidAmount > 0 && paidAmount < monthDue;
               return (
                 <li
-                  key={entry.id}
+                  key={month}
                   className="flex items-center gap-3 surface border bg-card px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-sm font-medium">{formatPaidMonthLabel(entry.paid_month)}</span>
-                      {isPartialMonth ? (
-                        <span className="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
-                          Partial
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                          Paid in full
+                      <span className="text-sm font-medium">{monthLabel}</span>
+                      {monthCarryOut && (
+                        <span className="inline-flex items-center rounded-full border border-dashed border-muted-foreground/40 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          Skipped
                         </span>
                       )}
-                      {accountsEnabled && entry.account_alias && (
+                      {payment &&
+                        (isPartialMonth ? (
+                          <span className="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                            Partial
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            Paid in full
+                          </span>
+                        ))}
+                      {accountsEnabled && payment?.account_alias && (
                         <span
                           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                           style={{
-                            backgroundColor: `${entry.account_color ?? "#6b7280"}22`,
-                            color: entry.account_color ?? undefined,
+                            backgroundColor: `${payment.account_color ?? "#6b7280"}22`,
+                            color: payment.account_color ?? undefined,
                           }}
                         >
-                          {entry.account_alias}
+                          {payment.account_alias}
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Paid on {formatPaidAt(entry.paid_at)}
-                    </p>
+                    {payment && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Paid on {formatPaidAt(payment.paid_at)}
+                      </p>
+                    )}
+                    {monthCarryOut && (
+                      <CarryOverNote
+                        direction="out"
+                        amount={monthCarryOut.amount}
+                        month={monthCarryOut.to_month}
+                        note={monthCarryOut.note}
+                        className="mt-0.5 text-xs"
+                      />
+                    )}
+                    {monthCarryIn && (
+                      <CarryOverNote
+                        direction="in"
+                        amount={monthCarryIn.amount}
+                        month={monthCarryIn.from_month}
+                        note={monthCarryIn.note}
+                        className="mt-0.5 text-xs"
+                      />
+                    )}
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end">
-                    <p className="text-sm font-semibold tabular-nums">
-                      {formatCurrency(paidAmount)}
-                    </p>
-                    {isPartialMonth && (
-                      <p className="text-[10px] text-muted-foreground tabular-nums">
-                        of {formatCurrency(bill.amount)}
+                    {payment ? (
+                      <>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {formatCurrency(paidAmount)}
+                        </p>
+                        {isPartialMonth && (
+                          <p className="text-[10px] text-muted-foreground tabular-nums">
+                            of {formatCurrency(monthDue)}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm tabular-nums text-muted-foreground">
+                        {formatCurrency(monthCarryOut?.amount ?? 0)}
                       </p>
                     )}
                   </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleUnmarkMonth(entry.paid_month)}
-                    disabled={isPending}
-                    aria-label={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
-                    title={`Unmark ${formatPaidMonthLabel(entry.paid_month)} as paid`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {/* A carried month's payments are locked, so its action is the undo. */}
+                  {monthCarryOut ? (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleUndoCarryOver(month)}
+                      disabled={isPending}
+                      aria-label={`Undo the ${monthLabel} carry-over`}
+                      title={`Undo the ${monthLabel} carry-over`}
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleUnmarkMonth(month)}
+                      disabled={isPending}
+                      aria-label={`Unmark ${monthLabel} as paid`}
+                      title={`Unmark ${monthLabel} as paid`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </li>
               );
             })}
@@ -637,11 +843,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         open={partialOpen}
         onClose={() => setPartialOpen(false)}
         billLabel={bill.note ?? cat?.label ?? "Bill"}
-        billAmount={bill.amount}
+        billAmount={amountDueThisMonth}
         alreadyPaid={amountPaidThisMonth}
         onSubmit={handlePartialSubmit}
         isPending={isPending}
       />
+
+      {nextMonth && (
+        <CarryOverDialog
+          open={carryOpen}
+          onClose={() => setCarryOpen(false)}
+          billLabel={bill.note ?? cat?.label ?? "Bill"}
+          billAmount={bill.amount}
+          outstanding={remainingThisMonth}
+          fromMonth={paidMonth}
+          toMonth={nextMonth}
+          onSubmit={handleCarryOver}
+          isPending={isPending}
+          error={carryError}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteOpen}

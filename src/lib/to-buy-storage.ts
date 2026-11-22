@@ -7,8 +7,18 @@ export type ToBuyItem = {
   checked: boolean;
   /** Used by To-Do list mode; YYYY-MM-DD from `<input type="date">`. */
   targetDate?: string | null;
+  /** Reminders only: `HH:MM` (24h, local) on the target date; null means any time that day. */
+  targetTime?: string | null;
+  /** Reminders only: how often it comes back once checked off. Needs a target date. */
+  repeat?: ReminderRepeat | null;
+  /** Reminders only: `YYYY-MM-DD` the repeat is counted from (see migration 099). */
+  repeatAnchor?: string | null;
   createdAt: string;
 };
+
+export type ReminderRepeat = "daily" | "weekly" | "monthly" | "yearly";
+
+export const REMINDER_REPEATS: ReminderRepeat[] = ["daily", "weekly", "monthly", "yearly"];
 
 export type ToBuyCategory =
   | "meeting"

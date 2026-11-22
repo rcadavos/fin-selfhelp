@@ -112,7 +112,7 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
         <span className="shrink-0 select-none text-[10px] text-muted-foreground/50 pl-0.5 pb-2">v{APP_VERSION}</span>
       </div>
       <nav
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:thin]"
+        className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden px-3 py-4 [scrollbar-width:thin]"
         aria-label="Main navigation"
       >
         {visibleNavItems.map(({ href, label, icon: Icon, premium }) => {
@@ -123,13 +123,13 @@ export function AppSidebar({ className, onNavigate }: { className?: string; onNa
               href={href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3.5 rounded-lg px-3.5 py-3 text-[15px] font-medium transition-colors",
                 active
                   ? "bg-primary/15 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-[18px] w-[18px] shrink-0" />
               <span className="min-w-0 flex-1 truncate">{label}</span>
               {premium ? (
                 <Gem className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Premium" />

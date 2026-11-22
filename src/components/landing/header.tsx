@@ -40,7 +40,12 @@ export function Header({ className }: HeaderProps) {
             title="OmniTrak"
             aria-label="OmniTrak home"
           >
-            <SiteLogo fetchPriority="high" />
+            {/* Short of room (a narrow phone, or a larger text size from the Aa menu),
+                the wordmark wraps to a clipped second line instead of being cut mid-word. */}
+            <SiteLogo
+              fetchPriority="high"
+              className="h-10 min-w-0 flex-wrap content-start overflow-hidden"
+            />
             <span className="sr-only">OmniTrak</span>
           </Link>
 

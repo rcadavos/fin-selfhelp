@@ -22,6 +22,8 @@ export const URGENCY_LABELS: Record<UrgencyBucket, { full: string; bills: string
   week: { full: "Due this week", bills: "This week" },
   later: { full: "Later this month", bills: "Later this month" },
   recent: { full: "Recently paid", bills: "Recently paid" },
+  // The board names the month instead ("Carried to December"); this is the fallback.
+  carried: { full: "Carried to next month", bills: "Carried to next month" },
   settled: { full: "Settled", bills: "Settled" },
 };
 
@@ -31,7 +33,26 @@ export const URGENCY_TONE: Record<UrgencyBucket, string> = {
   week: "text-warning",
   later: "text-muted-foreground",
   recent: "text-primary",
+  carried: "text-muted-foreground",
   settled: "text-primary",
+};
+
+/** Longest note a carry-over can hold. The column allows more; this keeps the row readable. */
+export const BILL_CARRY_OVER_NOTE_MAX_LENGTH = 200;
+
+/** Plain-English text for the carry-over error codes the bill actions return. */
+export const BILL_CARRY_OVER_ERRORS: Record<string, string> = {
+  monthly_only: "Only monthly bills can be carried over to the next month.",
+  already_carried: "This bill is already carried over to next month.",
+  nothing_to_carry: "Nothing is left to pay on this bill this month, so there is nothing to carry over.",
+  ends_before_next_month: "This bill ends before next month, so there is no month to carry it to.",
+  note_too_long: `Keep the note to ${BILL_CARRY_OVER_NOTE_MAX_LENGTH} characters or fewer.`,
+  carried_again:
+    "Next month's bill was carried over again, and that amount includes this one. Undo next month's carry-over first.",
+  next_month_carried:
+    "Next month's bill is already carried over, so this balance would be lost there. Undo next month's carry-over first.",
+  carried_over:
+    "This bill was carried over to next month, so its payments for this month are locked. Undo the carry-over to change them.",
 };
 
 /** Runway marker size by share of the month's largest bill. */
@@ -45,6 +66,7 @@ export const PLANNED_EXPENSE_STATUS_LABEL: Record<PlannedExpenseStatus, string> 
   due: "Due",
   scheduled: "Scheduled",
   paid: "Paid",
+  carried: "Skipped",
 };
 
 /** Which stamp colour each status wears. A failed auto-debit reads as overdue: it still needs paying. */
@@ -55,6 +77,7 @@ export const PLANNED_EXPENSE_STAMP_VARIANT: Record<PlannedExpenseStatus, StampVa
   overdue: "overdue",
   due: "due",
   scheduled: "scheduled",
+  carried: "muted",
 };
 
 /** The Bills ledger's filter tabs, shown once the ledger is wide enough for its table layout. */

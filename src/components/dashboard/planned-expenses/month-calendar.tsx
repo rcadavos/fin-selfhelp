@@ -25,6 +25,8 @@ const DOT_TONE: Record<PlannedExpenseStatus, string> = {
   due: "bg-warning",
   scheduled: "bg-hairline-strong",
   paid: "bg-primary/50",
+  // Never drawn (carried bills leave the calendar); here so every status has a tone.
+  carried: "bg-muted-foreground/40",
 };
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];

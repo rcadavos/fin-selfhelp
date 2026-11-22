@@ -35,7 +35,7 @@ export function DayBillsList({
               </Stamp>
             </span>
             <Amount
-              value={row.outstanding > 0 ? row.outstanding : row.bill.amount}
+              value={row.outstanding > 0 ? row.outstanding : row.amountDue}
               currency={currency}
               className="shrink-0 text-[13px]"
             />

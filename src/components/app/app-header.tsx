@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Search, User } from "lucide-react";
 import { NotificationsMenu } from "@/components/notifications";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TextSizeMenu } from "@/components/text-size-menu";
 import { AccountDropdownMenu } from "@/components/app/account-dropdown-menu";
 import { SiteLogo } from "@/components/app/site-logo";
 import { MobileSearch } from "@/components/app/app-search";
@@ -31,14 +32,16 @@ export function AppHeader({ className }: { className?: string }) {
       ) : (
         <div className="flex h-14 w-full items-center gap-2 px-4 sm:px-5">
 
-          {/* Left: Logo */}
-          <div className="flex items-center gap-2">
+          {/* Left: Logo. When the buttons leave too little room (a narrow phone, or
+              a larger text size), the wordmark wraps onto a second line that the
+              fixed height clips, leaving the mark alone instead of the row overflowing. */}
+          <div className="flex min-w-0 items-center gap-2">
             <Link
               href={showAuthenticatedHeader ? "/dashboard" : "/"}
               aria-label="Home"
-              className="flex items-center"
+              className="flex min-w-0 items-center"
             >
-              <SiteLogo />
+              <SiteLogo className="h-10 min-w-0 flex-wrap content-start overflow-hidden" />
               <span className="sr-only">Omnitrak</span>
             </Link>
           </div>
@@ -46,8 +49,8 @@ export function AppHeader({ className }: { className?: string }) {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Right: Search → ThemeToggle → Notifications (→ Account on desktop) */}
-          <div className="flex items-center gap-1">
+          {/* Right: Search → Text size → Theme → Notifications (→ Account on desktop) */}
+          <div className="flex shrink-0 items-center gap-1">
             {showAuthenticatedHeader ? (
               <>
                 <button
@@ -58,6 +61,7 @@ export function AppHeader({ className }: { className?: string }) {
                 >
                   <Search className="h-5 w-5" />
                 </button>
+                <TextSizeMenu />
                 <ThemeToggle />
                 <NotificationsMenu />
                 {loading ? (

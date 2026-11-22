@@ -5,7 +5,15 @@ import { sendReminderEmail } from "@/lib/email";
 import { getCandidateDueDatesForBill } from "@/lib/expense-due-date";
 import { hasProLevelProductAccess, normalizeDbTier } from "@/lib/subscription-tier";
 import type { AppNotification } from "@/types/notifications";
-import { isReminderReleaseHour } from "@/lib/reminder-release-time";
+import { getLocalDateTimeInTimeZone, isReminderReleaseHour } from "@/lib/reminder-release-time";
+import {
+  TODO_NOTIFICATION_KIND,
+  TODO_REMINDER_SELECT,
+  isTodoReminderDue,
+  todoReminderDedupeKey,
+  todoReminderMessage,
+  type ToDoReminderRow,
+} from "@/lib/reminders/notify";
 
 type DbRow = {
   id: string;
@@ -23,12 +31,6 @@ type BillReminderRow = {
   due_month: number | null;
   reminder_days_before: number[] | null;
   reminder_channel: string | null;
-};
-
-type ToDoTargetRow = {
-  id: string;
-  name: string;
-  target_date: string | null;
 };
 
 type NewNotificationRow = {
@@ -82,27 +84,35 @@ export async function syncGeneratedProNotificationsForToday(
   );
 
   const today = new Date();
-  if (!options?.skipReleaseHourCheck && !isReminderReleaseHour(today, 8)) {
+  const morningReleased = Boolean(options?.skipReleaseHourCheck) || isReminderReleaseHour(today, 8);
+  // Before the 8 AM release only a reminder with an earlier time can be due, and those are Pro.
+  if (!morningReleased && !hasProAccess) {
     return { notificationsInserted: 0, errors: [], skipped: true };
   }
   const todayYmd = formatYmdLocal(today);
+  // Reminder dates and times are local; the server's own clock is UTC.
+  const local = getLocalDateTimeInTimeZone(today);
 
-  const billsQueryResult = await supabase
-    .from("bills")
-    .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
-    .eq("profile_id", profile.id)
-    .not("reminder_days_before", "is", null);
+  const billsQueryResult = morningReleased
+    ? await supabase
+        .from("bills")
+        .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
+        .eq("profile_id", profile.id)
+        .not("reminder_days_before", "is", null)
+    : { data: [] as BillReminderRow[] };
 
-  let toDoRows: ToDoTargetRow[] = [];
+  let toDoRows: ToDoReminderRow[] = [];
 
   if (hasProAccess) {
     const { data: todoData } = await supabase
       .from("to_do_items")
-      .select("id, name, target_date")
+      .select(TODO_REMINDER_SELECT)
       .eq("profile_id", profile.id)
       .eq("checked", false)
-      .eq("target_date", todayYmd);
-    toDoRows = (todoData ?? []) as ToDoTargetRow[];
+      .eq("target_date", local.ymd);
+    toDoRows = ((todoData ?? []) as ToDoReminderRow[]).filter(
+      (row) => options?.skipReleaseHourCheck || isTodoReminderDue(row, local.hhmm, morningReleased)
+    );
   }
 
   const rowsToInsert: NewNotificationRow[] = [];
@@ -139,10 +149,9 @@ export async function syncGeneratedProNotificationsForToday(
   for (const item of toDoRows) {
     rowsToInsert.push({
       user_id: userId,
-      kind: "todo_target_date",
-      dedupe_key: `todo:${item.id}:${todayYmd}`,
-      title: `To-do target today: ${item.name}`,
-      body: "This task reaches its target date today.",
+      kind: TODO_NOTIFICATION_KIND,
+      dedupe_key: todoReminderDedupeKey(item, local.ymd),
+      ...todoReminderMessage(item),
     });
   }
 
@@ -274,16 +283,16 @@ export async function sendGeneratedProReminderEmailsForToday(
           .limit(1),
   ]);
 
-  let toDoRows: ToDoTargetRow[] = [];
+  let toDoRows: ToDoReminderRow[] = [];
 
   if (hasProAccess) {
     const { data: todoData } = await supabase
       .from("to_do_items")
-      .select("id, name, target_date")
+      .select(TODO_REMINDER_SELECT)
       .eq("profile_id", profile.id)
       .eq("checked", false)
       .eq("target_date", todayYmd);
-    toDoRows = (todoData ?? []) as ToDoTargetRow[];
+    toDoRows = (todoData ?? []) as ToDoReminderRow[];
   }
 
   const toEmail = authUserResult.data.user?.email?.trim();
@@ -337,13 +346,9 @@ export async function sendGeneratedProReminderEmailsForToday(
     }
   }
 
+  // The morning email lists all of today's reminders, the timed ones included.
   for (const item of toDoRows) {
-    const dedupeKey = `todo:${item.id}:${todayYmd}`;
-    pending.push({
-      dedupeKey,
-      title: `To-do target today: ${item.name}`,
-      body: "This task reaches its target date today.",
-    });
+    pending.push({ dedupeKey: `todo:${item.id}:${todayYmd}`, ...todoReminderMessage(item) });
   }
 
   if (pending.length === 0) {

@@ -1,5 +1,6 @@
 import { formatYmdLocal } from "@/lib/expense-due-date";
 import { REMINDER_SECTION_LABELS, type ReminderSnoozeOption } from "@/lib/constants/reminders";
+import { minutesOfHhmm } from "@/lib/reminders/time";
 import { REMINDER_CATEGORIES, type ToBuyCategory, type ToBuyItem } from "@/lib/to-buy-storage";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -102,6 +103,17 @@ export function reminderCategoryLabel(category: ToBuyCategory): string {
   return REMINDER_CATEGORIES.find((c) => c.value === category)?.label ?? "Other";
 }
 
+/** Reminders with no time come first (they are for the whole day), then by time. */
+function compareTimeOfDay(a: ToBuyItem, b: ToBuyItem): number {
+  return (minutesOfHhmm(a.targetTime) ?? -1) - (minutesOfHhmm(b.targetTime) ?? -1);
+}
+
+/** Open before done, then by time of day. */
+function compareWithinDay(a: ToBuyItem, b: ToBuyItem): number {
+  if (a.checked !== b.checked) return a.checked ? 1 : -1;
+  return compareTimeOfDay(a, b);
+}
+
 export type ReminderDayGroup = { ymd: string; items: ToBuyItem[] };
 
 export type ReminderGroups = {
@@ -135,11 +147,11 @@ export function groupReminders(items: ToBuyItem[], todayYmd: string): ReminderGr
     }
   }
 
-  overdue.sort((a, b) => (a.targetDate ?? "").localeCompare(b.targetDate ?? ""));
+  overdue.sort((a, b) => (a.targetDate ?? "").localeCompare(b.targetDate ?? "") || compareTimeOfDay(a, b));
   doneEarlier.sort((a, b) => (b.targetDate ?? "").localeCompare(a.targetDate ?? ""));
   const days = Array.from(byDay.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([ymd, list]) => ({ ymd, items: list }));
+    .map(([ymd, list]) => ({ ymd, items: list.sort(compareWithinDay) }));
 
   return { overdue, days, anytime, doneEarlier };
 }

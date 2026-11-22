@@ -9,6 +9,7 @@ import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { parseYmToYearMonth, effectiveDueDateInPaidMonth } from "@/lib/expense-due-date";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { billAmountDue } from "@/lib/planned-expenses/carry-over";
 import { billsDataQueryOptions } from "@/lib/query/bills";
 import { accountsQueryOptions, accountBalancesQueryOptions } from "@/lib/query/accounts";
 import { EXPENSE_PAYMENT_HISTORY_MONTHS, monthlyBreakdownQueryOptions } from "@/lib/query/expenses";
@@ -205,14 +206,24 @@ export function ExpenseCashflowPage({
   const billsList = billsDataQuery.data?.bills ?? [];
   const paymentAmountByBillId = billsDataQuery.data?.paymentAmountByBillId ?? {};
   const failedBillIds = billsDataQuery.data?.failedBillIds;
+  const carriedInByBillId = billsDataQuery.data?.carriedInByBillId;
+  const carriedOutByBillId = billsDataQuery.data?.carriedOutByBillId;
+  // A bill carried over to next month is skipped this month, so it is not one to pay.
   const monthBills = useMemo(
     () =>
       billsList.filter(
-        (b) => b.category_id !== "savings" && isBillApplicableInMonth(b, paidMonthYm),
+        (b) =>
+          b.category_id !== "savings" &&
+          isBillApplicableInMonth(b, paidMonthYm) &&
+          !carriedOutByBillId?.[b.id],
       ),
-    [billsList, paidMonthYm],
+    [billsList, paidMonthYm, carriedOutByBillId],
   );
-  const billsTotal = useMemo(() => monthBills.reduce((s, b) => s + b.amount, 0), [monthBills]);
+  // Each bill at this month's amount: anything carried in from last month included.
+  const billsTotal = useMemo(
+    () => monthBills.reduce((s, b) => s + billAmountDue(b, carriedInByBillId), 0),
+    [monthBills, carriedInByBillId],
+  );
   // Only sum payments for bills that are actually due this month so billsPaid
   // and billsTotal always cover the same set (prevents billsPaid > billsTotal).
   const monthBillIds = useMemo(() => new Set(monthBills.map((b) => b.id)), [monthBills]);
@@ -233,7 +244,7 @@ export function ExpenseCashflowPage({
       .map((b) => ({
         id: b.id,
         name: b.note?.trim() || "Bill",
-        amount: b.amount,
+        amount: billAmountDue(b, carriedInByBillId),
         paidAmount: Number(paymentAmountByBillId[b.id] ?? 0),
         // Auto-debit is inert where the mode switches it off, so the row must not
         // claim "pays itself" there; it falls through to the normal due-date pill.
@@ -246,7 +257,7 @@ export function ExpenseCashflowPage({
           (a.due?.getTime() ?? Number.MAX_SAFE_INTEGER) -
           (b.due?.getTime() ?? Number.MAX_SAFE_INTEGER),
       );
-  }, [monthBills, paymentAmountByBillId, failedBillIds, isFeatureEnabled, paidMonthYm]);
+  }, [monthBills, paymentAmountByBillId, failedBillIds, carriedInByBillId, isFeatureEnabled, paidMonthYm]);
 
   const fullyPaidCount = useMemo(() => billItems.filter(isBillFullyPaid).length, [billItems]);
   const billsLeftCount = billItems.length - fullyPaidCount;

@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, Hash, Plus, type LucideIcon } from "lucide-react";
+import { CalendarDays, Clock, Hash, Plus, Repeat, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ReminderDraft } from "@/hooks/use-reminders";
@@ -13,6 +13,8 @@ import {
   REMINDER_UPGRADE_HREF,
 } from "@/lib/constants/reminders";
 import { parseReminderQuickAdd } from "@/lib/reminders/quick-add";
+import { repeatLabel } from "@/lib/reminders/repeat";
+import { formatTimeLabel } from "@/lib/reminders/time";
 import { reminderCategoryLabel, shortDateLabel } from "@/lib/reminders/schedule";
 import { FREE_TIER_MAX_LIST_ITEMS } from "@/lib/subscription-tier";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ function ParsedChip({ icon: Icon, children }: { icon: LucideIcon; children: Reac
  */
 export function ReminderQuickAdd({
   todayYmd,
+  nowMinutes,
   locale,
   hasPro,
   usedCount,
@@ -40,6 +43,8 @@ export function ReminderQuickAdd({
   className,
 }: {
   todayYmd: string;
+  /** Minutes since local midnight; decides whether "3pm" means today or tomorrow. */
+  nowMinutes: number;
   locale: string;
   hasPro: boolean;
   /** Reminders saved so far; only shown on the free plan. */
@@ -52,18 +57,18 @@ export function ReminderQuickAdd({
   const inputId = useId();
   const [text, setText] = useState("");
   const parsed = useMemo(
-    () => parseReminderQuickAdd(text, { todayYmd, allowDates: hasPro }),
-    [text, todayYmd, hasPro]
+    () => parseReminderQuickAdd(text, { todayYmd, nowMinutes, allowDates: hasPro }),
+    [text, todayYmd, nowMinutes, hasPro]
   );
   const atLimit = !hasPro && usedCount >= FREE_TIER_MAX_LIST_ITEMS;
   const targetDate = parsed.targetDate ?? (hasPro ? defaultDate ?? null : null);
   const category = parsed.category ?? REMINDER_DEFAULT_CATEGORY;
   const typing = text.trim().length > 0;
-  const understoodSomething = !!parsed.targetDate || !!parsed.category;
+  const understoodSomething = !!parsed.targetDate || !!parsed.targetTime || !!parsed.repeat || !!parsed.category;
 
   function submit() {
     if (!typing || atLimit) return;
-    onAdd({ name: parsed.name, category, targetDate });
+    onAdd({ name: parsed.name, category, targetDate, targetTime: parsed.targetTime, repeat: parsed.repeat });
     setText("");
   }
 
@@ -119,6 +124,10 @@ export function ReminderQuickAdd({
       {typing ? (
         <div className="flex flex-wrap items-center gap-1.5 px-1" aria-live="polite">
           {targetDate ? <ParsedChip icon={CalendarDays}>{shortDateLabel(targetDate, locale)}</ParsedChip> : null}
+          {parsed.targetTime ? <ParsedChip icon={Clock}>{formatTimeLabel(parsed.targetTime)}</ParsedChip> : null}
+          {parsed.repeat && targetDate ? (
+            <ParsedChip icon={Repeat}>{repeatLabel(parsed.repeat, targetDate, locale)}</ParsedChip>
+          ) : null}
           <ParsedChip icon={Hash}>{reminderCategoryLabel(category)}</ParsedChip>
           <span className="text-[12.5px] text-muted-foreground">
             {understoodSomething
@@ -132,7 +141,7 @@ export function ReminderQuickAdd({
         <p className="px-1 text-[11.5px] text-muted-foreground">
           Free plan • {usedCount} of {FREE_TIER_MAX_LIST_ITEMS} reminders •{" "}
           <Link href={REMINDER_UPGRADE_HREF} className="font-medium text-primary underline-offset-4 hover:underline">
-            Pro adds dates and unlimited reminders
+            Pro adds dates, times, repeats and unlimited reminders
           </Link>
         </p>
       ) : null}

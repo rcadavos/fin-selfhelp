@@ -145,3 +145,23 @@ export const APP_MODE_OPTIONS: readonly AppModeOption[] = [
 export function getAppModeOption(mode: AppModeId): AppModeOption {
   return APP_MODE_OPTIONS.find((o) => o.value === mode) ?? APP_MODE_OPTIONS[0];
 }
+
+/**
+ * Copy for the dialog shown before switching to bills mode. Narrowing the app takes
+ * pages away, so every entry point (Settings, the toolbar toggle) asks first with the
+ * same words; widening back to "full" only reveals pages and needs no confirmation.
+ */
+export const BILLS_MODE_CONFIRM_COPY = {
+  title: "Switch to Bills & reminders only?",
+  description:
+    "Accounts, Expenses, Receivables, Goals and Vehicles will be hidden from navigation and search. Auto-debit also pauses: no bill is paid automatically, and those bills switch to due-date reminders instead. Nothing is deleted — switch back to Full cashflow any time and every page, and your auto-debit settings, come back exactly as they were.",
+  confirmLabel: "Switch to bills mode",
+  cancelLabel: "Keep full cashflow",
+} as const;
+
+/** The quick bills-mode switch in the desktop toolbar. */
+export const BILLS_MODE_TOGGLE_COPY = {
+  label: "Bills mode",
+  turnOnHint: "Show only bills and reminders",
+  turnOffHint: "Switch back to full cashflow",
+} as const;

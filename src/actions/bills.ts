@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { isFeatureEnabledInMode } from "@/lib/constants/app-mode";
 import { appModeFromPreferencesJson } from "@/lib/user-preferences";
@@ -13,11 +14,39 @@ import {
   type SubscriptionTierId,
 } from "@/lib/subscription-tier";
 import { normalizeDueDateForStorage } from "@/lib/expense-due-date";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { getCurrentPaidMonth, shiftPaidMonth } from "@/lib/paid-month";
 import { TRANSPORT_EXPENSE_CATEGORY_ID, DEFAULT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
 import { isVehicleExpenseCategoryValue } from "@/lib/constants/vehicle-categories";
+import { BILL_CARRY_OVER_ERRORS, BILL_CARRY_OVER_NOTE_MAX_LENGTH } from "@/lib/constants/planned-expenses";
+import { roundMoney, type BillCarryIn, type BillCarryOut } from "@/lib/planned-expenses/carry-over";
 
 const VALID_REMINDER_DAYS: ReminderDay[] = [5, 4, 3, 2, 1, 0];
+
+/**
+ * A bill's carry-over state for one month: what was carried into it (added to the
+ * bill's amount) and whether it was carried out of it (the bill is skipped there).
+ * Takes any client, so the grantee path can call it with the service-role one.
+ */
+async function loadBillCarryState(
+  supabase: SupabaseClient,
+  profileId: string,
+  billId: string,
+  month: string,
+): Promise<{ carriedIn: number; carriedOut: boolean }> {
+  const { data } = await supabase
+    .from("bill_carryovers")
+    .select("from_month, to_month, amount")
+    .eq("bill_id", billId)
+    .eq("profile_id", profileId)
+    .or(`from_month.eq.${month},to_month.eq.${month}`);
+  let carriedIn = 0;
+  let carriedOut = false;
+  for (const row of data ?? []) {
+    if (row.to_month === month) carriedIn += Number(row.amount ?? 0);
+    if (row.from_month === month) carriedOut = true;
+  }
+  return { carriedIn: roundMoney(carriedIn), carriedOut };
+}
 
 function extractBillIdFromDedupeKey(key: string): string | null {
   const m = key.match(/^bill:([^:]+):/);
@@ -119,6 +148,13 @@ export type BillsData = {
    * unpaid and still in the list. Only that panel leaves them out.
    */
   skippedBillIds: string[];
+  /**
+   * This month's balances carried over into next month, by bill id. These bills are
+   * skipped this month: nothing more is owed on them here.
+   */
+  carriedOutByBillId: Record<string, BillCarryOut>;
+  /** Balances carried into this month from last month, by bill id, on top of the bill's amount. */
+  carriedInByBillId: Record<string, BillCarryIn>;
   netTakeHome: number;
   isSubscriber: boolean;
   subscriptionTier: SubscriptionTierId;
@@ -151,7 +187,14 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
 
   const month = paidMonth && /^\d{4}-\d{2}$/.test(paidMonth) ? paidMonth : getCurrentPaidMonth();
 
-  const [{ data: billsRaw }, { data: paymentRows }, { data: incomeRows }, { data: lockLogs }, { data: skipRows }] = await Promise.all([
+  const [
+    { data: billsRaw },
+    { data: paymentRows },
+    { data: incomeRows },
+    { data: lockLogs },
+    { data: skipRows },
+    { data: carryRows },
+  ] = await Promise.all([
     supabase
       .from("bills")
       .select("id, category_id, amount, billing_period, due_month, note, notes, due_date, end_date, reminder_days_before, reminder_channel, account_id, vehicle_id, vehicle_category, is_auto_debit, created_at, updated_at")
@@ -179,7 +222,26 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
       .select("bill_id")
       .eq("profile_id", profile.id)
       .eq("skip_month", month),
+    // `month` passed the YYYY-MM check above, so it is safe inside the filter string.
+    supabase
+      .from("bill_carryovers")
+      .select("bill_id, from_month, to_month, amount, note")
+      .eq("profile_id", profile.id)
+      .or(`from_month.eq.${month},to_month.eq.${month}`),
   ]);
+
+  const carriedOutByBillId: Record<string, BillCarryOut> = {};
+  const carriedInByBillId: Record<string, BillCarryIn> = {};
+  for (const row of carryRows ?? []) {
+    const note = (row.note as string | null)?.trim() || null;
+    const amount = Number(row.amount ?? 0);
+    if (row.from_month === month) {
+      carriedOutByBillId[String(row.bill_id)] = { amount, toMonth: String(row.to_month), note };
+    }
+    if (row.to_month === month) {
+      carriedInByBillId[String(row.bill_id)] = { amount, fromMonth: String(row.from_month), note };
+    }
+  }
 
   let bills = billsRaw ?? [];
 
@@ -264,6 +326,8 @@ export async function loadBillsData(paidMonth?: string): Promise<BillsData | nul
         .map((r) => [String(r.bill_id), String(r.failure_reason ?? "Auto-debit did not go through.")]),
     ),
     skippedBillIds: (skipRows ?? []).map((r) => String(r.bill_id)),
+    carriedOutByBillId,
+    carriedInByBillId,
     netTakeHome,
     isSubscriber: hasProAccess,
     subscriptionTier: tier,
@@ -383,13 +447,18 @@ export async function granteeSharedToggleBillPayment(
 
   const srClient = createServiceRoleClient();
 
-  const { data: existing } = await srClient
-    .from("bill_payments")
-    .select("id, status")
-    .eq("bill_id", billId)
-    .eq("profile_id", grantorProfile.id)
-    .eq("paid_month", paidMonth)
-    .maybeSingle();
+  const [{ data: existing }, carry] = await Promise.all([
+    srClient
+      .from("bill_payments")
+      .select("id, status")
+      .eq("bill_id", billId)
+      .eq("profile_id", grantorProfile.id)
+      .eq("paid_month", paidMonth)
+      .maybeSingle(),
+    loadBillCarryState(srClient, grantorProfile.id, billId, paidMonth),
+  ]);
+  // A month carried over is locked for the owner too; the grantee can't reopen it.
+  if (carry.carriedOut) return { error: BILL_CARRY_OVER_ERRORS.carried_over };
 
   // Only a 'paid' row counts as paid for the toggle. A 'failed' row falls
   // through to the mark-paid path so the grantee can resolve a failed
@@ -417,7 +486,8 @@ export async function granteeSharedToggleBillPayment(
         bill_id: billId,
         profile_id: grantorProfile.id,
         paid_month: paidMonth,
-        amount_paid: Number(bill.amount),
+        // Full payment includes anything carried into this month.
+        amount_paid: roundMoney(Number(bill.amount) + carry.carriedIn),
         status: "paid",
         failure_reason: null,
       },
@@ -469,7 +539,9 @@ async function getAccountAvailableBalance(
 
 /**
  * Mark a bill as paid (fully or partially) for the given month.
- * - If `amount` is omitted, defaults to the bill's full amount.
+ * - If `amount` is omitted, defaults to the bill's full amount for that month:
+ *   its usual amount plus anything carried into the month.
+ * - Refuses a month the bill was carried out of: its balance already moved on.
  * - If a payment row already exists, this updates it to the new absolute amount
  *   and adjusts the linked account_transaction/expense_entry by the delta. The
  *   insufficient-funds guard checks the delta (not the absolute amount), so
@@ -501,15 +573,19 @@ export async function markBillPaid(
     "accounts",
   );
 
-  const { data: bill, error: billErr } = await supabase
-    .from("bills")
-    .select("id, amount, account_id, category_id, note")
-    .eq("id", billId)
-    .eq("profile_id", profile.id)
-    .single();
+  const [{ data: bill, error: billErr }, carry] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, amount, account_id, category_id, note")
+      .eq("id", billId)
+      .eq("profile_id", profile.id)
+      .single(),
+    loadBillCarryState(supabase, profile.id, billId, paidMonth),
+  ]);
   if (billErr || !bill) return { error: "bill_not_found" };
+  if (carry.carriedOut) return { error: "carried_over" };
 
-  const billAmount = Number(bill.amount);
+  const billAmount = roundMoney(Number(bill.amount) + carry.carriedIn);
   const newAmount = amount == null ? billAmount : Number(amount);
   if (!Number.isFinite(newAmount) || newAmount <= 0) return { error: "invalid_amount" };
 
@@ -668,15 +744,20 @@ export async function unmarkBillPaid(
     .single();
   if (!profile) return { error: "no_profile" };
 
-  const { data: existing } = await supabase
-    .from("bill_payments")
-    .select("id")
-    .eq("bill_id", billId)
-    .eq("profile_id", profile.id)
-    .eq("paid_month", paidMonth)
-    .maybeSingle();
+  const [{ data: existing }, carry] = await Promise.all([
+    supabase
+      .from("bill_payments")
+      .select("id")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .eq("paid_month", paidMonth)
+      .maybeSingle(),
+    loadBillCarryState(supabase, profile.id, billId, paidMonth),
+  ]);
 
   if (!existing) return { paid: false, amountPaid: 0 };
+  // The carried amount was sized against this payment; removing it would lose money.
+  if (carry.carriedOut) return { error: "carried_over" };
 
   // Cascading FK on bill_payment_id removes the linked account_transaction.
   await supabase.from("bill_payments").delete().eq("id", existing.id);
@@ -762,6 +843,138 @@ export async function setBillSkipped(
         .eq("skip_month", month);
 
   if (error) return { error: error.message };
+  revalidatePath("/dashboard/bills");
+  return {};
+}
+
+/**
+ * Carry a monthly bill's unpaid balance over to the next month and mark it skipped
+ * in `month`.
+ *
+ * What is still owed this month (the bill's amount, plus anything carried into this
+ * month, minus what was paid) is added to next month's due amount. The bill's own
+ * amount is left alone, so the month after that asks for the usual amount again.
+ * This month's payments are locked until the carry-over is undone, since the
+ * carried amount was worked out from them. `note` is an optional reason.
+ */
+export async function carryOverBill(
+  billId: string,
+  month: string,
+  note?: string,
+): Promise<{ error?: string; carryOver?: BillCarryOut }> {
+  if (!/^\d{4}-\d{2}$/.test(month)) return { error: "invalid_month" };
+  const toMonth = shiftPaidMonth(month, 1);
+  if (!toMonth) return { error: "invalid_month" };
+  const trimmedNote = note?.trim() || null;
+  if (trimmedNote && trimmedNote.length > BILL_CARRY_OVER_NOTE_MAX_LENGTH) {
+    return { error: "note_too_long" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const [{ data: bill }, carry, { data: payment }, { data: nextMonthCarry }] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, amount, billing_period, end_date")
+      .eq("id", billId)
+      .eq("profile_id", profile.id)
+      .maybeSingle(),
+    loadBillCarryState(supabase, profile.id, billId, month),
+    supabase
+      .from("bill_payments")
+      .select("amount_paid, status")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .eq("paid_month", month)
+      .maybeSingle(),
+    supabase
+      .from("bill_carryovers")
+      .select("id")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .eq("from_month", toMonth)
+      .maybeSingle(),
+  ]);
+  if (!bill) return { error: "bill_not_found" };
+  if ((bill.billing_period ?? "monthly") !== "monthly") return { error: "monthly_only" };
+  if (carry.carriedOut) return { error: "already_carried" };
+  // Carrying a past month into one already carried onward would strand the balance
+  // there: that month is skipped, and its carried amount was worked out without it.
+  if (nextMonthCarry) return { error: "next_month_carried" };
+
+  const endYm = (bill.end_date as string | null)?.slice(0, 7);
+  if (endYm && endYm < toMonth) return { error: "ends_before_next_month" };
+
+  // A failed auto-debit row holds 0 and counts as nothing paid.
+  const amountPaid =
+    payment && (payment.status ?? "paid") === "paid" ? Number(payment.amount_paid ?? 0) : 0;
+  const outstanding = roundMoney(Number(bill.amount) + carry.carriedIn - amountPaid);
+  if (outstanding <= 0) return { error: "nothing_to_carry" };
+
+  const { error } = await supabase.from("bill_carryovers").insert({
+    bill_id: billId,
+    profile_id: profile.id,
+    from_month: month,
+    to_month: toMonth,
+    amount: outstanding,
+    note: trimmedNote,
+  });
+  // 23505: a second tap raced the first past the check above.
+  if (error) return { error: error.code === "23505" ? "already_carried" : error.message };
+
+  revalidatePath("/dashboard/bills");
+  return { carryOver: { amount: outstanding, toMonth, note: trimmedNote } };
+}
+
+/**
+ * Undo a carry-over out of `month`: the bill is due there again, and next month
+ * goes back to its usual amount. Refused when next month was itself carried over,
+ * because that later amount already includes this one.
+ */
+export async function undoBillCarryOver(billId: string, month: string): Promise<{ error?: string }> {
+  if (!/^\d{4}-\d{2}$/.test(month)) return { error: "invalid_month" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const { data: row } = await supabase
+    .from("bill_carryovers")
+    .select("id, to_month")
+    .eq("bill_id", billId)
+    .eq("profile_id", profile.id)
+    .eq("from_month", month)
+    .maybeSingle();
+  if (!row) return {};
+
+  const { data: later } = await supabase
+    .from("bill_carryovers")
+    .select("id")
+    .eq("bill_id", billId)
+    .eq("profile_id", profile.id)
+    .eq("from_month", String(row.to_month))
+    .maybeSingle();
+  if (later) return { error: "carried_again" };
+
+  const { error } = await supabase.from("bill_carryovers").delete().eq("id", row.id);
+  if (error) return { error: error.message };
+
   revalidatePath("/dashboard/bills");
   return {};
 }
@@ -1048,29 +1261,54 @@ export type BillPaymentHistoryRow = {
   account_color?: string | null;
 };
 
-/** Load full payment history for one bill, newest paid_month first. */
-export async function loadBillPaymentsHistory(billId: string): Promise<{ history: BillPaymentHistoryRow[] }> {
+/** One carry-over in a bill's history: `amount` moved from `from_month` into `to_month`. */
+export type BillCarryOverHistoryRow = {
+  from_month: string;
+  to_month: string;
+  amount: number;
+  note: string | null;
+};
+
+/** Load full payment history for one bill, newest paid_month first, with its carry-overs. */
+export async function loadBillPaymentsHistory(
+  billId: string,
+): Promise<{ history: BillPaymentHistoryRow[]; carryOvers: BillCarryOverHistoryRow[] }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { history: [] };
+  if (!user) return { history: [], carryOvers: [] };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
     .eq("user_id", user.id)
     .single();
-  if (!profile) return { history: [] };
+  if (!profile) return { history: [], carryOvers: [] };
 
-  const { data: payments } = await supabase
-    .from("bill_payments")
-    .select("id, paid_month, paid_at, amount_paid, status, failure_reason")
-    .eq("bill_id", billId)
-    .eq("profile_id", profile.id)
-    .eq("status", "paid")
-    .order("paid_month", { ascending: false });
+  const [{ data: payments }, { data: carryRows }] = await Promise.all([
+    supabase
+      .from("bill_payments")
+      .select("id, paid_month, paid_at, amount_paid, status, failure_reason")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .eq("status", "paid")
+      .order("paid_month", { ascending: false }),
+    supabase
+      .from("bill_carryovers")
+      .select("from_month, to_month, amount, note")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .order("from_month", { ascending: false }),
+  ]);
+
+  const carryOvers: BillCarryOverHistoryRow[] = (carryRows ?? []).map((r) => ({
+    from_month: String(r.from_month),
+    to_month: String(r.to_month),
+    amount: Number(r.amount ?? 0),
+    note: (r.note as string | null)?.trim() || null,
+  }));
 
   const paymentRows = payments ?? [];
-  if (paymentRows.length === 0) return { history: [] };
+  if (paymentRows.length === 0) return { history: [], carryOvers };
 
   // Join in account info (alias/color) via the linked account_transaction row,
   // so the history can show which account each payment was debited from.
@@ -1091,6 +1329,7 @@ export async function loadBillPaymentsHistory(billId: string): Promise<{ history
   }
 
   return {
+    carryOvers,
     history: paymentRows.map((p) => {
       const acct = acctByPaymentId.get(String(p.id));
       const status = (p.status as string | null) === "failed" ? "failed" : "paid";

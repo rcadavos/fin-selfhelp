@@ -1,9 +1,11 @@
 "use client";
 
-import { AlertCircle, Check, PartyPopper, Pencil, SkipForward, X } from "lucide-react";
+import { AlertCircle, Check, CornerDownRight, Forward, PartyPopper, Pencil, SkipForward, X } from "lucide-react";
 import { Amount } from "@/components/passbook/amount";
 import { CountUpAmount } from "@/components/passbook/count-up-amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
+import { paidMonthName } from "@/lib/paid-month";
+import { formatCurrency } from "@/lib/utils";
 import type { PlannedExpenseRow } from "@/lib/planned-expenses/grouping";
 
 function shortDue(row: PlannedExpenseRow): string {
@@ -57,6 +59,7 @@ function SkippedList({
  * Part-paid bills never appear here — you have already acted on them, and the
  * list below still carries what is left on each. Neither do bills skipped for
  * this month; they are listed at the foot of the panel so they can be brought back.
+ * A bill carried over to next month is done with for this month and never shows.
  *
  * On wide screens the panel also heads the side rail in the full app. There
  * auto-debit can be on, and bills that will pay themselves are left out, which is
@@ -74,6 +77,8 @@ export function BillsHero({
   onEdit,
   onSkip,
   onUnskip,
+  carryTargetLabel = null,
+  onCarryOver,
   onDismiss,
   isPending,
 }: {
@@ -96,6 +101,10 @@ export function BillsHero({
   onSkip: () => void;
   /** Puts a skipped bill back in the queue for this month. */
   onUnskip: (billId: string) => void;
+  /** Month the featured bill can be carried over to ("December"), or null when it can't be. */
+  carryTargetLabel?: string | null;
+  /** Opens the carry-over dialog for the featured bill. */
+  onCarryOver?: () => void;
   /** Hides the panel for this visit only — deliberately not persisted. */
   onDismiss: () => void;
   isPending: boolean;
@@ -230,6 +239,21 @@ export function BillsHero({
           {dueLabel && whenLabel && <span className="opacity-50">•</span>}
           {whenLabel && <span>{whenLabel}</span>}
         </p>
+        {next.carriedIn && (
+          <p className="mt-1 flex items-start gap-1.5 text-[12px] text-panel-muted">
+            <CornerDownRight className="mt-0.5 size-3 shrink-0" aria-hidden />
+            <span className="min-w-0 break-words">
+              Includes {formatCurrency(next.carriedIn.amount, currency)} carried from{" "}
+              {paidMonthName(next.carriedIn.fromMonth, "short")}
+              {next.carriedIn.note && (
+                <>
+                  <span className="mx-1.5 opacity-50">•</span>
+                  {next.carriedIn.note}
+                </>
+              )}
+            </span>
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -250,6 +274,17 @@ export function BillsHero({
             Part payment
           </button>
         </div>
+        {carryTargetLabel && onCarryOver && (
+          <button
+            type="button"
+            onClick={onCarryOver}
+            disabled={isPending}
+            className="tap-target mt-2.5 inline-flex items-center gap-1.5 rounded-md text-left text-[12.5px] font-medium text-panel-muted transition-colors hover:text-panel-foreground disabled:opacity-60"
+          >
+            <Forward className="size-3.5 shrink-0" aria-hidden />
+            Can&rsquo;t pay it this month? Carry it over to {carryTargetLabel}
+          </button>
+        )}
 
         {queue.length > 0 && (
           <div className="mt-4 border-t border-panel-foreground/15 pt-3">

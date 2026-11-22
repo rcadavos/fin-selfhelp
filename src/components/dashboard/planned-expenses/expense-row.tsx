@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, Car, Check, CheckCircle2, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, Trash2, TriangleAlert, Zap } from "lucide-react";
+import { Bell, Car, Check, CheckCircle2, Forward, Lock, MoreHorizontal, Pencil, PiggyBank, RotateCcw, SkipForward, Trash2, TriangleAlert, Undo2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +13,8 @@ import { Amount } from "@/components/passbook/amount";
 import { NotesPreview } from "@/components/app/notes-field";
 import { Stamp, type StampVariant } from "@/components/passbook/stamp";
 import type { LedgerDetailColumn } from "@/components/dashboard/planned-expenses/bills-ledger";
+import { CarryOverNote } from "@/components/dashboard/planned-expenses/carry-over";
+import { paidMonthName } from "@/lib/paid-month";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { AccountRow } from "@/actions/accounts";
 import type { VehicleRow } from "@/actions/vehicles";
@@ -43,7 +45,7 @@ const PERIOD_TAG: Record<string, string> = {
 
 function relativeDueLabel(row: PlannedExpenseRow): string | null {
   const { daysFromToday, status } = row;
-  if (status === "paid") return null;
+  if (status === "paid" || status === "carried") return null;
   if (daysFromToday === null) return null;
   if (daysFromToday < 0) {
     const late = Math.abs(daysFromToday);
@@ -91,8 +93,11 @@ export function ExpenseRow({
   shortfallNote,
   isLockedFreeReminder,
   isPending,
+  carryTargetLabel,
   onToggle,
   onPartialClick,
+  onCarryOver,
+  onUndoCarryOver,
   onEdit,
   onDelete,
 }: {
@@ -116,15 +121,21 @@ export function ExpenseRow({
   shortfallNote: string | null;
   isLockedFreeReminder: boolean;
   isPending: boolean;
+  /** Name of the month this bill can be carried over to ("December"), or null when it can't be. */
+  carryTargetLabel: string | null;
   onToggle: () => void;
   onPartialClick: () => void;
+  onCarryOver: () => void;
+  onUndoCarryOver: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const router = useRouter();
-  const { bill, status, outstanding, amountPaid } = row;
+  const { bill, status, outstanding, amountPaid, amountDue, carriedIn, carryOut } = row;
   const isPaid = status === "paid";
   const isPartial = status === "partial";
+  const isCarried = status === "carried";
+  const carriedToShort = carryOut ? paidMonthName(carryOut.toMonth, "short") : null;
   const relative = relativeDueLabel(row);
   const reminderLabel = reminderLabelFor(bill.reminder_days_before);
   const dueDate = row.due
@@ -136,8 +147,9 @@ export function ExpenseRow({
   // The wide layout's Status column carries one stamp, then the due date. Where the
   // stamp names the status instead of the timing (part paid, failed), the timing
   // moves onto that second line so it is not lost.
-  const statusStamp: { variant: StampVariant; label: string } | null =
-    status === "failed"
+  const statusStamp: { variant: StampVariant; label: string } | null = isCarried
+    ? { variant: PLANNED_EXPENSE_STAMP_VARIANT.carried, label: PLANNED_EXPENSE_STATUS_LABEL.carried }
+    : status === "failed"
       ? { variant: "overdue", label: "Auto-debit failed" }
       : isPartial
         ? { variant: "partial", label: PLANNED_EXPENSE_STATUS_LABEL.partial }
@@ -146,12 +158,14 @@ export function ExpenseRow({
           : isPaid
             ? { variant: "paid", label: paidLabel(row) }
             : null;
-  const statusDetail = [
-    dueDate ? `Due ${dueDate}` : null,
-    status === "failed" || isPartial ? relative : null,
-  ]
-    .filter(Boolean)
-    .join(" • ");
+  const statusDetail = isCarried
+    ? `Carried to ${carriedToShort}`
+    : [
+        dueDate ? `Due ${dueDate}` : null,
+        status === "failed" || isPartial ? relative : null,
+      ]
+        .filter(Boolean)
+        .join(" • ");
 
   return (
     <div
@@ -174,42 +188,63 @@ export function ExpenseRow({
         SEVERITY_RAIL[status] ?? "before:bg-transparent",
       )}
     >
-      <button
-        type="button"
-        className={cn(
-          "tap-target flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
-          // Paid is a green disc with the tick in the opposite green, not the
-          // near-black `primary-foreground` this used to use: light green
-          // (#57C79A) on the deep fill in light mode, deep green (#10201A) on
-          // the bright fill in dark. The empty ring stays for anything unpaid,
-          // where it is the affordance.
-          isPaid
-            ? "border-primary bg-primary text-panel-accent dark:text-panel"
-            : "border-hairline-strong text-transparent hover:border-primary hover:text-primary/40",
-        )}
-        aria-label={isPaid ? `Mark ${bill.note ?? categoryLabel} unpaid` : `Mark ${bill.note ?? categoryLabel} paid`}
-        // Native tooltip on hover. The aria-label names the bill for screen
-        // readers; the title stays short because the row already shows which.
-        title={isPaid ? "Mark as unpaid" : "Mark as paid"}
-        disabled={isPending}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-      >
-        <Check className={cn("transition-all", isPaid ? "size-5" : "size-4")} strokeWidth={3} aria-hidden />
-      </button>
+      {isCarried ? (
+        // Not a toggle: the month is locked while it is carried over. Undo lives in the menu.
+        <span
+          className="flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-hairline-strong text-muted-foreground"
+          title={`Skipped this month • carried to ${carriedToShort}`}
+        >
+          <SkipForward className="size-3.5" aria-hidden />
+          <span className="sr-only">Skipped this month, carried to {carriedToShort}</span>
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={cn(
+            "tap-target flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+            // Paid is a green disc with the tick in the opposite green, not the
+            // near-black `primary-foreground` this used to use: light green
+            // (#57C79A) on the deep fill in light mode, deep green (#10201A) on
+            // the bright fill in dark. The empty ring stays for anything unpaid,
+            // where it is the affordance.
+            isPaid
+              ? "border-primary bg-primary text-panel-accent dark:text-panel"
+              : "border-hairline-strong text-transparent hover:border-primary hover:text-primary/40",
+          )}
+          aria-label={isPaid ? `Mark ${bill.note ?? categoryLabel} unpaid` : `Mark ${bill.note ?? categoryLabel} paid`}
+          // Native tooltip on hover. The aria-label names the bill for screen
+          // readers; the title stays short because the row already shows which.
+          title={isPaid ? "Mark as unpaid" : "Mark as paid"}
+          disabled={isPending}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+        >
+          <Check className={cn("transition-all", isPaid ? "size-5" : "size-4")} strokeWidth={3} aria-hidden />
+        </button>
+      )}
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={cn("text-sm font-medium", isPaid && "text-muted-foreground line-through")}>
+          <span
+            className={cn(
+              "text-sm font-medium",
+              isPaid && "text-muted-foreground line-through",
+              isCarried && "text-muted-foreground",
+            )}
+          >
             {bill.note ?? categoryLabel}
           </span>
           {/* Status stamps sit beside the name in the stacked layout and move to
               their own column in the wide one. */}
-          {isPartial ? (
+          {isCarried ? (
+            <Stamp variant={PLANNED_EXPENSE_STAMP_VARIANT.carried} className="@2xl:hidden">
+              {PLANNED_EXPENSE_STATUS_LABEL.carried}
+            </Stamp>
+          ) : isPartial ? (
             <Stamp variant="partial" className="@2xl:hidden">
-              {formatCurrency(amountPaid, currency)} of {formatCurrency(bill.amount, currency)}
+              {formatCurrency(amountPaid, currency)} of {formatCurrency(amountDue, currency)}
             </Stamp>
           ) : relative ? (
             <Stamp variant={PLANNED_EXPENSE_STAMP_VARIANT[status]} className="@2xl:hidden">{relative}</Stamp>
@@ -277,6 +312,25 @@ export function ExpenseRow({
 
         <NotesPreview notes={bill.notes} />
 
+        {carryOut && (
+          <CarryOverNote
+            direction="out"
+            amount={carryOut.amount}
+            month={carryOut.toMonth}
+            note={carryOut.note}
+            currency={currency}
+          />
+        )}
+        {carriedIn && (
+          <CarryOverNote
+            direction="in"
+            amount={carriedIn.amount}
+            month={carriedIn.fromMonth}
+            note={carriedIn.note}
+            currency={currency}
+          />
+        )}
+
         {shortfallNote && (
           <p
             className={cn(
@@ -334,15 +388,22 @@ export function ExpenseRow({
 
       <div className="shrink-0 text-right">
         <Amount
-          value={isPartial ? outstanding : bill.amount}
+          value={carryOut ? carryOut.amount : isPartial ? outstanding : amountDue}
           currency={currency}
-          className={cn("text-sm", isPaid && "text-muted-foreground line-through")}
+          className={cn(
+            "text-sm",
+            isPaid && "text-muted-foreground line-through",
+            isCarried && "text-muted-foreground",
+          )}
         />
         {isPartial && (
           <p className="font-mono text-[10px] text-muted-foreground">
             <span className="@2xl:hidden">left</span>
-            <span className="hidden @2xl:inline">left of {formatCurrency(bill.amount, currency)}</span>
+            <span className="hidden @2xl:inline">left of {formatCurrency(amountDue, currency)}</span>
           </p>
+        )}
+        {isCarried && (
+          <p className="font-mono text-[10px] text-muted-foreground">to {carriedToShort}</p>
         )}
       </div>
 
@@ -360,15 +421,30 @@ export function ExpenseRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-            {isPaid ? <RotateCcw className="size-4" /> : <CheckCircle2 className="size-4 text-primary" />}
-            {isPaid ? "Mark Unpaid" : "Mark Paid"}
-          </DropdownMenuItem>
-          {!isPaid && (
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
-              <PiggyBank className="size-4 text-info" />
-              {isPartial ? "Add to Payment" : "Add Partial Payment"}
+          {isCarried ? (
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUndoCarryOver(); }}>
+              <Undo2 className="size-4" />
+              Undo Carry-over
             </DropdownMenuItem>
+          ) : (
+            <>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+                {isPaid ? <RotateCcw className="size-4" /> : <CheckCircle2 className="size-4 text-primary" />}
+                {isPaid ? "Mark Unpaid" : "Mark Paid"}
+              </DropdownMenuItem>
+              {!isPaid && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
+                  <PiggyBank className="size-4 text-info" />
+                  {isPartial ? "Add to Payment" : "Add Partial Payment"}
+                </DropdownMenuItem>
+              )}
+              {carryTargetLabel && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCarryOver(); }}>
+                  <Forward className="size-4 text-warning" />
+                  Carry Over to {carryTargetLabel}
+                </DropdownMenuItem>
+              )}
+            </>
           )}
           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
             <Pencil className="size-4" />

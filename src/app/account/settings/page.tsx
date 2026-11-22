@@ -19,6 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { useSnackbar } from "@/components/ui/snackbar-provider";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { BillsModeConfirmDialog } from "@/components/app/bills-mode-confirm-dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { ContentHeader } from "@/components/app/content-header";
 import { PushNotificationsToggle } from "@/components/notifications";
@@ -437,13 +438,9 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      <ConfirmDialog
+      <BillsModeConfirmDialog
         open={showBillsModeDialog}
         onOpenChange={setShowBillsModeDialog}
-        title="Switch to Bills & reminders only?"
-        description="Accounts, Expenses, Receivables, Goals and Vehicles will be hidden from navigation and search. Auto-debit also pauses: no bill is paid automatically, and those bills switch to due-date reminders instead. Nothing is deleted — switch back to Full cashflow any time and every page, and your auto-debit settings, come back exactly as they were."
-        confirmLabel="Switch to bills mode"
-        cancelLabel="Keep full cashflow"
         onConfirm={() => setAppMode("bills")}
       />
 

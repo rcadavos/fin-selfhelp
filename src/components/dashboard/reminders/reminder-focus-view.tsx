@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { AlarmClock, Check, Trash2 } from "lucide-react";
 import type { ReminderDraft } from "@/hooks/use-reminders";
 import { REMINDER_SECTION_LABELS, REMINDER_WEEK_LENGTH } from "@/lib/constants/reminders";
@@ -16,9 +16,16 @@ import {
   type ReminderSection,
   type ReminderWeekDay,
 } from "@/lib/reminders/schedule";
+import { formatTimeLabel, formatTimeUntil, minutesOfHhmm } from "@/lib/reminders/time";
 import { REMINDER_CATEGORIES, type ToBuyCategory, type ToBuyItem } from "@/lib/to-buy-storage";
 import { cn } from "@/lib/utils";
-import { ReminderCategoryTile, ReminderCheckButton, ReminderLockedRow } from "./reminder-parts";
+import {
+  ReminderCategoryTile,
+  ReminderCheckButton,
+  ReminderLockedRow,
+  ReminderMeta,
+  repeatShortLabel,
+} from "./reminder-parts";
 import { ReminderQuickAdd } from "./reminder-quick-add";
 
 const RING_RADIUS = 22;
@@ -98,6 +105,7 @@ function WeekStrip({
  */
 export function ReminderFocusView({
   todayYmd,
+  nowMinutes,
   locale,
   groups,
   week,
@@ -115,6 +123,7 @@ export function ReminderFocusView({
   onClearDone,
 }: {
   todayYmd: string;
+  nowMinutes: number;
   locale: string;
   groups: ReminderGroups;
   week: ReminderWeekDay[];
@@ -160,6 +169,30 @@ export function ReminderFocusView({
 
   const heading = isTodayView ? REMINDER_SECTION_LABELS.today : sections[0]?.label ?? "";
 
+  // "in 1h 20m" for a reminder later today, "Since 3:00 PM" once its time has gone by.
+  const nextAt = next ? minutesOfHhmm(next.targetTime) : null;
+  const nextWhen = !next
+    ? ""
+    : nextOverdue
+      ? REMINDER_SECTION_LABELS.overdue
+      : !next.targetDate
+        ? REMINDER_SECTION_LABELS.anytime
+        : next.targetDate === todayYmd && nextAt !== null
+          ? nextAt > nowMinutes
+            ? formatTimeUntil(nextAt - nowMinutes)
+            : `Since ${formatTimeLabel(next.targetTime)}`
+          : dueLabel(next.targetDate, todayYmd, locale);
+  const nextMeta = next
+    ? [
+        reminderCategoryLabel(next.category),
+        nextOverdue ? dueLabel(next.targetDate, todayYmd, locale) : null,
+        next.targetTime ? formatTimeLabel(next.targetTime) : null,
+        repeatShortLabel(next),
+      ]
+        .filter(Boolean)
+        .join(" • ")
+    : "";
+
   return (
     <div className="space-y-4">
       <section aria-label="Your day" className="rounded-[1.375rem] bg-panel p-4 text-panel-foreground">
@@ -180,13 +213,10 @@ export function ReminderFocusView({
                   nextOverdue ? "text-[hsl(39.1_66.7%_60%)]" : "text-panel-accent"
                 )}
               >
-                Next up • {nextOverdue ? "Overdue" : next.targetDate ? dueLabel(next.targetDate, todayYmd, locale) : "Anytime"}
+                Next up • {nextWhen}
               </p>
               <p className="mt-1 truncate text-base font-semibold">{next.name}</p>
-              <p className="mt-0.5 truncate text-[12.5px] text-panel-muted">
-                {reminderCategoryLabel(next.category)}
-                {nextOverdue && next.targetDate ? ` • ${dueLabel(next.targetDate, todayYmd, locale)}` : ""}
-              </p>
+              <p className="mt-0.5 truncate text-[12.5px] text-panel-muted">{nextMeta}</p>
             </div>
             <button
               type="button"
@@ -216,6 +246,7 @@ export function ReminderFocusView({
 
       <ReminderQuickAdd
         todayYmd={todayYmd}
+        nowMinutes={nowMinutes}
         locale={locale}
         hasPro={hasPro}
         usedCount={usedCount}
@@ -259,6 +290,7 @@ export function ReminderFocusView({
             section={section}
             showHeading={isTodayView}
             todayYmd={todayYmd}
+            nowMinutes={nowMinutes}
             locale={locale}
             lockedIds={lockedIds}
             onToggle={onToggle}
@@ -276,6 +308,7 @@ function FocusSection({
   section,
   showHeading,
   todayYmd,
+  nowMinutes,
   locale,
   lockedIds,
   onToggle,
@@ -286,6 +319,7 @@ function FocusSection({
   section: ReminderSection;
   showHeading: boolean;
   todayYmd: string;
+  nowMinutes: number;
   locale: string;
   lockedIds: Set<string>;
   onToggle: (id: string) => void;
@@ -335,9 +369,14 @@ function FocusSection({
                 key={item.id}
                 item={item}
                 meta={
-                  showDue
-                    ? `${reminderCategoryLabel(item.category)} • ${dueLabel(item.targetDate, todayYmd, locale)}`
-                    : reminderCategoryLabel(item.category)
+                  <ReminderMeta
+                    item={item}
+                    todayYmd={todayYmd}
+                    nowMinutes={nowMinutes}
+                    locale={locale}
+                    showDue={showDue}
+                    warning={tone === "warning"}
+                  />
                 }
                 tone={tone}
                 onToggle={onToggle}
@@ -392,7 +431,7 @@ function FocusCard({
   onOpen,
 }: {
   item: ToBuyItem;
-  meta: string;
+  meta: ReactNode;
   tone: "default" | "warning";
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
@@ -406,9 +445,7 @@ function FocusCard({
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-semibold leading-snug">{item.name}</span>
-          <span className={cn("mt-0.5 block truncate text-[12.5px]", tone === "warning" ? "text-warning" : "text-muted-foreground")}>
-            {meta}
-          </span>
+          <span className="mt-0.5 block truncate">{meta}</span>
         </span>
       </button>
       <div className="flex size-11 shrink-0 items-center justify-center">

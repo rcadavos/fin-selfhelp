@@ -20,7 +20,32 @@ export function getClockHourInTimeZone(date: Date, timeZone: string): number {
 export function isReminderReleaseHour(
   date: Date,
   releaseHour24: number,
-  timeZone = "Asia/Manila"
+  timeZone = REMINDER_TIME_ZONE
 ): boolean {
   return getClockHourInTimeZone(date, timeZone) >= releaseHour24;
+}
+
+/** The timezone reminder dates and times are read in. */
+export const REMINDER_TIME_ZONE = "Asia/Manila";
+
+/**
+ * The calendar date (`YYYY-MM-DD`) and wall-clock time (`HH:MM`) in `timeZone`.
+ * Reminder times are local, and the server runs in UTC, where before 8 AM in Manila
+ * it is still the previous day.
+ */
+export function getLocalDateTimeInTimeZone(
+  date: Date,
+  timeZone = REMINDER_TIME_ZONE
+): { ymd: string; hhmm: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "00";
+  return { ymd: `${get("year")}-${get("month")}-${get("day")}`, hhmm: `${get("hour")}:${get("minute")}` };
 }
