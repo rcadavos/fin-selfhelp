@@ -43,49 +43,29 @@ const PERIOD_TAG: Record<string, string> = {
   yearly: "YR",
 };
 
-function relativeDueLabel(row: PlannedExpenseRow): string | null {
-  const { daysFromToday, status } = row;
-  if (status === "paid" || status === "carried") return null;
-  if (daysFromToday === null) return null;
-  if (daysFromToday < 0) {
-    const late = Math.abs(daysFromToday);
-    return `${late} day${late === 1 ? "" : "s"} late`;
-  }
-  if (daysFromToday === 0) return "Due today";
-  return `in ${daysFromToday} day${daysFromToday === 1 ? "" : "s"}`;
-}
-
-/** "Paid today" / "Paid yesterday" / "Paid 3 days ago", or plain "Paid" when the day is unknown. */
-function paidAgoLabel(paidAt: Date | null): string {
-  if (!paidAt) return "Paid";
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOfDay(new Date()) - startOfDay(paidAt)) / 86_400_000);
-  if (days <= 0) return "Paid today";
-  if (days === 1) return "Paid yesterday";
-  return `Paid ${days} days ago`;
-}
-
-/**
- * The status stamp's paid label: the exact day only while the row still sits in
- * Recently paid — once it drops into Settled the stamp just says "Paid".
- */
-function paidLabel(row: PlannedExpenseRow): string {
-  return row.bucket === "recent" ? paidAgoLabel(row.paidAt) : "Paid";
-}
-
-/**
- * The line under the amount: days left before the due date ("9 days"), how late
- * it is, when it was paid, or the month it was carried to.
- */
-function amountTimingLabel(row: PlannedExpenseRow, carriedTo: string | null): string | null {
-  const { status, daysFromToday } = row;
-  if (status === "carried") return carriedTo ? `Carried to ${carriedTo}` : null;
-  if (status === "paid") return paidAgoLabel(row.paidAt);
-  if (daysFromToday === null) return null;
-  if (daysFromToday === 0) return "Due today";
+/** "Today", "9 days" ahead, or "3 days ago" — a day count with no status words. */
+function dayCountLabel(daysFromToday: number): string {
+  if (daysFromToday === 0) return "Today";
   const days = Math.abs(daysFromToday);
   const span = `${days} day${days === 1 ? "" : "s"}`;
-  return daysFromToday < 0 ? `${span} late` : span;
+  return daysFromToday < 0 ? `${span} ago` : span;
+}
+
+/**
+ * The line under the amount. The stamp already names the status, so this is only
+ * the timing: days until the due date ("9 days"), days since it passed or since the
+ * bill was paid ("3 days ago"), or the month a skipped bill was carried to.
+ */
+function amountTimingLabel(row: PlannedExpenseRow, carriedTo: string | null): string | null {
+  const { status, daysFromToday, paidAt } = row;
+  if (status === "carried") return carriedTo ? `to ${carriedTo}` : null;
+  if (status === "paid") {
+    if (!paidAt) return null;
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const daysAgo = Math.round((startOfDay(new Date()) - startOfDay(paidAt)) / 86_400_000);
+    return dayCountLabel(-Math.max(0, daysAgo));
+  }
+  return daysFromToday === null ? null : dayCountLabel(daysFromToday);
 }
 
 /** "3d, 1d before, Due date" — the bill's own reminder schedule, in plain words. */
@@ -151,12 +131,11 @@ export function ExpenseRow({
   onDelete: () => void;
 }) {
   const router = useRouter();
-  const { bill, status, outstanding, amountPaid, amountDue, carriedIn, carryOut } = row;
+  const { bill, status, outstanding, amountDue, carriedIn, carryOut } = row;
   const isPaid = status === "paid";
   const isPartial = status === "partial";
   const isCarried = status === "carried";
   const carriedToShort = carryOut ? paidMonthName(carryOut.toMonth, "short") : null;
-  const relative = relativeDueLabel(row);
   const amountTiming = amountTimingLabel(row, carriedToShort);
   const isLate = !isPaid && !isCarried && row.daysFromToday !== null && row.daysFromToday < 0;
   const reminderLabel = reminderLabelFor(bill.reminder_days_before);
@@ -166,28 +145,13 @@ export function ExpenseRow({
   const accountInColumn = detailColumn === "account";
   const reminderInColumn = detailColumn === "reminder";
 
-  // The wide layout's Status column carries one stamp, then the due date. Where the
-  // stamp names the status instead of the timing (part paid, failed), the timing
-  // moves onto that second line so it is not lost.
-  const statusStamp: { variant: StampVariant; label: string } | null = isCarried
-    ? { variant: PLANNED_EXPENSE_STAMP_VARIANT.carried, label: PLANNED_EXPENSE_STATUS_LABEL.carried }
-    : status === "failed"
-      ? { variant: "overdue", label: "Auto-debit failed" }
-      : isPartial
-        ? { variant: "partial", label: PLANNED_EXPENSE_STATUS_LABEL.partial }
-        : relative
-          ? { variant: PLANNED_EXPENSE_STAMP_VARIANT[status], label: relative }
-          : isPaid
-            ? { variant: "paid", label: paidLabel(row) }
-            : null;
-  const statusDetail = isCarried
-    ? `Carried to ${carriedToShort}`
-    : [
-        dueDate ? `Due ${dueDate}` : null,
-        status === "failed" || isPartial ? relative : null,
-      ]
-        .filter(Boolean)
-        .join(" • ");
+  // One stamp naming the status only. Its timing ("9 days", "3 days ago") sits under
+  // the amount instead. It goes beside the name when stacked and in the Status column
+  // when wide.
+  const statusStamp: { variant: StampVariant; label: string } = {
+    variant: PLANNED_EXPENSE_STAMP_VARIANT[status],
+    label: status === "failed" ? "Auto-debit failed" : PLANNED_EXPENSE_STATUS_LABEL[status],
+  };
 
   return (
     <div
@@ -260,20 +224,7 @@ export function ExpenseRow({
           </span>
           {/* Status stamps sit beside the name in the stacked layout and move to
               their own column in the wide one. */}
-          {isCarried ? (
-            <Stamp variant={PLANNED_EXPENSE_STAMP_VARIANT.carried} className="@2xl:hidden">
-              {PLANNED_EXPENSE_STATUS_LABEL.carried}
-            </Stamp>
-          ) : isPartial ? (
-            <Stamp variant="partial" className="@2xl:hidden">
-              {formatCurrency(amountPaid, currency)} of {formatCurrency(amountDue, currency)}
-            </Stamp>
-          ) : relative ? (
-            <Stamp variant={PLANNED_EXPENSE_STAMP_VARIANT[status]} className="@2xl:hidden">{relative}</Stamp>
-          ) : isPaid ? (
-            <Stamp variant="paid" className="@2xl:hidden">{paidLabel(row)}</Stamp>
-          ) : null}
-          {status === "failed" && <Stamp variant="overdue" className="@2xl:hidden">Auto-debit failed</Stamp>}
+          <Stamp variant={statusStamp.variant} className="@2xl:hidden">{statusStamp.label}</Stamp>
           {bill.is_auto_debit && autoDebitEnabled && status !== "failed" && (
             <Stamp variant="muted">
               <Zap className="size-2.5 text-primary" aria-hidden />
@@ -368,8 +319,7 @@ export function ExpenseRow({
 
       {/* Wide layout only: Status column. */}
       <div className="hidden min-w-0 @2xl:block">
-        {statusStamp && <Stamp variant={statusStamp.variant}>{statusStamp.label}</Stamp>}
-        {statusDetail && <p className="mt-1 truncate text-[11.5px] text-muted-foreground">{statusDetail}</p>}
+        <Stamp variant={statusStamp.variant}>{statusStamp.label}</Stamp>
       </div>
 
       {/* Wide layout only: the account (or, in bills mode, the reminder) column. */}
