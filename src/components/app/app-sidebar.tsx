@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import type { AppFeatureKey } from "@/lib/constants/app-mode";
+import { APP_TOOLBAR_HEIGHT_CLASS } from "@/lib/constants/top-bar";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import { APP_VERSION } from "@/lib/version";
@@ -108,7 +109,7 @@ export function AppSidebar({
         className
       )}
     >
-      <div className="flex h-14 shrink-0 items-end gap-0.5 border-b px-3 pb-1">
+      <div className={cn("flex shrink-0 items-end gap-0.5 border-b px-3 pb-1", APP_TOOLBAR_HEIGHT_CLASS)}>
         <Link
           href="/"
           className="flex min-w-0 items-center"

@@ -120,6 +120,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { type: "improvement", description: "The home page's Ask Otto card is now a demo: pick a question such as 'What's still unpaid this month?' and Otto types out his answer." },
       { type: "improvement", description: "Each feature on the home page now shows a small sample of how it looks in the app (an expense, a PAID stamp, a category bar, a reminder time, a goal's progress, and a link to the calculators), and the section ends with a button to start the free 14-day trial." },
       { type: "improvement", description: "The home page's top bar has the Aa text size button, next to the light and dark switch, and its menu now sits in the middle of the bar. Go to Dashboard and Sign up use the same green button as the rest of the page." },
+      { type: "improvement", description: "The top bars are taller, with bigger buttons that are easier to click. On the home page, the Aa, light and dark, Log in, Sign up and Go to Dashboard buttons are bigger on tablets and computers, and the bar itself is taller on computers. In the app on a computer, the toolbar is taller, and its search box and its text size, light and dark, and notifications buttons are bigger. Phones keep the compact sizes, so everything still fits on a small screen." },
+      { type: "improvement", description: "Each bill on the Bills page now says when it falls due right under its amount: '9 days' before the due date, 'Due today' on the day, '14 days late' in red once it has passed, 'Paid 2 days ago' once it is paid, or 'Carried to Dec' when you carried it over." },
     ],
   },
   {

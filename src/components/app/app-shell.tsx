@@ -11,6 +11,7 @@ import { TextSizeMenu } from "@/components/text-size-menu";
 import { useUser } from "@/hooks/use-user";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { cn } from "@/lib/utils";
+import { APP_TOOLBAR_HEIGHT_CLASS } from "@/lib/constants/top-bar";
 import { BottomNavbar } from "@/components/app/bottom-navbar";
 import { AppModeGuard } from "@/components/app/app-mode-guard";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
@@ -35,7 +36,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {showAuthenticatedShell ? (
           <header
-            className="relative z-10 hidden h-14 shrink-0 grid-cols-[1fr_minmax(0,28rem)_1fr] items-center gap-3 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-4 md:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]"
+            className={cn(
+              "relative z-10 hidden shrink-0 grid-cols-[1fr_minmax(0,28rem)_1fr] items-center gap-3 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-4 md:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr]",
+              APP_TOOLBAR_HEIGHT_CLASS
+            )}
             aria-label="App toolbar"
           >
             {/* Equal side columns keep the search centered; it shrinks before it overlaps them. */}

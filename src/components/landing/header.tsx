@@ -23,6 +23,15 @@ const navLinks = [
   { href: "/#faq", label: "FAQ" },
 ] as const;
 
+/**
+ * Compact below lg, and 44px tall from lg, like the Aa and theme buttons beside them
+ * and the app's desktop toolbar. Growing any earlier, or with more padding, makes the
+ * buttons wider than the logo, which pushes the centred menu off the middle (at 768px
+ * and at 1280px with the full trial label). The loading placeholders copy these sizes.
+ */
+const LOG_IN_SIZE_CLASS = "h-9 px-2 text-sm sm:px-3 lg:h-11 lg:text-[15px]";
+const CTA_SIZE_CLASS = "lg:h-11 lg:text-[15px] lg:[--cta-px:1rem]";
+
 export function Header({ className }: HeaderProps) {
   const { user, loading } = useUser();
   const [navigating, setNavigating] = useState(false);
@@ -38,7 +47,7 @@ export function Header({ className }: HeaderProps) {
         {/* From md the row is three columns, the outer two sharing what is left over,
             so the menu sits in the middle of the header rather than wherever the logo
             and buttons happen to push it. */}
-        <div className="flex h-16 items-center gap-2 px-4 sm:gap-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:px-8">
+        <div className="flex h-16 items-center gap-2 px-4 sm:gap-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] lg:h-20 lg:gap-6 lg:px-8">
           <Link
             href="/"
             className="mr-auto flex min-w-0 items-center overflow-hidden md:mr-0 md:justify-self-start"
@@ -71,8 +80,8 @@ export function Header({ className }: HeaderProps) {
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-3 md:justify-self-end">
             <div className="flex items-center">
-              <TextSizeMenu />
-              <ThemeToggle />
+              <TextSizeMenu size="responsive" />
+              <ThemeToggle size="responsive" />
             </div>
             {loading ? (
               /* The placeholders mirror the real buttons below — same sizes, same
@@ -84,10 +93,15 @@ export function Header({ className }: HeaderProps) {
                 aria-busy="true"
                 aria-label="Loading account"
               >
-                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-2 text-sm font-medium whitespace-nowrap text-transparent sm:px-3">
+                <Skeleton
+                  className={cn(
+                    "inline-flex shrink-0 items-center rounded-xl font-medium whitespace-nowrap text-transparent",
+                    LOG_IN_SIZE_CLASS
+                  )}
+                >
                   Log in
                 </Skeleton>
-                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-transparent">
+                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-transparent lg:h-11 lg:px-4 lg:text-[15px]">
                   <SignUpLabel />
                 </Skeleton>
               </div>
@@ -96,6 +110,7 @@ export function Header({ className }: HeaderProps) {
                 href="/dashboard"
                 size="sm"
                 arrow={false}
+                className={CTA_SIZE_CLASS}
                 pending={navigating}
                 onClick={(e) => {
                   if (opensInThisTab(e)) setNavigating(true);
@@ -105,10 +120,10 @@ export function Header({ className }: HeaderProps) {
               </CtaButton>
             ) : (
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                <Button size="sm" variant="ghost" asChild className="inline-flex h-9 px-2 sm:px-3">
+                <Button size="sm" variant="ghost" asChild className={cn("inline-flex", LOG_IN_SIZE_CLASS)}>
                   <Link href="/login">Log in</Link>
                 </Button>
-                <CtaButton href="/signup" size="sm" arrow={false}>
+                <CtaButton href="/signup" size="sm" arrow={false} className={CTA_SIZE_CLASS}>
                   <SignUpLabel />
                 </CtaButton>
               </div>

@@ -55,17 +55,37 @@ function relativeDueLabel(row: PlannedExpenseRow): string | null {
   return `in ${daysFromToday} day${daysFromToday === 1 ? "" : "s"}`;
 }
 
-/**
- * "Paid today" / "Paid 3 days ago", but only while the row still sits in Recently
- * paid — once it drops into Settled the exact day stopped mattering.
- */
-function paidLabel(row: PlannedExpenseRow): string {
-  if (row.bucket !== "recent" || !row.paidAt) return "Paid";
+/** "Paid today" / "Paid yesterday" / "Paid 3 days ago", or plain "Paid" when the day is unknown. */
+function paidAgoLabel(paidAt: Date | null): string {
+  if (!paidAt) return "Paid";
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOfDay(new Date()) - startOfDay(row.paidAt)) / 86_400_000);
+  const days = Math.round((startOfDay(new Date()) - startOfDay(paidAt)) / 86_400_000);
   if (days <= 0) return "Paid today";
   if (days === 1) return "Paid yesterday";
   return `Paid ${days} days ago`;
+}
+
+/**
+ * The status stamp's paid label: the exact day only while the row still sits in
+ * Recently paid — once it drops into Settled the stamp just says "Paid".
+ */
+function paidLabel(row: PlannedExpenseRow): string {
+  return row.bucket === "recent" ? paidAgoLabel(row.paidAt) : "Paid";
+}
+
+/**
+ * The line under the amount: days left before the due date ("9 days"), how late
+ * it is, when it was paid, or the month it was carried to.
+ */
+function amountTimingLabel(row: PlannedExpenseRow, carriedTo: string | null): string | null {
+  const { status, daysFromToday } = row;
+  if (status === "carried") return carriedTo ? `Carried to ${carriedTo}` : null;
+  if (status === "paid") return paidAgoLabel(row.paidAt);
+  if (daysFromToday === null) return null;
+  if (daysFromToday === 0) return "Due today";
+  const days = Math.abs(daysFromToday);
+  const span = `${days} day${days === 1 ? "" : "s"}`;
+  return daysFromToday < 0 ? `${span} late` : span;
 }
 
 /** "3d, 1d before, Due date" — the bill's own reminder schedule, in plain words. */
@@ -137,6 +157,8 @@ export function ExpenseRow({
   const isCarried = status === "carried";
   const carriedToShort = carryOut ? paidMonthName(carryOut.toMonth, "short") : null;
   const relative = relativeDueLabel(row);
+  const amountTiming = amountTimingLabel(row, carriedToShort);
+  const isLate = !isPaid && !isCarried && row.daysFromToday !== null && row.daysFromToday < 0;
   const reminderLabel = reminderLabelFor(bill.reminder_days_before);
   const dueDate = row.due
     ? row.due.toLocaleDateString("en-PH", { month: "short", day: "numeric" })
@@ -402,8 +424,10 @@ export function ExpenseRow({
             <span className="hidden @2xl:inline">left of {formatCurrency(amountDue, currency)}</span>
           </p>
         )}
-        {isCarried && (
-          <p className="font-mono text-[10px] text-muted-foreground">to {carriedToShort}</p>
+        {amountTiming && (
+          <p className={cn("font-mono text-[10px]", isLate ? "text-destructive" : "text-muted-foreground")}>
+            {amountTiming}
+          </p>
         )}
       </div>
 

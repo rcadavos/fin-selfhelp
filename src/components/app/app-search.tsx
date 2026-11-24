@@ -198,7 +198,7 @@ export function DesktopSearch({ className }: { className?: string }) {
       <label htmlFor="desktop-search" className="sr-only">Search</label>
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-[1.125rem] w-[1.125rem] -translate-y-1/2 text-muted-foreground"
           aria-hidden
         />
         <input
@@ -208,7 +208,7 @@ export function DesktopSearch({ className }: { className?: string }) {
           placeholder={APP_SEARCH_PLACEHOLDER.desktop}
           autoComplete="off"
           spellCheck={false}
-          className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none ring-offset-background transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3.5 text-[15px] outline-none ring-offset-background transition-colors placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
