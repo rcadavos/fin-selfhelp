@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export type GoalType = "short_term" | "long_term" | "lifetime";
 
+/** Money added to a goal in one calendar month (`YYYY-MM`). */
+export type GoalMonthTotal = { month: string; total: number };
+
 export type GoalEntryRow = {
   id: string;
   name: string;
@@ -16,6 +19,70 @@ export type GoalEntryRow = {
   notes: string | null;
   target_amount: number | null;
   total_deposited: number;
+  /** How many deposits the goal has. */
+  deposit_count: number;
+  /** Earliest and latest deposit dates (`YYYY-MM-DD`), or null with no deposits. */
+  first_deposit_at: string | null;
+  last_deposit_at: string | null;
+  /** Deposits summed by calendar month, oldest first. Drives the saving pace and the trend bars. */
+  monthly_deposits: GoalMonthTotal[];
+};
+
+type GoalDepositStats = Pick<
+  GoalEntryRow,
+  "total_deposited" | "deposit_count" | "first_deposit_at" | "last_deposit_at" | "monthly_deposits"
+>;
+
+/** Totals, first and last dates, and monthly sums per goal, from the profile's deposit rows. */
+function buildDepositStats(
+  rows: { goal_id: unknown; amount: unknown; deposited_at: unknown }[]
+): Map<string, GoalDepositStats> {
+  const byGoal = new Map<string, { stats: GoalDepositStats; months: Map<string, number> }>();
+  for (const row of rows) {
+    const goalId = String(row.goal_id);
+    const amount = Number(row.amount);
+    const date = String(row.deposited_at ?? "").slice(0, 10);
+    if (!Number.isFinite(amount)) continue;
+    let entry = byGoal.get(goalId);
+    if (!entry) {
+      entry = {
+        stats: {
+          total_deposited: 0,
+          deposit_count: 0,
+          first_deposit_at: null,
+          last_deposit_at: null,
+          monthly_deposits: [],
+        },
+        months: new Map(),
+      };
+      byGoal.set(goalId, entry);
+    }
+    const { stats, months } = entry;
+    stats.total_deposited += amount;
+    stats.deposit_count += 1;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      if (!stats.first_deposit_at || date < stats.first_deposit_at) stats.first_deposit_at = date;
+      if (!stats.last_deposit_at || date > stats.last_deposit_at) stats.last_deposit_at = date;
+      const month = date.slice(0, 7);
+      months.set(month, (months.get(month) ?? 0) + amount);
+    }
+  }
+  const out = new Map<string, GoalDepositStats>();
+  for (const [goalId, { stats, months }] of byGoal) {
+    stats.monthly_deposits = [...months.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, total]) => ({ month, total }));
+    out.set(goalId, stats);
+  }
+  return out;
+}
+
+const NO_DEPOSITS: GoalDepositStats = {
+  total_deposited: 0,
+  deposit_count: 0,
+  first_deposit_at: null,
+  last_deposit_at: null,
+  monthly_deposits: [],
 };
 
 export type GoalDepositRow = {
@@ -55,17 +122,13 @@ export async function loadGoals(): Promise<{ goals: GoalEntryRow[]; error?: stri
       .order("created_at", { ascending: false }),
     supabase
       .from("goal_deposits")
-      .select("goal_id, amount")
+      .select("goal_id, amount, deposited_at")
       .eq("profile_id", profile.id),
   ]);
 
   if (error) return { goals: [], error: error.message };
 
-  const totalsMap = new Map<string, number>();
-  for (const d of depositRows ?? []) {
-    const gid = String(d.goal_id);
-    totalsMap.set(gid, (totalsMap.get(gid) ?? 0) + Number(d.amount));
-  }
+  const statsMap = buildDepositStats(depositRows ?? []);
 
   const goals: GoalEntryRow[] = (rows ?? []).map((r) => ({
     id: String(r.id),
@@ -77,7 +140,7 @@ export async function loadGoals(): Promise<{ goals: GoalEntryRow[]; error?: stri
     goal_type: normalizeGoalType(String(r.goal_type)) ?? "short_term",
     notes: r.notes != null ? String(r.notes) : null,
     target_amount: r.target_amount != null ? Number(r.target_amount) : null,
-    total_deposited: totalsMap.get(String(r.id)) ?? 0,
+    ...(statsMap.get(String(r.id)) ?? NO_DEPOSITS),
   }));
 
   const achievementRank = (g: GoalEntryRow) =>

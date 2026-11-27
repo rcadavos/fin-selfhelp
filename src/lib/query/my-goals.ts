@@ -24,7 +24,6 @@ export const goalDepositsQueryOptions = (goalId: string) =>
       if (res.error) throw new Error(res.error);
       return res.deposits;
     }),
-    enabled: !!goalId,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

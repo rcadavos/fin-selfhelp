@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Bell, ScanLine, LifeBuoy } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Bell, ScanLine, LifeBuoy, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -16,6 +16,7 @@ const links = [
   { href: "/admin/ocr", label: "OCR", icon: ScanLine },
   { href: "/admin/reviews", label: "Reviews", icon: MessageSquareText },
   { href: "/admin/suggestions", label: "Suggestions", icon: Lightbulb },
+  { href: "/admin/settings", label: "Site settings", icon: Settings },
 ] as const;
 
 export function AdminAppShell({ children }: { children: React.ReactNode }) {

@@ -4,7 +4,7 @@
  * Body poses use a 340-unit square (viewBox -20 -20 340 340) so open wings have room; the face is cut to the head.
  * Some poses also come as "rigs" (eyes left white) for the animated eyes laid over them in
  * src/components/mascot/otto.module.css, and as frame strips: the one-owl landings (12 frames, 400-unit cells),
- * the head turn (13 frames, 0° to 180°) and the curious head tilt (5 frames).
+ * the head turn (13 frames, 0° to 180°), the curious head tilt (5 frames) and the loader's wingbeat (8 frames).
  *
  * Usage: npm run mascot:draw   (re-run after changing a drawing here, then raise OTTO_VERSION in
  * src/lib/constants/mascot.ts so browsers fetch the new files). Never edit the files in public/mascot by hand.
@@ -33,6 +33,7 @@ const KEEP = new Set([
   'otto-turn-strip.svg',
   'otto-tilt-strip.svg',
   'otto-qmark.svg',
+  'otto-fly-strip.svg',
 ])
 const writeFileSync = (path, data) => {
   if (KEEP.has(basename(path))) fsWrite(path, data)
@@ -821,4 +822,21 @@ for (const pose of ['shrug', 'curious', 'remind', 'check', 'search']) writeFileS
   }
   writeFileSync(resolve(OUT, 'otto-tilt-strip.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${N * 340} 340">${DEFS}${cells.join('')}</svg>\n`)
   writeFileSync(resolve(OUT, 'otto-qmark.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 340 340">${QMARK}</svg>\n`)
+}
+
+/* ---- the loader: Otto flying on the spot, one wingbeat in FLY_N frames, each in a 400-wide cell like the landing's.
+   Frame 0 has his wings level on the way down (the still pose under reduced motion). The primaries trail the arm,
+   bending up on the downstroke and down on the upstroke, and fan wider on the way down. His body's rise and fall is
+   CSS (`flyBob` in otto.module.css), on the same beat. `otto-fly-strip.svg`. ---- */
+{
+  const FLY_N = 8
+  const cells = []
+  for (let k = 0; k < FLY_N; k++) {
+    const p = (2 * Math.PI * k) / FLY_N + Math.PI / 2
+    const cfg = { ...FLY_CFG, arm: 110 + 42 * Math.cos(p), hand: 12 + 22 * Math.sin(p), spread: 7 + 2.5 * Math.sin(p) }
+    cells.push(foldInner([0, 2], wing(cfg) + wing({ ...cfg, mirror: true }), `fl${k}`))
+  }
+  const defs = DEFS.replace('</defs>', '<clipPath id="cell"><rect x="-50" y="-20" width="400" height="340"/></clipPath></defs>')
+  const svgCells = cells.map((inner, k) => `<g transform="translate(${k * 400 + 50} 20)"><g clip-path="url(#cell)">${inner}</g></g>`)
+  writeFileSync(resolve(OUT, 'otto-fly-strip.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FLY_N * 400} 340">${defs}${svgCells.join('')}</svg>\n`)
 }

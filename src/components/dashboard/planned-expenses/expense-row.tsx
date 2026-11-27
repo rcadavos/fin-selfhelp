@@ -139,9 +139,6 @@ export function ExpenseRow({
   const amountTiming = amountTimingLabel(row, carriedToShort);
   const isLate = !isPaid && !isCarried && row.daysFromToday !== null && row.daysFromToday < 0;
   const reminderLabel = reminderLabelFor(bill.reminder_days_before);
-  const dueDate = row.due
-    ? row.due.toLocaleDateString("en-PH", { month: "short", day: "numeric" })
-    : null;
   const accountInColumn = detailColumn === "account";
   const reminderInColumn = detailColumn === "reminder";
 
@@ -241,12 +238,6 @@ export function ExpenseRow({
 
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-muted-foreground">
           <span style={{ color: categoryColor }}>{categoryLabel}</span>
-          {dueDate && (
-            <span className="inline-flex items-center gap-1.5 @2xl:hidden">
-              <span className="opacity-45">•</span>
-              <span>Due {dueDate}</span>
-            </span>
-          )}
           <span className="rounded-full border border-hairline-strong px-1.5 py-px font-mono text-[9.5px] tracking-wider">
             {PERIOD_TAG[bill.billing_period] ?? bill.billing_period}
           </span>
@@ -369,9 +360,10 @@ export function ExpenseRow({
           )}
         />
         {isPartial && (
-          <p className="font-mono text-[10px] text-muted-foreground">
-            <span className="@2xl:hidden">left</span>
-            <span className="hidden @2xl:inline">left of {formatCurrency(amountDue, currency)}</span>
+          // Two lines when stacked, so the amount column stays narrow on phones; one when wide.
+          <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+            <span className="block @2xl:inline">left of</span>{" "}
+            <span className="block @2xl:inline">{formatCurrency(amountDue, currency)}</span>
           </p>
         )}
         {amountTiming && (

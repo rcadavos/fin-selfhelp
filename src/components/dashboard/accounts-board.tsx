@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { formatCurrency, cn } from "@/lib/utils";
 import { AnimatedAmount } from "@/components/ui/animated-amount";
 import { computeNetBalance, sortAccountsCashFirst } from "@/lib/shared/accounts";
@@ -562,7 +563,7 @@ export function AccountsBoard() {
         icon={Wallet}
         subtitle="Your accounts hub — record expenses, income, transfers, and adjustments here. This isn&apos;t linked to your real bank or e-wallet."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
+          <Button size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
             <Plus className="h-4 w-4" />
             Add Account
           </Button>

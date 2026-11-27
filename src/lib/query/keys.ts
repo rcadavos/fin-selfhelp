@@ -72,4 +72,10 @@ export const queryKeys = {
   adminReferralStats: () => [...queryKeys.all, "admin", "referrals"] as const,
   /** Contact support messages for the admin portal (see `adminSupportRequestsQueryOptions`). */
   adminSupportRequests: () => [...queryKeys.all, "admin", "support-requests"] as const,
+  /** Facebook connection flags and the auto-publish switch (see `adminSocialSettingsQueryOptions`). */
+  adminSocialSettings: () => [...queryKeys.all, "admin", "social", "settings"] as const,
+  /** The live Facebook Page: cover, profile picture, latest posts (see `adminFacebookPageQueryOptions`). */
+  adminFacebookPage: () => [...queryKeys.all, "admin", "social", "facebook-page"] as const,
+  /** The `social_posts` queue (see `adminSocialPostsQueryOptions`). */
+  adminSocialPosts: () => [...queryKeys.all, "admin", "social", "posts"] as const,
 };

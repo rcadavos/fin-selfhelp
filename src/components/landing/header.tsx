@@ -25,12 +25,14 @@ const navLinks = [
 
 /**
  * Compact below lg, and 44px tall from lg, like the Aa and theme buttons beside them
- * and the app's desktop toolbar. Growing any earlier, or with more padding, makes the
- * buttons wider than the logo, which pushes the centred menu off the middle (at 768px
- * and at 1280px with the full trial label). The loading placeholders copy these sizes.
+ * and the app's desktop toolbar. The menu is centred only while the buttons are no
+ * wider than half of what the menu leaves over. Grow them earlier, or pad them more,
+ * and it slides off the middle: at 768px, and at 1280px with the full trial label.
+ * Tablets are the tightest, so md trims the padding and gaps a little.
+ * The loading placeholders copy these sizes.
  */
-const LOG_IN_SIZE_CLASS = "h-9 px-2 text-sm sm:px-3 lg:h-11 lg:text-[15px]";
-const CTA_SIZE_CLASS = "lg:h-11 lg:text-[15px] lg:[--cta-px:1rem]";
+const LOG_IN_SIZE_CLASS = "h-9 px-2 text-sm lg:h-11 lg:px-3 lg:text-[15px]";
+const CTA_SIZE_CLASS = "md:[--cta-px:0.75rem] lg:h-11 lg:text-[15px] lg:[--cta-px:1rem]";
 
 export function Header({ className }: HeaderProps) {
   const { user, loading } = useUser();
@@ -47,7 +49,7 @@ export function Header({ className }: HeaderProps) {
         {/* From md the row is three columns, the outer two sharing what is left over,
             so the menu sits in the middle of the header rather than wherever the logo
             and buttons happen to push it. */}
-        <div className="flex h-16 items-center gap-2 px-4 sm:gap-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] lg:h-20 lg:gap-6 lg:px-8">
+        <div className="flex h-16 items-center gap-2 px-4 sm:gap-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-3 lg:h-20 lg:gap-6 lg:px-8">
           <Link
             href="/"
             className="mr-auto flex min-w-0 items-center overflow-hidden md:mr-0 md:justify-self-start"
@@ -66,7 +68,7 @@ export function Header({ className }: HeaderProps) {
             <span className="sr-only">OmniTrak</span>
           </Link>
 
-          <nav className="hidden items-center gap-5 md:flex lg:gap-7" aria-label="Primary">
+          <nav className="hidden items-center gap-4 md:flex lg:gap-7" aria-label="Primary">
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
@@ -78,7 +80,7 @@ export function Header({ className }: HeaderProps) {
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-3 md:justify-self-end">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3 md:gap-2 md:justify-self-end lg:gap-3">
             <div className="flex items-center">
               <TextSizeMenu size="responsive" />
               <ThemeToggle size="responsive" />
@@ -101,7 +103,7 @@ export function Header({ className }: HeaderProps) {
                 >
                   Log in
                 </Skeleton>
-                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-transparent lg:h-11 lg:px-4 lg:text-[15px]">
+                <Skeleton className="inline-flex h-9 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-transparent md:px-3 lg:h-11 lg:px-4 lg:text-[15px]">
                   <SignUpLabel />
                 </Skeleton>
               </div>

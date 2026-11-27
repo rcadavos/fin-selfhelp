@@ -1,6 +1,7 @@
 import { queryOptions, QueryClient } from "@tanstack/react-query";
-import { loadVehicles, loadVehicleSpending, loadVehicleLinkedBills, type VehicleRow, type VehicleSpendSummary, type VehicleLinkedBill } from "@/actions/vehicles";
+import { loadVehicles, loadVehicleSpending, loadVehicleLinkedBills, type VehicleRow, type VehicleSpendEntry, type VehicleLinkedBill } from "@/actions/vehicles";
 import { TRANSPORT_EXPENSE_CATEGORY_ID } from "@/lib/constants/expense-categories";
+import { VEHICLE_TREND_MONTHS } from "@/lib/constants/vehicles";
 import { queryKeys } from "./keys";
 
 export const VEHICLE_CHART_COLORS = [
@@ -27,13 +28,18 @@ export const vehiclesQueryOptions = () =>
     refetchOnReconnect: false,
   });
 
-export const vehicleSpendingQueryOptions = (month?: string) =>
+/**
+ * Vehicle spending (linked expenses and payments on linked bills) for the
+ * `months` months ending at `endMonth` (YYYY-MM). One query feeds the month's
+ * figures, the month before it for comparison, and the trend bars.
+ */
+export const vehicleSpendingQueryOptions = (endMonth: string, months: number = VEHICLE_TREND_MONTHS) =>
   queryOptions({
-    queryKey: [...queryKeys.vehicles(), "spending", month ?? "all"] as const,
-    queryFn: () => Promise.resolve().then(async (): Promise<VehicleSpendSummary[]> => {
-      const res = await loadVehicleSpending(month);
+    queryKey: [...queryKeys.vehicles(), "spending", endMonth, months] as const,
+    queryFn: () => Promise.resolve().then(async (): Promise<VehicleSpendEntry[]> => {
+      const res = await loadVehicleSpending(endMonth, months);
       if (res.error) throw new Error(res.error);
-      return res.summaries;
+      return res.entries;
     }),
   });
 

@@ -29,9 +29,11 @@ import { categoriesQueryOptions } from "@/lib/query/categories";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { billsDataQueryOptions } from "@/lib/query/bills";
 import { queryKeys } from "@/lib/query/keys";
+import { invalidateNotificationQueries } from "@/lib/query/notifications";
 import { getCurrentPaidMonth, paidMonthName, shiftPaidMonth } from "@/lib/paid-month";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import {
   toggleBillPayment,
@@ -491,6 +493,7 @@ export function BillsBoard() {
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
+    invalidateNotificationQueries(queryClient);
   }
 
   /** A carry-over changes this month and the next, so both cached months go stale. */
@@ -734,7 +737,7 @@ export function BillsBoard() {
             "w-auto gap-1.5 text-sm font-medium focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60",
             placement === "toolbar"
               ? "h-10 border-0 bg-transparent px-2 shadow-none hover:bg-muted"
-              : "h-9 px-3",
+              : cn("px-3.5", CONTENT_HEADER_ACTION_SIZE.controlClass),
           )}
         >
           <SelectValue />
@@ -764,7 +767,7 @@ export function BillsBoard() {
           <div className="flex items-center gap-2">
             <div className="hidden xl:block">{renderMonthSelect("header")}</div>
             {isFeatureEnabled("expenses") ? (
-              <Button variant="outline" size="sm" aria-label="Categories" asChild>
+              <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} aria-label="Categories" asChild>
                 <Link href="/dashboard/expenses/categories">
                   <LayoutGrid className="size-4" aria-hidden />
                   <span className="hidden sm:inline">Categories</span>
@@ -774,7 +777,7 @@ export function BillsBoard() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size={CONTENT_HEADER_ACTION_SIZE.button}
                 aria-label="Categories"
                 onClick={() => setCategoriesOpen(true)}
               >
@@ -784,8 +787,8 @@ export function BillsBoard() {
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Download className="size-3.5" />
+                <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5">
+                  <Download className="size-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -798,7 +801,7 @@ export function BillsBoard() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => setAddOpen(true)} size="sm" className="hidden gap-1.5 xl:inline-flex">
+            <Button onClick={() => setAddOpen(true)} size={CONTENT_HEADER_ACTION_SIZE.button} className="hidden gap-1.5 xl:inline-flex">
               <Plus className="size-4" />
               Add bill
             </Button>

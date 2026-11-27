@@ -1,89 +1,26 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getBaseUrl } from "@/lib/seo";
+import {
+  BORDER,
+  CARD,
+  GREEN,
+  HAIR_STRONG,
+  INK,
+  LEADER,
+  MONO,
+  MUTED,
+  PAPER,
+  PILL,
+  SANS,
+  TINT,
+  loadBrandFonts,
+  loadOttoFaceDataUrl,
+} from "@/lib/og/brand";
 
 export const alt =
   "OmniTrak — Your all-in-one finance tracker, now with AI";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-/* ============================================================
-   Passbook design tokens (light) — mirrors globals.css :root.
-   One green ink, hairline rules, banking-grade mono numerals.
-   ============================================================ */
-const PAPER = "#F7F8F6"; // --background
-const CARD = "#FCFDFB"; // --card surface
-const INK = "#171D19"; // --foreground
-const MUTED = "#5A6660"; // --muted-foreground
-const GREEN = "#0B6E4F"; // --primary money green
-const BORDER = "#E2E7E2"; // --border hairline
-const HAIR_STRONG = "#C9D2CB"; // --hairline-strong
-const AMBER = "#8A6116"; // --warning amber ink (Due)
-const RED = "#B3372F"; // --destructive (Overdue)
-const BLUE = "#1F62B0"; // --info (Auto-debit)
-const TINT = "#F3F7F4"; // --primary at 4% on the card: the dashboard's second figure
-const LEADER = "rgba(90,102,96,0.45)"; // dot-leader ink
-
-/** Every glyph rendered in the image — sent to Google Fonts so it returns a
- *  subsetted TTF (Satori can't parse the woff2 you'd otherwise get). Includes
- *  both cases so `text-transform: uppercase` can't produce tofu. */
-const GLYPHS =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;/-–—•₱→%&()'";
-
-type FontSpec = { name: string; family: string; weight: 400 | 500 | 700 };
-
-const FONT_SPECS: FontSpec[] = [
-  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 400 },
-  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 500 },
-  { name: "Schibsted Grotesk", family: "Schibsted Grotesk", weight: 700 },
-  { name: "Geist Mono", family: "Geist Mono", weight: 400 },
-  { name: "Geist Mono", family: "Geist Mono", weight: 500 },
-];
-
-/** Fetch a single Google Font weight as a TTF ArrayBuffer, subset to GLYPHS.
- *  Returns null on any failure so the image still renders on next/og's
- *  bundled default font rather than failing the build. */
-async function loadGoogleFont(
-  spec: FontSpec,
-): Promise<{
-  name: string;
-  data: ArrayBuffer;
-  weight: FontSpec["weight"];
-  style: "normal";
-} | null> {
-  try {
-    const family = spec.family.replace(/ /g, "+");
-    const url = `https://fonts.googleapis.com/css2?family=${family}:wght@${spec.weight}&text=${encodeURIComponent(GLYPHS)}`;
-    const cssRes = await fetch(url);
-    if (!cssRes.ok) return null;
-    const css = await cssRes.text();
-    const src = css.match(
-      /src:\s*url\(([^)]+)\)\s*format\(['"]?(?:opentype|truetype)['"]?\)/,
-    )?.[1];
-    if (!src) return null;
-    const fontRes = await fetch(src);
-    if (!fontRes.ok) return null;
-    return {
-      name: spec.name,
-      data: await fontRes.arrayBuffer(),
-      weight: spec.weight,
-      style: "normal",
-    };
-  } catch {
-    return null;
-  }
-}
-
-const MONO = "Geist Mono";
-const SANS = "Schibsted Grotesk";
-
-/** Large-print status pill, as on the dashboard: plain words on a soft tint. */
-const PILL = {
-  overdue: { color: RED, background: "#FBEDEB" },
-  due: { color: AMBER, background: "#FBF3E2" },
-  scheduled: { color: BLUE, background: "#E8F0FA" },
-} as const;
 
 /** One of the dashboard's two big figures ("Your money at a glance"). */
 function GlanceFigure({
@@ -251,14 +188,7 @@ export default async function OpenGraphImage() {
     }
   })();
 
-  const [mascotBuffer, fontResults] = await Promise.all([
-    readFile(join(process.cwd(), "public", "icons", "otto-512.png")),
-    Promise.all(FONT_SPECS.map(loadGoogleFont)),
-  ]);
-  const mascotSrc = `data:image/png;base64,${mascotBuffer.toString("base64")}`;
-  const fonts = fontResults.filter(
-    (f): f is NonNullable<typeof f> => f !== null,
-  );
+  const [mascotSrc, fonts] = await Promise.all([loadOttoFaceDataUrl(), loadBrandFonts()]);
 
   const trustLine = "14-day Pro trial • Free to start • No bank linking";
 

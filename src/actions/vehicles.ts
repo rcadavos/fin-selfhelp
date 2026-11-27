@@ -2,6 +2,33 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { shiftPaidMonth } from "@/lib/paid-month";
+import { VEHICLE_MAX_YEAR_AHEAD, VEHICLE_MIN_YEAR } from "@/lib/constants/vehicles";
+
+export type VehicleInput = {
+  name: string;
+  type: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  plate_number?: string;
+  color?: string;
+  fuel_type?: string;
+  notes?: string;
+};
+
+/** The form's own checks, repeated here so a crafted request can't skip them. */
+function validateVehicleInput(input: VehicleInput): string | null {
+  if (!input.name.trim()) return "Name is required.";
+  if (!input.type.trim()) return "Type is required.";
+  if (input.year != null) {
+    const maxYear = new Date().getFullYear() + VEHICLE_MAX_YEAR_AHEAD;
+    if (!Number.isInteger(input.year) || input.year < VEHICLE_MIN_YEAR || input.year > maxYear) {
+      return `Year must be between ${VEHICLE_MIN_YEAR} and ${maxYear}.`;
+    }
+  }
+  return null;
+}
 
 export type VehicleRow = {
   id: string;
@@ -54,58 +81,7 @@ export async function loadVehicles(): Promise<{ vehicles: VehicleRow[]; error?: 
   };
 }
 
-export async function loadVehicle(
-  vehicleId: string,
-): Promise<{ vehicle: VehicleRow | null; error?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { vehicle: null, error: "not_authenticated" };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!profile) return { vehicle: null };
-
-  const { data, error } = await supabase
-    .from("vehicles")
-    .select("id, name, type, make, model, year, plate_number, color, fuel_type, notes, created_at")
-    .eq("id", vehicleId)
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-
-  if (error) return { vehicle: null, error: error.message };
-  if (!data) return { vehicle: null };
-
-  return {
-    vehicle: {
-      id: String(data.id),
-      name: String(data.name),
-      type: String(data.type),
-      make: data.make ?? null,
-      model: data.model ?? null,
-      year: data.year != null ? Number(data.year) : null,
-      plate_number: data.plate_number ?? null,
-      color: data.color ?? null,
-      fuel_type: data.fuel_type ?? null,
-      notes: data.notes ?? null,
-      created_at: String(data.created_at),
-    },
-  };
-}
-
-export async function addVehicle(input: {
-  name: string;
-  type: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  plate_number?: string;
-  color?: string;
-  fuel_type?: string;
-  notes?: string;
-}): Promise<{ error?: string }> {
+export async function addVehicle(input: VehicleInput): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "not_authenticated" };
@@ -117,8 +93,8 @@ export async function addVehicle(input: {
     .maybeSingle();
   if (!profile) return { error: "no_profile" };
 
-  if (!input.name.trim()) return { error: "Name is required." };
-  if (!input.type.trim()) return { error: "Type is required." };
+  const invalid = validateVehicleInput(input);
+  if (invalid) return { error: invalid };
 
   const { error } = await supabase.from("vehicles").insert({
     profile_id: profile.id,
@@ -140,17 +116,7 @@ export async function addVehicle(input: {
 
 export async function updateVehicle(
   vehicleId: string,
-  input: {
-    name: string;
-    type: string;
-    make?: string;
-    model?: string;
-    year?: number;
-    plate_number?: string;
-    color?: string;
-    fuel_type?: string;
-    notes?: string;
-  },
+  input: VehicleInput,
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -163,8 +129,8 @@ export async function updateVehicle(
     .maybeSingle();
   if (!profile) return { error: "no_profile" };
 
-  if (!input.name.trim()) return { error: "Name is required." };
-  if (!input.type.trim()) return { error: "Type is required." };
+  const invalid = validateVehicleInput(input);
+  if (invalid) return { error: invalid };
 
   const { error } = await supabase
     .from("vehicles")
@@ -190,98 +156,124 @@ export async function updateVehicle(
 
 export type VehicleSpendEntry = {
   id: string;
-  source: "bill" | "expense";
-  label: string;
-  amount: number;
-  date: string;
-  vehicle_category?: string | null;
-};
-
-export type VehicleSpendSummary = {
   vehicleId: string;
-  totalBills: number;
-  totalExpenses: number;
-  entries: VehicleSpendEntry[];
+  source: "bill" | "expense";
+  /** The expense or bill's own name, or null when it has none. */
+  label: string | null;
+  amount: number;
+  /** ISO timestamp: when the expense happened, or when the bill payment was made. */
+  date: string;
+  /** YYYY-MM the entry counts toward: the expense's month, or the month a bill payment settles. */
+  month: string;
+  vehicle_category: string | null;
+  /** The bill a payment belongs to; null for an expense. */
+  billId: string | null;
 };
 
-export async function loadVehicleSpending(month?: string): Promise<{ summaries: VehicleSpendSummary[]; error?: string }> {
+const MAX_SPENDING_MONTHS = 24;
+
+function nameOf(row: { note?: string | null; notes?: string | null }): string | null {
+  return row.note?.trim() || row.notes?.trim() || null;
+}
+
+/**
+ * Everything spent on the user's vehicles in the `months` months ending at `endMonth`:
+ * expenses linked to a vehicle, by the month they happened, and payments made on bills
+ * linked to a vehicle, by the month each payment settles. A bill counts what was
+ * actually paid that month, so a monthly car loan shows up every month it is paid,
+ * part payments count what was paid, and an unpaid bill counts nothing.
+ */
+export async function loadVehicleSpending(
+  endMonth: string,
+  months: number,
+): Promise<{ entries: VehicleSpendEntry[]; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { summaries: [], error: "not_authenticated" };
+  if (!user) return { entries: [], error: "not_authenticated" };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!profile) return { summaries: [] };
+  if (!profile) return { entries: [] };
 
-  const validMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : null;
-  const monthStart = validMonth ? `${validMonth}-01` : null;
-  const monthEnd = validMonth
-    ? `${validMonth}-${new Date(Number(validMonth.slice(0, 4)), Number(validMonth.slice(5, 7)), 0).getDate()}`
-    : null;
+  const span = Math.min(Math.max(Math.trunc(months) || 1, 1), MAX_SPENDING_MONTHS);
+  const startMonth = shiftPaidMonth(endMonth, -(span - 1));
+  if (!startMonth) return { entries: [], error: "invalid_month" };
+  const lastDay = new Date(Number(endMonth.slice(0, 4)), Number(endMonth.slice(5, 7)), 0).getDate();
+  const rangeStart = `${startMonth}-01`;
+  const rangeEnd = `${endMonth}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
-  let billsQuery = supabase
-    .from("bills")
-    .select("id, note, notes, amount, vehicle_id, vehicle_category, created_at")
-    .eq("profile_id", profile.id)
-    .not("vehicle_id", "is", null);
-  if (monthStart && monthEnd) {
-    billsQuery = billsQuery.gte("created_at", monthStart).lte("created_at", `${monthEnd}T23:59:59`);
-  }
+  const [expensesRes, billsRes] = await Promise.all([
+    supabase
+      .from("expense_entries")
+      .select("id, note, notes, amount, vehicle_id, vehicle_category, created_at")
+      .eq("profile_id", profile.id)
+      .not("vehicle_id", "is", null)
+      .gte("created_at", rangeStart)
+      .lte("created_at", rangeEnd),
+    supabase
+      .from("bills")
+      .select("id, note, notes, vehicle_id, vehicle_category")
+      .eq("profile_id", profile.id)
+      .not("vehicle_id", "is", null),
+  ]);
+  if (expensesRes.error) return { entries: [], error: expensesRes.error.message };
+  if (billsRes.error) return { entries: [], error: billsRes.error.message };
 
-  let expensesQuery = supabase
-    .from("expense_entries")
-    .select("id, note, notes, amount, vehicle_id, vehicle_category, created_at")
-    .eq("profile_id", profile.id)
-    .not("vehicle_id", "is", null);
-  if (monthStart && monthEnd) {
-    expensesQuery = expensesQuery.gte("created_at", monthStart).lte("created_at", `${monthEnd}T23:59:59`);
-  }
-
-  const [billsRes, expensesRes] = await Promise.all([billsQuery, expensesQuery]);
-
-  const map = new Map<string, VehicleSpendSummary>();
-
-  function ensureVehicle(vehicleId: string) {
-    if (!map.has(vehicleId)) {
-      map.set(vehicleId, { vehicleId, totalBills: 0, totalExpenses: 0, entries: [] });
-    }
-    return map.get(vehicleId)!;
-  }
-
-  for (const row of billsRes.data ?? []) {
-    const vid = String(row.vehicle_id);
-    const summary = ensureVehicle(vid);
-    const amount = Number(row.amount);
-    summary.totalBills += amount;
-    summary.entries.push({
-      id: String(row.id),
-      source: "bill",
-      label: String(row.note ?? row.notes ?? "Bill"),
-      amount,
-      date: String(row.created_at),
-      vehicle_category: (row.vehicle_category as string | null) ?? null,
-    });
-  }
+  const entries: VehicleSpendEntry[] = [];
 
   for (const row of expensesRes.data ?? []) {
-    const vid = String(row.vehicle_id);
-    const summary = ensureVehicle(vid);
     const amount = Number(row.amount);
-    summary.totalExpenses += amount;
-    summary.entries.push({
+    const date = String(row.created_at ?? "");
+    if (!(amount > 0) || !date) continue;
+    entries.push({
       id: String(row.id),
+      vehicleId: String(row.vehicle_id),
       source: "expense",
-      label: String(row.note ?? row.notes ?? "Expense"),
+      label: nameOf(row),
       amount,
-      date: String(row.created_at),
+      date,
+      month: date.slice(0, 7),
       vehicle_category: (row.vehicle_category as string | null) ?? null,
+      billId: null,
     });
   }
 
-  return { summaries: Array.from(map.values()) };
+  const linkedBills = new Map((billsRes.data ?? []).map((b) => [String(b.id), b]));
+  if (linkedBills.size > 0) {
+    const { data: payments, error } = await supabase
+      .from("bill_payments")
+      .select("id, bill_id, paid_month, paid_at, amount_paid")
+      .eq("profile_id", profile.id)
+      .eq("status", "paid")
+      .in("bill_id", Array.from(linkedBills.keys()))
+      .gte("paid_month", startMonth)
+      .lte("paid_month", endMonth);
+    if (error) return { entries: [], error: error.message };
+
+    for (const p of payments ?? []) {
+      const bill = linkedBills.get(String(p.bill_id));
+      const amount = Number(p.amount_paid);
+      if (!bill || !(amount > 0)) continue;
+      const month = String(p.paid_month);
+      entries.push({
+        id: String(p.id),
+        vehicleId: String(bill.vehicle_id),
+        source: "bill",
+        label: nameOf(bill),
+        amount,
+        date: p.paid_at ? String(p.paid_at) : `${month}-01T00:00:00`,
+        month,
+        vehicle_category: (bill.vehicle_category as string | null) ?? null,
+        billId: String(bill.id),
+      });
+    }
+  }
+
+  entries.sort((a, b) => b.date.localeCompare(a.date));
+  return { entries };
 }
 
 export type VehicleLinkedBill = {
@@ -290,6 +282,8 @@ export type VehicleLinkedBill = {
   amount: number;
   billing_period: "monthly" | "quarterly" | "yearly";
   due_date: string | null;
+  /** YYYY-MM-DD the bill stops, or null when it runs on. */
+  end_date: string | null;
   vehicle_category: string | null;
 };
 
@@ -309,7 +303,7 @@ export async function loadVehicleLinkedBills(
 
   const { data, error } = await supabase
     .from("bills")
-    .select("id, note, notes, amount, billing_period, due_date, vehicle_category, created_at")
+    .select("id, note, notes, amount, billing_period, due_date, end_date, vehicle_category, created_at")
     .eq("profile_id", profile.id)
     .eq("vehicle_id", vehicleId)
     .order("created_at", { ascending: true });
@@ -319,7 +313,7 @@ export async function loadVehicleLinkedBills(
   return {
     bills: (data ?? []).map((row) => ({
       id: String(row.id),
-      label: String(row.note ?? row.notes ?? "Bill"),
+      label: nameOf(row) ?? "Bill",
       amount: Number(row.amount),
       billing_period:
         row.billing_period === "yearly"
@@ -328,6 +322,7 @@ export async function loadVehicleLinkedBills(
             ? "quarterly"
             : "monthly",
       due_date: (row.due_date as string | null) ?? null,
+      end_date: (row.end_date as string | null) ?? null,
       vehicle_category: (row.vehicle_category as string | null) ?? null,
     })),
   };

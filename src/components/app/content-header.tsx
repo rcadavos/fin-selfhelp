@@ -8,6 +8,7 @@ type ContentHeaderProps = {
   title: ReactNode;
   subtitle?: string;
   icon?: LucideIcon;
+  /** Buttons on the right. Size them with `CONTENT_HEADER_ACTION_SIZE` so they match on every page. */
   actions?: ReactNode;
   className?: string;
 };

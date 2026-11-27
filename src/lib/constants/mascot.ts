@@ -35,6 +35,10 @@ export const OTTO_TURN_FRAMES = 13;
 /** The curious head tilt's frames (straight to tipped). */
 export const OTTO_TILT_FRAMES = 5;
 
+/** The loader: Otto flying on the spot, one wingbeat in a strip of frames, each a landing-sized cell. */
+export const OTTO_FLY_STRIP = "otto-fly-strip.svg";
+export const OTTO_FLY_FRAMES = 8;
+
 /** What each landing ends on. */
 export const OTTO_LANDING_STRIPS = {
   idle: "otto-land-idle.svg",

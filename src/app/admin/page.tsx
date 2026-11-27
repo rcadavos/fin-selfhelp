@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
 import { adminUsersQueryOptions } from "@/lib/query/admin-users";
-import { Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Loader2, Bell, LifeBuoy } from "lucide-react";
+import { Users, Tags, CreditCard, Gift, MessageSquareText, Lightbulb, Loader2, Bell, LifeBuoy, Settings } from "lucide-react";
 
 const sections = [
   {
@@ -63,6 +63,12 @@ const sections = [
     title: "Reminder Logs",
     description: "Reminder emails and in-app notification debug view.",
     icon: Bell,
+  },
+  {
+    href: "/admin/settings",
+    title: "Site settings",
+    description: "Facebook Page cover and profile picture, scheduled posts, and post ideas.",
+    icon: Settings,
   },
 ] as const;
 

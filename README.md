@@ -152,3 +152,24 @@ VAPID_SUBJECT=mailto:info@omnitrak.cloud
 
 If the keys are not set, push stays off: the toggle reads "not available yet" and the cron skips it.
 
+## Facebook Page (admin • Site settings)
+
+`/admin/settings` shows the Page's live cover and profile picture, generates brand covers (1640 × 624) and profile pictures (720 × 720) to download, and runs a post queue: drafts, scheduled posts and Publish now. The same setup steps are on the page's **Setup** tab.
+
+**Connect it with a Meta Business system user**, whose token doesn't expire when a person logs out, changes a password or leaves:
+
+1. Business settings • Accounts • Pages: add the Page to your business portfolio.
+2. developers.facebook.com: create an app with the "Manage everything on your Page" use case, connected to the same business. Fill in App settings • Basic and switch the app to **Live** (posts from an app in Development mode can be hidden from the public).
+3. Business settings • Users • System users • Add, with the Admin role.
+4. Assign assets: the Page (full control) and the app (full control).
+5. Generate new token: pick the app, expiration **Never**, permissions `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`. Copy it; Meta shows it once.
+
+```bash
+META_PAGE_ID=1234567890            # Page • About • Page transparency
+META_SYSTEM_USER_TOKEN=EAAG...     # the system user's token; Page calls swap it for the Page's own token
+META_APP_SECRET=...                # optional: signs every Graph call with appsecret_proof
+```
+
+**Scheduler:** `GET /api/cron/social-posts` (Bearer `CRON_SECRET`) publishes due posts, five per run, and does nothing while auto-publish is paused. Run it every 10 minutes through the edge function: `supabase functions deploy send-reminders`, then a Supabase cron job that POSTs to `https://<project-ref>.supabase.co/functions/v1/send-reminders?job=social` with `Authorization: Bearer <FUNCTION_SECRET>`, like the timed reminders job. A post is claimed before it is published, so it never goes out twice; one stuck mid-publish for 15 minutes is marked failed for you to check rather than retried.
+
+**Photos:** the composer uploads to the public `social-post-images` bucket (migration 103; JPEG, PNG or GIF up to 4 MB). The browser sends the file straight to Storage through a one-time signed upload URL from an admin-checked server action, so the bucket needs no write policies and the file skips the server action body limit. Facebook fetches the photo from its public address at publish time. Uploads no post keeps (replaced, removed or cancelled) are deleted when the composer closes, and a post's photo is deleted with the post.

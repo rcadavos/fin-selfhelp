@@ -14,6 +14,14 @@ import {
   todoReminderMessage,
   type ToDoReminderRow,
 } from "@/lib/reminders/notify";
+import {
+  billMonthKey,
+  billReminderDedupeKey,
+  loadSettledBillMonths,
+  reminderMonthsAround,
+  withoutSettledBillReminders,
+} from "@/lib/reminders/bill-reminders";
+import { getCurrentPaidMonth } from "@/lib/paid-month";
 
 type DbRow = {
   id: string;
@@ -21,6 +29,7 @@ type DbRow = {
   body: string;
   read_at: string | null;
   created_at: string;
+  dedupe_key: string | null;
 };
 
 type BillReminderRow = {
@@ -93,13 +102,16 @@ export async function syncGeneratedProNotificationsForToday(
   // Reminder dates and times are local; the server's own clock is UTC.
   const local = getLocalDateTimeInTimeZone(today);
 
-  const billsQueryResult = morningReleased
-    ? await supabase
-        .from("bills")
-        .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
-        .eq("profile_id", profile.id)
-        .not("reminder_days_before", "is", null)
-    : { data: [] as BillReminderRow[] };
+  const [billsQueryResult, settledBillMonths] = morningReleased
+    ? await Promise.all([
+        supabase
+          .from("bills")
+          .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
+          .eq("profile_id", profile.id)
+          .not("reminder_days_before", "is", null),
+        loadSettledBillMonths(supabase, profile.id, reminderMonthsAround(today)),
+      ])
+    : [{ data: [] as BillReminderRow[] }, new Set<string>()];
 
   let toDoRows: ToDoReminderRow[] = [];
 
@@ -128,6 +140,7 @@ export async function syncGeneratedProNotificationsForToday(
     if (channel !== "in-app" && channel !== "both") continue;
 
     for (const dueThisMonth of candidates) {
+      if (settledBillMonths.has(billMonthKey(bill.id, getCurrentPaidMonth(dueThisMonth)))) continue;
       for (const reminderDay of bill.reminder_days_before) {
         if (reminderDay < 0 || reminderDay > 5) continue;
         const reminderDate = addDays(dueThisMonth, -reminderDay);
@@ -135,7 +148,7 @@ export async function syncGeneratedProNotificationsForToday(
         rowsToInsert.push({
           user_id: userId,
           kind: "expense_reminder",
-          dedupe_key: `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`,
+          dedupe_key: billReminderDedupeKey(bill.id, formatYmdLocal(dueThisMonth), reminderDay),
           title: reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`,
           body:
             reminderDay === 0
@@ -266,7 +279,7 @@ export async function sendGeneratedProReminderEmailsForToday(
 
   const todayYmd = formatYmdLocal(today);
 
-  const [billsQueryResult, authUserResult, lockRow] = await Promise.all([
+  const [billsQueryResult, authUserResult, lockRow, settledBillMonths] = await Promise.all([
     supabase
       .from("bills")
       .select("id, note, due_date, billing_period, due_month, reminder_days_before, reminder_channel")
@@ -281,6 +294,7 @@ export async function sendGeneratedProReminderEmailsForToday(
           .eq("user_id", userId)
           .like("dedupe_key", "bill:%")
           .limit(1),
+    loadSettledBillMonths(supabase, profile.id, reminderMonthsAround(today)),
   ]);
 
   let toDoRows: ToDoReminderRow[] = [];
@@ -328,12 +342,13 @@ export async function sendGeneratedProReminderEmailsForToday(
     if (channel !== "email" && channel !== "both") continue;
 
     for (const dueThisMonth of candidates) {
+      if (settledBillMonths.has(billMonthKey(bill.id, getCurrentPaidMonth(dueThisMonth)))) continue;
       for (const reminderDay of bill.reminder_days_before) {
         if (reminderDay < 0 || reminderDay > 5) continue;
         const reminderDate = addDays(dueThisMonth, -reminderDay);
         if (formatYmdLocal(reminderDate) !== todayYmd) continue;
 
-        const dedupeKey = `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+        const dedupeKey = billReminderDedupeKey(bill.id, formatYmdLocal(dueThisMonth), reminderDay);
         pending.push({
           dedupeKey,
           title: reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`,
@@ -475,16 +490,21 @@ export async function loadMyNotifications(): Promise<{ items: AppNotification[];
 
   await syncGeneratedProNotificationsForToday(supabase, user.id);
 
-  const { data, error } = await supabase
-    .from("user_notifications")
-    .select("id, title, body, read_at, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const [{ data, error }, { data: profile }] = await Promise.all([
+    supabase
+      .from("user_notifications")
+      .select("id, title, body, read_at, created_at, dedupe_key")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   if (error) return { items: [], error: error.message };
-  const items = (data ?? []).map((r) => rowToApp(r as DbRow));
-  return { items };
+  const rows = (data ?? []) as DbRow[];
+  // A reminder sent before the bill was paid would otherwise stay in the list and the unread count.
+  const visible = profile?.id ? await withoutSettledBillReminders(supabase, profile.id, rows) : rows;
+  return { items: visible.map(rowToApp) };
 }
 
 export async function markNotificationRead(id: string): Promise<{ error?: string }> {

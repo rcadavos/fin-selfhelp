@@ -4,11 +4,13 @@ const FUNCTION_SECRET = Deno.env.get("FUNCTION_SECRET") ?? "";
 
 /**
  * Which cron route to call. No `?job=` keeps the original daily run; `?job=timed` sends
- * reminders that have a time of day and is meant to be scheduled every few minutes.
+ * reminders that have a time of day and is meant to be scheduled every few minutes;
+ * `?job=social` publishes scheduled Facebook posts and is meant to run every 5 to 15 minutes.
  */
 const JOB_PATHS: Record<string, string> = {
   daily: "/api/cron/reminder-emails",
   timed: "/api/cron/timed-reminders",
+  social: "/api/cron/social-posts",
 };
 
 Deno.serve(async (req: Request) => {

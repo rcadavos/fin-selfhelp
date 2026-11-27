@@ -15,6 +15,7 @@ import {
 import { markBillPaid, unmarkBillPaid, type BillsData } from "@/actions/bills";
 import { queryKeys } from "@/lib/query/keys";
 import { invalidateAccountQueries } from "@/lib/query/accounts";
+import { invalidateNotificationQueries } from "@/lib/query/notifications";
 import { ADD_PLANNED_EXPENSE_PARAM } from "@/lib/constants/app-mode";
 import { AMOUNT_MASK, DASHBOARD_DUE_SOON_DAYS } from "@/lib/constants/dashboard";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -206,6 +207,7 @@ export function BillsToPayCard({
     invalidateAccountQueries(queryClient);
     queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "expenses"] });
     queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "monthly-breakdown"] });
+    invalidateNotificationQueries(queryClient);
   }
 
   async function handleMarkPaid(item: DashboardBillItem) {

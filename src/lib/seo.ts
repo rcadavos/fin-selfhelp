@@ -12,6 +12,14 @@ export function getBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
+  return getPublicSiteUrl();
+}
+
+/**
+ * The live site's address, even in the browser and on localhost. For links that
+ * leave the app, such as Facebook posts, where a localhost link would be broken.
+ */
+export function getPublicSiteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://omnitrak.cloud";
   const url = raw.startsWith("http") ? raw : `https://${raw.replace(/^\/\//, "")}`;
   return url.replace(/^http:\/\//, "https://");

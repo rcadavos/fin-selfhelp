@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { granteeSharedSetToBuyChecked, loadSharedToBuyForGrantor } from "@/actions/to-buy-db";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { getCategoryLabel, type ToBuyItem } from "@/lib/to-buy-storage";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ShoppingCart, Check, Loader2, Package } from "lucide-react";
@@ -64,9 +65,9 @@ export default function SharedToBuyPage({ params }: { params: Promise<{ grantorU
         icon={ShoppingCart}
         className="mb-4"
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Badge variant="secondary">You can check items off</Badge>
-            <Button size="sm" variant="outline" asChild>
+            <Button size={CONTENT_HEADER_ACTION_SIZE.button} variant="outline" asChild>
               <Link href={`/account/shared/${grantorUserId}`}>Hub</Link>
             </Button>
           </div>

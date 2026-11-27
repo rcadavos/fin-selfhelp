@@ -1,421 +1,252 @@
 "use client";
 
-import React, { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowDownCircle,
-  Car,
-  Pencil,
-  Receipt,
-  Trash2,
-} from "lucide-react";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowDownCircle, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ContentHeader } from "@/components/app/content-header";
-import { formatCurrency, cn } from "@/lib/utils";
-import { AnimatedAmount } from "@/components/ui/animated-amount";
-import {
-  updateVehicle,
-  deleteVehicle,
-  type VehicleRow,
-} from "@/actions/vehicles";
-import {
-  invalidateVehicleQueries,
-  vehicleSpendingQueryOptions,
-  vehicleLinkedBillsQueryOptions,
-} from "@/lib/query/vehicles";
-import { labelForVehicleExpenseCategory } from "@/lib/constants/vehicle-categories";
-import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { BackLink } from "@/components/app/back-link";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
+import { PlateChip, VehicleAvatar } from "@/components/dashboard/vehicles/vehicle-identity";
+import { VehicleCategoryBreakdown } from "@/components/dashboard/vehicles/vehicle-category-breakdown";
+import { VehicleDetailsCard } from "@/components/dashboard/vehicles/vehicle-details-card";
+import { VehicleHistory } from "@/components/dashboard/vehicles/vehicle-history";
+import { VehicleLinkedBills } from "@/components/dashboard/vehicles/vehicle-linked-bills";
+import { VehicleMonthSelect } from "@/components/dashboard/vehicles/vehicle-month-select";
+import { VehicleSpendPanel } from "@/components/dashboard/vehicles/vehicle-spend-panel";
 import {
-  VehicleDialog,
+  VehicleFormPanel,
+  formToVehicleInput,
   vehicleToForm,
   type VehicleFormState,
-} from "@/components/dashboard/vehicles-board";
+} from "@/components/dashboard/vehicles/vehicle-form-panel";
+import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
+import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
+import { deleteVehicle, updateVehicle } from "@/actions/vehicles";
+import {
+  VEHICLE_CHART_COLORS,
+  buildVehicleColorMap,
+  invalidateVehicleQueries,
+  vehicleLinkedBillsQueryOptions,
+  vehicleSpendingQueryOptions,
+  vehiclesQueryOptions,
+} from "@/lib/query/vehicles";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
+import { VEHICLE_TREND_MONTHS } from "@/lib/constants/vehicles";
+import { monthName, summariseSpending, trendMonths, vehicleSubtitle } from "@/lib/vehicles/spending";
+import { cn } from "@/lib/utils";
 
-const CURRENT_MONTH_YM = (() => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-})();
-
-function formatGroupDate(dateStr: string): string {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
-  if (dateStr === todayStr) return "Today";
-  if (dateStr === yesterdayStr) return "Yesterday";
-  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
-    year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  fuel: { label: "Fuel", color: "#f59e0b" },
-  fees: { label: "Fees", color: "#3b82f6" },
-  maintenance: { label: "Maintenance & Repairs", color: "#10b981" },
-  insurance: { label: "Insurance & Reg.", color: "#8b5cf6" },
-};
-
-export function VehicleDetailBoard({ vehicle }: { vehicle: VehicleRow }) {
+/**
+ * One vehicle's page: the month's spending against the months before, where it
+ * went, every expense and bill payment that month day by day, the bills tied to
+ * it, and its details.
+ *
+ * `currentMonth` comes from the server, which also prefetched that month's data.
+ */
+export function VehicleDetailBoard({ vehicleId, currentMonth }: { vehicleId: string; currentMonth: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [isPending, startTransition] = useTransition();
+  const currency = useUserPreferencesOptional()?.preferences.currency ?? DEFAULT_USER_PREFERENCES.currency;
 
-  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH_YM);
+  const [month, setMonth] = useState(currentMonth);
+  const [isSwitching, startSwitch] = useTransition();
+  const [isSaving, startSave] = useTransition();
   const [editOpen, setEditOpen] = useState(false);
+  const [editKey, setEditKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [addExpenseOpen, setAddExpenseOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [expenseOpen, setExpenseOpen] = useState(false);
 
-  const monthOptions = useMemo(() => {
-    const now = new Date();
-    const opts: { value: string; label: string }[] = [];
-    for (let i = 0; i < 13; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      opts.push({
-        value: ym,
-        label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      });
-    }
-    return opts;
-  }, []);
+  const { data: vehicles } = useSuspenseQuery(vehiclesQueryOptions());
+  const { data: entries } = useSuspenseQuery(vehicleSpendingQueryOptions(month));
+  const { data: linkedBills } = useSuspenseQuery(vehicleLinkedBillsQueryOptions(vehicleId));
 
-  const { data: spending } = useQuery(vehicleSpendingQueryOptions(selectedMonth));
-  const { data: linkedBills } = useQuery(vehicleLinkedBillsQueryOptions(vehicle.id));
+  const vehicle = vehicles.find((v) => v.id === vehicleId);
+  // Deleted: the page is on its way back to the list.
+  if (!vehicle) return null;
 
-  const summary = (spending ?? []).find((s) => s.vehicleId === vehicle.id);
-  const expenseEntries = useMemo(
-    () => (summary?.entries ?? []).filter((e) => e.source === "expense").sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [summary],
+  const color = buildVehicleColorMap(vehicles)[vehicleId] ?? VEHICLE_CHART_COLORS[0];
+  const summary = summariseSpending(
+    entries.filter((e) => e.vehicleId === vehicleId),
+    {
+      months: trendMonths(month, VEHICLE_TREND_MONTHS),
+      inProgressMonth: currentMonth,
+      since: vehicle.created_at.slice(0, 7),
+    },
   );
-  const categoryTotals = useMemo(() => {
-    const t = { fuel: 0, fees: 0, maintenance: 0, insurance: 0, other: 0 };
-    for (const e of expenseEntries) {
-      const c = e.vehicle_category ?? "other";
-      if (c === "fuel") t.fuel += e.amount;
-      else if (c === "fees") t.fees += e.amount;
-      else if (c === "maintenance") t.maintenance += e.amount;
-      else if (c === "insurance") t.insurance += e.amount;
-      else t.other += e.amount;
-    }
-    return t;
-  }, [expenseEntries]);
-  const expensesTotal = expenseEntries.reduce((s, e) => s + e.amount, 0);
 
-  const expenseGroups = useMemo(() => {
-    const groups: Array<{ date: string; entries: typeof expenseEntries }> = [];
-    for (const e of expenseEntries) {
-      const date = e.date.slice(0, 10);
-      const last = groups[groups.length - 1];
-      if (last && last.date === date) {
-        last.entries.push(e);
-      } else {
-        groups.push({ date, entries: [e] });
-      }
-    }
-    return groups;
-  }, [expenseEntries]);
-
-  function invalidate() {
-    invalidateVehicleQueries(queryClient);
+  function openEdit() {
+    setSaveError(null);
+    setEditKey((k) => k + 1);
+    setEditOpen(true);
   }
 
-  async function handleEdit(form: VehicleFormState) {
+  function handleEdit(form: VehicleFormState) {
     setSaveError(null);
-    startTransition(async () => {
-      const res = await updateVehicle(vehicle.id, {
-        name: form.name,
-        type: form.type,
-        make: form.make || undefined,
-        model: form.model || undefined,
-        year: form.year ? parseInt(form.year, 10) : undefined,
-        plate_number: form.plate_number || undefined,
-        color: form.color || undefined,
-        fuel_type: form.fuel_type || undefined,
-        notes: form.notes || undefined,
-      });
+    startSave(async () => {
+      const res = await updateVehicle(vehicleId, formToVehicleInput(form));
       if (res.error) {
         setSaveError(res.error);
-      } else {
-        setEditOpen(false);
-        invalidate();
-        router.refresh();
+        return;
       }
+      setEditOpen(false);
+      await invalidateVehicleQueries(queryClient);
     });
   }
 
-  async function handleDelete() {
-    startTransition(async () => {
-      await deleteVehicle(vehicle.id);
-      invalidate();
+  function handleDelete() {
+    setDeleteError(null);
+    startSave(async () => {
+      const res = await deleteVehicle(vehicleId);
+      if (res.error) {
+        setDeleteError(res.error);
+        return;
+      }
       router.push("/dashboard/vehicles");
+      void invalidateVehicleQueries(queryClient);
     });
   }
 
-  const subtitleParts = [vehicle.make, vehicle.model, vehicle.year ? String(vehicle.year) : null]
-    .filter(Boolean)
-    .join(" ");
+  const monthLabel = monthName(month);
+  const details = [vehicle.type, vehicleSubtitle(vehicle), vehicle.fuel_type, vehicle.color].filter(Boolean).join(" • ");
+  const breakdown = (className: string) => (
+    <VehicleCategoryBreakdown
+      className={className}
+      categories={summary.categories}
+      total={summary.total}
+      monthLabel={monthLabel}
+      currency={currency}
+      emptyHint={`Nothing spent on ${vehicle.name} in ${monthLabel}.`}
+    />
+  );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
+    <div className="container mx-auto max-w-3xl space-y-4 px-4 py-6 lg:max-w-6xl">
       <BackLink href="/dashboard/vehicles" label="Vehicles" />
 
       <ContentHeader
         title={
-          <span className="flex min-w-0 items-center gap-2">
-            <Car className="h-7 w-7 shrink-0 text-primary" aria-hidden />
+          <span className="flex min-w-0 items-center gap-3">
+            <VehicleAvatar type={vehicle.type} color={color} />
             <span className="min-w-0 truncate">{vehicle.name}</span>
-            {vehicle.plate_number && (
-              <span className="shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-muted-foreground">
-                {vehicle.plate_number}
-              </span>
-            )}
+            {vehicle.plate_number && <PlateChip plate={vehicle.plate_number} className="hidden sm:inline-flex" />}
           </span>
         }
-        subtitle={
-          [vehicle.type, subtitleParts, vehicle.fuel_type, vehicle.color]
-            .filter(Boolean)
-            .join(" • ") || undefined
-        }
+        subtitle={details || undefined}
         actions={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button
-              size="icon"
+              size={CONTENT_HEADER_ACTION_SIZE.icon}
               variant="outline"
-              className="h-8 w-8"
-              onClick={() => { setSaveError(null); setEditOpen(true); }}
+              onClick={openEdit}
+              disabled={isSaving}
               aria-label="Edit vehicle"
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="size-4" />
             </Button>
             <Button
-              size="icon"
+              size={CONTENT_HEADER_ACTION_SIZE.icon}
               variant="outline"
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive"
               onClick={() => setDeleteOpen(true)}
+              disabled={isSaving}
               aria-label="Delete vehicle"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="size-4" />
             </Button>
           </div>
         }
       />
 
-      {saveError && (
-        <div className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {saveError}
+      {deleteError && (
+        <div
+          role="alert"
+          className="surface flex items-center justify-between gap-3 border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+        >
+          <span>Couldn&apos;t delete this vehicle: {deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            aria-label="Dismiss"
+            className="tap-target rounded-full p-0.5 hover:bg-destructive/10"
+          >
+            <X className="size-4" />
+          </button>
         </div>
       )}
 
-      {/* Notes (if any) */}
-      {vehicle.notes && (
-        <div className="surface border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          {vehicle.notes}
-        </div>
-      )}
-
-      {/* Month selector + Add Expense */}
-      <div className="flex items-center justify-between my-2">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 [&>svg]:opacity-60">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {monthOptions.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button size="lg" variant="outline" onClick={() => setAddExpenseOpen(true)} className="gap-1.5">
-          <ArrowDownCircle className="h-4 w-4 text-destructive" aria-hidden />
-          Add Expense
+      <div className="flex items-center justify-between gap-2">
+        <VehicleMonthSelect
+          value={month}
+          onChange={(m) => startSwitch(() => setMonth(m))}
+          latestMonth={currentMonth}
+        />
+        <Button size="lg" variant="outline" onClick={() => setExpenseOpen(true)} className="gap-1.5">
+          <ArrowDownCircle className="size-4 text-destructive" aria-hidden />
+          Add expense
         </Button>
       </div>
 
-      {/* Spend summary */}
-      <div className="surface border bg-card px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Spend this month
-        </p>
-        <p className={cn("mt-0.5 text-2xl font-bold tabular-nums", expensesTotal === 0 && "text-muted-foreground")}>
-          {expensesTotal > 0 ? <AnimatedAmount value={expensesTotal} /> : "—"}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {(["fuel", "fees", "maintenance", "insurance"] as const).map((k) => {
-            const v = categoryTotals[k];
-            if (v <= 0) return null;
-            const meta = CATEGORY_LABELS[k];
-            return (
-              <span
-                key={k}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={{ backgroundColor: `${meta.color}22`, color: meta.color }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
-                {meta.label} • {formatCurrency(v)}
-              </span>
-            );
-          })}
-          {categoryTotals.other > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              Other • {formatCurrency(categoryTotals.other)}
-            </span>
-          )}
+      <div
+        aria-busy={isSwitching}
+        className={cn(
+          "grid gap-4 transition-opacity lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start",
+          isSwitching && "opacity-60",
+        )}
+      >
+        <div className="min-w-0 space-y-4">
+          <VehicleSpendPanel
+            summary={summary}
+            isCurrentMonth={month === currentMonth}
+            currency={currency}
+            label={`Spending on ${vehicle.name}`}
+          />
+          {breakdown("lg:hidden")}
+          <VehicleHistory
+            entries={summary.monthEntries}
+            monthLabel={monthLabel}
+            currency={currency}
+            onAddExpense={() => setExpenseOpen(true)}
+          />
         </div>
+
+        <aside aria-label={`About ${vehicle.name}`} className="flex min-w-0 flex-col gap-4">
+          {breakdown("hidden lg:block")}
+          <VehicleLinkedBills bills={linkedBills} currentMonth={currentMonth} currency={currency} />
+          <VehicleDetailsCard vehicle={vehicle} onEdit={openEdit} />
+        </aside>
       </div>
 
-      {/* Linked Bills */}
-      <div className="space-y-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Linked Bills
-        </h2>
-        {!linkedBills || linkedBills.length === 0 ? (
-          <p className="surface border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            No bills linked to this vehicle yet.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {linkedBills.map((b) => {
-              const catLabel = labelForVehicleExpenseCategory(b.vehicle_category);
-              return (
-                <Link
-                  key={b.id}
-                  href="/dashboard/bills"
-                  className="flex items-center gap-2 surface border bg-card px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/40"
-                >
-                  <Receipt className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium">{b.label}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {b.billing_period}
-                      {catLabel ? ` • ${catLabel}` : ""}
-                    </p>
-                  </div>
-                  <span className="flex-shrink-0 text-xs font-semibold tabular-nums">
-                    {formatCurrency(b.amount)}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* History — expense entries grouped by date */}
-      <div className="space-y-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          History
-        </h2>
-        {expenseGroups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 surface border border-dashed py-10 text-center text-muted-foreground">
-            <p className="text-sm">No entries for this month.</p>
-            <p className="max-w-md text-xs">
-              Add an expense linked to this vehicle to start tracking its history.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {expenseGroups.map((group) => (
-              <div key={group.date} className="space-y-2">
-                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground">
-                  {formatGroupDate(group.date)}
-                </p>
-                <ul className="space-y-2">
-                  {group.entries.map((e) => {
-                    const catLabel = labelForVehicleExpenseCategory(e.vehicle_category);
-                    return (
-                      <li
-                        key={e.id}
-                        className="flex items-center gap-3 surface border bg-card px-4 py-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-destructive">
-                              {catLabel ?? "Other"}
-                            </span>
-                          </div>
-                          {e.label && (
-                            <p className="mt-0.5 truncate text-sm">{e.label}</p>
-                          )}
-                        </div>
-                        <p className="flex-shrink-0 text-sm font-semibold tabular-nums text-destructive">
-                          −{formatCurrency(e.amount)}
-                        </p>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Edit Dialog */}
-      <VehicleDialog
+      <VehicleFormPanel
+        key={editKey}
         open={editOpen}
         onClose={() => setEditOpen(false)}
         onSave={handleEdit}
         initial={vehicleToForm(vehicle)}
-        editingId={vehicle.id}
-        isPending={isPending}
+        mode="edit"
+        isPending={isSaving}
+        error={saveError}
       />
 
-      {/* Delete Confirm */}
-      <Dialog open={deleteOpen} onOpenChange={(v) => !v && setDeleteOpen(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete vehicle?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This removes the vehicle from your list. Linked bills and expenses will keep their
-            data but will no longer be associated with this vehicle.
-          </p>
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setDeleteOpen(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={handleDelete}
-              disabled={isPending}
-            >
-              {isPending ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${vehicle.name}?`}
+        description="It comes off your list. Its expenses and bills stay, but they are no longer linked to a vehicle."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
 
-      {/* Add Expense */}
       <AddEntryPanel
-        open={addExpenseOpen}
-        onClose={() => setAddExpenseOpen(false)}
+        open={expenseOpen}
+        onClose={() => setExpenseOpen(false)}
         initialCategory="transport"
         initialVehicleId={vehicle.id}
       />
-
     </div>
   );
 }

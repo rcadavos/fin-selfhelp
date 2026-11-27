@@ -56,9 +56,12 @@ const nextConfig: NextConfig = {
       ? `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WSS_ORIGIN}`
       : "connect-src 'self'";
 
+    // Facebook's CDNs serve the Page's cover, profile picture and post photos in
+    // /admin/settings.
+    const facebookImgSrc = "https://*.fbcdn.net https://*.fbsbx.com";
     const imgSrc = SUPABASE_ORIGIN
-      ? `img-src 'self' data: blob: ${SUPABASE_ORIGIN}`
-      : "img-src 'self' data: blob:";
+      ? `img-src 'self' data: blob: ${SUPABASE_ORIGIN} ${facebookImgSrc}`
+      : `img-src 'self' data: blob: ${facebookImgSrc}`;
 
     const fontSrc = SUPABASE_ORIGIN
       ? `font-src 'self' data: ${SUPABASE_ORIGIN}`

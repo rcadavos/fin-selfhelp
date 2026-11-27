@@ -12,6 +12,12 @@ import {
   todoReminderMessage,
   type ToDoReminderRow,
 } from "@/lib/reminders/notify";
+import {
+  billMonthKey,
+  billReminderDedupeKey,
+  loadSettledBillMonths,
+  reminderMonthsAround,
+} from "@/lib/reminders/bill-reminders";
 import { getCurrentPaidMonth } from "@/lib/paid-month";
 import { isFeatureEnabledInMode } from "@/lib/constants/app-mode";
 import {
@@ -149,29 +155,10 @@ export async function GET(request: Request) {
         toDoRows = (todoData ?? []) as ToDoReminderRow[];
       }
 
-      const candidatePaidMonths: string[] = [];
-      for (let i = -1; i <= 1; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-        candidatePaidMonths.push(getCurrentPaidMonth(d));
-      }
+      const settledPromise = loadSettledBillMonths(supabase, profile.id, reminderMonthsAround(now));
 
-      const paidPaymentsPromise = supabase
-        .from("bill_payments")
-        .select("bill_id, paid_month")
-        .eq("profile_id", profile.id)
-        .in("paid_month", candidatePaidMonths)
-        // Only a real payment suppresses a reminder. A legacy status="failed" row from
-        // before an app-mode switch would otherwise silence that month permanently.
-        .eq("status", "paid");
-
-      const carriedOutPromise = supabase
-        .from("bill_carryovers")
-        .select("bill_id, from_month")
-        .eq("profile_id", profile.id)
-        .in("from_month", candidatePaidMonths);
-
-      const [[{ data: billsRaw }, authUserResult, { data: paidRows }, { data: carriedOutRows }], lockRow] = await Promise.all([
-        Promise.all([billsQuery, authUserPromise, paidPaymentsPromise, carriedOutPromise]),
+      const [[{ data: billsRaw }, authUserResult, settledBillMonths], lockRow] = await Promise.all([
+        Promise.all([billsQuery, authUserPromise, settledPromise]),
         hasProAccess
           ? Promise.resolve(null)
           : supabase
@@ -181,14 +168,6 @@ export async function GET(request: Request) {
               .like("dedupe_key", "bill:%")
               .limit(1),
       ]);
-
-      const paidBillMonths = new Set(
-        (paidRows ?? []).map((r) => `${String(r.bill_id)}:${String(r.paid_month)}`)
-      );
-      // A month the bill was carried over out of is skipped, so it gets no reminder either.
-      for (const r of carriedOutRows ?? []) {
-        paidBillMonths.add(`${String(r.bill_id)}:${String(r.from_month)}`);
-      }
 
       // Null for unsubscribed accounts and for phone signups with no email: those get
       // their reminders in-app and by push only.
@@ -228,14 +207,13 @@ export async function GET(request: Request) {
         const channel = bill.reminder_channel || "both";
 
         for (const dueThisMonth of candidates) {
-          const dueYm = getCurrentPaidMonth(dueThisMonth);
-          if (paidBillMonths.has(`${bill.id}:${dueYm}`)) continue;
+          if (settledBillMonths.has(billMonthKey(bill.id, getCurrentPaidMonth(dueThisMonth)))) continue;
           for (const reminderDay of reminderDays) {
             if (reminderDay < 0 || reminderDay > 5) continue;
             const reminderDate = addDays(dueThisMonth, -reminderDay);
             if (formatYmdLocal(reminderDate) !== todayYmd) continue;
 
-            const dedupeKey = `bill:${bill.id}:${formatYmdLocal(dueThisMonth)}:d-${reminderDay}`;
+            const dedupeKey = billReminderDedupeKey(bill.id, formatYmdLocal(dueThisMonth), reminderDay);
             const title = reminderDay === 0 ? `Due today: ${billLabel}` : `Bill reminder: ${billLabel}`;
             const body = reminderDay === 0
               ? "This bill is due today. Please review and settle it."

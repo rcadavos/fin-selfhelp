@@ -47,6 +47,7 @@ import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
 import { formatCurrency } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
 import { ContentHeader } from "../app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { EditExpenseDialog } from "@/components/dashboard/expense/edit-expense-dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
@@ -258,7 +259,7 @@ export function MyExpensesBoard() {
         icon={Banknote}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" aria-label="Categories" asChild>
+            <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} aria-label="Categories" asChild>
               <Link href="/dashboard/expenses/categories">
                 <LayoutGrid className="size-4" aria-hidden />
                 <span className="hidden sm:inline">Categories</span>
@@ -266,8 +267,8 @@ export function MyExpensesBoard() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Download className="size-3.5" />
+                <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5">
+                  <Download className="size-4" />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>

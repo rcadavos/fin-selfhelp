@@ -1,7 +1,13 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import { OTTO_FACE_TILT_DEG, ottoSrc } from "@/lib/constants/mascot";
+import {
+  OTTO_FACE_TILT_DEG,
+  OTTO_FLY_FRAMES,
+  OTTO_FLY_STRIP,
+  OTTO_LANDING_CELL_RATIO,
+  ottoSrc,
+} from "@/lib/constants/mascot";
 import s from "./otto.module.css";
 
 /** Otto drawn still: his head alone (`face`, tilted like a curious owl's) or standing with his wings at his sides. */
@@ -34,20 +40,26 @@ export function Otto({
   );
 }
 
-/** The loading screen: Otto's head tipping from side to side while the page loads. Decorative; the caller says "Loading". */
+/**
+ * The loading screen: Otto flying on the spot, flapping his wings and bobbing with each beat while the page loads.
+ * `size` is his height in pixels; he is a little wider, for his open wings. Decorative; the caller says "Loading".
+ */
 export function OttoLoader({ size = 80, className }: { size?: number; className?: string }) {
+  const width = Math.round(size * OTTO_LANDING_CELL_RATIO);
   return (
-    <span aria-hidden className={cn(s.loader, className)}>
-      <Image
-        src={ottoSrc("otto-face.svg")}
-        alt=""
-        width={size}
-        height={size}
-        unoptimized
-        priority
-        draggable={false}
-        className="select-none"
-      />
+    <span aria-hidden className={cn(s.loader, className)} style={{ width, height: size }}>
+      <span className={s.flap}>
+        <Image
+          src={ottoSrc(OTTO_FLY_STRIP)}
+          alt=""
+          width={width * OTTO_FLY_FRAMES}
+          height={size}
+          unoptimized
+          priority
+          draggable={false}
+          className="select-none"
+        />
+      </span>
     </span>
   );
 }

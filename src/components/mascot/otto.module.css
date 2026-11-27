@@ -276,14 +276,35 @@
   animation: qmark 5s ease-out 2.9s infinite both;
 }
 
-/* Loading: his head tipping from side to side, wondering. */
+/*
+ * Loading: flying on the spot, a wingbeat every 0.72 s through the 8 frames of otto-fly-strip.svg. His body rises on
+ * the downstroke and sinks on the way up: the bob starts three quarters through its cycle (-0.54 s), so it is at the
+ * top as the wings reach the bottom (frame 2).
+ */
 .loader {
-  display: inline-flex;
-  animation: loaderTilt 1.8s ease-in-out infinite;
+  position: relative;
+  display: inline-block;
+  flex: none;
+  animation: flyBob 0.72s ease-in-out -0.54s infinite;
+}
+.flap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.flap > img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 800%;
+  max-width: none;
+  animation: flap 0.72s steps(8) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loader {
+  .loader,
+  .flap > img {
     animation: none;
   }
   .ot *,
@@ -296,9 +317,12 @@
   }
 }
 
-@keyframes loaderTilt {
-  0%, 100% { transform: rotate(-10deg) translateY(0); }
-  50% { transform: rotate(8deg) translateY(-6%); }
+@keyframes flap {
+  to { transform: translateX(-100%); }
+}
+@keyframes flyBob {
+  0%, 100% { transform: translateY(-4%); }
+  50% { transform: translateY(4%); }
 }
 @keyframes blink {
   0%, 93%, 100% { transform: scaleY(0); }

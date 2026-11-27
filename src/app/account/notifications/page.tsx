@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { PushNotificationsToggle } from "@/components/notifications";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export default function NotificationsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              size="sm"
+              size={CONTENT_HEADER_ACTION_SIZE.button}
               className="gap-2"
               onClick={markAllRead}
               disabled={isMarkingAllRead || unreadCount === 0}
@@ -160,7 +161,7 @@ export default function NotificationsPage() {
             {isAdmin ? (
               <Button
                 type="button"
-                size="sm"
+                size={CONTENT_HEADER_ACTION_SIZE.button}
                 variant="secondary"
                 className="gap-2"
                 onClick={runReminderTest}

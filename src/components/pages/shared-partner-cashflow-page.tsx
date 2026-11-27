@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { loadSharedExpenseData, type ExpenseEntryRow } from "@/actions/budget";
 import { granteeSharedToggleExpensePayment } from "@/actions/expense-payments";
@@ -133,7 +134,7 @@ export function SharedPartnerCashflowPage({ params }: SharedPartnerCashflowPageP
         subtitle={`Shared view — you can mark bills paid for ${data.paidMonth}. Amounts and line items are read-only.`}
         className="mb-4 mt-4"
         actions={
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} asChild>
             <Link href={`/account/shared/${grantorUserId}`} className="gap-1.5">
               <LayoutDashboard className="h-4 w-4" />
               Hub

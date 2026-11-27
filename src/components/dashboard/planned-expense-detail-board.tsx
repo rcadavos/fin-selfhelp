@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentHeader } from "@/components/app/content-header";
+import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
 import { BackLink } from "@/components/app/back-link";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
 import {
@@ -55,6 +56,7 @@ import { accountsQueryOptions } from "@/lib/query/accounts";
 import { categoriesQueryOptions } from "@/lib/query/categories";
 import { vehiclesQueryOptions, buildVehicleColorMap } from "@/lib/query/vehicles";
 import { queryKeys } from "@/lib/query/keys";
+import { invalidateNotificationQueries } from "@/lib/query/notifications";
 import { getCurrentPaidMonth, paidMonthName, shiftPaidMonth } from "@/lib/paid-month";
 import {
   effectiveDueDateInPaidMonth,
@@ -260,6 +262,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   function refreshAfterToggle() {
     void queryClient.invalidateQueries({ queryKey: queryKeys.billData(paidMonth) });
     invalidateBillPaymentsHistory(queryClient, bill.id);
+    void invalidateNotificationQueries(queryClient);
     void refetchHistory();
   }
 
@@ -472,20 +475,19 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         }
         subtitle={`${cat?.label ?? "Uncategorized"} • ${BILLING_PERIOD_LABELS[bill.billing_period] ?? "Monthly"} recurrence`}
         actions={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button
-              size="icon"
+              size={CONTENT_HEADER_ACTION_SIZE.icon}
               variant="outline"
-              className="h-8 w-8"
               onClick={() => setEditOpen(true)}
               aria-label="Edit bill"
             >
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              size="icon"
+              size={CONTENT_HEADER_ACTION_SIZE.icon}
               variant="outline"
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive"
               onClick={() => setDeleteOpen(true)}
               aria-label="Delete bill"
             >
