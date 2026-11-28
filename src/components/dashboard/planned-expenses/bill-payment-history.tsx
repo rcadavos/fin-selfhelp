@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Undo2 } from "lucide-react";
+import { ChevronRight, Plus, Undo2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Amount } from "@/components/passbook/amount";
 import { DotLeader } from "@/components/passbook/dot-leader";
 import { Stamp } from "@/components/passbook/stamp";
@@ -180,6 +181,7 @@ export function BillPaymentHistory({
   isPending,
   onEdit,
   onUndoCarryOver,
+  onRecordPast,
   className,
 }: {
   /** Newest first, from `buildBillHistoryMonths`. */
@@ -190,6 +192,8 @@ export function BillPaymentHistory({
   isPending: boolean;
   onEdit: (entry: BillHistoryMonth) => void;
   onUndoCarryOver: (month: string) => void;
+  /** Opens the past-payment form; leave it out when no earlier month can take one. */
+  onRecordPast?: () => void;
   className?: string;
 }) {
   const [showAll, setShowAll] = useState(false);
@@ -201,19 +205,28 @@ export function BillPaymentHistory({
   return (
     <section aria-labelledby="bill-history-heading" className={cn("space-y-3", className)}>
       <div className="px-0.5">
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex min-h-9 items-center justify-between gap-2">
           <h2 id="bill-history-heading" className="text-[13.5px] font-semibold">
             Payment history
           </h2>
-          {months.length > 0 && (
-            <span className="text-[11.5px] text-muted-foreground">
-              {months.length} {months.length === 1 ? "month" : "months"}
-            </span>
+          {onRecordPast && months.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRecordPast}
+              disabled={isPending}
+              className="-mr-2 gap-1.5 text-primary hover:text-primary"
+            >
+              <Plus className="size-3.5" aria-hidden />
+              Record a past payment
+            </Button>
           )}
         </div>
-        {hasEditable && (
-          <p className="mt-0.5 text-[12px] text-muted-foreground">
-            Tap a payment to change its amount, date{showAccounts ? " or account" : ""}, or to remove it.
+        {months.length > 0 && (
+          <p className="text-[12px] text-muted-foreground">
+            {months.length} {months.length === 1 ? "month" : "months"}
+            {hasEditable &&
+              ` • Tap a payment to change its amount, date${showAccounts ? " or account" : ""}, or to remove it.`}
           </p>
         )}
       </div>
@@ -223,7 +236,14 @@ export function BillPaymentHistory({
           <p className="text-sm font-medium">No payments yet</p>
           <p className="max-w-[44ch] text-xs leading-relaxed text-muted-foreground">
             Mark this bill paid and each month&rsquo;s payment shows up here, where you can still change it later.
+            {onRecordPast && " Paid it in an earlier month already? Record that payment too."}
           </p>
+          {onRecordPast && (
+            <Button variant="outline" onClick={onRecordPast} disabled={isPending} className="mt-3 gap-1.5">
+              <Plus className="size-4" aria-hidden />
+              Record a past payment
+            </Button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-4">

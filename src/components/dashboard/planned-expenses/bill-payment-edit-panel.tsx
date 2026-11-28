@@ -14,6 +14,8 @@ import { Amount } from "@/components/passbook/amount";
 import { formatYmdLocal } from "@/lib/expense-due-date";
 import { paidMonthName } from "@/lib/paid-month";
 import { roundMoney } from "@/lib/planned-expenses/carry-over";
+import { paymentAmountHint } from "@/lib/planned-expenses/bill-history";
+import { PAYMENT_AMOUNT_HINT_TONE } from "@/lib/constants/planned-expenses";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { AccountRow } from "@/actions/accounts";
 import type { BillPaymentHistoryRow, UpdateBillPaymentInput } from "@/actions/bills";
@@ -100,16 +102,7 @@ export function BillPaymentEditPanel({
     (id === originalAccountId ? payment.account_alias : null) ??
     "that account";
 
-  const amountHint = !amountValid
-    ? null
-    : amountNum < due
-      ? { tone: "text-info", text: `Part paid • ${formatCurrency(roundMoney(due - amountNum), currency)} left for ${monthName}` }
-      : amountNum > due
-        ? {
-            tone: "text-warning",
-            text: `${formatCurrency(roundMoney(amountNum - due), currency)} more than the ${formatCurrency(due, currency)} ${monthName} asked for`,
-          }
-        : { tone: "text-primary", text: "Paid in full" };
+  const amountHint = amountValid ? paymentAmountHint(amountNum, due, monthName, currency) : null;
 
   const amountText = formatCurrency(amountValid ? amountNum : payment.amount, currency);
   const accountHint = !accountChanged
@@ -152,7 +145,9 @@ export function BillPaymentEditPanel({
               placeholder="e.g. 1,500"
               required
             />
-            {amountHint && <p className={cn("text-[12px]", amountHint.tone)}>{amountHint.text}</p>}
+            {amountHint && (
+              <p className={cn("text-[12px]", PAYMENT_AMOUNT_HINT_TONE[amountHint.tone])}>{amountHint.text}</p>
+            )}
             {amountValid && amountNum !== due && (
               <div>
                 <button

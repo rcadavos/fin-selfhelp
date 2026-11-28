@@ -20,6 +20,7 @@ import { BillMonthPanel, type BillPanelError } from "@/components/dashboard/plan
 import { BillPaymentRecord } from "@/components/dashboard/planned-expenses/bill-payment-record";
 import { BillPaymentHistory } from "@/components/dashboard/planned-expenses/bill-payment-history";
 import { BillPaymentEditPanel } from "@/components/dashboard/planned-expenses/bill-payment-edit-panel";
+import { BillPastPaymentPanel } from "@/components/dashboard/planned-expenses/bill-past-payment-panel";
 import { BillDetailsCard } from "@/components/dashboard/planned-expenses/bill-details-card";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { useUserPreferencesOptional } from "@/contexts/user-preferences-context";
@@ -28,6 +29,7 @@ import {
   carryOverBill,
   deleteBill,
   markBillPaid,
+  recordBillPayment,
   undoBillCarryOver,
   unmarkBillPaid,
   updateBill,
@@ -54,11 +56,13 @@ import {
   billDueLabel,
   buildBillHistoryMonths,
   buildBillRecord,
+  pastPaymentMonths,
   summariseBillHistory,
   type BillHistoryMonth,
 } from "@/lib/planned-expenses/bill-history";
 import {
   BILL_CARRY_OVER_ERRORS,
+  BILL_PAST_PAYMENT_MONTHS,
   BILL_PAYMENT_EDIT_ERRORS,
   BILL_RECORD_MONTHS,
 } from "@/lib/constants/planned-expenses";
@@ -102,6 +106,10 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
   const [paymentEditKey, setPaymentEditKey] = useState(0);
   const [paymentEditError, setPaymentEditError] = useState<string | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+  // 0 until first opened: the panel mounts then, fresh each time from a new key.
+  const [pastKey, setPastKey] = useState(0);
+  const [pastError, setPastError] = useState<string | null>(null);
 
   const paidMonth = getCurrentPaidMonth();
   // Memoized so React Compiler treats it as frozen: it is handed on to canCarryOverBill.
@@ -138,6 +146,10 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
     [bill, history, paidMonth],
   );
   const summary = useMemo(() => summariseBillHistory(history, record, paidMonth), [history, record, paidMonth]);
+  const pastMonths = useMemo(
+    () => pastPaymentMonths(bill, history, historyData.carryOvers, paidMonth, BILL_PAST_PAYMENT_MONTHS),
+    [bill, history, historyData.carryOvers, paidMonth],
+  );
   const thisMonthPayment = historyData.history.find((p) => p.paid_month === paidMonth) ?? null;
 
   const cat = categories.find((c) => c.id === bill.category_id);
@@ -242,6 +254,26 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
         return;
       }
       setPaymentEditOpen(false);
+      refreshAfterPaymentChange();
+    });
+  }
+
+  function openPastPayment() {
+    setPastError(null);
+    setPastKey((k) => k + 1);
+    setPastOpen(true);
+  }
+
+  function handleRecordPastPayment(month: string, input: UpdateBillPaymentInput) {
+    setPastError(null);
+    startTransition(async () => {
+      const res = await recordBillPayment(bill.id, month, input);
+      const balance = balanceMessage(res);
+      if (balance || res.error) {
+        setPastError(balance ?? errorText(res.error!));
+        return;
+      }
+      setPastOpen(false);
       refreshAfterPaymentChange();
     });
   }
@@ -412,6 +444,7 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
             isPending={isPending}
             onEdit={handleEditHistoryEntry}
             onUndoCarryOver={(month) => runPanelAction(() => undoBillCarryOver(bill.id, month))}
+            onRecordPast={pastMonths.length > 0 ? openPastPayment : undefined}
           />
         </div>
 
@@ -494,6 +527,24 @@ export function PlannedExpenseDetailBoard({ bill: initialBill }: { bill: BillRow
           onClose={() => setPaymentEditOpen(false)}
           onSave={handleSavePayment}
           onRemove={() => setRemoveOpen(true)}
+        />
+      )}
+
+      {pastKey > 0 && (
+        <BillPastPaymentPanel
+          key={pastKey}
+          open={pastOpen}
+          billLabel={billLabel}
+          months={pastMonths}
+          dueDateYmd={bill.due_date}
+          defaultAccountId={account?.id ?? ""}
+          accounts={accounts}
+          showAccounts={accountsEnabled}
+          currency={currency}
+          isPending={isPending}
+          error={pastError}
+          onClose={() => setPastOpen(false)}
+          onSave={handleRecordPastPayment}
         />
       )}
 

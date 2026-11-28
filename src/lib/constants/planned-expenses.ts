@@ -4,7 +4,7 @@ import type {
   PlannedExpenseStatus,
   UrgencyBucket,
 } from "@/lib/planned-expenses/grouping";
-import type { BillRecordStatus } from "@/lib/planned-expenses/bill-history";
+import type { BillRecordStatus, PaymentAmountHint } from "@/lib/planned-expenses/bill-history";
 import type { StampVariant } from "@/components/passbook/stamp";
 
 /** How far ahead "due this week" reaches, in days. */
@@ -183,4 +183,17 @@ export const BILL_PAYMENT_EDIT_ERRORS: Record<string, string> = {
   invalid_paid_date: "Pick today or an earlier date.",
   payment_not_found: "This payment is no longer on record. Refresh the page and try again.",
   account_not_found: "That account could not be found. Pick another one.",
+  already_paid: "That month already has a payment. Open it in the history to change it instead.",
+  invalid_month: "Pick a month to record the payment for.",
+  bill_not_found: "This bill is no longer on record. Refresh the page and try again.",
+};
+
+/** How far back, in months before this one, a past payment can be recorded. */
+export const BILL_PAST_PAYMENT_MONTHS = 24;
+
+/** Text colour of the payment forms' amount hint: blue part paid, amber over, green in full. */
+export const PAYMENT_AMOUNT_HINT_TONE: Record<PaymentAmountHint["tone"], string> = {
+  partial: "text-info",
+  over: "text-warning",
+  full: "text-primary",
 };

@@ -930,6 +930,148 @@ export async function updateBillPayment(
 }
 
 /**
+ * Record a payment for a month that has none yet, usually one paid in real life
+ * but never marked paid: how much, the day it was paid, and the account it came out
+ * of. Unlike `markBillPaid`, the date and account are the user's, not today and the
+ * bill's own account.
+ *
+ * - Refuses a month that already has a payment (edit that one instead) and a month
+ *   the bill was carried out of.
+ * - A failed auto-debit row for the month becomes this payment.
+ * - The account needs the whole amount available, the same guard as marking paid.
+ *   With accounts switched off, no account is charged.
+ */
+export async function recordBillPayment(
+  billId: string,
+  paidMonth: string,
+  input: UpdateBillPaymentInput,
+): Promise<ToggleBillPaymentResult> {
+  if (!/^\d{4}-\d{2}$/.test(paidMonth)) return { error: "invalid_month" };
+
+  const amount = roundMoney(Number(input.amount));
+  if (!Number.isFinite(amount) || amount <= 0) return { error: "invalid_amount" };
+
+  let paidAt: string | undefined;
+  if (input.paidAt !== undefined) {
+    const time = Date.parse(input.paidAt);
+    if (Number.isNaN(time) || time > Date.now() + PAID_AT_FUTURE_SLACK_MS) {
+      return { error: "invalid_paid_date" };
+    }
+    paidAt = new Date(time).toISOString();
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, user_preferences")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const accountsEnabled = isFeatureEnabledInMode(
+    appModeFromPreferencesJson(profile.user_preferences),
+    "accounts",
+  );
+
+  const [{ data: bill }, carry, { data: existing }] = await Promise.all([
+    supabase
+      .from("bills")
+      .select("id, note, account_id")
+      .eq("id", billId)
+      .eq("profile_id", profile.id)
+      .maybeSingle(),
+    loadBillCarryState(supabase, profile.id, billId, paidMonth),
+    supabase
+      .from("bill_payments")
+      .select("id, status")
+      .eq("bill_id", billId)
+      .eq("profile_id", profile.id)
+      .eq("paid_month", paidMonth)
+      .maybeSingle(),
+  ]);
+  if (!bill) return { error: "bill_not_found" };
+  if (carry.carriedOut) return { error: "carried_over" };
+  if (existing && (existing.status ?? "paid") === "paid") return { error: "already_paid" };
+
+  // Same reasoning as markBillPaid: with accounts off, no ledger row is written at all.
+  const accountId = accountsEnabled
+    ? input.accountId !== undefined
+      ? input.accountId || null
+      : ((bill.account_id as string | null) ?? null)
+    : null;
+
+  if (accountId) {
+    const balance = await getAccountAvailableBalance(supabase, profile.id, accountId);
+    if (balance == null) return { error: "account_not_found" };
+    if (balance < amount) {
+      return {
+        error: "insufficient_balance",
+        insufficientBalance: { accountId, available: balance, required: amount },
+      };
+    }
+  }
+
+  const occurredAt = paidAt ?? new Date().toISOString();
+  let paymentId: string;
+  if (existing) {
+    // A failed auto-debit for the month: this payment settles it.
+    const { error: updErr } = await supabase
+      .from("bill_payments")
+      .update({ amount_paid: amount, status: "paid", failure_reason: null, paid_at: occurredAt })
+      .eq("id", existing.id);
+    if (updErr) return { error: updErr.message };
+    paymentId = String(existing.id);
+  } else {
+    const { data: payment, error: payErr } = await supabase
+      .from("bill_payments")
+      .insert({
+        bill_id: billId,
+        profile_id: profile.id,
+        paid_month: paidMonth,
+        amount_paid: amount,
+        paid_at: occurredAt,
+      })
+      .select("id")
+      .single();
+    if (payErr || !payment) return { error: payErr?.message ?? "could_not_mark_paid" };
+    paymentId = String(payment.id);
+  }
+
+  if (accountId) {
+    const { error: txErr } = await supabase.from("account_transactions").insert({
+      profile_id: profile.id,
+      account_id: accountId,
+      type: "expense",
+      amount: -Math.abs(amount),
+      description: (bill.note as string | null)?.trim() || "Bill",
+      occurred_at: occurredAt,
+      bill_payment_id: paymentId,
+    });
+    if (txErr) {
+      if (existing) {
+        await supabase
+          .from("bill_payments")
+          .update({ amount_paid: 0, status: "failed" })
+          .eq("id", paymentId);
+      } else {
+        await supabase.from("bill_payments").delete().eq("id", paymentId);
+      }
+      return { error: txErr.message };
+    }
+  }
+
+  revalidatePath("/dashboard/bills");
+  revalidatePath(`/dashboard/bills/${billId}`);
+  revalidatePath("/dashboard/accounts");
+  revalidatePath("/dashboard/expenses");
+  revalidatePath("/dashboard/vehicles");
+  return { paid: true, amountPaid: amount };
+}
+
+/**
  * Binary toggle: if a payment row exists this month, remove it; otherwise mark
  * it fully paid. Kept for the list-row checkbox and the auto-debit cron — for
  * partial payments use `markBillPaid` directly.

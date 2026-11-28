@@ -9,6 +9,7 @@ import { getDueDayOfMonthFromYmd } from "@/lib/expense-due-date";
 import { shiftPaidMonth } from "@/lib/paid-month";
 import { roundMoney } from "@/lib/planned-expenses/carry-over";
 import { ordinal } from "@/lib/shared/number-format";
+import { formatCurrency } from "@/lib/utils";
 
 /**
  * When a bill falls due, in words: "15th of every month", "15th of Jan, Apr, Jul
@@ -189,6 +190,68 @@ export function summariseBillHistory(
     paidInFull: counted.filter((r) => r.status === "paid").length,
     monthsDue: counted.length,
   };
+}
+
+export type PastPaymentMonth = {
+  month: string;
+  /** What that month asked for: the bill's amount today, plus anything carried in. */
+  due: number;
+};
+
+/**
+ * Months before `currentMonth` a payment can still be recorded for, newest first:
+ * nothing paid and not carried over, within the last `count` months, and not after
+ * the bill ends. This month is left out: the month panel pays it.
+ */
+export function pastPaymentMonths(
+  bill: Pick<BillRow, "amount" | "end_date">,
+  history: BillHistoryMonth[],
+  carryOvers: BillCarryOverHistoryRow[],
+  currentMonth: string,
+  count: number,
+): PastPaymentMonth[] {
+  // Every listed month has a payment or was carried out of, so all of them are taken.
+  const taken = new Set(history.map((h) => h.month));
+  const until = bill.end_date?.slice(0, 7) ?? null;
+  const months: PastPaymentMonth[] = [];
+  for (let back = 1; back <= count; back++) {
+    const month = shiftPaidMonth(currentMonth, -back);
+    if (!month || taken.has(month) || (until && month > until)) continue;
+    const carriedIn = carryOvers
+      .filter((c) => c.to_month === month)
+      .reduce((sum, c) => sum + c.amount, 0);
+    months.push({ month, due: roundMoney(bill.amount + carriedIn) });
+  }
+  return months;
+}
+
+/** The bill's due day inside `month`, clamped to the month's length, as YYYY-MM-DD; the 1st without a due day. */
+export function dueDateInMonth(dueDateYmd: string, month: string): string {
+  const day = getDueDayOfMonthFromYmd(dueDateYmd) ?? 1;
+  const [y, m] = month.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+}
+
+export type PaymentAmountHint = { tone: "partial" | "over" | "full"; text: string };
+
+/** How a payment compares with what its month asked for, in words, for the payment forms. */
+export function paymentAmountHint(
+  amount: number,
+  due: number,
+  monthName: string,
+  currency: string,
+): PaymentAmountHint {
+  if (amount < due) {
+    return { tone: "partial", text: `Part paid • ${formatCurrency(roundMoney(due - amount), currency)} left for ${monthName}` };
+  }
+  if (amount > due) {
+    return {
+      tone: "over",
+      text: `${formatCurrency(roundMoney(amount - due), currency)} more than the ${formatCurrency(due, currency)} ${monthName} asked for`,
+    };
+  }
+  return { tone: "full", text: "Paid in full" };
 }
 
 /** "Nov 2", or "Nov 2, 2025" outside `currentYear`. */
