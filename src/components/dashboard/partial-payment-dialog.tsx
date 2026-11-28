@@ -25,6 +25,8 @@ export type PartialPaymentDialogProps = {
   /** Server submit. Called with the absolute new amount_paid value, not a delta. */
   onSubmit: (absoluteAmount: number) => Promise<void> | void;
   isPending: boolean;
+  /** ISO 4217 code from the user's preferences; pesos when omitted. */
+  currency?: string;
 };
 
 export function PartialPaymentDialog({
@@ -35,6 +37,7 @@ export function PartialPaymentDialog({
   alreadyPaid,
   onSubmit,
   isPending,
+  currency,
 }: PartialPaymentDialogProps) {
   const remaining = Math.max(0, billAmount - alreadyPaid);
   // The input is "amount to add now", pre-filled with the remaining balance.
@@ -71,11 +74,11 @@ export function PartialPaymentDialog({
           <div className="surface border bg-muted/30 px-3 py-2.5 text-xs">
             <div className="flex justify-between py-0.5">
               <span className="text-muted-foreground">Bill total</span>
-              <span className="font-semibold tabular-nums">{formatCurrency(billAmount)}</span>
+              <span className="font-semibold tabular-nums">{formatCurrency(billAmount, currency)}</span>
             </div>
             <div className="flex justify-between py-0.5">
               <span className="text-muted-foreground">Already paid this month</span>
-              <span className="font-semibold tabular-nums">{formatCurrency(alreadyPaid)}</span>
+              <span className="font-semibold tabular-nums">{formatCurrency(alreadyPaid, currency)}</span>
             </div>
             <div className="flex justify-between border-t pt-1.5 mt-1">
               <span className="text-muted-foreground">Remaining</span>
@@ -84,7 +87,7 @@ export function PartialPaymentDialog({
                   remaining > 0 ? "text-warning" : "text-primary"
                 }`}
               >
-                {formatCurrency(remaining)}
+                {formatCurrency(remaining, currency)}
               </span>
             </div>
           </div>
@@ -103,11 +106,11 @@ export function PartialPaymentDialog({
               <p className="text-[11px] text-muted-foreground">
                 New total paid this month:{" "}
                 <span className="font-semibold tabular-nums text-foreground">
-                  {formatCurrency(newAbsolute)}
+                  {formatCurrency(newAbsolute, currency)}
                 </span>
                 {willOverpay && (
                   <span className="ml-1 text-warning">
-                    — exceeds the bill total by {formatCurrency(newAbsolute - billAmount)}
+                    — exceeds the bill total by {formatCurrency(newAbsolute - billAmount, currency)}
                   </span>
                 )}
               </p>

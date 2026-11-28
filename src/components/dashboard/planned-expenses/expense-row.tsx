@@ -43,6 +43,9 @@ const PERIOD_TAG: Record<string, string> = {
   yearly: "YR",
 };
 
+/** Roomier than the default menu item: this menu is the main way to act on a bill. */
+const ACTION_ITEM = "min-h-12 gap-3 px-3 text-base max-sm:min-h-14 [&_svg]:size-5";
+
 /** "Today", "9 days" ahead, or "3 days ago" — a day count with no status words. */
 function dayCountLabel(daysFromToday: number): string {
   if (daysFromToday === 0) return "Today";
@@ -386,41 +389,41 @@ export function ExpenseRow({
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuContent align="end" className="min-w-60 p-1.5" onClick={(e) => e.stopPropagation()}>
           {isCarried ? (
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUndoCarryOver(); }}>
-              <Undo2 className="size-4" />
+            <DropdownMenuItem className={ACTION_ITEM} onClick={(e) => { e.stopPropagation(); onUndoCarryOver(); }}>
+              <Undo2 />
               Undo Carry-over
             </DropdownMenuItem>
           ) : (
             <>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-                {isPaid ? <RotateCcw className="size-4" /> : <CheckCircle2 className="size-4 text-primary" />}
+              <DropdownMenuItem className={ACTION_ITEM} onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+                {isPaid ? <RotateCcw /> : <CheckCircle2 className="text-primary" />}
                 {isPaid ? "Mark Unpaid" : "Mark Paid"}
               </DropdownMenuItem>
               {!isPaid && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
-                  <PiggyBank className="size-4 text-info" />
+                <DropdownMenuItem className={ACTION_ITEM} onClick={(e) => { e.stopPropagation(); onPartialClick(); }}>
+                  <PiggyBank className="text-info" />
                   {isPartial ? "Add to Payment" : "Add Partial Payment"}
                 </DropdownMenuItem>
               )}
               {carryTargetLabel && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCarryOver(); }}>
-                  <Forward className="size-4 text-warning" />
+                <DropdownMenuItem className={ACTION_ITEM} onClick={(e) => { e.stopPropagation(); onCarryOver(); }}>
+                  <Forward className="text-warning" />
                   Carry Over to {carryTargetLabel}
                 </DropdownMenuItem>
               )}
             </>
           )}
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-            <Pencil className="size-4" />
+          <DropdownMenuItem className={ACTION_ITEM} onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+            <Pencil />
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="text-destructive focus:text-destructive"
+            className={cn(ACTION_ITEM, "text-destructive focus:text-destructive")}
           >
-            <Trash2 className="size-4" />
+            <Trash2 />
             Remove
           </DropdownMenuItem>
         </DropdownMenuContent>

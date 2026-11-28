@@ -4,6 +4,7 @@ import type {
   PlannedExpenseStatus,
   UrgencyBucket,
 } from "@/lib/planned-expenses/grouping";
+import type { BillRecordStatus } from "@/lib/planned-expenses/bill-history";
 import type { StampVariant } from "@/components/passbook/stamp";
 
 /** How far ahead "due this week" reaches, in days. */
@@ -125,3 +126,61 @@ export const DAY_STATUS_LEGEND: { status: DayStatus; label: string }[] = [
   { status: "scheduled", label: "Scheduled" },
   { status: "paid", label: "Paid" },
 ];
+
+/**
+ * Status colours for the dark month panel on a bill's page. The panel is dark in
+ * both themes, so the light theme's inks are too dark for it: these are the
+ * dark-theme hues the other panels already use.
+ */
+export const BILL_PANEL_STATUS_TONE: Record<PlannedExpenseStatus, string> = {
+  paid: "text-panel-accent",
+  partial: "text-[hsl(213.5_81.1%_68.8%)]",
+  failed: "text-[hsl(4.5_69%_72%)]",
+  overdue: "text-[hsl(4.5_69%_72%)]",
+  due: "text-[hsl(39_67%_62%)]",
+  scheduled: "text-panel-muted",
+  carried: "text-panel-muted",
+};
+
+/** The fill of the month panel's paid meter: green once paid in full, blue while part paid. */
+export const BILL_PANEL_METER_FILL = {
+  paid: "bg-panel-accent",
+  partial: "bg-[hsl(213.5_81.1%_68.8%)]",
+} as const;
+
+/** How often a bill repeats, in words. */
+export const BILL_PERIOD_LABELS: Record<"monthly" | "quarterly" | "yearly", string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+};
+
+/** Months of a bill's history listed before "Show all". */
+export const BILL_HISTORY_PREVIEW = 12;
+
+/** Months in the run of bars at the top of a bill's history, this month included. */
+export const BILL_RECORD_MONTHS = 12;
+
+/** Tallest bar in that run, in px. */
+export const BILL_RECORD_BAR_PX = 48;
+
+/** How each month in that run is drawn: the empty tube behind it, and its fill. */
+export const BILL_RECORD_STYLE: Record<
+  BillRecordStatus,
+  { label: string; track: string; fill: string }
+> = {
+  paid: { label: "Paid in full", track: "bg-primary/10", fill: "bg-primary" },
+  partial: { label: "Part paid", track: "bg-info/15", fill: "bg-info" },
+  carried: { label: "Carried over", track: "border border-dashed border-hairline-strong bg-muted/40", fill: "" },
+  missed: { label: "Nothing paid", track: "border border-destructive/35 bg-destructive/10", fill: "" },
+  open: { label: "Not paid yet", track: "border border-dashed border-warning/60 bg-warning/5", fill: "" },
+  none: { label: "No bill", track: "bg-muted/50", fill: "" },
+};
+
+/** Plain-English text for the errors a payment edit can return; carry-over codes fall back to the map above. */
+export const BILL_PAYMENT_EDIT_ERRORS: Record<string, string> = {
+  invalid_amount: "Enter an amount above zero.",
+  invalid_paid_date: "Pick today or an earlier date.",
+  payment_not_found: "This payment is no longer on record. Refresh the page and try again.",
+  account_not_found: "That account could not be found. Pick another one.",
+};

@@ -767,6 +767,168 @@ export async function unmarkBillPaid(
   return { paid: false, amountPaid: 0 };
 }
 
+/** How far past the server's clock a paid date may sit: the user's day can run ahead of UTC. */
+const PAID_AT_FUTURE_SLACK_MS = 36 * 60 * 60 * 1000;
+
+export type UpdateBillPaymentInput = {
+  /** The payment's new total for its month. Must be above 0. */
+  amount: number;
+  /** When it was paid, as an ISO timestamp. Omit to keep the stored date. */
+  paidAt?: string;
+  /**
+   * The account it came out of: an id, null for none, or omitted to leave it as it is.
+   * Ignored when the user's app mode has accounts switched off.
+   */
+  accountId?: string | null;
+};
+
+/**
+ * Correct a recorded payment from the bill's history: its amount, the date it was
+ * paid, and the account it came out of. The linked account transaction follows, so
+ * the account's balance and its history stay in step with the bill.
+ *
+ * - Refuses a month the bill was carried out of: the carried balance was sized
+ *   against this payment, so it is locked until the carry-over is undone.
+ * - Taking more out of an account (a bigger amount, or a different account) needs
+ *   that much available in it, the same guard as marking a bill paid.
+ * - With accounts switched off, the account is left alone and no ledger row is
+ *   created, but an existing one still takes the new amount and date.
+ */
+export async function updateBillPayment(
+  paymentId: string,
+  input: UpdateBillPaymentInput,
+): Promise<ToggleBillPaymentResult> {
+  const newAmount = roundMoney(Number(input.amount));
+  if (!Number.isFinite(newAmount) || newAmount <= 0) return { error: "invalid_amount" };
+
+  let paidAt: string | undefined;
+  if (input.paidAt !== undefined) {
+    const time = Date.parse(input.paidAt);
+    if (Number.isNaN(time) || time > Date.now() + PAID_AT_FUTURE_SLACK_MS) {
+      return { error: "invalid_paid_date" };
+    }
+    paidAt = new Date(time).toISOString();
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "not_authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, user_preferences")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { error: "no_profile" };
+
+  const accountsEnabled = isFeatureEnabledInMode(
+    appModeFromPreferencesJson(profile.user_preferences),
+    "accounts",
+  );
+
+  const { data: payment } = await supabase
+    .from("bill_payments")
+    .select("id, bill_id, paid_month, amount_paid, paid_at, status")
+    .eq("id", paymentId)
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  // A failed auto-debit is not a payment yet: it is paid through markBillPaid.
+  if (!payment || (payment.status ?? "paid") !== "paid") return { error: "payment_not_found" };
+
+  const billId = String(payment.bill_id);
+  const [carry, { data: bill }, { data: txRows }] = await Promise.all([
+    loadBillCarryState(supabase, profile.id, billId, String(payment.paid_month)),
+    supabase
+      .from("bills")
+      .select("note")
+      .eq("id", billId)
+      .eq("profile_id", profile.id)
+      .maybeSingle(),
+    supabase
+      .from("account_transactions")
+      .select("id, account_id, amount")
+      .eq("bill_payment_id", payment.id)
+      .eq("profile_id", profile.id)
+      .limit(1),
+  ]);
+  if (carry.carriedOut) return { error: "carried_over" };
+
+  const tx = txRows?.[0] ?? null;
+  const currentAccountId = (tx?.account_id as string | null | undefined) ?? null;
+  const targetAccountId =
+    accountsEnabled && input.accountId !== undefined ? input.accountId || null : currentAccountId;
+
+  if (accountsEnabled && targetAccountId) {
+    // Staying on the same account only takes the difference; moving takes it all, so a
+    // new account is always looked up, which also proves it belongs to this profile.
+    const alreadyTaken = targetAccountId === currentAccountId ? Math.abs(Number(tx?.amount ?? 0)) : 0;
+    const required = roundMoney(newAmount - alreadyTaken);
+    if (required > 0) {
+      const balance = await getAccountAvailableBalance(supabase, profile.id, targetAccountId);
+      if (balance == null) return { error: "account_not_found" };
+      if (balance < required) {
+        return {
+          error: "insufficient_balance",
+          insufficientBalance: { accountId: targetAccountId, available: balance, required },
+        };
+      }
+    }
+  }
+
+  const previousAmount = Number(payment.amount_paid);
+  const previousPaidAt = String(payment.paid_at);
+
+  const { error: updErr } = await supabase
+    .from("bill_payments")
+    .update({ amount_paid: newAmount, ...(paidAt ? { paid_at: paidAt } : {}) })
+    .eq("id", payment.id);
+  if (updErr) return { error: updErr.message };
+
+  let txError: string | null = null;
+  if (tx && targetAccountId) {
+    const { error } = await supabase
+      .from("account_transactions")
+      .update({
+        account_id: targetAccountId,
+        amount: -Math.abs(newAmount),
+        // Only a moved paid date moves the ledger row; otherwise it keeps its own.
+        ...(paidAt ? { occurred_at: paidAt } : {}),
+      })
+      .eq("id", tx.id);
+    txError = error?.message ?? null;
+  } else if (tx) {
+    // The account was cleared: the money goes back to where it came from.
+    const { error } = await supabase.from("account_transactions").delete().eq("id", tx.id);
+    txError = error?.message ?? null;
+  } else if (targetAccountId) {
+    const { error } = await supabase.from("account_transactions").insert({
+      profile_id: profile.id,
+      account_id: targetAccountId,
+      type: "expense",
+      amount: -Math.abs(newAmount),
+      description: (bill?.note as string | null)?.trim() || "Bill",
+      occurred_at: paidAt ?? previousPaidAt,
+      bill_payment_id: payment.id,
+    });
+    txError = error?.message ?? null;
+  }
+
+  if (txError) {
+    await supabase
+      .from("bill_payments")
+      .update({ amount_paid: previousAmount, paid_at: previousPaidAt })
+      .eq("id", payment.id);
+    return { error: txError };
+  }
+
+  revalidatePath("/dashboard/bills");
+  revalidatePath(`/dashboard/bills/${billId}`);
+  revalidatePath("/dashboard/accounts");
+  revalidatePath("/dashboard/expenses");
+  revalidatePath("/dashboard/vehicles");
+  return { paid: true, amountPaid: newAmount };
+}
+
 /**
  * Binary toggle: if a payment row exists this month, remove it; otherwise mark
  * it fully paid. Kept for the list-row checkbox and the auto-debit cron — for
@@ -1256,6 +1418,8 @@ export type BillPaymentHistoryRow = {
   status: "paid" | "failed";
   /** Reason text when status='failed'. */
   failure_reason?: string | null;
+  /** The account the payment came out of (its linked account transaction), if any. */
+  account_id?: string | null;
   /** Human label of the linked account at time of payment, if any. */
   account_alias?: string | null;
   account_color?: string | null;
@@ -1315,23 +1479,24 @@ export async function loadBillPaymentsHistory(
   const paymentIds = paymentRows.map((p) => p.id);
   const { data: txRows } = await supabase
     .from("account_transactions")
-    .select("bill_payment_id, accounts:account_id(account_alias, color)")
+    .select("bill_payment_id, account_id, accounts:account_id(account_alias, color)")
     .in("bill_payment_id", paymentIds)
     .eq("profile_id", profile.id);
 
   type TxJoinRow = {
     bill_payment_id: string | null;
+    account_id: string | null;
     accounts: { account_alias: string | null; color: string | null } | null;
   };
-  const acctByPaymentId = new Map<string, TxJoinRow["accounts"]>();
+  const txByPaymentId = new Map<string, TxJoinRow>();
   for (const tx of (txRows ?? []) as unknown as TxJoinRow[]) {
-    if (tx.bill_payment_id) acctByPaymentId.set(String(tx.bill_payment_id), tx.accounts);
+    if (tx.bill_payment_id) txByPaymentId.set(String(tx.bill_payment_id), tx);
   }
 
   return {
     carryOvers,
     history: paymentRows.map((p) => {
-      const acct = acctByPaymentId.get(String(p.id));
+      const tx = txByPaymentId.get(String(p.id));
       const status = (p.status as string | null) === "failed" ? "failed" : "paid";
       return {
         id: String(p.id),
@@ -1340,8 +1505,9 @@ export async function loadBillPaymentsHistory(
         amount: Number(p.amount_paid ?? 0),
         status,
         failure_reason: status === "failed" ? (p.failure_reason as string | null) ?? null : null,
-        account_alias: acct?.account_alias ?? null,
-        account_color: acct?.color ?? null,
+        account_id: tx?.account_id ?? null,
+        account_alias: tx?.accounts?.account_alias ?? null,
+        account_color: tx?.accounts?.color ?? null,
       };
     }),
   };

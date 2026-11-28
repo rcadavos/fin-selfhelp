@@ -144,6 +144,7 @@ export function CarryOverNote({
   note,
   currency,
   className,
+  as: Tag = "p",
 }: {
   /** "out": carried from this month into `month`. "in": carried into this month from `month`. */
   direction: "out" | "in";
@@ -152,6 +153,8 @@ export function CarryOverNote({
   note: string | null;
   currency?: string;
   className?: string;
+  /** `span` inside a button, where a paragraph is not allowed. */
+  as?: "p" | "span";
 }) {
   const Icon = direction === "out" ? Forward : CornerDownRight;
   const monthLabel = paidMonthName(month, "short");
@@ -160,7 +163,7 @@ export function CarryOverNote({
       ? `${formatCurrency(amount, currency)} carried to ${monthLabel}`
       : `Includes ${formatCurrency(amount, currency)} carried from ${monthLabel}`;
   return (
-    <p className={cn("mt-1 flex items-start gap-1.5 text-[11.5px] text-muted-foreground", className)}>
+    <Tag className={cn("mt-1 flex items-start gap-1.5 text-[11.5px] text-muted-foreground", className)}>
       <Icon className="mt-0.5 size-3 shrink-0" aria-hidden />
       <span className="min-w-0 break-words">
         {text}
@@ -171,6 +174,6 @@ export function CarryOverNote({
           </>
         )}
       </span>
-    </p>
+    </Tag>
   );
 }

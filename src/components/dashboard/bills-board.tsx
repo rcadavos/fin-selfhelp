@@ -62,7 +62,7 @@ import {
   invalidateVehicleQueriesIfTransportAffected,
 } from "@/lib/query/vehicles";
 import Link from "next/link";
-import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import { categoryDotColor } from "@/lib/constants/tailwind-dot-colors";
 import { ADD_PLANNED_EXPENSE_PARAM } from "@/lib/constants/app-mode";
 import { useAppMode } from "@/hooks/use-app-mode";
 import { DashboardSkeleton } from "./dashboard-skeleton";
@@ -104,12 +104,6 @@ import { CategoryBreakdown } from "@/components/dashboard/planned-expenses/categ
 import { BillsLedger, type LedgerDetailColumn } from "@/components/dashboard/planned-expenses/bills-ledger";
 
 type CatList = Array<{ id: string; label: string; bgClass: string }>;
-
-function getCategoryDotColor(bgClass: string): string {
-  const match = bgClass.match(/bg-(\w+)-\d+/);
-  if (!match) return "#94a3b8";
-  return TAILWIND_DOT_COLORS[match[1]] ?? "#94a3b8";
-}
 
 function getCategoryLabel(id: string, categories: CatList): string {
   return categories.find((c) => c.id === id)?.label ?? id;
@@ -207,7 +201,7 @@ function CategoriesDialog({
           <div className="divide-y">
             {grouped.map(({ id, label, total, paid, count }) => {
               const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-              const dotColor = getCategoryDotColor(categories.find((c) => c.id === id)?.bgClass ?? "");
+              const dotColor = categoryDotColor(categories.find((c) => c.id === id)?.bgClass ?? "");
               return (
                 <div key={id} className="flex items-center gap-3 py-3">
                   <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
@@ -483,7 +477,7 @@ export function BillsBoard() {
       summariseByCategory(rows).map((s) => ({
         id: s.categoryId,
         label: getCategoryLabel(s.categoryId, categories),
-        color: getCategoryDotColor(categories.find((c) => c.id === s.categoryId)?.bgClass ?? ""),
+        color: categoryDotColor(categories.find((c) => c.id === s.categoryId)?.bgClass ?? ""),
         total: s.total,
         paid: s.paid,
         count: s.count,
@@ -1019,7 +1013,7 @@ export function BillsBoard() {
                             row={row}
                             currency={currency}
                             categoryLabel={cat?.label ?? row.bill.category_id}
-                            categoryColor={getCategoryDotColor(cat?.bgClass ?? "")}
+                            categoryColor={categoryDotColor(cat?.bgClass ?? "")}
                             accountsEnabled={accountsEnabled}
                             autoDebitEnabled={autoDebitEnabled}
                             remindersProminent={isBillsMode}
@@ -1100,6 +1094,7 @@ export function BillsBoard() {
           alreadyPaid={paymentAmountByBillId[partialBill.id] ?? 0}
           onSubmit={handlePartialSubmit}
           isPending={isPending}
+          currency={currency}
         />
       )}
 

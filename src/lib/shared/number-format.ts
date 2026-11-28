@@ -56,6 +56,13 @@ export function formatCurrencyWithPreferences(
   }).format(amount);
 }
 
+/** "1st", "2nd", "3rd", "11th", "22nd" — a day of the month, or any count, in words people say. */
+export function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
+}
+
 /** A short label for a chart, like "4.9K" or "22K" — no currency symbol, at most one decimal. */
 export function formatCompactNumber(n: number): string {
   return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);

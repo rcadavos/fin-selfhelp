@@ -3,13 +3,14 @@
  *
  * The board used to answer "what did I spend?" and never "was that a lot?" —
  * a total you cannot judge yourself against is a receipt drawer. Everything here
- * is pure, so the pace panel, the category chips and the day subtotals all read
- * the same numbers and cannot disagree with each other.
+ * is pure, so the pace panel, its chart, the category breakdown and the day totals
+ * all read the same numbers and cannot disagree with each other.
  */
 
 import type { ExpenseEntryRow } from "@/actions/budget";
 import type { MonthlyBreakdownPoint } from "@/actions/expense-payments";
 import { LARGE_ENTRY_MULTIPLE } from "@/lib/constants/expenses";
+import { roundToCents } from "@/lib/shared/number-format";
 
 export type ExpenseCategory = { id: string; label: string; bgClass: string };
 
@@ -24,7 +25,12 @@ export type CategoryTotal = {
   id: string;
   label: string;
   total: number;
+  /** How many entries make up the total. */
+  count: number;
 };
+
+/** The month's running total at the end of a day; day 0 is the start of the month. */
+export type CumulativeSpendPoint = { day: number; total: number };
 
 export type SpendingPace = {
   spent: number;
@@ -42,6 +48,8 @@ export type SpendingPace = {
   spentRatio: number | null;
   /** Share of the month elapsed — the bar's marker. */
   elapsedRatio: number;
+  /** What a day has cost on average so far, over every elapsed day, spending or not. */
+  dailyAverage: number;
   /** Entries at or above this are the ones that actually moved the month. */
   largeThreshold: number;
 };
@@ -86,18 +94,49 @@ export function buildCategoryTotals(
   entries: ExpenseEntryRow[],
   categories: ExpenseCategory[]
 ): CategoryTotal[] {
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { total: number; count: number }>();
   for (const entry of entries) {
     const id = entry.category_id || "";
-    totals.set(id, (totals.get(id) ?? 0) + entry.amount);
+    const current = totals.get(id) ?? { total: 0, count: 0 };
+    totals.set(id, { total: current.total + entry.amount, count: current.count + 1 });
   }
   return Array.from(totals.entries())
-    .map(([id, total]) => ({
+    .map(([id, { total, count }]) => ({
       id,
       label: categories.find((c) => c.id === id)?.label ?? "Uncategorized",
-      total,
+      total: roundToCents(total),
+      count,
     }))
     .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * The month's running total day by day, from day 0 (nothing spent) to `throughDay`.
+ * `entries` must already belong to one month. Drives the line in the pace panel.
+ */
+export function buildCumulativeSpend(
+  entries: ExpenseEntryRow[],
+  throughDay: number
+): CumulativeSpendPoint[] {
+  const perDay = new Array<number>(throughDay + 1).fill(0);
+  for (const entry of entries) {
+    const ymd = ymdOf(entry);
+    if (!ymd) continue;
+    const day = Number(ymd.slice(8, 10));
+    if (day >= 1 && day <= throughDay) perDay[day] += entry.amount;
+  }
+  const points: CumulativeSpendPoint[] = [{ day: 0, total: 0 }];
+  let running = 0;
+  for (let day = 1; day <= throughDay; day++) {
+    running += perDay[day];
+    points.push({ day, total: roundToCents(running) });
+  }
+  return points;
+}
+
+/** Whether an entry is one of the few that actually moved the month. */
+export function isLargeEntry(amount: number, largeThreshold: number): boolean {
+  return largeThreshold > 0 && amount >= largeThreshold;
 }
 
 /**
@@ -148,6 +187,7 @@ export function summariseSpendingPace({
     deltaPct: usualMonth && usualMonth > 0 ? ((projected - usualMonth) / usualMonth) * 100 : null,
     spentRatio: usualMonth && usualMonth > 0 ? spent / usualMonth : null,
     elapsedRatio: daysInMonth > 0 ? dayOfMonth / daysInMonth : 0,
+    dailyAverage: dayOfMonth > 0 ? roundToCents(spent / dayOfMonth) : 0,
     largeThreshold: averageEntry * LARGE_ENTRY_MULTIPLE,
   };
 }

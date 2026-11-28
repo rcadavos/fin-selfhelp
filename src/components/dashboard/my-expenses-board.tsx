@@ -3,22 +3,9 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, Download, LayoutGrid, Plus, Search, X } from "lucide-react";
+import { Banknote, Download, LayoutGrid, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,12 +29,19 @@ import {
 } from "@/lib/query/vehicles";
 import { userPreferencesQueryOptions } from "@/lib/query/user-preferences-query";
 import { queryKeys } from "@/lib/query/keys";
-import { getCurrentPaidMonth } from "@/lib/paid-month";
+import { getCurrentPaidMonth, paidMonthName } from "@/lib/paid-month";
 import { DEFAULT_USER_PREFERENCES } from "@/lib/user-preferences";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, roundToCents } from "@/lib/utils";
 import { TAILWIND_DOT_COLORS } from "@/lib/constants/tailwind-dot-colors";
+import {
+  BUSY_DAY_MIN_ELAPSED_DAYS,
+  EXPENSE_ACCOUNT_FILTER,
+  INITIAL_EXPENSE_DAY_GROUPS,
+} from "@/lib/constants/expenses";
 import { ContentHeader } from "../app/content-header";
 import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { MonthStepper } from "@/components/app/month-stepper";
 import { AddEntryPanel } from "@/components/dashboard/add-entry-panel";
 import { EditExpenseDialog } from "@/components/dashboard/expense/edit-expense-dialog";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
@@ -55,12 +49,22 @@ import {
   entriesForMonth,
   buildExpenseDayGroups,
   buildCategoryTotals,
+  buildCumulativeSpend,
   summariseSpendingPace,
   matchesExpenseSearch,
+  isLargeEntry,
 } from "@/lib/expenses/pace";
 import { SpendingPacePanel } from "@/components/dashboard/expenses/spending-pace";
-import { CategoryFilterStrip } from "@/components/dashboard/expenses/category-filter-strip";
-import { ExpenseDayGroupCard } from "@/components/dashboard/expenses/expense-day-group";
+import { CategoryBreakdown } from "@/components/dashboard/expenses/category-breakdown";
+import {
+  ExpenseFilters,
+  type ExpenseAccountOption,
+} from "@/components/dashboard/expenses/expense-filters";
+import {
+  ExpenseLedger,
+  formatDayRange,
+  type HiddenDaysSummary,
+} from "@/components/dashboard/expenses/expense-ledger";
 
 type CatList = Array<{ id: string; label: string; bgClass: string }>;
 
@@ -138,11 +142,14 @@ export function MyExpensesBoard() {
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentPaidMonth());
   const [search, setSearch] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [accountFilter, setAccountFilter] = useState<string>(EXPENSE_ACCOUNT_FILTER.all);
+  const [largeOnly, setLargeOnly] = useState(false);
+  const [showAllDays, setShowAllDays] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ExpenseEntryRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const monthOptions = useMemo(() => {
     const now = new Date();
@@ -207,10 +214,56 @@ export function MyExpensesBoard() {
     [monthEntries, categories]
   );
 
+  const cumulativeSpend = useMemo(
+    () => buildCumulativeSpend(monthEntries, pace.dayOfMonth),
+    [monthEntries, pace.dayOfMonth]
+  );
+
+  // Only the accounts that paid for something this month, so every choice narrows the list.
+  const accountOptions: ExpenseAccountOption[] = useMemo(() => {
+    const used = new Map<string, string>();
+    let hasUnassigned = false;
+    for (const entry of monthEntries) {
+      if (!entry.account_id) {
+        hasUnassigned = true;
+        continue;
+      }
+      if (!used.has(entry.account_id)) {
+        used.set(entry.account_id, accountMap[entry.account_id]?.account_alias ?? "Deleted account");
+      }
+    }
+    const options = Array.from(used, ([value, label]) => ({ value, label })).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+    if (hasUnassigned) options.push({ value: EXPENSE_ACCOUNT_FILTER.none, label: "No account" });
+    return options;
+  }, [monthEntries, accountMap]);
+
+  // Deleting entries can take an account off the list, or hide the picker altogether.
+  // Never leave a filter applied that the user can no longer see or clear.
+  const activeAccountFilter =
+    accountOptions.length > 1 && accountOptions.some((o) => o.value === accountFilter)
+      ? accountFilter
+      : EXPENSE_ACCOUNT_FILTER.all;
+
+  const largeCount = useMemo(
+    () => monthEntries.filter((e) => isLargeEntry(e.amount, pace.largeThreshold)).length,
+    [monthEntries, pace.largeThreshold]
+  );
+
   const filteredEntries = useMemo(
     () =>
       monthEntries.filter((entry) => {
         if (activeCategoryId !== null && (entry.category_id || "") !== activeCategoryId) return false;
+        if (activeAccountFilter === EXPENSE_ACCOUNT_FILTER.none && entry.account_id) return false;
+        if (
+          activeAccountFilter !== EXPENSE_ACCOUNT_FILTER.all &&
+          activeAccountFilter !== EXPENSE_ACCOUNT_FILTER.none &&
+          entry.account_id !== activeAccountFilter
+        ) {
+          return false;
+        }
+        if (largeOnly && !isLargeEntry(entry.amount, pace.largeThreshold)) return false;
         return matchesExpenseSearch(
           entry,
           getEntryName(entry, categories),
@@ -218,16 +271,51 @@ export function MyExpensesBoard() {
           search
         );
       }),
-    [monthEntries, activeCategoryId, search, categories]
+    [monthEntries, activeCategoryId, activeAccountFilter, largeOnly, pace.largeThreshold, search, categories]
   );
   const dayGroups = useMemo(() => buildExpenseDayGroups(filteredEntries), [filteredEntries]);
-  const maxDayTotal = useMemo(
-    () => dayGroups.reduce((max, g) => Math.max(max, g.total), 0),
-    [dayGroups]
-  );
 
   const isCurrentMonth = selectedMonth === getCurrentPaidMonth();
-  const isFiltered = activeCategoryId !== null || search.trim().length > 0;
+  const isFiltered =
+    activeCategoryId !== null ||
+    activeAccountFilter !== EXPENSE_ACCOUNT_FILTER.all ||
+    largeOnly ||
+    search.trim().length > 0;
+
+  // A filter is a search: show every match. Otherwise the latest days, with the rest folded.
+  const isCollapsed = !isFiltered && !showAllDays && dayGroups.length > INITIAL_EXPENSE_DAY_GROUPS;
+  const visibleDayGroups = isCollapsed ? dayGroups.slice(0, INITIAL_EXPENSE_DAY_GROUPS) : dayGroups;
+  const hiddenDays: HiddenDaysSummary | null = useMemo(() => {
+    if (!isCollapsed) return null;
+    const rest = dayGroups.slice(INITIAL_EXPENSE_DAY_GROUPS);
+    return {
+      label: formatDayRange(rest[rest.length - 1].dateYmd, rest[0].dateYmd),
+      entryCount: rest.reduce((sum, g) => sum + g.entries.length, 0),
+      total: roundToCents(rest.reduce((sum, g) => sum + g.total, 0)),
+    };
+  }, [isCollapsed, dayGroups]);
+
+  // A filtered day total is only part of the day, so comparing it to the average would mislead.
+  const busyAverage =
+    !isFiltered && pace.dayOfMonth >= BUSY_DAY_MIN_ELAPSED_DAYS && pace.dailyAverage > 0
+      ? pace.dailyAverage
+      : null;
+
+  const daysLeft = pace.daysInMonth - pace.dayOfMonth;
+  const monthNote = isCurrentMonth
+    ? `Day ${pace.dayOfMonth} of ${pace.daysInMonth} • ${
+        daysLeft === 0 ? "last day" : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
+      }`
+    : `${pace.entryCount} ${pace.entryCount === 1 ? "entry" : "entries"}`;
+
+  function changeMonth(month: string) {
+    setSelectedMonth(month);
+    // Another month has other categories and accounts, so filters picked here may match nothing there.
+    setActiveCategoryId(null);
+    setAccountFilter(EXPENSE_ACCOUNT_FILTER.all);
+    setLargeOnly(false);
+    setShowAllDays(false);
+  }
 
   useEffect(() => {
     if (!userLoading && !user) router.replace("/login");
@@ -237,12 +325,12 @@ export function MyExpensesBoard() {
     queryClient.invalidateQueries({ queryKey: queryKeys.expenseData(paidMonth) });
   }, [queryClient, paidMonth]);
 
-  async function handleDeleteConfirm() {
-    if (!deletingId) return;
+  function handleDeleteConfirm() {
+    const id = deletingId;
+    if (!id) return;
     startTransition(async () => {
-      const entry = allEntries.find((e) => e.id === deletingId);
-      const res = await deleteExpense(deletingId);
-      setDeletingId(null);
+      const entry = allEntries.find((e) => e.id === id);
+      const res = await deleteExpense(id);
       if (res.error) setError(res.error);
       else {
         invalidate();
@@ -252,10 +340,11 @@ export function MyExpensesBoard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+    <div className="container mx-auto max-w-4xl space-y-5 px-4 py-6">
       <ContentHeader
+        className="mb-0"
         title="Expenses"
-        subtitle="Everything you've spent this month."
+        subtitle="Everything you've spent this month, and whether it's more than usual."
         icon={Banknote}
         actions={
           <div className="flex items-center gap-2">
@@ -267,8 +356,13 @@ export function MyExpensesBoard() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5">
-                  <Download className="size-4" />
+                <Button
+                  variant="outline"
+                  size={CONTENT_HEADER_ACTION_SIZE.button}
+                  className="gap-1.5"
+                  aria-label="Export"
+                >
+                  <Download className="size-4" aria-hidden />
                   <span className="hidden sm:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -281,28 +375,21 @@ export function MyExpensesBoard() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button size={CONTENT_HEADER_ACTION_SIZE.button} onClick={() => setAddOpen(true)} className="gap-1.5">
+              <Plus className="size-4" aria-hidden />
+              <span className="sm:hidden">Add</span>
+              <span className="hidden sm:inline">Add expense</span>
+            </Button>
           </div>
         }
       />
 
-      {/* Month + add */}
-      <div className="flex items-center justify-between gap-2">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="h-10 w-auto gap-1.5 border-0 bg-transparent px-2 text-sm font-medium shadow-none hover:bg-muted focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [&>svg]:opacity-60">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {monthOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button size="lg" onClick={() => setAddOpen(true)} className="shrink-0 gap-1.5">
-          <Plus className="size-4" aria-hidden />
-          Add
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <MonthStepper value={selectedMonth} options={monthOptions} onChange={changeMonth} />
+        {/* On a phone the day count moves into the pace panel. */}
+        {!expenseDataQuery.isPending && (
+          <p className="hidden font-mono text-xs tracking-[0.04em] text-muted-foreground sm:block">{monthNote}</p>
+        )}
       </div>
 
       {error && (
@@ -321,69 +408,63 @@ export function MyExpensesBoard() {
 
       {expenseDataQuery.isPending ? (
         <DashboardSkeleton variant="form" />
-      ) : monthEntries.length === 0 ? (
-        <>
-          <SpendingPacePanel pace={pace} currency={currency} isCurrentMonth={isCurrentMonth} />
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            No expenses this month. Add one to get started.
-          </p>
-        </>
       ) : (
         <>
-          <SpendingPacePanel pace={pace} currency={currency} isCurrentMonth={isCurrentMonth} />
-
-          <CategoryFilterStrip
-            totals={categoryTotals}
-            colorFor={(id) => getCategoryColor(id, categories)}
-            monthTotal={pace.spent}
+          <SpendingPacePanel
+            pace={pace}
+            series={cumulativeSpend}
+            monthYm={selectedMonth}
             currency={currency}
-            activeId={activeCategoryId}
-            onSelect={setActiveCategoryId}
+            isCurrentMonth={isCurrentMonth}
           />
 
-          <div className="surface flex h-10 items-center gap-2 border border-border bg-card px-3">
-            <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search this month…"
-              aria-label="Search expenses"
-              className="min-w-0 flex-1 border-0 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                aria-label="Clear search"
-                className="tap-target shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-
-          {isFiltered && (
-            <p className="-mt-1 text-[11.5px] text-muted-foreground">
-              {filteredEntries.length} of {monthEntries.length} shown ·{" "}
-              {formatCurrency(
-                filteredEntries.reduce((sum, e) => sum + e.amount, 0),
-                currency
-              )}
-            </p>
-          )}
-
-          {dayGroups.length === 0 ? (
+          {monthEntries.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Nothing matches that.
+              No expenses this month. Add one to get started.
             </p>
           ) : (
-            <div className="flex flex-col gap-4">
-              {dayGroups.map((group) => (
-                <ExpenseDayGroupCard
-                  key={group.dateYmd}
-                  group={group}
-                  maxDayTotal={maxDayTotal}
+            <>
+              <CategoryBreakdown
+                totals={categoryTotals}
+                colorFor={(id) => getCategoryColor(id, categories)}
+                monthTotal={pace.spent}
+                entryCount={pace.entryCount}
+                currency={currency}
+                activeId={activeCategoryId}
+                onSelect={setActiveCategoryId}
+              />
+
+              <div className="space-y-2">
+                <ExpenseFilters
+                  search={search}
+                  onSearchChange={setSearch}
+                  searchPlaceholder={`Search ${paidMonthName(selectedMonth)}…`}
+                  accountOptions={accountOptions}
+                  accountValue={activeAccountFilter}
+                  onAccountChange={setAccountFilter}
+                  showLargeFilter={largeCount > 0 && largeCount < monthEntries.length}
+                  largeOnly={largeOnly}
+                  onLargeOnlyChange={setLargeOnly}
+                />
+                {isFiltered && (
+                  <p className="text-xs text-muted-foreground">
+                    {filteredEntries.length} of {monthEntries.length} shown <span aria-hidden>•</span>{" "}
+                    {formatCurrency(
+                      roundToCents(filteredEntries.reduce((sum, e) => sum + e.amount, 0)),
+                      currency
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {dayGroups.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">Nothing matches that.</p>
+              ) : (
+                <ExpenseLedger
+                  groups={visibleDayGroups}
+                  hidden={hiddenDays}
+                  onShowEarlier={() => setShowAllDays(true)}
+                  busyAverage={busyAverage}
                   currency={currency}
                   largeThreshold={pace.largeThreshold}
                   nameFor={(entry) => getEntryName(entry, categories)}
@@ -395,8 +476,8 @@ export function MyExpensesBoard() {
                   onEdit={setEditingEntry}
                   onDelete={setDeletingId}
                 />
-              ))}
-            </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -408,22 +489,15 @@ export function MyExpensesBoard() {
         onDelete={setDeletingId}
       />
 
-      <Dialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete expense?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">This will permanently delete the expense.</p>
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="w-1/2" onClick={() => setDeletingId(null)} disabled={isPending}>
-              Cancel
-            </Button>
-            <Button variant="destructive" className="w-1/2" onClick={handleDeleteConfirm} disabled={isPending}>
-              {isPending ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+        title="Delete expense?"
+        description="This permanently deletes the expense."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
