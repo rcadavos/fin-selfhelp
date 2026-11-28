@@ -68,3 +68,13 @@ export function formatCurrency(amount: number, currencyOverride?: string): strin
     currency: currencyOverride ?? DEFAULT_NUMBER_FORMAT_PREFS.currency,
   });
 }
+
+/**
+ * Round a monetary value to 2 decimal places (cents). Use this whenever a money
+ * value is derived in JS (e.g. summing transactions into a balance, or a
+ * difference between two amounts) to strip floating-point error like
+ * 1234.5599999999999 before it reaches the UI or gets persisted.
+ */
+export function roundToCents(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}

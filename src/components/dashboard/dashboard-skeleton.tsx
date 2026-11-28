@@ -91,7 +91,7 @@ export function DashboardSkeleton({ variant = "page", className }: DashboardSkel
         className
       )}
     >
-      <OttoLoader size={100} />
+      <OttoLoader size={150} />
     </div>
   );
 }

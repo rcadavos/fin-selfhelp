@@ -200,7 +200,7 @@ export function PanelValue({ children }: { children: React.ReactNode }) {
 export function AuthLoader() {
   return (
     <div role="status" aria-label="Loading" className="flex min-h-[60vh] flex-1 items-center justify-center">
-      <OttoLoader size={80} />
+      <OttoLoader size={150} />
     </div>
   );
 }

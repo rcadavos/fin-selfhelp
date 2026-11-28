@@ -3,25 +3,8 @@
 import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { ParentSize } from "@visx/responsive";
-import { scaleLinear, scaleBand } from "@visx/scale";
-import { AxisBottom, AxisLeft } from "@visx/axis";
-import { GridRows } from "@visx/grid";
-import { Group } from "@visx/group";
-import { useTooltip } from "@visx/tooltip";
-import { max } from "d3-array";
-import Image from "next/image";
-import { Wallet, Plus, AlertTriangle, MoreVertical, ExternalLink, Pencil, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
-import { getBankLogoSlug } from "@/lib/constants/account-institutions";
+import { Wallet, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +12,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ContentHeader } from "@/components/app/content-header";
+import { OttoAnimated } from "@/components/mascot/otto";
+import { AccountCard } from "@/components/dashboard/accounts/account-card";
+import {
+  AccountFilterChips,
+  type AccountFilterOption,
+} from "@/components/dashboard/accounts/account-filter-chips";
+import { AccountMixCard } from "@/components/dashboard/accounts/account-mix-card";
+import { NetBalanceCard } from "@/components/dashboard/accounts/net-balance-card";
 import { CONTENT_HEADER_ACTION_SIZE } from "@/lib/constants/content-header";
-import { formatCurrency, cn } from "@/lib/utils";
-import { AnimatedAmount } from "@/components/ui/animated-amount";
-import { computeNetBalance, sortAccountsCashFirst } from "@/lib/shared/accounts";
+import {
+  ACCOUNT_FILTER_ALL,
+  ACCOUNT_GROUPS,
+  CASH_BANK_NAME,
+  NET_BALANCE_HISTORY_DAYS,
+  type AccountFilter,
+} from "@/lib/constants/accounts";
+import { AMOUNTS_HIDDEN_STORAGE_KEY } from "@/lib/constants/dashboard";
+import {
+  computeNetBalance,
+  sortAccountsCashFirst,
+  summariseAccountMix,
+  type AccountType,
+} from "@/lib/shared/accounts";
 import {
   accountsQueryOptions,
   accountBalancesQueryOptions,
@@ -52,415 +54,6 @@ import {
   accountFormToInput,
   type AccountFormState,
 } from "@/components/dashboard/account-form-dialog";
-
-// ─── Net balance bar chart (visx) ────────────────────────────────────────────
-
-type NetBalancePoint = { date: string; balance: number };
-
-function parseDate(d: string): Date {
-  const [y, m, day] = d.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, day ?? 1);
-}
-
-function formatChartTick(date: Date): string {
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-const getY = (d: NetBalancePoint) => d.balance;
-
-
-// rounded-top rect path (SVG path string)
-function roundedTopPath(x: number, y: number, w: number, h: number, r: number): string {
-  if (h <= 0) return "";
-  const radius = Math.min(r, w / 2, h);
-  return [
-    `M${x + radius},${y}`,
-    `h${w - radius * 2}`,
-    `a${radius},${radius} 0 0 1 ${radius},${radius}`,
-    `v${h - radius}`,
-    `h${-w}`,
-    `v${-(h - radius)}`,
-    `a${radius},${radius} 0 0 1 ${radius},${-radius}`,
-    "z",
-  ].join(" ");
-}
-
-
-function NetBalanceBarChartInner({
-  width,
-  height,
-  series,
-  hideAmounts,
-}: {
-  width: number;
-  height: number;
-  series: NetBalancePoint[];
-  hideAmounts: boolean;
-}) {
-  const margin = { top: 10, right: 16, bottom: 28, left: 56 };
-  const innerWidth = Math.max(0, width - margin.left - margin.right);
-  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
-
-  const {
-    showTooltip,
-    hideTooltip,
-    tooltipData,
-    tooltipLeft = 0,
-    tooltipTop = 0,
-  } = useTooltip<NetBalancePoint>();
-
-  const xScale = useMemo(
-    () =>
-      scaleBand<string>({
-        domain: series.map((d) => d.date),
-        range: [0, innerWidth],
-        padding: 0.3,
-      }),
-    [series, innerWidth],
-  );
-
-  const yScale = useMemo(() => {
-    const maxY = max(series, getY) ?? 0;
-    const pad = Math.max(1, maxY * 0.15);
-    return scaleLinear({
-      domain: [0, Math.max(500, maxY + pad)],
-      range: [innerHeight, 0],
-      nice: true,
-    });
-  }, [series, innerHeight]);
-
-  const bw = xScale.bandwidth();
-
-  if (width < 10 || height < 10) return null;
-
-  return (
-    <div style={{ position: "relative", width, height }}>
-      <svg width={width} height={height}>
-        <defs>
-          <linearGradient id="nbg-pos" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.65} />
-            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={1} />
-          </linearGradient>
-        </defs>
-
-        <Group left={margin.left} top={margin.top}>
-          <GridRows
-            scale={yScale}
-            width={innerWidth}
-            stroke="hsl(var(--border))"
-            strokeDasharray="3 3"
-            numTicks={4}
-          />
-
-          {/* bars */}
-          {series.map((d) => {
-            const bx = xScale(d.date) ?? 0;
-            const balance = Math.max(0, d.balance);
-            const barTop = yScale(balance);
-            const barH = innerHeight - barTop;
-            const isHovered = tooltipData?.date === d.date;
-
-            return (
-              <g
-                key={d.date}
-                onMouseEnter={() =>
-                  showTooltip({
-                    tooltipData: d,
-                    tooltipLeft: bx + bw / 2 + margin.left,
-                    tooltipTop: margin.top + 8,
-                  })
-                }
-                onMouseLeave={hideTooltip}
-                style={{ cursor: "default" }}
-              >
-                {/* column hover highlight */}
-                <rect
-                  x={bx - 3}
-                  y={0}
-                  width={bw + 6}
-                  height={innerHeight}
-                  fill={isHovered ? "hsl(var(--muted))" : "transparent"}
-                  rx={5}
-                  opacity={0.6}
-                />
-
-                {barH > 1 ? (
-                  <path
-                    d={roundedTopPath(bx, barTop, bw, barH, 5)}
-                    fill="url(#nbg-pos)"
-                    opacity={isHovered ? 1 : 0.84}
-                    style={{ transition: "opacity 0.1s ease" }}
-                  />
-                ) : (
-                  <rect
-                    x={bx}
-                    y={innerHeight - 1}
-                    width={bw}
-                    height={2}
-                    fill="hsl(var(--muted-foreground))"
-                    rx={1}
-                  />
-                )}
-              </g>
-            );
-          })}
-
-          <AxisBottom
-            top={innerHeight}
-            scale={xScale}
-            tickFormat={(v) => formatChartTick(parseDate(String(v)))}
-            stroke="transparent"
-            tickStroke="transparent"
-            tickLabelProps={() => ({
-              fill: "hsl(var(--muted-foreground))",
-              fontSize: 11,
-              textAnchor: "middle",
-              dy: "0.6em",
-            })}
-          />
-          <AxisLeft
-            scale={yScale}
-            numTicks={4}
-            tickFormat={(v) => hideAmounts ? "•••" : formatCurrency(Number(v))}
-            stroke="transparent"
-            tickStroke="transparent"
-            tickLabelProps={() => ({
-              fill: "hsl(var(--muted-foreground))",
-              fontSize: 11,
-              textAnchor: "end",
-              dx: "-0.25em",
-              dy: "0.25em",
-            })}
-          />
-        </Group>
-      </svg>
-
-      {tooltipData && (
-        <div
-          style={{
-            position: "absolute",
-            top: tooltipTop,
-            left: tooltipLeft,
-            transform: "translateX(-50%)",
-            pointerEvents: "none",
-            background: "var(--popover)",
-            color: "var(--popover-foreground)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
-            padding: "5px 10px",
-            fontSize: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            whiteSpace: "nowrap",
-            zIndex: 50,
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: 2 }}>{formatChartTick(parseDate(tooltipData.date))}</div>
-          <div style={{ fontVariantNumeric: "tabular-nums" }}>{hideAmounts ? "••••••" : formatCurrency(getY(tooltipData))}</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NetBalanceBarChart({ series, hideAmounts }: { series: NetBalancePoint[]; hideAmounts: boolean }) {
-  return (
-    <div style={{ height: 200 }}>
-      <ParentSize>
-        {({ width, height }) => (
-          <NetBalanceBarChartInner width={width} height={height} series={series} hideAmounts={hideAmounts} />
-        )}
-      </ParentSize>
-    </div>
-  );
-}
-
-// ─── Account card ────────────────────────────────────────────────────────────
-
-function AccountCard({
-  account,
-  balance,
-  hideAmounts,
-  loading,
-  onOpen,
-  onEdit,
-  onToggleTracked,
-  onDelete,
-}: {
-  account: AccountRow;
-  balance: number;
-  hideAmounts: boolean;
-  loading: boolean;
-  onOpen: () => void;
-  onEdit: () => void;
-  onToggleTracked: () => void;
-  onDelete: () => void;
-}) {
-  const logoSlug = getBankLogoSlug(account.bank_name);
-  const isCash = account.bank_name === "Cash";
-
-  return (
-    <div
-      onClick={onOpen}
-      className="group relative flex cursor-pointer flex-col overflow-hidden surface border bg-card p-4 transition-colors hover:bg-muted/40"
-      style={{ borderColor: `${account.color}66` }}
-    >
-      {/* Softer gradient overlay */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `linear-gradient(135deg, ${account.color}40 30%, ${account.color}FF 100%)`,
-        }}
-      />
-
-      {/* Content */}
-      <div className="relative z-10">
-        {/* Options menu */}
-        <div className="absolute right-0 top-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                disabled={loading}
-                className={cn(
-                  "h-7 w-7 text-foreground/60 opacity-60 transition-opacity hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100",
-                  loading && "opacity-100 disabled:opacity-100",
-                )}
-                onClick={(e) => e.stopPropagation()}
-                aria-label={loading ? "Opening account…" : "Account options"}
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  <MoreVertical className="h-4 w-4" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownMenuItem className="cursor-pointer" onSelect={onOpen}>
-                <ExternalLink className="h-4 w-4" />
-                Open account
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onSelect={onEdit}>
-                <Pencil className="h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              {!isCash && (
-                <>
-                  <DropdownMenuItem className="cursor-pointer" onSelect={onToggleTracked}>
-                    {account.include_in_net_balance ? (
-                      <>
-                        <EyeOff className="h-4 w-4" />
-                        Mark as untracked
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4" />
-                        Mark as tracked
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={onDelete}
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Header */}
-        <div className="mb-2 flex min-w-0 items-center gap-2 pr-12">
-          {logoSlug && (
-            <Image
-              src={`/images/bank-logo/${logoSlug}.webp`}
-              alt={account.bank_name}
-              width={24}
-              height={24}
-              className="flex-shrink-0 rounded-md object-contain"
-            />
-          )}
-
-          <p className="min-w-0 truncate text-sm font-semibold text-foreground">
-            {account.account_alias}
-          </p>
-        </div>
-
-        {/* Meta */}
-        <div className="mb-3 flex flex-wrap items-center gap-1 text-xs text-foreground/75">
-          {account.bank_name !== "Cash" && (
-            <>
-              <span className="capitalize">{account.account_type}</span>
-              <span>•</span>
-            </>
-          )}
-          <span>{account.currency}</span>
-          {account.maintaining_balance != null && account.maintaining_balance > 0 && (
-            <>
-              <span>•</span>
-              <span>Min: {hideAmounts ? "•••" : formatCurrency(account.maintaining_balance, account.currency)}</span>
-            </>
-          )}
-
-          {!account.include_in_net_balance && (
-            <span className="rounded-full border border-border bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur-sm">
-              Untracked
-            </span>
-          )}
-
-          {account.tags
-            .filter((tag) => !(account.bank_name === "Cash" && tag === "Cash"))
-            .slice(0, 2)
-            .map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-foreground/80 backdrop-blur-sm"
-                style={{ borderColor: `${account.color}40` }}
-              >
-                {tag}
-              </span>
-            ))}
-        </div>
-
-        {/* Balance */}
-        <div className="mt-auto">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground/60">
-            Balance
-          </p>
-
-          <div className="flex items-center gap-1.5">
-            <p
-              className={cn(
-                "text-lg font-bold tabular-nums text-foreground",
-                balance < 0 && !hideAmounts && "text-destructive",
-              )}
-            >
-              {hideAmounts ? "••••••" : formatCurrency(balance, account.currency)}
-            </p>
-            {account.maintaining_balance != null &&
-              account.maintaining_balance > 0 &&
-              balance < account.maintaining_balance && (
-                <AlertTriangle
-                  className="h-4 w-4 flex-shrink-0 text-warning"
-                  aria-label="Balance below maintaining balance"
-                />
-              )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Board ───────────────────────────────────────────────────────────────
 
 export function AccountsBoard() {
   const router = useRouter();
@@ -483,7 +76,7 @@ export function AccountsBoard() {
 
   const { data: accounts } = useSuspenseQuery(accountsQueryOptions());
   const { data: balances } = useSuspenseQuery(accountBalancesQueryOptions());
-  const { data: netHistory } = useSuspenseQuery(netBalanceHistoryQueryOptions(7));
+  const { data: netHistory } = useSuspenseQuery(netBalanceHistoryQueryOptions(NET_BALANCE_HISTORY_DAYS));
 
   const netBalance = useMemo(() => computeNetBalance(accounts, balances), [accounts, balances]);
 
@@ -492,19 +85,48 @@ export function AccountsBoard() {
     [accounts],
   );
 
-  const hasAnyAccount = accounts.length > 0;
+  const mix = useMemo(() => summariseAccountMix(accounts, balances), [accounts, balances]);
 
   const sortedAccounts = useMemo(() => sortAccountsCashFirst(accounts), [accounts]);
 
+  // "All", then one chip per account type the user actually has.
+  const filterOptions = useMemo<AccountFilterOption[]>(() => {
+    const counts = new Map<AccountType, number>();
+    for (const acc of accounts) counts.set(acc.account_type, (counts.get(acc.account_type) ?? 0) + 1);
+    return [
+      { id: ACCOUNT_FILTER_ALL, label: "All", count: accounts.length },
+      ...ACCOUNT_GROUPS.filter(({ type }) => counts.has(type)).map(({ type, label }) => ({
+        id: type,
+        label,
+        count: counts.get(type) ?? 0,
+      })),
+    ];
+  }, [accounts]);
+
+  const [filter, setFilter] = useState<AccountFilter>(ACCOUNT_FILTER_ALL);
+  // The chips only earn their place with two or more types. A filter whose last
+  // account was deleted or retyped falls back to All.
+  const showFilter = filterOptions.length > 2;
+  const activeFilter: AccountFilter =
+    showFilter && filterOptions.some((o) => o.id === filter) ? filter : ACCOUNT_FILTER_ALL;
+
+  const visibleAccounts = useMemo(
+    () =>
+      activeFilter === ACCOUNT_FILTER_ALL
+        ? sortedAccounts
+        : sortedAccounts.filter((a: AccountRow) => a.account_type === activeFilter),
+    [sortedAccounts, activeFilter],
+  );
+
   const [amountsHidden, setAmountsHidden] = useState(false);
   useEffect(() => {
-    setAmountsHidden(localStorage.getItem("omnitrak-amounts-hidden") === "1");
+    setAmountsHidden(localStorage.getItem(AMOUNTS_HIDDEN_STORAGE_KEY) === "1");
   }, []);
 
   function toggleAmountsHidden() {
     setAmountsHidden((prev) => {
       const next = !prev;
-      localStorage.setItem("omnitrak-amounts-hidden", next ? "1" : "0");
+      localStorage.setItem(AMOUNTS_HIDDEN_STORAGE_KEY, next ? "1" : "0");
       return next;
     });
   }
@@ -518,6 +140,12 @@ export function AccountsBoard() {
   const invalidate = useCallback(() => {
     invalidateAccountQueries(queryClient);
   }, [queryClient]);
+
+  function openAdd() {
+    setFormError(null);
+    setAddKey((k) => k + 1);
+    setAddOpen(true);
+  }
 
   function handleAdd(form: AccountFormState) {
     setFormError(null);
@@ -557,97 +185,67 @@ export function AccountsBoard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
+    <div className="container mx-auto max-w-5xl space-y-4 px-4 py-6">
       <ContentHeader
         title="Accounts"
         icon={Wallet}
         subtitle="Your accounts hub — record expenses, income, transfers, and adjustments here. This isn&apos;t linked to your real bank or e-wallet."
         actions={
-          <Button size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
+          <Button size={CONTENT_HEADER_ACTION_SIZE.button} className="gap-1.5" onClick={openAdd}>
             <Plus className="h-4 w-4" />
             Add Account
           </Button>
         }
       />
 
-      {/* Summary: stats + bar chart */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {/* Stat cards */}
-        <div className="flex flex-row gap-3 sm:w-1/3 sm:flex-col">
-          <div className="flex-1 surface border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Accounts</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums">{accounts.length}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {accounts.length === 1 ? "Account" : "Accounts"} added
-            </p>
-          </div>
-          <div className="flex-1 surface border bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">Net Balance</p>
-            <div className="mt-0.5 flex items-center gap-2">
-              <p className={
-                netBalance < 0 && !amountsHidden
-                  ? "text-lg font-bold tabular-nums text-destructive"
-                  : "text-lg font-bold tabular-nums"
-              }>{amountsHidden ? "••••••" : <AnimatedAmount value={netBalance} />}</p>
-              <button
-                onClick={toggleAmountsHidden}
-                className="pt-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label={amountsHidden ? "Show amounts" : "Hide amounts"}
-              >
-                {amountsHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Excluding untracked accounts
-            </p>
-          </div>
-        </div>
-
-        {/* 7-day net balance bar chart */}
-        <div className="sm:w-2/3">
-          {hasAnyAccount ? (
-            <Card className="h-full">
-              <CardHeader className="pb-0 pt-4">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Net Balance — last 7 days
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-1 pb-3">
-                <NetBalanceBarChart series={netHistory} hideAmounts={amountsHidden} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex h-full min-h-[160px] items-center justify-center surface border border-dashed bg-muted/20 text-sm text-muted-foreground">
-              Add an account to see the chart
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Accounts grid */}
       {accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 surface border border-dashed py-10 text-muted-foreground">
-          <p className="text-sm">No accounts yet. Add one to start tracking by account.</p>
-          <Button size="sm" variant="outline" onClick={() => { setFormError(null); setAddKey(k => k + 1); setAddOpen(true); }}>
-            <Plus className="mr-1.5 h-4 w-4" />
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
+          <OttoAnimated pose="think" size={150} />
+          <p className="text-base font-semibold text-foreground">No accounts yet</p>
+          <p className="max-w-[40ch] text-sm">Add one to start tracking by account.</p>
+          <Button size="lg" className="mt-3 gap-1.5" onClick={openAdd}>
+            <Plus className="size-4" aria-hidden />
             Add Account
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {sortedAccounts.map((acc: AccountRow) => (
-            <AccountCard
-              key={acc.id}
-              account={acc}
-              balance={balances[acc.id] ?? 0}
-              hideAmounts={amountsHidden}
-              loading={isNavPending && navigatingId === acc.id}
-              onOpen={() => handleOpen(acc.id)}
-              onEdit={() => { setFormError(null); setEditingAccount(acc); }}
-              onToggleTracked={() => handleToggleTracked(acc)}
-              onDelete={() => setDeletingId(acc.id)}
+        // Columns follow this box's width, not the screen's: the sidebar takes 16rem
+        // from tablets up, so the viewport alone overstates the room there is.
+        <div className="space-y-4 @container">
+          {/* Summary: net balance with its 7-day line, and the split by account type */}
+          <div className="grid gap-3 @4xl:grid-cols-2">
+            <NetBalanceCard
+              netBalance={netBalance}
+              series={netHistory}
+              accountCount={accounts.length}
+              trackedCount={includedCount}
+              amountsHidden={amountsHidden}
+              onToggleAmountsHidden={toggleAmountsHidden}
             />
-          ))}
+            <AccountMixCard mix={mix} amountsHidden={amountsHidden} />
+          </div>
+
+          <section aria-label="Your accounts" className="space-y-3 pt-1">
+            {showFilter && (
+              <AccountFilterChips options={filterOptions} value={activeFilter} onChange={setFilter} />
+            )}
+
+            <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-3 @4xl:grid-cols-4">
+              {visibleAccounts.map((acc: AccountRow) => (
+                <AccountCard
+                  key={acc.id}
+                  account={acc}
+                  balance={balances[acc.id] ?? 0}
+                  hideAmounts={amountsHidden}
+                  loading={isNavPending && navigatingId === acc.id}
+                  onOpen={() => handleOpen(acc.id)}
+                  onEdit={() => { setFormError(null); setEditingAccount(acc); }}
+                  onToggleTracked={() => handleToggleTracked(acc)}
+                  onDelete={() => setDeletingId(acc.id)}
+                />
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
@@ -668,7 +266,7 @@ export function AccountsBoard() {
           onClose={() => setEditingAccount(null)}
           onSave={handleEdit}
           initial={accountToForm(editingAccount)}
-          isCash={editingAccount.bank_name === "Cash"}
+          isCash={editingAccount.bank_name === CASH_BANK_NAME}
           isPending={isPending}
           error={formError}
         />

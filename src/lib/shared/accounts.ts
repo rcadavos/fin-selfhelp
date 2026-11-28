@@ -3,6 +3,8 @@
  * mobile app. Dependency-free with relative imports only (see `number-format.ts`).
  */
 
+import { roundToCents } from "./number-format";
+
 export type AccountType = "debit" | "credit" | "savings" | "stocks" | "crypto" | "collectibles" | "asset";
 export type InterestFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "annually";
 
@@ -115,4 +117,123 @@ export function computeNetBalance(
   return accounts
     .filter((a) => a.include_in_net_balance)
     .reduce((s, acc) => s + (balances[acc.id] ?? 0), 0);
+}
+
+/** Every counted account of one type, summed. */
+export type AccountMixGroup = {
+  type: AccountType;
+  count: number;
+  total: number;
+  /** This type's part (0 to 1) of the money held; null when the type holds nothing or is in the negative. */
+  share: number | null;
+};
+
+export type AccountMix = {
+  /** Counted accounts by type, largest total first. The totals add up to the Net Balance. */
+  groups: AccountMixGroup[];
+  /** Credit accounts outside the Net Balance that carry a debt. `total` is what is owed, as a positive number. */
+  owedOnCredit: { count: number; total: number };
+  /** Every other account outside the Net Balance. */
+  leftOut: { count: number; total: number };
+};
+
+/**
+ * Where the money sits: the accounts counted in the Net Balance split by type, plus
+ * what stays outside it. A credit account is outside by default, so its debt is
+ * reported on its own instead of being taken off the split.
+ */
+export function summariseAccountMix(
+  accounts: Pick<AccountRow, "id" | "account_type" | "include_in_net_balance">[],
+  balances: Record<string, number>
+): AccountMix {
+  const byType = new Map<AccountType, { count: number; total: number }>();
+  const owedOnCredit = { count: 0, total: 0 };
+  const leftOut = { count: 0, total: 0 };
+
+  for (const acc of accounts) {
+    const balance = balances[acc.id] ?? 0;
+    if (acc.include_in_net_balance) {
+      const group = byType.get(acc.account_type) ?? { count: 0, total: 0 };
+      group.count += 1;
+      group.total += balance;
+      byType.set(acc.account_type, group);
+    } else if (acc.account_type === "credit") {
+      // A card with nothing owed on it has nothing to report here.
+      if (balance < 0) {
+        owedOnCredit.count += 1;
+        owedOnCredit.total -= balance;
+      }
+    } else {
+      leftOut.count += 1;
+      leftOut.total += balance;
+    }
+  }
+
+  const totals = Array.from(byType, ([type, g]) => ({ type, count: g.count, total: roundToCents(g.total) }));
+  const held = totals.reduce((s, g) => s + Math.max(0, g.total), 0);
+
+  return {
+    groups: totals
+      .map((g) => ({ ...g, share: g.total > 0 && held > 0 ? g.total / held : null }))
+      .sort((a, b) => b.total - a.total),
+    owedOnCredit: { count: owedOnCredit.count, total: roundToCents(owedOnCredit.total) },
+    leftOut: { count: leftOut.count, total: roundToCents(leftOut.total) },
+  };
+}
+
+/** How an account sits against the limit or the minimum set on it. */
+export type AccountStanding =
+  | {
+      kind: "credit";
+      limit: number;
+      /** What is owed, never below zero. */
+      used: number;
+      /** What can still be spent, never below zero. */
+      left: number;
+      /** `used` against `limit`, 0 to 1. */
+      ratio: number;
+      overLimit: boolean;
+    }
+  | {
+      kind: "minimum";
+      minimum: number;
+      below: boolean;
+      /** How far under the minimum the balance is; 0 when it is not below. */
+      shortBy: number;
+      /** The balance against `minimum`, 0 to 1. */
+      ratio: number;
+    };
+
+/**
+ * A credit account is measured against its credit limit, any other account against
+ * its maintaining balance. Null when neither is set.
+ */
+export function accountStanding(
+  account: Pick<AccountRow, "account_type" | "credit_limit" | "maintaining_balance">,
+  balance: number
+): AccountStanding | null {
+  if (account.account_type === "credit") {
+    const limit = account.credit_limit ?? 0;
+    if (limit <= 0) return null;
+    const used = roundToCents(Math.max(0, -balance));
+    return {
+      kind: "credit",
+      limit,
+      used,
+      left: roundToCents(Math.max(0, limit - used)),
+      ratio: Math.min(1, used / limit),
+      overLimit: used > limit,
+    };
+  }
+
+  const minimum = account.maintaining_balance ?? 0;
+  if (minimum <= 0) return null;
+  const below = balance < minimum;
+  return {
+    kind: "minimum",
+    minimum,
+    below,
+    shortBy: below ? roundToCents(minimum - balance) : 0,
+    ratio: Math.max(0, Math.min(1, balance / minimum)),
+  };
 }

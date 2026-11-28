@@ -92,7 +92,7 @@ export function NotificationsMenu({ size = "default" }: { size?: TopBarIconButto
         <div className="max-h-[min(60vh,20rem)] overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center px-3 py-4">
-              <OttoLoader size={48} />
+              <OttoLoader size={72} />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-center text-sm text-destructive">

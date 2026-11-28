@@ -4,6 +4,7 @@ import { AccountsBoard } from "@/components/dashboard/accounts-board";
 import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 import { HydrationBoundary } from "@/components/providers/hydration-boundary";
 import { getQueryClient } from "@/lib/query/query-client";
+import { NET_BALANCE_HISTORY_DAYS } from "@/lib/constants/accounts";
 import {
   accountsQueryOptions,
   accountBalancesQueryOptions,
@@ -15,7 +16,8 @@ export default async function AccountsPage() {
   await Promise.all([
     queryClient.prefetchQuery(accountsQueryOptions()),
     queryClient.prefetchQuery(accountBalancesQueryOptions()),
-    queryClient.prefetchQuery(netBalanceHistoryQueryOptions(7)),
+    // Same day count as AccountsBoard reads, or its query misses this prefetch and suspends.
+    queryClient.prefetchQuery(netBalanceHistoryQueryOptions(NET_BALANCE_HISTORY_DAYS)),
   ]);
 
   return (

@@ -120,7 +120,7 @@ export function ExpensesForm(props: ExpensesFormProps) {
           </CardHeader>
           <CardContent>
             <div className="flex h-64 items-center justify-center">
-              <OttoLoader size={140} />
+              <OttoLoader size={190} />
             </div>
           </CardContent>
         </Card>
